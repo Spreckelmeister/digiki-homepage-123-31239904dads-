@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* Farben angelehnt an Stadt Osnabrück (Türkis/Teal) – modern & frisch */
-  --color-primary: #1A3D4E;
-  --color-primary-light: #00A99D;
-  --color-accent: #E8A838;
+  /* Offizielle Farben Stadt Osnabrück */
+  --color-primary: #006363;       /* Barrierefreie Alternative zum Osnabrück-Türkis */
+  --color-primary-light: #00cabe; /* Osnabrück-Türkis */
+  --color-accent: #E8A838;        /* Warmgelb für CTAs */
   --color-accent-hover: #d4962e;
-  --color-teal: #00A99D;
-  --color-teal-dark: #008F85;
-  --color-bg: #F4F8F8;
-  --color-text: #2D3436;
-  --color-text-light: #636E72;
+  --color-teal: #00cabe;          /* Osnabrück-Türkis */
+  --color-teal-dark: #006363;     /* Barrierefreie Alternativfarbe */
+  --color-bg: #F5F9F9;
+  --color-text: #1A1A1A;
+  --color-text-light: #555555;
   --color-white: #FFFFFF;
-  --color-border: #DFE6E9;
+  --color-border: #DEE8E8;
 
   --font-sans: "Inter", "Open Sans", ui-sans-serif, system-ui, sans-serif;
 }

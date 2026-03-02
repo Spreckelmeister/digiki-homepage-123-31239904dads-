@@ -2,7 +2,7 @@ export const projectData = {
   name: "DigiKI",
   fullName: "DigiKI – Digitalisierung & Künstliche Intelligenz an Grundschulen Osnabrück",
   claim: "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück",
-  surveyUrl: "https://forms.office.com/e/LsM6JGrJBd",
+  surveyUrl: "https://forms.office.com/Pages/ResponsePage.aspx?id=VsuNBf2YLU2yTa1RcCb-dxjAuFVBUylFqznqbnw9RiBUNFJUTUE5SDhRS0NLRFFRRURTTUU0OVFKTS4u",
   contactEmail: "krafft@osnabrueck.de",
   projectLead: "Kai Krafft",
   projectLeadRole: "Bildungskoordinator, Stadt Osnabrück",

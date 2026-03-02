@@ -20,7 +20,7 @@ export default function HomePage() {
         {/* Hintergrund-Muster */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
-            backgroundImage: "radial-gradient(circle at 25% 50%, #00A99D 0%, transparent 50%), radial-gradient(circle at 75% 50%, #E8A838 0%, transparent 50%)",
+            backgroundImage: "radial-gradient(circle at 25% 50%, #00cabe 0%, transparent 50%), radial-gradient(circle at 75% 50%, #E8A838 0%, transparent 50%)",
           }} />
         </div>
 
