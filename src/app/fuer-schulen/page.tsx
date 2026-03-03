@@ -263,17 +263,6 @@ export default function FuerSchulenPage() {
                           Demnächst verfügbar
                         </span>
                       )}
-                      {doc.altHref && (
-                        <a
-                          href={doc.altHref}
-                          download
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-text-light hover:text-primary transition-colors"
-                          title={`${doc.title} als ${doc.altFormat} herunterladen`}
-                        >
-                          <Download className="w-4 h-4" aria-hidden="true" />
-                          {doc.altFormat}
-                        </a>
-                      )}
                     </div>
                   </div>
                 </div>
