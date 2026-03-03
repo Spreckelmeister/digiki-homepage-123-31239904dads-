@@ -214,18 +214,21 @@ export default function FuerSchulenPage() {
             {[
               {
                 title: "Antrag Tool-Lizenzen",
-                description: "Formular zur Beantragung stiftungsfinanzierter Tool-Lizenzen für adaptive Lernplattformen.",
-                format: "PDF",
+                description: "Formular zur Beantragung stiftungsfinanzierter Tool-Lizenzen für adaptive Lernplattformen. Gesperrtes Word-Formular zum Ausfüllen.",
+                format: "DOCX",
+                href: "/downloads/Antrag_Tool_Lizenzen_DigiKI.docx",
               },
               {
-                title: "Antrag Studentische Unterstützung",
-                description: "Formular zur Beantragung studentischer Begleitung im Unterricht.",
-                format: "PDF",
+                title: "Antrag Studentische Hilfskräfte",
+                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools, technischem Support und Materialerstellung. Gesperrtes Word-Formular zum Ausfüllen.",
+                format: "DOCX",
+                href: "/downloads/Antrag_Studentische_Hilfskraefte_DigiKI.docx",
               },
               {
                 title: "Best-Practice-Vorlage",
                 description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools.",
                 format: "DOCX",
+                href: "",
               },
             ].map((doc) => (
               <div
@@ -244,21 +247,41 @@ export default function FuerSchulenPage() {
                     <p className="text-xs text-text-light mb-3">
                       {doc.description}
                     </p>
-                    <button
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary transition-colors"
-                      title={`${doc.title} herunterladen (${doc.format})`}
-                    >
-                      <Download className="w-4 h-4" aria-hidden="true" />
-                      {doc.format} herunterladen
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                      {doc.href ? (
+                        <a
+                          href={doc.href}
+                          download
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary transition-colors"
+                          title={`${doc.title} herunterladen (${doc.format})`}
+                        >
+                          <Download className="w-4 h-4" aria-hidden="true" />
+                          {doc.format} herunterladen
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-text-light italic">
+                          Demnächst verfügbar
+                        </span>
+                      )}
+                      {doc.altHref && (
+                        <a
+                          href={doc.altHref}
+                          download
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-text-light hover:text-primary transition-colors"
+                          title={`${doc.title} als ${doc.altFormat} herunterladen`}
+                        >
+                          <Download className="w-4 h-4" aria-hidden="true" />
+                          {doc.altFormat}
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
           <p className="text-center text-sm text-text-light mt-8">
-            Die Download-Dokumente werden in Kürze bereitgestellt. Bei Fragen
-            wenden Sie sich bitte an{" "}
+            Bei Fragen zu den Downloads wenden Sie sich bitte an{" "}
             <a
               href={`mailto:${projectData.contactEmail}`}
               className="text-primary-light underline hover:text-primary"
