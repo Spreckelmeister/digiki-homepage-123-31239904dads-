@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ExternalLink, Download, Check, FileText } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { projectData, participationOptions, faqItems } from "@/data/project";
@@ -123,6 +124,37 @@ export default function FuerSchulenPage() {
               Zur Online-Bestandsaufnahme
               <ExternalLink className="w-5 h-5" aria-hidden="true" />
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Motivations-Bild */}
+      <section className="py-0">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                src="/images/icons/studenten-unterstuetzung.jpg"
+                alt="Junge Studierende arbeiten motiviert gemeinsam an einem Projekt"
+                width={600}
+                height={400}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-primary mb-4">
+                Sie sind nicht allein
+              </h2>
+              <p className="text-lg text-text-light leading-relaxed mb-4">
+                Studentische Hilfskräfte unterstützen Sie direkt an Ihrer Schule – bei
+                der Einrichtung von Tools, bei technischen Fragen und bei der
+                Materialerstellung.
+              </p>
+              <p className="text-lg text-text-light leading-relaxed">
+                So können Sie sich auf das konzentrieren, was Sie am besten können:
+                Ihre Schülerinnen und Schüler begleiten und fördern.
+              </p>
+            </div>
           </div>
         </div>
       </section>

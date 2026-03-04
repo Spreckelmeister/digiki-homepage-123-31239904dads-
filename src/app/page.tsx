@@ -25,31 +25,46 @@ export default function HomePage() {
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Digitale Kompetenz &amp; KI für{" "}
-              <span className="text-teal">Grundschulen</span>
-            </h1>
-            <p className="text-lg md:text-xl text-teal/70 mb-8 leading-relaxed">
-              {projectData.claim}. Kostenlose Schulungen, Tool-Lizenzen und
-              Begleitung für alle interessierten Grundschulen.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href={projectData.surveyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
-              >
-                Jetzt teilnehmen
-                <ArrowRight className="w-5 h-5" aria-hidden="true" />
-              </a>
-              <Link
-                href="/ueber-das-projekt"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
-              >
-                Mehr erfahren
-              </Link>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                Digitale Kompetenz &amp; KI für{" "}
+                <span className="text-teal">Grundschulen</span>
+              </h1>
+              <p className="text-lg md:text-xl text-teal/70 mb-8 leading-relaxed">
+                {projectData.claim}. Kostenlose Schulungen, Tool-Lizenzen und
+                Begleitung für alle interessierten Grundschulen.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a
+                  href={projectData.surveyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+                >
+                  Jetzt teilnehmen
+                  <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                </a>
+                <Link
+                  href="/ueber-das-projekt"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+                >
+                  Mehr erfahren
+                </Link>
+              </div>
+            </div>
+            <div className="hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <Image
+                  src="/images/hero/hero-klassenzimmer.jpg"
+                  alt="Lehrerin unterstützt einen Schüler beim Lernen im Klassenzimmer"
+                  width={600}
+                  height={400}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/20 ring-inset" />
+              </div>
             </div>
           </div>
         </div>
@@ -74,20 +89,35 @@ export default function HomePage() {
       {/* Projektvorstellung */}
       <section className="py-16 md:py-24" aria-labelledby="vision-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-12">
-            <h2
-              id="vision-heading"
-              className="text-3xl md:text-4xl font-bold text-primary mb-4"
-            >
-              Unsere Vision
-            </h2>
-            <p className="text-lg text-text-light leading-relaxed">
-              DigiKI ist ein 18-monatiges Projekt, das alle interessierten
-              Grundschulen in der Stadt und dem Landkreis Osnabrück zu digitaler
-              Kompetenz und zum sachgerechten Umgang mit KI befähigen soll.
-              Koordiniert von der Stadt Osnabrück und finanziert durch regionale
-              Stiftungen und private Förderer.
-            </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                src="/images/icons/kinder-laptops-klassenzimmer.jpg"
+                alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
+                width={600}
+                height={400}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+            <div>
+              <h2
+                id="vision-heading"
+                className="text-3xl md:text-4xl font-bold text-primary mb-4"
+              >
+                Unsere Vision
+              </h2>
+              <p className="text-lg text-text-light leading-relaxed mb-4">
+                DigiKI ist ein 18-monatiges Projekt, das alle interessierten
+                Grundschulen in der Stadt und dem Landkreis Osnabrück zu digitaler
+                Kompetenz und zum sachgerechten Umgang mit KI befähigen soll.
+              </p>
+              <p className="text-lg text-text-light leading-relaxed">
+                Dabei geht es nicht darum, den Unterricht zu digitalisieren – sondern
+                Lehrkräfte zu entlasten und ihnen mehr Zeit für das zu geben, was
+                wirklich zählt: die individuelle Förderung ihrer Schülerinnen und
+                Schüler.
+              </p>
+            </div>
           </div>
         </div>
       </section>

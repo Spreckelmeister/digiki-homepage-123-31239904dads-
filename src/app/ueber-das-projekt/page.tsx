@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Timeline from "@/components/Timeline";
 import { timelinePhases } from "@/data/project";
 import { BookOpen, Target, Lightbulb, Heart } from "lucide-react";
@@ -139,53 +140,68 @@ export default function UeberDasProjektPage() {
       {/* Schwerpunkt Sprachförderung */}
       <section className="py-16 md:py-24" aria-labelledby="language-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <div className="bg-white rounded-2xl p-8 md:p-12 shadow-sm border border-border">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                  <Heart
-                    className="w-6 h-6 text-accent"
-                    aria-hidden="true"
-                  />
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                <div className="lg:col-span-3">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                      <Heart
+                        className="w-6 h-6 text-accent"
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div>
+                      <h2
+                        id="language-heading"
+                        className="text-2xl md:text-3xl font-bold text-primary mb-2"
+                      >
+                        Schwerpunkt: Sprachförderung &amp; Mehrsprachigkeit
+                      </h2>
+                      <p className="text-accent font-medium">
+                        Ein besonderes Anliegen von DigiKI
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4 text-text-light leading-relaxed">
+                    <p>
+                      In der Region Osnabrück wachsen viele Kinder mehrsprachig auf
+                      oder lernen Deutsch als Zweitsprache (DaZ). KI-gestützte
+                      Werkzeuge können hier besonders wirkungsvoll unterstützen:
+                    </p>
+                    <ul className="space-y-2 ml-4">
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                        Adaptive Lernplattformen passen sich dem individuellen
+                        Sprachstand an
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                        KI-basierte Diagnostik erkennt Förderbedarfe frühzeitig
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                        Mehrsprachige Lernumgebungen unterstützen den
+                        Spracherwerb
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                        Lehrkräfte werden entlastet und können gezielter fördern
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <h2
-                    id="language-heading"
-                    className="text-2xl md:text-3xl font-bold text-primary mb-2"
-                  >
-                    Schwerpunkt: Sprachförderung &amp; Mehrsprachigkeit
-                  </h2>
-                  <p className="text-accent font-medium">
-                    Ein besonderes Anliegen von DigiKI
-                  </p>
+                <div className="lg:col-span-2">
+                  <div className="rounded-xl overflow-hidden shadow-md">
+                    <Image
+                      src="/images/icons/sprachfoerderung-daz.jpg"
+                      alt="Lehrerin begleitet einen Schüler individuell beim Lernen mit einem Tablet"
+                      width={400}
+                      height={280}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-4 text-text-light leading-relaxed">
-                <p>
-                  In der Region Osnabrück wachsen viele Kinder mehrsprachig auf
-                  oder lernen Deutsch als Zweitsprache (DaZ). KI-gestützte
-                  Werkzeuge können hier besonders wirkungsvoll unterstützen:
-                </p>
-                <ul className="space-y-2 ml-4">
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                    Adaptive Lernplattformen passen sich dem individuellen
-                    Sprachstand an
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                    KI-basierte Diagnostik erkennt Förderbedarfe frühzeitig
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                    Mehrsprachige Lernumgebungen unterstützen den
-                    Spracherwerb
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                    Lehrkräfte werden entlastet und können gezielter fördern
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
