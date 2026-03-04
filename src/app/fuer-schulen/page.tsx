@@ -226,9 +226,9 @@ export default function FuerSchulenPage() {
               },
               {
                 title: "Best-Practice-Vorlage",
-                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools.",
+                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools an Grundschulen. Gesperrtes Word-Formular zum Ausfüllen.",
                 format: "DOCX",
-                href: "",
+                href: "/downloads/Best-Practice-Vorlage-Grundschule.docx",
               },
             ].map((doc) => (
               <div
