@@ -45,6 +45,14 @@ export default function Footer() {
               </li>
               <li>
                 <Link
+                  href="/best-practice"
+                  className="text-teal/60 hover:text-white transition-colors"
+                >
+                  Best Practice
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/impressum"
                   className="text-teal/60 hover:text-white transition-colors"
                 >

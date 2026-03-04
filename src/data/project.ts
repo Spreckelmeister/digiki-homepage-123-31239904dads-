@@ -53,7 +53,7 @@ export const features = [
 export const partners = [
   { name: "Stadt Osnabrück", logo: "/images/logos/stadt-osnabrueck.webp", url: "https://www.osnabrueck.de" },
   { name: "Landkreis Osnabrück", logo: "/images/logos/landkreis-os.png", url: "https://www.landkreis-osnabrueck.de" },
-  { name: "KOS", logo: "/images/logos/kos.jpg", url: "https://www.kos.uni-osnabrueck.de" },
+  { name: "KOS", logo: "/images/logos/KOS-Logo-Variante-01-horizontal-Printmedien-farbig.png", url: "https://www.kos.uni-osnabrueck.de" },
   { name: "Medienzentrum Osnabrück", logo: null, url: "https://www.medienzentrum-osnabrueck.de" },
   { name: "RLSB Osnabrück", logo: "/images/logos/rlsb.jpg", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },
 ];

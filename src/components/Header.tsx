@@ -8,8 +8,8 @@ const navigation = [
   { name: "Startseite", href: "/" },
   { name: "Über das Projekt", href: "/ueber-das-projekt" },
   { name: "Für Schulen", href: "/fuer-schulen" },
+  { name: "Best Practice", href: "/best-practice" },
   // Weitere Seiten können hier ergänzt werden:
-  // { name: "Best Practice", href: "/best-practice" },
   // { name: "Termine", href: "/termine" },
   // { name: "Netzwerk", href: "/netzwerk" },
   // { name: "Aktuelles", href: "/aktuelles" },
