@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 const navigation = [
@@ -34,7 +35,14 @@ export default function Header() {
               href="/"
               className="flex items-center gap-2 text-xl font-bold text-primary"
             >
-              <span className="text-2xl">DigiKI</span>
+              <Image
+                src="/images/logos/DigiKI.png"
+                alt="DigiKI Osnabrück"
+                width={120}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
             </Link>
           </div>
 

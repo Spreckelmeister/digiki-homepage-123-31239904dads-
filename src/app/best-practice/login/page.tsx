@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Image from "next/image";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -24,14 +25,30 @@ export default function LoginPage() {
 
       {/* Login Form */}
       <section className="py-16 md:py-24">
-        <div className="mx-auto max-w-md px-4 sm:px-6">
-          <Suspense fallback={
-            <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center text-text-light">
-              Wird geladen...
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="hidden lg:block">
+              <Image
+                src="/images/icons/istockphoto-1360857826-1024x1024.jpg"
+                alt="Kinder lernen mit digitalen Tools"
+                width={500}
+                height={400}
+                className="rounded-2xl shadow-lg object-cover w-full h-[400px]"
+              />
+              <p className="mt-4 text-sm text-text-light text-center">
+                Digitale Tools und KI im Grundschulunterricht entdecken
+              </p>
             </div>
-          }>
-            <LoginForm />
-          </Suspense>
+            <div className="max-w-md mx-auto w-full">
+              <Suspense fallback={
+                <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center text-text-light">
+                  Wird geladen...
+                </div>
+              }>
+                <LoginForm />
+              </Suspense>
+            </div>
+          </div>
         </div>
       </section>
     </>
