@@ -16,50 +16,74 @@ export default function UeberDasProjektPage() {
       {/* Header */}
       <section className="bg-primary py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Über das Projekt
-          </h1>
-          <p className="text-lg text-teal/70 max-w-3xl">
-            DigiKI ist ein 18-monatiges Projekt, das alle interessierten
-            Grundschulen in Stadt und Landkreis Osnabrück zu digitaler Kompetenz
-            und sachgerechtem Umgang mit KI befähigen soll.
-          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                Über das Projekt
+              </h1>
+              <p className="text-lg text-teal/70 max-w-3xl">
+                DigiKI ist ein 18-monatiges Projekt, das alle interessierten
+                Grundschulen in Stadt und Landkreis Osnabrück zu digitaler Kompetenz
+                und sachgerechtem Umgang mit KI befähigen soll.
+              </p>
+            </div>
+            <div className="hidden lg:block">
+              <Image
+                src="/images/icons/istockphoto-500537221-1024x1024.jpg"
+                alt="Lehrkräfte-Team in einer Grundschule"
+                width={500}
+                height={350}
+                className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Projektbeschreibung */}
       <section className="py-16 md:py-24" aria-labelledby="about-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <h2
-              id="about-heading"
-              className="text-2xl md:text-3xl font-bold text-primary mb-6"
-            >
-              Warum DigiKI?
-            </h2>
-            <div className="prose max-w-none text-text-light leading-relaxed space-y-4">
-              <p>
-                Die Digitalisierung verändert unsere Gesellschaft grundlegend –
-                und macht auch vor den Schulen nicht halt. Künstliche
-                Intelligenz bietet enorme Chancen für individualisiertes Lernen,
-                Sprachförderung und die Entlastung von Lehrkräften. Gleichzeitig
-                braucht es Wissen und Kompetenz, um diese Werkzeuge sinnvoll und
-                verantwortungsbewusst einzusetzen.
-              </p>
-              <p>
-                DigiKI setzt genau hier an: Das Projekt bietet Grundschulen in
-                der Region Osnabrück ein umfassendes Programm aus Schulungen,
-                Tool-Bereitstellung und Begleitung, um den Einstieg in die
-                digitale und KI-gestützte Bildung zu erleichtern.
-              </p>
-              <p>
-                Koordiniert wird das Projekt von der Stadt Osnabrück
-                (Projektleiter: Kai Krafft, Bildungskoordinator). Die
-                Finanzierung erfolgt durch die Friedel &amp; Gisela
-                Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung
-                Stahlwerk Georgsmarienhütte und Herrn Hellmann als privaten
-                Förderer.
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2
+                id="about-heading"
+                className="text-2xl md:text-3xl font-bold text-primary mb-6"
+              >
+                Warum DigiKI?
+              </h2>
+              <div className="prose max-w-none text-text-light leading-relaxed space-y-4">
+                <p>
+                  Die Digitalisierung verändert unsere Gesellschaft grundlegend –
+                  und macht auch vor den Schulen nicht halt. Künstliche
+                  Intelligenz bietet enorme Chancen für individualisiertes Lernen,
+                  Sprachförderung und die Entlastung von Lehrkräften. Gleichzeitig
+                  braucht es Wissen und Kompetenz, um diese Werkzeuge sinnvoll und
+                  verantwortungsbewusst einzusetzen.
+                </p>
+                <p>
+                  DigiKI setzt genau hier an: Das Projekt bietet Grundschulen in
+                  der Region Osnabrück ein umfassendes Programm aus Schulungen,
+                  Tool-Bereitstellung und Begleitung, um den Einstieg in die
+                  digitale und KI-gestützte Bildung zu erleichtern.
+                </p>
+                <p>
+                  Koordiniert wird das Projekt von der Stadt Osnabrück
+                  (Projektleiter: Kai Krafft, Bildungskoordinator). Die
+                  Finanzierung erfolgt durch die Friedel &amp; Gisela
+                  Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung
+                  Stahlwerk Georgsmarienhütte und Herrn Hellmann als privaten
+                  Förderer.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                src="/images/icons/istockphoto-1435661952-1024x1024.jpg"
+                alt="Kinder halten gemeinsam eine Weltkugel in die Höhe"
+                width={500}
+                height={400}
+                className="w-full h-auto object-cover"
+              />
             </div>
           </div>
         </div>
@@ -241,13 +265,24 @@ export default function UeberDasProjektPage() {
               Förderung &amp; Finanzierung
             </h2>
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-border">
-              <div className="text-center mb-8">
-                <div className="text-4xl font-bold text-accent mb-2">
-                  240.000 &euro;
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center mb-8">
+                <div className="lg:col-span-2 text-center lg:text-left">
+                  <div className="text-4xl font-bold text-accent mb-2">
+                    240.000 &euro;
+                  </div>
+                  <p className="text-text-light">
+                    Gesamtbudget – finanziert durch Stiftungen und private Förderer
+                  </p>
                 </div>
-                <p className="text-text-light">
-                  Gesamtbudget – finanziert durch Stiftungen und private Förderer
-                </p>
+                <div className="hidden lg:block rounded-xl overflow-hidden">
+                  <Image
+                    src="/images/icons/tool-lizenz.jpg"
+                    alt="Digitale Analyse und Datenmanagement"
+                    width={300}
+                    height={200}
+                    className="w-full h-[150px] object-cover"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[

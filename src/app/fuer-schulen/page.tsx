@@ -17,13 +17,26 @@ export default function FuerSchulenPage() {
       {/* Header */}
       <section className="bg-primary py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Für Schulen
-          </h1>
-          <p className="text-lg text-blue-200 max-w-3xl">
-            Alle Informationen zur Teilnahme an DigiKI – von der Anmeldung bis
-            zur Umsetzung im Unterricht.
-          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                Für Schulen
+              </h1>
+              <p className="text-lg text-blue-200 max-w-3xl">
+                Alle Informationen zur Teilnahme an DigiKI – von der Anmeldung bis
+                zur Umsetzung im Unterricht.
+              </p>
+            </div>
+            <div className="hidden lg:block">
+              <Image
+                src="/images/icons/istockphoto-2224687755-1024x1024.jpg"
+                alt="Kinder laufen fröhlich aus einer Grundschule"
+                width={500}
+                height={350}
+                className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -103,27 +116,38 @@ export default function FuerSchulenPage() {
       {/* Bestandsaufnahme CTA */}
       <section className="py-16 md:py-24 bg-white" aria-labelledby="survey-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2
-              id="survey-heading"
-              className="text-2xl md:text-3xl font-bold text-primary mb-4"
-            >
-              Erster Schritt: Online-Bestandsaufnahme
-            </h2>
-            <p className="text-lg text-text-light mb-8">
-              Helfen Sie uns, die Angebote passgenau zu gestalten. Der kurze
-              Fragebogen (ca. 10 Minuten) erfasst den aktuellen Stand der
-              digitalen Ausstattung und die Bedarfe Ihrer Schule.
-            </p>
-            <a
-              href={projectData.surveyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
-            >
-              Zur Online-Bestandsaufnahme
-              <ExternalLink className="w-5 h-5" aria-hidden="true" />
-            </a>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="hidden lg:block rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                src="/images/icons/teacher-training.jpg"
+                alt="Lehrkräfte bei einer Fortbildung am Computer"
+                width={500}
+                height={350}
+                className="w-full h-[300px] object-cover"
+              />
+            </div>
+            <div className="text-center lg:text-left">
+              <h2
+                id="survey-heading"
+                className="text-2xl md:text-3xl font-bold text-primary mb-4"
+              >
+                Erster Schritt: Online-Bestandsaufnahme
+              </h2>
+              <p className="text-lg text-text-light mb-8">
+                Helfen Sie uns, die Angebote passgenau zu gestalten. Der kurze
+                Fragebogen (ca. 10 Minuten) erfasst den aktuellen Stand der
+                digitalen Ausstattung und die Bedarfe Ihrer Schule.
+              </p>
+              <a
+                href={projectData.surveyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+              >
+                Zur Online-Bestandsaufnahme
+                <ExternalLink className="w-5 h-5" aria-hidden="true" />
+              </a>
+            </div>
           </div>
         </div>
       </section>
