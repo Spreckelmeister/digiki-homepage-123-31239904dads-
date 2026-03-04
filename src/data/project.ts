@@ -62,7 +62,7 @@ export const partners = [
 export const funders = [
   { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/bohnenkamp.jpg", url: "https://www.bohnenkamp-stiftung.de" },
   { name: "Fromm-Stiftung", logo: "/images/logos/fromm.png", url: "https://www.fromm-stiftung.de" },
-  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.webp", url: "https://www.stiftung-stahlwerk.de" },
+  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de" },
   { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true },
 ];
 
