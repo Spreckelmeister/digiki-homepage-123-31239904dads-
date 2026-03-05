@@ -40,13 +40,13 @@ export default function AuthStatus() {
 
   return (
     <div className="flex items-center gap-4 text-sm">
-      <span className="text-blue-200">
+      <span className="text-white/70">
         Angemeldet als <strong className="text-white">{profile.full_name}</strong>
       </span>
       {profile.role === "admin" && (
         <Link
           href="/best-practice/admin"
-          className="inline-flex items-center gap-1 text-blue-200 hover:text-white transition-colors"
+          className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
         >
           <Settings className="w-4 h-4" aria-hidden="true" />
           Admin
@@ -54,7 +54,7 @@ export default function AuthStatus() {
       )}
       <button
         onClick={handleLogout}
-        className="inline-flex items-center gap-1 text-blue-200 hover:text-white transition-colors"
+        className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
       >
         <LogOut className="w-4 h-4" aria-hidden="true" />
         Abmelden

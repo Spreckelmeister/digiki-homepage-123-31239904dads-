@@ -17,7 +17,7 @@ export default function LoginPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Anmelden
           </h1>
-          <p className="text-lg text-blue-200">
+          <p className="text-lg text-white/70">
             Melden Sie sich an, um auf die Best-Practice-Datenbank zuzugreifen.
           </p>
         </div>

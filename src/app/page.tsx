@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ExternalLink, User } from "lucide-react";
+import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop } from "lucide-react";
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import {
@@ -149,6 +149,100 @@ export default function HomePage() {
                 icon={feature.icon}
               />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Online-Formulare */}
+      <section
+        className="py-16 md:py-24"
+        aria-labelledby="forms-heading"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2
+              id="forms-heading"
+              className="text-3xl md:text-4xl font-bold text-primary mb-4"
+            >
+              Jetzt online beantragen
+            </h2>
+            <p className="text-lg text-text-light max-w-2xl mx-auto">
+              Alle Anträge und Formulare direkt online ausfüllen – schnell und
+              unkompliziert.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link
+              href="/fuer-schulen/antrag-tool-lizenzen"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                <Laptop
+                  className="h-6 w-6 text-accent"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Kostenlose Tool-Lizenzen
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                DSGVO-konforme Lern-Tools für Ihre Schule beantragen –
+                finanziert durch Stiftungen.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
+
+            <Link
+              href="/fuer-schulen/antrag-hilfskraefte"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <Users2
+                  className="h-6 w-6 text-primary"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Studentische Hilfskräfte
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                Kostenlose Unterstützung bei der Einrichtung digitaler
+                Tools und technischem Support.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
+
+            <Link
+              href="/best-practice/einreichen"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <BookOpen
+                  className="h-6 w-6 text-primary"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Best Practice einreichen
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen
+                Tools und teilen Sie sie mit anderen.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
           </div>
         </div>
       </section>

@@ -32,7 +32,7 @@ export default async function DatenbankPage() {
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 Best-Practice-Datenbank
               </h1>
-              <p className="text-lg text-blue-200">
+              <p className="text-lg text-white/70">
                 Erprobte Unterrichtsbeispiele mit digitalen Tools und KI.
               </p>
             </div>

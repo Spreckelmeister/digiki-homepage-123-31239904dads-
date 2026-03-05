@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Download, Check, FileText } from "lucide-react";
+import { ExternalLink, Download, Check, FileText, PenLine } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { projectData, participationOptions, faqItems } from "@/data/project";
 
@@ -22,7 +22,7 @@ export default function FuerSchulenPage() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Für Schulen
               </h1>
-              <p className="text-lg text-blue-200 max-w-3xl">
+              <p className="text-lg text-white/70 max-w-3xl">
                 Alle Informationen zur Teilnahme an DigiKI – von der Anmeldung bis
                 zur Umsetzung im Unterricht.
               </p>
@@ -270,21 +270,24 @@ export default function FuerSchulenPage() {
             {[
               {
                 title: "Antrag Tool-Lizenzen",
-                description: "Formular zur Beantragung stiftungsfinanzierter Tool-Lizenzen für adaptive Lernplattformen. Gesperrtes Word-Formular zum Ausfüllen.",
+                description: "Formular zur Beantragung stiftungsfinanzierter Tool-Lizenzen für adaptive Lernplattformen.",
                 format: "DOCX",
-                href: "/downloads/Antrag_Tool_Lizenzen_DigiKI.docx",
+                downloadHref: "/downloads/Antrag_Tool_Lizenzen_DigiKI.docx",
+                formHref: "/fuer-schulen/antrag-tool-lizenzen",
               },
               {
                 title: "Antrag Studentische Hilfskräfte",
-                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools, technischem Support und Materialerstellung. Gesperrtes Word-Formular zum Ausfüllen.",
+                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools, technischem Support und Materialerstellung.",
                 format: "DOCX",
-                href: "/downloads/Antrag_Studentische_Hilfskraefte_DigiKI.docx",
+                downloadHref: "/downloads/Antrag_Studentische_Hilfskraefte_DigiKI.docx",
+                formHref: "/fuer-schulen/antrag-hilfskraefte",
               },
               {
                 title: "Best-Practice-Vorlage",
-                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools an Grundschulen. Gesperrtes Word-Formular zum Ausfüllen.",
+                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools an Grundschulen.",
                 format: "DOCX",
-                href: "/downloads/Best-Practice-Vorlage-Grundschule.docx",
+                downloadHref: "/downloads/Best-Practice-Vorlage-Grundschule.docx",
+                formHref: "/best-practice/einreichen",
               },
             ].map((doc) => (
               <div
@@ -304,21 +307,22 @@ export default function FuerSchulenPage() {
                       {doc.description}
                     </p>
                     <div className="flex flex-wrap gap-3">
-                      {doc.href ? (
-                        <a
-                          href={doc.href}
-                          download
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary transition-colors"
-                          title={`${doc.title} herunterladen (${doc.format})`}
-                        >
-                          <Download className="w-4 h-4" aria-hidden="true" />
-                          {doc.format} herunterladen
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-sm text-text-light italic">
-                          Demnächst verfügbar
-                        </span>
-                      )}
+                      <Link
+                        href={doc.formHref}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <PenLine className="w-4 h-4" aria-hidden="true" />
+                        Online ausfüllen
+                      </Link>
+                      <a
+                        href={doc.downloadHref}
+                        download
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary transition-colors"
+                        title={`${doc.title} herunterladen (${doc.format})`}
+                      >
+                        <Download className="w-4 h-4" aria-hidden="true" />
+                        {doc.format} herunterladen
+                      </a>
                     </div>
                   </div>
                 </div>

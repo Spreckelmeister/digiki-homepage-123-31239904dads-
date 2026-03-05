@@ -111,7 +111,63 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                4. Externe Dienste und Links
+                4. Online-Formulare und Datenbank
+              </h2>
+              <p className="text-text-light leading-relaxed mb-4">
+                Diese Website bietet Online-Formulare an, über die Schulen
+                Anträge einreichen können (z.&thinsp;B. Tool-Lizenzen,
+                studentische Hilfskräfte, Best-Practice-Dokumentationen). Die
+                in den Formularen eingegebenen Daten werden über eine
+                verschlüsselte Verbindung (HTTPS) an unseren
+                Datenbank-Dienstleister Supabase übermittelt und dort
+                gespeichert.
+              </p>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Welche Daten werden erhoben?
+              </h3>
+              <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
+                <li>Schulname und Schuladresse</li>
+                <li>Name der Schulleitung und Kontaktperson</li>
+                <li>E-Mail-Adresse und Telefonnummer</li>
+                <li>Angaben zu Schülerzahl und Lehrkräften</li>
+                <li>
+                  Formularspezifische Angaben (z.&thinsp;B. gewünschte Tools,
+                  Unterstützungsbereiche, Unterrichtserfahrungen)
+                </li>
+              </ul>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zweck und Rechtsgrundlage
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Verarbeitung erfolgt zur Bearbeitung Ihres Antrags im
+                Rahmen des DigiKI-Projekts auf Grundlage von Art. 6 Abs. 1
+                lit. b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a
+                DSGVO (Einwilligung bei der Best-Practice-Veröffentlichung).
+              </p>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Auftragsverarbeitung (Supabase)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Daten werden bei Supabase Inc. gespeichert. Supabase
+                verarbeitet die Daten ausschließlich in unserem Auftrag und
+                gemäß unseren Weisungen. Die Server befinden sich in der EU
+                (Frankfurt). Ein Auftragsverarbeitungsvertrag (AVV) gemäß
+                Art. 28 DSGVO liegt vor.
+              </p>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Speicherdauer
+              </h3>
+              <p className="text-text-light leading-relaxed">
+                Die über die Formulare erhobenen Daten werden für die Dauer
+                des DigiKI-Projekts gespeichert und nach Projektabschluss
+                gelöscht, sofern keine gesetzlichen Aufbewahrungspflichten
+                bestehen.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                5. Externe Dienste und Links
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Diese Website enthält Links zu externen Diensten, insbesondere:
@@ -122,18 +178,17 @@ export default function DatenschutzPage() {
                   Online-Bestandsaufnahme. Für die Datenverarbeitung durch
                   Microsoft gelten die Datenschutzbestimmungen von Microsoft.
                 </li>
-                <li>
-                  <strong>Google Fonts</strong> zur Einbindung von
-                  Schriftarten. Beim Aufruf der Website wird eine Verbindung zu
-                  Google-Servern hergestellt. Weitere Informationen finden Sie
-                  in den Datenschutzhinweisen von Google.
-                </li>
               </ul>
+              <p className="text-text-light leading-relaxed">
+                Schriftarten werden lokal von dieser Website ausgeliefert
+                (Self-Hosting). Es findet keine Verbindung zu externen
+                Font-Servern statt.
+              </p>
             </div>
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                5. Ihre Rechte
+                6. Ihre Rechte
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Sie haben im Rahmen der geltenden gesetzlichen Bestimmungen
@@ -156,7 +211,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                6. Recht auf Beschwerde
+                7. Recht auf Beschwerde
               </h2>
               <p className="text-text-light leading-relaxed">
                 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde

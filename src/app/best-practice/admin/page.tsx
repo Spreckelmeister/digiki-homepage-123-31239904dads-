@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus, FileText, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
+import AdminNav from "@/components/best-practice/AdminNav";
 import AdminTable from "@/components/best-practice/AdminTable";
 
 export const metadata: Metadata = {
@@ -32,9 +33,10 @@ export default async function AdminPage() {
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 Admin-Bereich
               </h1>
-              <p className="text-lg text-blue-200">
+              <p className="text-lg text-white/70">
                 Best-Practice-Beiträge verwalten.
               </p>
+              <AdminNav />
             </div>
             <AuthStatus />
           </div>
