@@ -251,14 +251,14 @@ export default function HomePage() {
                     {...linkProps}
                     className="flex flex-col items-center justify-center gap-3 p-4 bg-bg rounded-xl border border-border hover:shadow-md hover:border-teal/30 transition-all"
                   >
-                    <div className="h-14 w-full flex items-center justify-center">
+                    <div className="h-16 w-full flex items-center justify-center">
                       {funder.logo ? (
                         <Image
                           src={funder.logo}
                           alt={`Logo ${funder.name}`}
-                          width={140}
-                          height={56}
-                          className="max-h-12 w-auto object-contain"
+                          width={160}
+                          height={64}
+                          className={`${funder.logoClassName || "max-h-12"} w-auto object-contain`}
                         />
                       ) : (
                         <User className="w-8 h-8 text-teal" aria-hidden="true" />

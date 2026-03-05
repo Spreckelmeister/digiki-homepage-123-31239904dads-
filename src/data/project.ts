@@ -60,10 +60,10 @@ export const partners = [
 
 // Förderer – Stiftungen und Herr Hellmann, mit Links zu den Homepages
 export const funders = [
-  { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/bohnenkamp.jpg", url: "https://www.bohnenkamp-stiftung.de" },
-  { name: "Fromm-Stiftung", logo: "/images/logos/fromm.png", url: "https://www.fromm-stiftung.de" },
-  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de" },
-  { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true },
+  { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de", logoClassName: "" },
+  { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.fromm-stiftung.de", logoClassName: "" },
+  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de", logoClassName: "max-h-16" },
+  { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true, logoClassName: "" },
 ];
 
 export const timelinePhases = [
@@ -224,23 +224,23 @@ export const faqItems = [
 export const newsItems = [
   {
     id: "1",
-    title: "DigiKI-Projekt offiziell gestartet",
-    date: "2025-03-01",
-    summary: "Das Projekt DigiKI wurde offiziell vorgestellt. Alle Grundschulen in Stadt und Landkreis Osnabrück sind zur Teilnahme eingeladen.",
+    title: "DigiKI-Projekt startet",
+    date: "2026-03-01",
+    summary: "Das Projekt DigiKI geht an den Start! Alle Grundschulen in Stadt und Landkreis Osnabrück sind herzlich zur Teilnahme eingeladen.",
     slug: "projekt-gestartet",
   },
   {
     id: "2",
-    title: "Online-Bestandsaufnahme läuft",
-    date: "2025-03-15",
-    summary: "Die Online-Bestandsaufnahme wurde an alle Grundschulen versendet. Bitte nehmen Sie sich 10 Minuten Zeit für den Fragebogen.",
+    title: "Online-Bestandsaufnahme ab April",
+    date: "2026-04-01",
+    summary: "Ab April startet die Online-Bestandsaufnahme an allen Grundschulen. Der kurze Fragebogen (ca. 10 Min.) hilft uns, die Angebote passgenau zu gestalten.",
     slug: "bestandsaufnahme",
   },
   {
     id: "3",
-    title: "Erste Schulungstermine stehen fest",
-    date: "2025-04-01",
-    summary: "Die ersten Intensivschulungen finden im Mai statt. Die Anmeldung ist ab sofort möglich.",
-    slug: "schulungstermine",
+    title: "Pilotschulung vor den Sommerferien",
+    date: "2026-06-01",
+    summary: "Noch vor den Sommerferien 2026 findet die erste Pilotschulung statt. Weitere Informationen zur Anmeldung folgen in Kürze.",
+    slug: "pilotschulung",
   },
 ];
