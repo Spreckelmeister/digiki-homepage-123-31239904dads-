@@ -9,6 +9,7 @@ import AdminTable from "@/components/best-practice/AdminTable";
 export const metadata: Metadata = {
   title: "Admin - Best Practice",
   description: "Best-Practice-Beiträge verwalten.",
+  robots: { index: false, follow: false },
 };
 
 export default async function AdminPage() {

@@ -4,6 +4,9 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
+import { OrganizationJsonLd } from "@/components/JsonLd";
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-osnabrueck.de";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -12,6 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
     template: "%s | DigiKI",
@@ -36,6 +40,12 @@ export const metadata: Metadata = {
     locale: "de_DE",
     siteName: "DigiKI",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
+    description:
+      "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück.",
+  },
 };
 
 export default function RootLayout({
@@ -46,6 +56,7 @@ export default function RootLayout({
   return (
     <html lang="de" className={inter.className}>
       <body className="min-h-screen flex flex-col">
+        <OrganizationJsonLd />
         <Header />
         <main id="main-content" className="flex-1">
           {children}

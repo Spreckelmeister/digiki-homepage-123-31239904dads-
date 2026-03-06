@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Datenschutz",
+  description:
+    "Datenschutzerklärung der DigiKI-Projektwebsite. Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO.",
 };
 
 export default function DatenschutzPage() {

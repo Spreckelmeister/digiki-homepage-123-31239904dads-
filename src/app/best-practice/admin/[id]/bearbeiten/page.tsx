@@ -19,6 +19,7 @@ export async function generateMetadata({ params }: PageProps) {
 
   return {
     title: data ? `${data.title} bearbeiten` : "Beitrag bearbeiten",
+    robots: { index: false, follow: false },
   };
 }
 

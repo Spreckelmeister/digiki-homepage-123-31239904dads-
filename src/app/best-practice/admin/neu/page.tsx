@@ -5,6 +5,7 @@ import BestPracticeForm from "@/components/best-practice/BestPracticeForm";
 
 export const metadata: Metadata = {
   title: "Neuer Beitrag - Best Practice Admin",
+  robots: { index: false, follow: false },
 };
 
 export default function NeuPage() {

@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: PageProps) {
     .eq("id", id)
     .single();
 
-  if (!data) return { title: "Nicht gefunden" };
-  return { title: `Antrag: ${data.school_name} - Admin` };
+  if (!data) return { title: "Nicht gefunden", robots: { index: false, follow: false } };
+  return { title: `Antrag: ${data.school_name} - Admin`, robots: { index: false, follow: false } };
 }
 
 export default async function ToolLizenzenDetailPage({ params }: PageProps) {

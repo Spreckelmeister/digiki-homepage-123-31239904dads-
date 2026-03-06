@@ -9,6 +9,7 @@ import ApplicationsTable from "@/components/best-practice/ApplicationsTable";
 export const metadata: Metadata = {
   title: "Anträge - Admin",
   description: "Eingegangene Anträge verwalten.",
+  robots: { index: false, follow: false },
 };
 
 export default async function AntraegePage() {
