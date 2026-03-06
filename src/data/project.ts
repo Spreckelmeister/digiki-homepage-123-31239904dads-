@@ -55,7 +55,7 @@ export const partners = [
   { name: "Landkreis Osnabrück", logo: "/images/logos/landkreis-os.png", url: "https://www.landkreis-osnabrueck.de" },
   { name: "KOS", logo: "/images/logos/KOS-Logo-Variante-01-horizontal-Printmedien-farbig.png", url: "https://www.kos.uni-osnabrueck.de" },
   { name: "Medienzentrum Osnabrück", logo: null, url: "https://www.medienzentrum-osnabrueck.de" },
-  { name: "RLSB Osnabrück", logo: "/images/logos/rlsb.jpg", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },
+  { name: "RLSB Osnabrück", logo: "/images/logos/Logo RLSB OS transparent.png", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },
 ];
 
 // Förderer – Stiftungen und Herr Hellmann, mit Links zu den Homepages

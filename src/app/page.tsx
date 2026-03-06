@@ -56,12 +56,13 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <Image
-                  src="/images/icons/pexels-tima-miroshnichenko-5428003.jpg"
+                  src="/images/icons/pexels-tima-miroshnichenko-5428003.webp"
                   alt="Lehrkraft arbeitet mit Grundschulkindern im digitalen Unterricht"
                   width={600}
                   height={400}
                   className="w-full h-auto object-cover"
                   priority
+                  sizes="(max-width: 1024px) 0vw, (max-width: 1280px) 50vw, 600px"
                 />
                 <div className="absolute inset-0 rounded-2xl ring-1 ring-white/20 ring-inset" />
               </div>
@@ -92,11 +93,12 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/pexels-rdne-8499534.jpg"
+                src="/images/icons/pexels-rdne-8499534.webp"
                 alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
             <div>

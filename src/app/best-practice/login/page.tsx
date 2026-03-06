@@ -29,11 +29,12 @@ export default function LoginPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/pexels-pavel-danilyuk-8423046.jpg"
+                src="/images/icons/pexels-pavel-danilyuk-8423046.webp"
                 alt="Kind lernt mit digitaler Unterstützung im Unterricht"
                 width={500}
                 height={400}
                 className="rounded-2xl shadow-lg object-cover w-full h-[400px]"
+                sizes="(max-width: 1024px) 0vw, 500px"
               />
               <p className="mt-4 text-sm text-text-light text-center">
                 Digitale Tools und KI im Grundschulunterricht entdecken

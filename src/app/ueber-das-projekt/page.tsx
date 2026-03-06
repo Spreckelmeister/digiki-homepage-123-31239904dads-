@@ -34,11 +34,12 @@ export default function UeberDasProjektPage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/pexels-august-de-richelieu-4260477.jpg"
+                src="/images/icons/pexels-august-de-richelieu-4260477.webp"
                 alt="Lehrkräfte in einer Fortbildung zu digitalen Unterrichtswerkzeugen"
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+                sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>
           </div>
@@ -83,11 +84,12 @@ export default function UeberDasProjektPage() {
             </div>
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/pexels-rdne-8499534.jpg"
+                src="/images/icons/pexels-rdne-8499534.webp"
                 alt="Grundschulkinder lernen gemeinsam mit Laptops im Klassenzimmer"
                 width={500}
                 height={400}
                 className="w-full h-auto object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
           </div>
@@ -223,11 +225,12 @@ export default function UeberDasProjektPage() {
                 <div className="lg:col-span-2">
                   <div className="rounded-xl overflow-hidden shadow-md">
                     <Image
-                      src="/images/icons/pexels-pavel-danilyuk-8423046.jpg"
+                      src="/images/icons/pexels-pavel-danilyuk-8423046.webp"
                       alt="Lehrerin begleitet einen Schüler individuell beim Lernen mit einem Tablet"
                       width={400}
                       height={280}
                       className="w-full h-auto object-cover"
+                      sizes="(max-width: 1024px) 100vw, 40vw"
                     />
                   </div>
                 </div>
@@ -281,11 +284,12 @@ export default function UeberDasProjektPage() {
                 </div>
                 <div className="hidden lg:block rounded-xl overflow-hidden">
                   <Image
-                    src="/images/icons/pexels-august-de-richelieu-4260477.jpg"
+                    src="/images/icons/pexels-august-de-richelieu-4260477.webp"
                     alt="Lehrkräfte arbeiten gemeinsam an digitalen Unterrichtskonzepten"
                     width={300}
                     height={200}
                     className="w-full h-[150px] object-cover"
+                    sizes="(max-width: 1024px) 0vw, 300px"
                   />
                 </div>
               </div>

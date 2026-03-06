@@ -55,11 +55,12 @@ export default function FuerSchulenPage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/pexels-rdne-8499534.jpg"
+                src="/images/icons/pexels-rdne-8499534.webp"
                 alt="Grundschulkinder lernen mit digitalen Medien im Unterricht"
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+                sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>
           </div>
@@ -211,11 +212,12 @@ export default function FuerSchulenPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/pexels-pavel-danilyuk-8423046.jpg"
+                src="/images/icons/pexels-pavel-danilyuk-8423046.webp"
                 alt="Individuelle Lernbegleitung im Grundschulunterricht mit digitalen Hilfen"
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
             <div>
