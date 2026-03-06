@@ -82,7 +82,7 @@ export default async function ToolLizenzenDetailPage({ params }: PageProps) {
               </h2>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FieldDisplay label="Schule" value={app.school_name} />
-                <FieldDisplay label="Adresse" value={app.school_address} />
+                <FieldDisplay label="Adresse" value={`${app.school_street}, ${app.school_plz} ${app.school_city}`} />
                 <FieldDisplay label="Schulleitung" value={app.principal_name} />
                 <FieldDisplay
                   label="Ansprechperson"

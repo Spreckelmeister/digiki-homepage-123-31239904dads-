@@ -39,7 +39,9 @@ export type ApplicationStatus = "neu" | "in_bearbeitung" | "genehmigt" | "abgele
 export interface ApplicationStudentAssistant {
   id: string;
   school_name: string;
-  school_address: string;
+  school_street: string;
+  school_plz: string;
+  school_city: string;
   principal_name: string;
   contact_person: string;
   phone: string;
@@ -76,7 +78,9 @@ export interface ToolSelection {
 export interface ApplicationToolLicense {
   id: string;
   school_name: string;
-  school_address: string;
+  school_street: string;
+  school_plz: string;
+  school_city: string;
   principal_name: string;
   contact_person: string;
   phone: string;

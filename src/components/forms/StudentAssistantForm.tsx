@@ -11,7 +11,9 @@ export default function StudentAssistantForm() {
   const { isSpam, HoneypotField } = useHoneypot();
   const [schoolInfo, setSchoolInfo] = useState({
     school_name: "",
-    school_address: "",
+    school_street: "",
+    school_plz: "",
+    school_city: "",
     principal_name: "",
     contact_person: "",
     phone: "",
@@ -67,7 +69,9 @@ export default function StudentAssistantForm() {
       .from("applications_student_assistants")
       .insert({
         school_name: schoolInfo.school_name,
-        school_address: schoolInfo.school_address,
+        school_street: schoolInfo.school_street,
+        school_plz: schoolInfo.school_plz,
+        school_city: schoolInfo.school_city,
         principal_name: schoolInfo.principal_name,
         contact_person: schoolInfo.contact_person,
         phone: schoolInfo.phone,

@@ -1,7 +1,17 @@
+"use client";
+
+import { useState, useRef } from "react";
+import {
+  useAddressAutocomplete,
+  type AddressSuggestion,
+} from "./useAddressAutocomplete";
+
 interface SchoolInfoFieldsProps {
   values: {
     school_name: string;
-    school_address: string;
+    school_street: string;
+    school_plz: string;
+    school_city: string;
     principal_name: string;
     contact_person: string;
     phone: string;
@@ -18,6 +28,19 @@ export default function SchoolInfoFields({
   onChange,
   inputClass,
 }: SchoolInfoFieldsProps) {
+  const { suggestions, isLoading, clearSuggestions } =
+    useAddressAutocomplete(values.school_street);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function handleSelectSuggestion(suggestion: AddressSuggestion) {
+    onChange("school_street", suggestion.street);
+    onChange("school_plz", suggestion.plz);
+    onChange("school_city", suggestion.city);
+    clearSuggestions();
+    setShowSuggestions(false);
+  }
+
   return (
     <fieldset>
       <legend className="text-lg font-semibold text-primary mb-4">
@@ -41,23 +64,102 @@ export default function SchoolInfoFields({
             placeholder="z.B. Grundschule Eversburg"
           />
         </div>
-        <div>
+
+        {/* Straße mit Autocomplete */}
+        <div className="relative">
           <label
-            htmlFor="school_address"
+            htmlFor="school_street"
             className="block text-sm font-medium text-text mb-1.5"
           >
-            Adresse *
+            Straße und Hausnummer *
           </label>
           <input
-            id="school_address"
+            id="school_street"
             type="text"
             required
-            value={values.school_address}
-            onChange={(e) => onChange("school_address", e.target.value)}
+            autoComplete="off"
+            value={values.school_street}
+            onChange={(e) => {
+              onChange("school_street", e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => {
+              blurTimeoutRef.current = setTimeout(
+                () => setShowSuggestions(false),
+                200
+              );
+            }}
             className={inputClass}
-            placeholder="Straße, PLZ Ort"
+            placeholder="z.B. Musterstraße 12"
           />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {suggestions.map((s, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-primary/5 transition-colors"
+                    onMouseDown={() => {
+                      if (blurTimeoutRef.current)
+                        clearTimeout(blurTimeoutRef.current);
+                    }}
+                    onClick={() => handleSelectSuggestion(s)}
+                  >
+                    {s.display_name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isLoading && showSuggestions && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg px-4 py-2 text-sm text-text-light">
+              Suche...
+            </div>
+          )}
         </div>
+
+        {/* PLZ + Ort */}
+        <div className="grid grid-cols-[1fr_2fr] gap-4">
+          <div>
+            <label
+              htmlFor="school_plz"
+              className="block text-sm font-medium text-text mb-1.5"
+            >
+              PLZ *
+            </label>
+            <input
+              id="school_plz"
+              type="text"
+              required
+              inputMode="numeric"
+              pattern="[0-9]{5}"
+              maxLength={5}
+              value={values.school_plz}
+              onChange={(e) => onChange("school_plz", e.target.value)}
+              className={inputClass}
+              placeholder="49074"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="school_city"
+              className="block text-sm font-medium text-text mb-1.5"
+            >
+              Ort *
+            </label>
+            <input
+              id="school_city"
+              type="text"
+              required
+              value={values.school_city}
+              onChange={(e) => onChange("school_city", e.target.value)}
+              className={inputClass}
+              placeholder="Osnabrück"
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label

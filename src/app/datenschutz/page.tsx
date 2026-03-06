@@ -126,7 +126,7 @@ export default function DatenschutzPage() {
                 Welche Daten werden erhoben?
               </h3>
               <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
-                <li>Schulname und Schuladresse</li>
+                <li>Schulname und Schuladresse (Straße, PLZ, Ort)</li>
                 <li>Name der Schulleitung und Kontaktperson</li>
                 <li>E-Mail-Adresse und Telefonnummer</li>
                 <li>Angaben zu Schülerzahl und Lehrkräften</li>
@@ -177,6 +177,24 @@ export default function DatenschutzPage() {
                   <strong>Microsoft Forms</strong> für die
                   Online-Bestandsaufnahme. Für die Datenverarbeitung durch
                   Microsoft gelten die Datenschutzbestimmungen von Microsoft.
+                </li>
+                <li>
+                  <strong>OpenStreetMap Nominatim</strong> für die
+                  Adress-Autovervollständigung in den Antragsformularen. Die
+                  Anfragen werden über unseren Server weitergeleitet, sodass
+                  Ihre IP-Adresse nicht direkt an OpenStreetMap übermittelt
+                  wird. Es gelten die{" "}
+                  <a
+                    href="https://osmfoundation.org/wiki/Privacy_Policy"
+                    className="text-primary-light underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Datenschutzbestimmungen der OpenStreetMap Foundation
+                  </a>
+                  . Die Nutzung erfolgt auf Grundlage von Art. 6 Abs. 1
+                  lit. f DSGVO (berechtigtes Interesse an einer
+                  benutzerfreundlichen Adresseingabe).
                 </li>
               </ul>
               <p className="text-text-light leading-relaxed">
