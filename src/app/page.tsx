@@ -56,8 +56,8 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <Image
-                  src="/images/hero/hero-klassenzimmer.jpg"
-                  alt="Lehrerin unterstützt einen Schüler beim Lernen im Klassenzimmer"
+                  src="/images/icons/pexels-tima-miroshnichenko-5428003.jpg"
+                  alt="Lehrkraft arbeitet mit Grundschulkindern im digitalen Unterricht"
                   width={600}
                   height={400}
                   className="w-full h-auto object-cover"
