@@ -5,6 +5,10 @@ import {
   useAddressAutocomplete,
   type AddressSuggestion,
 } from "./useAddressAutocomplete";
+import {
+  useSchoolAutocomplete,
+  type SchoolSuggestion,
+} from "./useSchoolAutocomplete";
 
 interface SchoolInfoFieldsProps {
   values: {
@@ -28,17 +32,39 @@ export default function SchoolInfoFields({
   onChange,
   inputClass,
 }: SchoolInfoFieldsProps) {
-  const { suggestions, isLoading, clearSuggestions } =
-    useAddressAutocomplete(values.school_street);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // School name autocomplete
+  const {
+    suggestions: schoolSuggestions,
+    isLoading: schoolLoading,
+    clearSuggestions: clearSchoolSuggestions,
+  } = useSchoolAutocomplete(values.school_name);
+  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
+  const schoolBlurRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  function handleSelectSuggestion(suggestion: AddressSuggestion) {
+  // Address autocomplete
+  const {
+    suggestions: addressSuggestions,
+    isLoading: addressLoading,
+    clearSuggestions: clearAddressSuggestions,
+  } = useAddressAutocomplete(values.school_street);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const addressBlurRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function handleSelectSchool(suggestion: SchoolSuggestion) {
+    onChange("school_name", suggestion.name);
+    if (suggestion.street) onChange("school_street", suggestion.street);
+    if (suggestion.plz) onChange("school_plz", suggestion.plz);
+    if (suggestion.city) onChange("school_city", suggestion.city);
+    clearSchoolSuggestions();
+    setShowSchoolSuggestions(false);
+  }
+
+  function handleSelectAddress(suggestion: AddressSuggestion) {
     onChange("school_street", suggestion.street);
     onChange("school_plz", suggestion.plz);
     onChange("school_city", suggestion.city);
-    clearSuggestions();
-    setShowSuggestions(false);
+    clearAddressSuggestions();
+    setShowAddressSuggestions(false);
   }
 
   return (
@@ -47,7 +73,8 @@ export default function SchoolInfoFields({
         1. Angaben zur Schule
       </legend>
       <div className="space-y-4">
-        <div>
+        {/* Schulname mit Autocomplete */}
+        <div className="relative">
           <label
             htmlFor="school_name"
             className="block text-sm font-medium text-text mb-1.5"
@@ -58,11 +85,49 @@ export default function SchoolInfoFields({
             id="school_name"
             type="text"
             required
+            autoComplete="off"
             value={values.school_name}
-            onChange={(e) => onChange("school_name", e.target.value)}
+            onChange={(e) => {
+              onChange("school_name", e.target.value);
+              setShowSchoolSuggestions(true);
+            }}
+            onFocus={() => setShowSchoolSuggestions(true)}
+            onBlur={() => {
+              schoolBlurRef.current = setTimeout(
+                () => setShowSchoolSuggestions(false),
+                200
+              );
+            }}
             className={inputClass}
             placeholder="z.B. Grundschule Eversburg"
           />
+          {showSchoolSuggestions && schoolSuggestions.length > 0 && (
+            <ul className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {schoolSuggestions.map((s, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-primary/5 transition-colors"
+                    onMouseDown={() => {
+                      if (schoolBlurRef.current)
+                        clearTimeout(schoolBlurRef.current);
+                    }}
+                    onClick={() => handleSelectSchool(s)}
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-text-light block text-xs mt-0.5">
+                      {[s.street, s.plz, s.city].filter(Boolean).join(", ")}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {schoolLoading && showSchoolSuggestions && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg px-4 py-2 text-sm text-text-light">
+              Suche Schulen...
+            </div>
+          )}
         </div>
 
         {/* Straße mit Autocomplete */}
@@ -81,30 +146,30 @@ export default function SchoolInfoFields({
             value={values.school_street}
             onChange={(e) => {
               onChange("school_street", e.target.value);
-              setShowSuggestions(true);
+              setShowAddressSuggestions(true);
             }}
-            onFocus={() => setShowSuggestions(true)}
+            onFocus={() => setShowAddressSuggestions(true)}
             onBlur={() => {
-              blurTimeoutRef.current = setTimeout(
-                () => setShowSuggestions(false),
+              addressBlurRef.current = setTimeout(
+                () => setShowAddressSuggestions(false),
                 200
               );
             }}
             className={inputClass}
             placeholder="z.B. Musterstraße 12"
           />
-          {showSuggestions && suggestions.length > 0 && (
+          {showAddressSuggestions && addressSuggestions.length > 0 && (
             <ul className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {suggestions.map((s, i) => (
+              {addressSuggestions.map((s, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     className="w-full text-left px-4 py-2 text-sm hover:bg-primary/5 transition-colors"
                     onMouseDown={() => {
-                      if (blurTimeoutRef.current)
-                        clearTimeout(blurTimeoutRef.current);
+                      if (addressBlurRef.current)
+                        clearTimeout(addressBlurRef.current);
                     }}
-                    onClick={() => handleSelectSuggestion(s)}
+                    onClick={() => handleSelectAddress(s)}
                   >
                     {s.display_name}
                   </button>
@@ -112,7 +177,7 @@ export default function SchoolInfoFields({
               ))}
             </ul>
           )}
-          {isLoading && showSuggestions && (
+          {addressLoading && showAddressSuggestions && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-border rounded-lg shadow-lg px-4 py-2 text-sm text-text-light">
               Suche...
             </div>
