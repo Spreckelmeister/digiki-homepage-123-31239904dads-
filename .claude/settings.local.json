@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ls:*)",
+      "Bash(node -e:*)",
+      "Bash(npx next build:*)",
+      "Bash(git init:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(gh --version:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:digiki-homepage-123-31239904dads.vercel.app)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(magick:*)",
+      "Bash(convert:*)",
+      "Bash(gswin64c:*)",
+      "Bash(gswin32c --version:*)"
+    ]
+  }
+}
