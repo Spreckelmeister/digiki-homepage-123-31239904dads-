@@ -147,7 +147,8 @@ export default function ToolLicenseForm() {
       });
 
     if (insertError) {
-      setError("Fehler beim Einreichen: " + insertError.message);
+      console.error("Insert error:", insertError.message);
+      setError("Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
       setLoading(false);
       return;
     }

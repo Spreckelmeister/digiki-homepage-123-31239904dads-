@@ -41,7 +41,8 @@ export default function RegisterForm() {
     });
 
     if (error) {
-      setError("Registrierung fehlgeschlagen: " + error.message);
+      console.error("Registration error:", error.message);
+      setError("Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.");
       setLoading(false);
       return;
     }

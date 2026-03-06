@@ -32,16 +32,22 @@ export default function MarkdownContent({ content }: MarkdownContentProps) {
               {children}
             </ol>
           ),
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              className="text-primary-light underline hover:text-primary"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            // Only allow http/https links to prevent javascript: XSS
+            if (href && !href.startsWith("http://") && !href.startsWith("https://")) {
+              return <span>{children}</span>;
+            }
+            return (
+              <a
+                href={href}
+                className="text-primary-light underline hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {children}
+              </a>
+            );
+          },
           strong: ({ children }) => (
             <strong className="font-semibold text-text">{children}</strong>
           ),

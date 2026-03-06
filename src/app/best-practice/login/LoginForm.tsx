@@ -9,7 +9,12 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/best-practice/datenbank";
+  const rawRedirect = searchParams.get("redirect") || "/best-practice/datenbank";
+  // Prevent open redirect: only allow relative paths starting with /
+  const redirectTo =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/best-practice/datenbank";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
