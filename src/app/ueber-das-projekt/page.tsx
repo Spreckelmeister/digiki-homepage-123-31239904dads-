@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Über das Projekt",
   description:
     "Erfahren Sie alles über das DigiKI-Projekt: Ziele, Zeitplan, Projektphasen und den Schwerpunkt auf Sprachförderung und Mehrsprachigkeit.",
+  openGraph: {
+    title: "Über das DigiKI-Projekt – Ziele, Zeitplan & Projektphasen",
+    description:
+      "Erfahren Sie alles über das DigiKI-Projekt: Ziele, Zeitplan, Projektphasen und den Schwerpunkt auf Sprachförderung und Mehrsprachigkeit.",
+  },
 };
 
 export default function UeberDasProjektPage() {

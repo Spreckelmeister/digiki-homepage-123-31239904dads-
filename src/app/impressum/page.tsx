@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Impressum",
+  description:
+    "Impressum der DigiKI-Projektwebsite. Angaben gemäß § 5 TMG: Stadt Osnabrück, Bildungskoordination.",
 };
 
 export default function ImpressumPage() {

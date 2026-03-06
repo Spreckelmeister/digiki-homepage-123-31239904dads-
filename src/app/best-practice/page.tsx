@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: "Best Practice",
   description:
     "Best-Practice-Datenbank für Lehrkräfte im DigiKI-Projekt. Erfolgreiche Unterrichtsbeispiele mit digitalen Tools und KI an Grundschulen.",
+  openGraph: {
+    title: "Best-Practice-Datenbank – DigiKI Osnabrück",
+    description:
+      "Erfolgreiche Unterrichtsbeispiele mit digitalen Tools und KI an Grundschulen. Durchsuchen, lernen und eigene Erfahrungen teilen.",
+  },
 };
 
 export default function BestPracticePage() {

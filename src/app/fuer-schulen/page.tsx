@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ExternalLink, Download, Check, FileText, PenLine, Mail, Phone, MapPin, Quote } from "lucide-react";
 import Accordion from "@/components/Accordion";
+import { FAQPageJsonLd } from "@/components/JsonLd";
 import { projectData, participationOptions, faqItems } from "@/data/project";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function FuerSchulenPage() {
 
   return (
     <>
+      <FAQPageJsonLd items={faqItems} />
       {/* Hero */}
       <section className="bg-primary py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
