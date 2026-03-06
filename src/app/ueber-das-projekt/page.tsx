@@ -29,8 +29,8 @@ export default function UeberDasProjektPage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/istockphoto-500537221-1024x1024.jpg"
-                alt="Lehrkräfte-Team in einer Grundschule"
+                src="/images/icons/pexels-august-de-richelieu-4260477.jpg"
+                alt="Lehrkräfte in einer Fortbildung zu digitalen Unterrichtswerkzeugen"
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
@@ -78,8 +78,8 @@ export default function UeberDasProjektPage() {
             </div>
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/istockphoto-1435661952-1024x1024.jpg"
-                alt="Kinder halten gemeinsam eine Weltkugel in die Höhe"
+                src="/images/icons/pexels-rdne-8499534.jpg"
+                alt="Grundschulkinder lernen gemeinsam mit Laptops im Klassenzimmer"
                 width={500}
                 height={400}
                 className="w-full h-auto object-cover"
@@ -218,7 +218,7 @@ export default function UeberDasProjektPage() {
                 <div className="lg:col-span-2">
                   <div className="rounded-xl overflow-hidden shadow-md">
                     <Image
-                      src="/images/icons/sprachfoerderung-daz.jpg"
+                      src="/images/icons/pexels-pavel-danilyuk-8423046.jpg"
                       alt="Lehrerin begleitet einen Schüler individuell beim Lernen mit einem Tablet"
                       width={400}
                       height={280}
@@ -276,8 +276,8 @@ export default function UeberDasProjektPage() {
                 </div>
                 <div className="hidden lg:block rounded-xl overflow-hidden">
                   <Image
-                    src="/images/icons/tool-lizenz.jpg"
-                    alt="Digitale Analyse und Datenmanagement"
+                    src="/images/icons/pexels-august-de-richelieu-4260477.jpg"
+                    alt="Lehrkräfte arbeiten gemeinsam an digitalen Unterrichtskonzepten"
                     width={300}
                     height={200}
                     className="w-full h-[150px] object-cover"

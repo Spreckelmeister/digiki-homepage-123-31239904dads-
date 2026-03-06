@@ -44,6 +44,19 @@ Eigene Domain kann jederzeit in den Vercel-Einstellungen verbunden werden.
 
 Logos und Bilder liegen in `/public/images/`. Neue Bilder dort ablegen und im Code referenzieren.
 
+### Bild-Policy (verbindlich)
+
+- Zielgruppe und Motiv: Fokus auf **Grundschule**, Unterrichtssituationen, Lernbegleitung, Lehrkraefte im Schulkontext.
+- Stil: konsistente, freundliche und realistische Foto-Sprache; keine zusammengewuerfelten Stock-Motive mit stark abweichender Farbwirkung.
+- Bevorzugte Motive fuer Inhaltsseiten: 
+	- `/images/icons/pexels-rdne-8499534.jpg`
+	- `/images/icons/pexels-august-de-richelieu-4260477.jpg`
+	- `/images/icons/pexels-pavel-danilyuk-8423046.jpg`
+- Nicht mehr verwenden (Public-Seiten):
+	- `istockphoto-*`
+	- geloeschte Dateinamen, die nicht mehr im `public/images/icons`-Ordner liegen
+- Alt-Texte: immer konkret zur Unterrichtsszene formulieren (wer, was, Kontext Grundschule), keine generischen Begriffe wie "Technologie" oder "Analyse".
+
 ## Kontakt
 
 Kai Krafft – Bildungskoordinator, Stadt Osnabrück

@@ -92,7 +92,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/kinder-laptops-klassenzimmer.jpg"
+                src="/images/icons/pexels-rdne-8499534.jpg"
                 alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
                 width={600}
                 height={400}

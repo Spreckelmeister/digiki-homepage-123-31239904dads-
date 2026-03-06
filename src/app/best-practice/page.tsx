@@ -43,8 +43,8 @@ export default function BestPracticePage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/istockphoto-938509320-1024x1024.jpg"
-                alt="Kind entdeckt digitale Technologie"
+                src="/images/icons/pexels-rdne-8499534.jpg"
+                alt="Grundschulkinder entdecken digitale Lernangebote"
                 width={500}
                 height={400}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[350px]"
@@ -74,8 +74,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/istockphoto-860900294-1024x1024.jpg"
-                  alt="Lehrerin erklärt Kindern digitale Inhalte am Laptop"
+                  src="/images/icons/pexels-august-de-richelieu-4260477.jpg"
+                  alt="Lehrkraft vermittelt digitale Unterrichtsinhalte"
                   fill
                   className="object-cover"
                 />
@@ -97,8 +97,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/istockphoto-1360857826-1024x1024.jpg"
-                  alt="Kinder arbeiten mit Tablets und Robotik-Material"
+                  src="/images/icons/pexels-pavel-danilyuk-8423046.jpg"
+                  alt="Lehrkraft unterstützt ein Kind beim digitalen Lernen"
                   fill
                   className="object-cover"
                 />
@@ -120,8 +120,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/istockphoto-938509320-1024x1024.jpg"
-                  alt="Kind staunt über digitale Technologie"
+                  src="/images/icons/pexels-pavel-danilyuk-8423009.jpg"
+                  alt="Grundschulkinder lernen gemeinsam mit digitaler Unterstützung"
                   fill
                   className="object-cover"
                 />
