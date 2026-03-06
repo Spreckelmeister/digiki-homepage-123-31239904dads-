@@ -1,41 +1,90 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Download, Check, FileText, PenLine } from "lucide-react";
+import { ExternalLink, Download, Check, FileText, PenLine, Mail, Phone, MapPin, Quote } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { projectData, participationOptions, faqItems } from "@/data/project";
 
 export const metadata: Metadata = {
-  title: "Für Schulen",
+  title: "Kostenlose Fortbildung Digitalisierung & KI für Grundschulen",
   description:
-    "Teilnahmeoptionen, Anmeldung, FAQ und Downloads für Grundschulen im DigiKI-Projekt. Kostenlose Schulungen, Tool-Lizenzen und Begleitung.",
+    "Machen Sie Ihre Grundschule fit für die digitale Zukunft. Kostenlose Schulungen, Tool-Lizenzen und Begleitung für alle Grundschulen in Stadt und Landkreis Osnabrück.",
+  openGraph: {
+    title: "Kostenlose Fortbildung Digitalisierung & KI für Grundschulen | DigiKI Osnabrück",
+    description:
+      "Machen Sie Ihre Grundschule fit für die digitale Zukunft. Kostenlose Schulungen, Tool-Lizenzen und Begleitung.",
+  },
 };
 
 export default function FuerSchulenPage() {
+  const initialFaqCount = 4;
+
   return (
     <>
-      {/* Header */}
+      {/* Hero */}
       <section className="bg-primary py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-                Für Schulen
+                Machen Sie Ihre Grundschule fit für die digitale Zukunft
               </h1>
-              <p className="text-lg text-white/70 max-w-3xl">
-                Alle Informationen zur Teilnahme an DigiKI – von der Anmeldung bis
-                zur Umsetzung im Unterricht.
+              <p className="text-lg text-white/70 max-w-3xl mb-8">
+                Kostenlose Schulungen, Tool-Lizenzen und individuelle Begleitung –
+                für alle Grundschulen in Stadt und Landkreis Osnabrück.
               </p>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href={projectData.surveyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
+                >
+                  Jetzt Bestandsaufnahme starten
+                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                </a>
+                <Link
+                  href="#teilnahme"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
+                >
+                  Teilnahmeoptionen ansehen
+                </Link>
+              </div>
             </div>
             <div className="hidden lg:block">
               <Image
                 src="/images/icons/istockphoto-2224687755-1024x1024.jpg"
-                alt="Kinder laufen fröhlich aus einer Grundschule"
+                alt="Kinder lernen mit digitalen Medien in der Grundschule"
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Bestandsaufnahme – prominenter Banner direkt unter Hero */}
+      <section className="bg-accent/10 border-y border-accent/20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-lg font-semibold text-primary">
+                Erster Schritt: Online-Bestandsaufnahme ausfüllen
+              </p>
+              <p className="text-sm text-text-light">
+                Kurzer Fragebogen (ca. 10 Min.) – damit wir die Angebote auf Ihre Schule zuschneiden können.
+              </p>
+            </div>
+            <a
+              href={projectData.surveyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors shrink-0"
+            >
+              Zur Bestandsaufnahme
+              <ExternalLink className="w-4 h-4" aria-hidden="true" />
+            </a>
           </div>
         </div>
       </section>
@@ -98,7 +147,7 @@ export default function FuerSchulenPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/fuer-schulen#kontakt"
+                  href="#kontakt"
                   className={`block text-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
                     option.featured
                       ? "bg-accent text-white hover:bg-accent-hover"
@@ -113,47 +162,49 @@ export default function FuerSchulenPage() {
         </div>
       </section>
 
-      {/* Bestandsaufnahme CTA */}
-      <section className="py-16 md:py-24 bg-white" aria-labelledby="survey-heading">
+      {/* Social Proof */}
+      <section className="py-12 md:py-16 bg-primary/5" aria-labelledby="social-proof-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="hidden lg:block rounded-2xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/icons/teacher-training.jpg"
-                alt="Lehrkräfte bei einer Fortbildung am Computer"
-                width={500}
-                height={350}
-                className="w-full h-[300px] object-cover"
-              />
+          <h2 id="social-proof-heading" className="sr-only">Stimmen und Zahlen</h2>
+
+          {/* Statistiken */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            <div className="text-center">
+              <p className="text-3xl md:text-4xl font-bold text-accent">50+</p>
+              <p className="text-sm text-text-light mt-1">Grundschulen eingeladen</p>
             </div>
-            <div className="text-center lg:text-left">
-              <h2
-                id="survey-heading"
-                className="text-2xl md:text-3xl font-bold text-primary mb-4"
-              >
-                Erster Schritt: Online-Bestandsaufnahme
-              </h2>
-              <p className="text-lg text-text-light mb-8">
-                Helfen Sie uns, die Angebote passgenau zu gestalten. Der kurze
-                Fragebogen (ca. 10 Minuten) erfasst den aktuellen Stand der
-                digitalen Ausstattung und die Bedarfe Ihrer Schule.
-              </p>
-              <a
-                href={projectData.surveyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
-              >
-                Zur Online-Bestandsaufnahme
-                <ExternalLink className="w-5 h-5" aria-hidden="true" />
-              </a>
+            <div className="text-center">
+              <p className="text-3xl md:text-4xl font-bold text-accent">300+</p>
+              <p className="text-sm text-text-light mt-1">Lehrkräfte werden geschult</p>
             </div>
+            <div className="text-center">
+              <p className="text-3xl md:text-4xl font-bold text-accent">100%</p>
+              <p className="text-sm text-text-light mt-1">kostenlos für Schulen</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl md:text-4xl font-bold text-accent">18</p>
+              <p className="text-sm text-text-light mt-1">Monate Begleitung</p>
+            </div>
+          </div>
+
+          {/* Zitat */}
+          <div className="max-w-3xl mx-auto bg-white rounded-xl p-8 shadow-sm border border-border">
+            <Quote className="w-8 h-8 text-accent/30 mb-4" aria-hidden="true" />
+            <blockquote className="text-lg text-text leading-relaxed mb-4">
+              &bdquo;Unser Ziel ist es, dass jede Grundschule in Osnabrück von der Digitalisierung profitiert –
+              unabhängig von Größe oder Vorerfahrung. Mit DigiKI schaffen wir die Grundlage dafür.&ldquo;
+            </blockquote>
+            <footer className="text-sm text-text-light">
+              <span className="font-semibold text-primary">{projectData.projectLead}</span>
+              {" – "}
+              {projectData.projectLeadRole}
+            </footer>
           </div>
         </div>
       </section>
 
-      {/* Motivations-Bild */}
-      <section className="py-0">
+      {/* Motivations-Bild: Studentische Unterstützung */}
+      <section className="py-16 md:py-24 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
@@ -193,7 +244,8 @@ export default function FuerSchulenPage() {
             So funktioniert die Teilnahme
           </h2>
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-6">
+            {/* Mobile: vertikale Liste, Desktop: 2-Spalten-Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {[
                 {
                   step: 1,
@@ -234,7 +286,7 @@ export default function FuerSchulenPage() {
               ].map((item) => (
                 <div
                   key={item.step}
-                  className="flex items-start gap-4 bg-white rounded-xl p-6 shadow-sm border border-border"
+                  className="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-border"
                 >
                   <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-bold shrink-0">
                     {item.step}
@@ -277,14 +329,14 @@ export default function FuerSchulenPage() {
               },
               {
                 title: "Antrag Studentische Hilfskräfte",
-                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools, technischem Support und Materialerstellung.",
+                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools.",
                 format: "DOCX",
                 downloadHref: "/downloads/Antrag_Studentische_Hilfskraefte_DigiKI.docx",
                 formHref: "/fuer-schulen/antrag-hilfskraefte",
               },
               {
                 title: "Best-Practice-Vorlage",
-                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools an Grundschulen.",
+                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools.",
                 format: "DOCX",
                 downloadHref: "/downloads/Best-Practice-Vorlage-Grundschule.docx",
                 formHref: "/best-practice/einreichen",
@@ -292,57 +344,50 @@ export default function FuerSchulenPage() {
             ].map((doc) => (
               <div
                 key={doc.title}
-                className="bg-bg rounded-xl p-6 border border-border hover:shadow-sm transition-shadow"
+                className="bg-bg rounded-xl p-6 border border-border hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start gap-3">
-                  <FileText
-                    className="w-8 h-8 text-primary shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-primary mb-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <FileText
+                      className="w-5 h-5 text-primary"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-primary">
                       {doc.title}
                     </h3>
-                    <p className="text-xs text-text-light mb-3">
-                      {doc.description}
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      <Link
-                        href={doc.formHref}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <PenLine className="w-4 h-4" aria-hidden="true" />
-                        Online ausfüllen
-                      </Link>
-                      <a
-                        href={doc.downloadHref}
-                        download
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary transition-colors"
-                        title={`${doc.title} herunterladen (${doc.format})`}
-                      >
-                        <Download className="w-4 h-4" aria-hidden="true" />
-                        {doc.format} herunterladen
-                      </a>
-                    </div>
+                    <span className="text-xs text-text-light font-medium uppercase">{doc.format}</span>
                   </div>
+                </div>
+                <p className="text-sm text-text-light mb-4">
+                  {doc.description}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={doc.formHref}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <PenLine className="w-4 h-4" aria-hidden="true" />
+                    Online ausfüllen
+                  </Link>
+                  <a
+                    href={doc.downloadHref}
+                    download
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary border border-border hover:border-primary/30 px-4 py-2 rounded-lg transition-colors"
+                    title={`${doc.title} herunterladen (${doc.format})`}
+                  >
+                    <Download className="w-4 h-4" aria-hidden="true" />
+                    Herunterladen
+                  </a>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-text-light mt-8">
-            Bei Fragen zu den Downloads wenden Sie sich bitte an{" "}
-            <a
-              href={`mailto:${projectData.contactEmail}`}
-              className="text-primary-light underline hover:text-primary"
-            >
-              {projectData.contactEmail}
-            </a>
-            .
-          </p>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* FAQ – erste 4 offen, Rest hinter Button */}
       <section className="py-16 md:py-24" aria-labelledby="faq-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
@@ -352,42 +397,118 @@ export default function FuerSchulenPage() {
             >
               Häufig gestellte Fragen
             </h2>
-            <Accordion items={faqItems} />
+            <Accordion items={faqItems.slice(0, initialFaqCount)} />
+            {faqItems.length > initialFaqCount && (
+              <FaqExpander items={faqItems.slice(initialFaqCount)} />
+            )}
           </div>
         </div>
       </section>
 
-      {/* Kontakt */}
+      {/* Kontakt – mit Formular-Elementen und Kontaktdaten */}
       <section
         id="kontakt"
         className="py-16 md:py-24 bg-primary"
         aria-labelledby="contact-heading"
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2
-            id="contact-heading"
-            className="text-2xl md:text-3xl font-bold text-white mb-4"
-          >
-            Noch Fragen?
-          </h2>
-          <p className="text-lg text-teal/70 mb-8 max-w-2xl mx-auto">
-            Wir beraten Sie gerne persönlich zu den Teilnahmemöglichkeiten und
-            finden gemeinsam das passende Format für Ihre Schule.
-          </p>
-          <div className="bg-white/10 rounded-xl p-8 max-w-md mx-auto">
-            <p className="text-white font-semibold text-lg">
-              {projectData.projectLead}
-            </p>
-            <p className="text-teal/70">{projectData.projectLeadRole}</p>
-            <a
-              href={`mailto:${projectData.contactEmail}`}
-              className="inline-flex items-center gap-2 mt-4 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
-            >
-              E-Mail schreiben
-            </a>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            {/* Linke Seite: Text + Kontaktdaten */}
+            <div>
+              <h2
+                id="contact-heading"
+                className="text-2xl md:text-3xl font-bold text-white mb-4"
+              >
+                Interesse? Sprechen Sie uns an!
+              </h2>
+              <p className="text-lg text-white/70 mb-8">
+                Wir beraten Sie gerne persönlich zu den Teilnahmemöglichkeiten und
+                finden gemeinsam das passende Format für Ihre Schule.
+              </p>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 text-white/90">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/60">E-Mail</p>
+                    <a
+                      href={`mailto:${projectData.contactEmail}`}
+                      className="hover:text-white transition-colors"
+                    >
+                      {projectData.contactEmail}
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 text-white/90">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/60">Adresse</p>
+                    <p>{projectData.projectLeadAddress}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rechte Seite: Ansprechpartner + CTA-Karte */}
+            <div className="bg-white/10 rounded-xl p-8">
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Ihr Ansprechpartner
+              </h3>
+              <p className="text-white/70 mb-6">{projectData.projectLeadRole}</p>
+
+              <p className="text-2xl font-bold text-white mb-6">
+                {projectData.projectLead}
+              </p>
+
+              <div className="space-y-3">
+                <a
+                  href={`mailto:${projectData.contactEmail}?subject=Interesse an DigiKI-Teilnahme`}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
+                >
+                  <Mail className="w-4 h-4" aria-hidden="true" />
+                  E-Mail schreiben
+                </a>
+                <a
+                  href={projectData.surveyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                  Direkt zur Bestandsaufnahme
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
     </>
+  );
+}
+
+/* Client-Komponente für den FAQ-Expander */
+function FaqExpander({ items }: { items: typeof faqItems }) {
+  "use client";
+  // Da die Seite ein Server-Component ist, muss der Expander
+  // als separate Client-Komponente ausgelagert werden.
+  // Wir verwenden hier einen einfachen <details>-Ansatz, der ohne JS funktioniert.
+  return (
+    <details className="mt-4 group">
+      <summary className="cursor-pointer list-none text-center">
+        <span className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent transition-colors px-4 py-2 rounded-lg border border-border hover:border-accent/30">
+          Weitere {items.length} Fragen anzeigen
+          <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </summary>
+      <div className="mt-3">
+        <Accordion items={items} />
+      </div>
+    </details>
   );
 }
