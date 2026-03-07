@@ -287,6 +287,15 @@ export default function BestandsaufnahmeForm() {
 
   function handleSelectSchool(s: SchoolSuggestion) {
     setSchoolName(s.name || s.display_name.split(",")[0].trim());
+    // Auto-fill Schulstandort from Nominatim county/city data
+    if (s.county.toLowerCase().includes("landkreis osnabrück")) {
+      setSchoolLocation("Landkreis Osnabrück");
+    } else if (
+      s.city.toLowerCase() === "osnabrück" ||
+      s.county.toLowerCase() === "osnabrück"
+    ) {
+      setSchoolLocation("Stadt Osnabrück");
+    }
     clearSchoolSuggestions();
     setShowSchoolSuggestions(false);
   }

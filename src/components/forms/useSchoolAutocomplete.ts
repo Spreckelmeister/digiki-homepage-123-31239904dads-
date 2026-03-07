@@ -9,6 +9,7 @@ interface NominatimAddress {
   city?: string;
   town?: string;
   village?: string;
+  county?: string;
 }
 
 export interface SchoolSuggestion {
@@ -17,6 +18,7 @@ export interface SchoolSuggestion {
   street: string;
   plz: string;
   city: string;
+  county: string;
 }
 
 export function useSchoolAutocomplete(query: string) {
@@ -57,6 +59,7 @@ export function useSchoolAutocomplete(query: string) {
             street,
             plz: addr.postcode || "",
             city,
+            county: addr.county || "",
           };
         });
         setSuggestions(mapped);
