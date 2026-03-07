@@ -219,13 +219,20 @@ export default function MySubmissions() {
       <p className="text-text-light mb-6 max-w-2xl">
         Geben Sie die E-Mail-Adresse ein, die Sie beim Einreichen verwendet haben,
         um den aktuellen Status Ihrer Anträge und Best-Practice-Beiträge zu sehen.
-        {loggedInEmail && (
-          <span className="inline-flex items-center gap-1 ml-2 text-green-700 font-medium text-sm">
-            <ShieldCheck className="w-4 h-4" aria-hidden="true" />
-            Eingeloggt – volle Details verfügbar
-          </span>
-        )}
       </p>
+      {loggedInEmail && isOwner && (
+        <p className="inline-flex items-center gap-1.5 mb-6 text-green-700 font-medium text-sm bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
+          Eingeloggt – volle Details verfügbar
+        </p>
+      )}
+      {loggedInEmail && !isOwner && email.trim() !== "" && (
+        <p className="inline-flex items-center gap-1.5 mb-6 text-yellow-700 font-medium text-sm bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+          <span aria-hidden="true">⚠️</span>
+          Fremde E-Mail – nur Status verfügbar (volle Details nur mit Ihrer Account-E-Mail{" "}
+          <strong>{loggedInEmail}</strong>)
+        </p>
+      )}
 
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-lg mb-8">
         <input

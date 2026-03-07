@@ -309,6 +309,11 @@ export default function BestPracticeVorlageForm() {
                 className={inputClass}
                 placeholder="name@schule.de"
               />
+              <p className="mt-1.5 text-xs text-text-light">
+                Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
+                <a href="/best-practice/datenbank" className="underline underline-offset-2 hover:text-primary transition-colors">Best-Practice-Datenbank</a>,
+                um dort den vollständigen Bearbeitungsstatus einsehen zu können.
+              </p>
             </div>
           </div>
           <div className="max-w-[250px]">
