@@ -24,8 +24,8 @@ export default function RegisterForm() {
     setError("");
     setLoading(true);
 
-    if (password.length < 6) {
-      setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
+    if (password.length < 8) {
+      setError("Das Passwort muss mindestens 8 Zeichen lang sein.");
       setLoading(false);
       return;
     }

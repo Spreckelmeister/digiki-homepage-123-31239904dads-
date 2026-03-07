@@ -85,8 +85,9 @@ BEGIN
 END;
 $$;
 
--- Anonymen und authentifizierten Nutzern Zugriff geben
-GRANT EXECUTE ON FUNCTION public.get_submissions_by_email(TEXT) TO anon, authenticated;
+-- Nur authentifizierte Nutzer können Einreichungen nachschlagen
+-- (die Datenbank-Seite erfordert Login; anonymer Zugriff ist nicht nötig)
+GRANT EXECUTE ON FUNCTION public.get_submissions_by_email(TEXT) TO authenticated;
 
 
 -- ── 2. Voll-Funktion: Nur für eingeloggte Nutzer ─────────────

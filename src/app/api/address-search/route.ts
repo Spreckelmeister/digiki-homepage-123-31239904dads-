@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const rateMap = new Map<string, number[]>();
 const RATE_WINDOW_MS = 1000;
 const RATE_MAX = 2;
+const RATE_MAP_MAX_SIZE = 5000;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -15,6 +16,10 @@ function isRateLimited(ip: string): boolean {
     return true;
   }
   timestamps.push(now);
+  // Evict oldest entry if map grows too large
+  if (!rateMap.has(ip) && rateMap.size >= RATE_MAP_MAX_SIZE) {
+    rateMap.delete(rateMap.keys().next().value!);
+  }
   rateMap.set(ip, timestamps);
   return false;
 }
@@ -32,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   const q = request.nextUrl.searchParams.get("q");
-  if (!q || q.length < 3) {
+  if (!q || q.length < 3 || q.length > 100) {
     return NextResponse.json([]);
   }
 

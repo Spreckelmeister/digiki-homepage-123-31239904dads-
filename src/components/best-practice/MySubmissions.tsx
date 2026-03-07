@@ -166,6 +166,10 @@ export default function MySubmissions() {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+    if (loggedInEmail === null) {
+      setError("Sie müssen eingeloggt sein, um Ihre Einreichungen abzurufen.");
+      return;
+    }
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) {
       setError("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
