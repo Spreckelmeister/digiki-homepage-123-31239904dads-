@@ -26,18 +26,26 @@ BEGIN
         SELECT COALESCE(
           json_agg(
             json_build_object(
-              'id',         bp.id,
-              'title',      bp.title,
+              'id',          bp.id,
+              'title',       bp.title,
               'school_name', bp.school_name,
-              'published',  bp.published,
-              'created_at', bp.created_at
+              'published',   bp.published,
+              'created_at',  bp.created_at
             )
             ORDER BY bp.created_at DESC
           ),
           '[]'::json
         )
         FROM public.best_practices bp
-        WHERE bp.contact_email = trim(search_email)
+        WHERE lower(bp.contact_email) = lower(trim(search_email))
+           OR (
+             bp.author_id IS NOT NULL
+             AND EXISTS (
+               SELECT 1 FROM auth.users u
+               WHERE u.id = bp.author_id
+                 AND lower(u.email) = lower(trim(search_email))
+             )
+           )
       ),
       'student_apps', (
         SELECT COALESCE(
@@ -53,7 +61,7 @@ BEGIN
           '[]'::json
         )
         FROM public.applications_student_assistants sa
-        WHERE sa.email = trim(search_email)
+        WHERE lower(sa.email) = lower(trim(search_email))
       ),
       'tool_apps', (
         SELECT COALESCE(
@@ -69,7 +77,7 @@ BEGIN
           '[]'::json
         )
         FROM public.applications_tool_licenses ta
-        WHERE ta.email = trim(search_email)
+        WHERE lower(ta.email) = lower(trim(search_email))
       )
     )
   );
