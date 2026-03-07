@@ -177,6 +177,7 @@ export default function ToolLicenseForm() {
       <FormSuccess
         title="Antrag erfolgreich eingereicht!"
         message="Vielen Dank für Ihren Lizenz-Antrag. Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen."
+        submittedEmail={schoolInfo.email}
       />
     );
   }

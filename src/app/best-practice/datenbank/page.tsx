@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import BestPracticeList from "@/components/best-practice/BestPracticeList";
+import MySubmissions from "@/components/best-practice/MySubmissions";
 
 export const metadata: Metadata = {
   title: "Best-Practice-Datenbank",
@@ -48,6 +49,7 @@ export default async function DatenbankPage() {
             practices={practices || []}
             categories={categories || []}
           />
+          <MySubmissions />
         </div>
       </section>
     </>

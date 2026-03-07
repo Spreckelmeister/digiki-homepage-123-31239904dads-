@@ -216,6 +216,7 @@ export default function BestPracticeVorlageForm() {
       <FormSuccess
         title="Vielen Dank für Ihren Beitrag!"
         message="Ihre Best-Practice-Dokumentation wurde erfolgreich eingereicht. Unser Team prüft den Beitrag und veröffentlicht ihn in der Datenbank."
+        submittedEmail={contactEmail}
       />
     );
   }

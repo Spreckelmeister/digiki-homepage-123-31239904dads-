@@ -132,6 +132,7 @@ export default function StudentAssistantForm() {
       <FormSuccess
         title="Antrag erfolgreich eingereicht!"
         message="Vielen Dank für Ihren Antrag. Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen."
+        submittedEmail={schoolInfo.email}
       />
     );
   }
