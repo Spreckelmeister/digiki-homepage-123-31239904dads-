@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { Send, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
+import {
+  useSchoolAutocomplete,
+  type SchoolSuggestion,
+} from "./useSchoolAutocomplete";
 
 // ─── Helper: toggle item in array with optional max ──────────────────────────
 function toggle(arr: string[], val: string, max?: number): string[] {
@@ -271,6 +275,21 @@ export default function BestandsaufnahmeForm() {
 
   // ── Teil A ──────────────────────────────────────────────────────────────────
   const [schoolName, setSchoolName] = useState("");
+
+  // School name autocomplete
+  const {
+    suggestions: schoolSuggestions,
+    isLoading: schoolLoading,
+    clearSuggestions: clearSchoolSuggestions,
+  } = useSchoolAutocomplete(schoolName);
+  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
+  const schoolBlurRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function handleSelectSchool(s: SchoolSuggestion) {
+    setSchoolName(s.name || s.display_name.split(",")[0].trim());
+    clearSchoolSuggestions();
+    setShowSchoolSuggestions(false);
+  }
   const [schoolLocation, setSchoolLocation] = useState("");
   const [studentCount, setStudentCount] = useState("");
   const [teacherCount, setTeacherCount] = useState("");
@@ -483,9 +502,54 @@ export default function BestandsaufnahmeForm() {
           <div className="space-y-7">
             <SectionHeading icon="🏫" title="Teil A: Allgemeine Angaben" />
 
-            <div>
+            <div className="relative">
               <FieldLabel required>1. Name der Schule</FieldLabel>
-              <TextInput id="schoolName" value={schoolName} onChange={setSchoolName} placeholder="z. B. Grundschule Musterstadt" />
+              <input
+                id="schoolName"
+                type="text"
+                required
+                autoComplete="off"
+                value={schoolName}
+                onChange={(e) => {
+                  setSchoolName(e.target.value);
+                  setShowSchoolSuggestions(true);
+                }}
+                onFocus={() => setShowSchoolSuggestions(true)}
+                onBlur={() => {
+                  schoolBlurRef.current = setTimeout(
+                    () => setShowSchoolSuggestions(false),
+                    200
+                  );
+                }}
+                placeholder="z. B. Grundschule Musterstadt"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+              />
+              {showSchoolSuggestions && schoolSuggestions.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                  {schoolSuggestions.map((s, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          if (schoolBlurRef.current) clearTimeout(schoolBlurRef.current);
+                        }}
+                        onClick={() => handleSelectSchool(s)}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary/5 transition-colors border-b border-border last:border-0"
+                      >
+                        <span className="font-medium text-text">{s.name || s.display_name.split(",")[0]}</span>
+                        <span className="text-text-light block text-xs mt-0.5">
+                          {[s.street, s.plz, s.city].filter(Boolean).join(", ")}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {schoolLoading && showSchoolSuggestions && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-border rounded-lg shadow-sm px-4 py-2.5 text-sm text-text-light">
+                  Suche Schulen…
+                </div>
+              )}
             </div>
 
             <div>
