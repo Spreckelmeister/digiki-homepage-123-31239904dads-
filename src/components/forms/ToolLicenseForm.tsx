@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ToolSelection } from "@/lib/types";
@@ -56,6 +57,8 @@ export default function ToolLicenseForm() {
   const [privacyConcept, setPrivacyConcept] = useState(false);
   const [parentalConsent, setParentalConsent] = useState(false);
   const [itInfrastructure, setItInfrastructure] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [truthConsent, setTruthConsent] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -103,6 +106,11 @@ export default function ToolLicenseForm() {
 
     if (!privacyConcept || !parentalConsent || !itInfrastructure) {
       setError("Bitte bestätigen Sie alle Datenschutz-Angaben.");
+      return;
+    }
+
+    if (!privacyConsent || !truthConsent) {
+      setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       return;
     }
 
@@ -382,6 +390,38 @@ export default function ToolLicenseForm() {
               für den Tool-Einsatz. *
             </span>
           </label>
+          <label className={checkboxLabel}>
+            <input
+              type="checkbox"
+              required
+              checked={privacyConsent}
+              onChange={(e) => setPrivacyConsent(e.target.checked)}
+              className={checkboxInput}
+            />
+            <span className="text-sm text-text">
+              Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+              <Link
+                href="/datenschutz"
+                target="_blank"
+                className="underline text-primary-light hover:text-primary"
+              >
+                Datenschutzerklärung
+              </Link>{" "}
+              zu. *
+            </span>
+          </label>
+          <label className={checkboxLabel}>
+            <input
+              type="checkbox"
+              required
+              checked={truthConsent}
+              onChange={(e) => setTruthConsent(e.target.checked)}
+              className={checkboxInput}
+            />
+            <span className="text-sm text-text">
+              Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+            </span>
+          </label>
         </div>
       </fieldset>
 
@@ -396,8 +436,7 @@ export default function ToolLicenseForm() {
           {loading ? "Wird eingereicht..." : "Antrag einreichen"}
         </button>
         <p className="mt-3 text-xs text-text-light">
-          * Pflichtfelder. Mit dem Absenden bestätigen Sie die Richtigkeit Ihrer
-          Angaben.
+          * Pflichtfelder.
         </p>
       </div>
     </form>

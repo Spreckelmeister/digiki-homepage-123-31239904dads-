@@ -36,15 +36,13 @@ export default function HomePage() {
                 Begleitung für alle interessierten Grundschulen.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a
+                <Link
                   href={projectData.surveyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
                 >
                   Jetzt teilnehmen
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
-                </a>
+                </Link>
                 <Link
                   href="/ueber-das-projekt"
                   className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"

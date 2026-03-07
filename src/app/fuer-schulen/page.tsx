@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Download, Check, FileText, PenLine, Mail, Phone, MapPin, Quote } from "lucide-react";
+import { Download, Check, FileText, PenLine, Mail, Phone, MapPin, Quote, ArrowRight } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import { projectData, participationOptions, faqItems } from "@/data/project";
@@ -36,15 +36,13 @@ export default function FuerSchulenPage() {
                 für alle Grundschulen in Stadt und Landkreis Osnabrück.
               </p>
               <div className="flex flex-wrap gap-4">
-                <a
+                <Link
                   href={projectData.surveyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
                 >
                   Jetzt Bestandsaufnahme starten
-                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                </a>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
                 <Link
                   href="#teilnahme"
                   className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
@@ -79,15 +77,13 @@ export default function FuerSchulenPage() {
                 Kurzer Fragebogen (ca. 10 Min.) – damit wir die Angebote auf Ihre Schule zuschneiden können.
               </p>
             </div>
-            <a
+            <Link
               href={projectData.surveyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors shrink-0"
             >
               Zur Bestandsaufnahme
-              <ExternalLink className="w-4 h-4" aria-hidden="true" />
-            </a>
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </section>
@@ -476,15 +472,13 @@ export default function FuerSchulenPage() {
                   <Mail className="w-4 h-4" aria-hidden="true" />
                   E-Mail schreiben
                 </a>
-                <a
+                <Link
                   href={projectData.surveyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                  Direkt zur Bestandsaufnahme
-                </a>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  Zur Bestandsaufnahme
+                </Link>
               </div>
             </div>
           </div>

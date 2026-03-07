@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { VorlageData } from "@/lib/types";
@@ -72,6 +73,9 @@ export default function BestPracticeVorlageForm() {
     "ja_alles" | "ja_anonym" | "nein" | ""
   >("");
 
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [truthConsent, setTruthConsent] = useState(false);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -133,6 +137,11 @@ export default function BestPracticeVorlageForm() {
 
     if (!ratingImplementation || !ratingStudents || !ratingRecommendation) {
       setError("Bitte füllen Sie alle drei Schnellbewertungen aus.");
+      return;
+    }
+
+    if (!privacyConsent || !truthConsent) {
+      setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       return;
     }
 
@@ -680,6 +689,45 @@ export default function BestPracticeVorlageForm() {
         </div>
       </fieldset>
 
+      {/* Einwilligungen */}
+      <fieldset className="space-y-3">
+        <legend className="text-lg font-semibold text-primary mb-4">
+          Einwilligungen
+        </legend>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            required
+            checked={privacyConsent}
+            onChange={(e) => setPrivacyConsent(e.target.checked)}
+            className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+          />
+          <span className="text-sm text-text">
+            Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+            <Link
+              href="/datenschutz"
+              target="_blank"
+              className="underline text-primary-light hover:text-primary"
+            >
+              Datenschutzerklärung
+            </Link>{" "}
+            zu. *
+          </span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            required
+            checked={truthConsent}
+            onChange={(e) => setTruthConsent(e.target.checked)}
+            className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+          />
+          <span className="text-sm text-text">
+            Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+          </span>
+        </label>
+      </fieldset>
+
       {/* Submit */}
       <div className="pt-4 border-t border-border">
         <button
@@ -691,7 +739,7 @@ export default function BestPracticeVorlageForm() {
           {loading ? "Wird eingereicht..." : "Best Practice einreichen"}
         </button>
         <p className="mt-3 text-xs text-text-light">
-          Mit dem Absenden bestätigen Sie die Richtigkeit Ihrer Angaben.
+          * Pflichtfelder.
         </p>
       </div>
     </form>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, ClipboardList } from "lucide-react";
+import { FileText, ClipboardList, BarChart2 } from "lucide-react";
 
 const tabs = [
   {
@@ -19,6 +19,13 @@ const tabs = [
     href: "/best-practice/admin/antraege",
     icon: ClipboardList,
     match: (path: string) => path.startsWith("/best-practice/admin/antraege"),
+  },
+  {
+    label: "Bestandsaufnahme",
+    href: "/best-practice/admin/bestandsaufnahme",
+    icon: BarChart2,
+    match: (path: string) =>
+      path.startsWith("/best-practice/admin/bestandsaufnahme"),
   },
 ];
 

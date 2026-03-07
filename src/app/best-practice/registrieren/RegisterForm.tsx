@@ -13,6 +13,8 @@ export default function RegisterForm() {
   const [school, setSchool] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [truthConsent, setTruthConsent] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -24,6 +26,12 @@ export default function RegisterForm() {
 
     if (password.length < 6) {
       setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
+      setLoading(false);
+      return;
+    }
+
+    if (!privacyConsent || !truthConsent) {
+      setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       setLoading(false);
       return;
     }
@@ -154,6 +162,41 @@ export default function RegisterForm() {
                 className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
                 placeholder="Mindestens 6 Zeichen"
               />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={privacyConsent}
+                  onChange={(e) => setPrivacyConsent(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-sm text-text">
+                  Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+                  <Link
+                    href="/datenschutz"
+                    target="_blank"
+                    className="underline text-primary-light hover:text-primary"
+                  >
+                    Datenschutzerklärung
+                  </Link>{" "}
+                  zu. *
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={truthConsent}
+                  onChange={(e) => setTruthConsent(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-sm text-text">
+                  Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+                </span>
+              </label>
             </div>
 
             <button

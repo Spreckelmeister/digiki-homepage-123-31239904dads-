@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
@@ -44,6 +45,9 @@ export default function StudentAssistantForm() {
   const [hasInteractiveDisplays, setHasInteractiveDisplays] = useState(false);
   const [hasSchoolServer, setHasSchoolServer] = useState(false);
 
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [truthConsent, setTruthConsent] = useState(false);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -58,6 +62,11 @@ export default function StudentAssistantForm() {
 
     if (isSpam) {
       setSuccess(true);
+      return;
+    }
+
+    if (!privacyConsent || !truthConsent) {
+      setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       return;
     }
 
@@ -386,6 +395,45 @@ export default function StudentAssistantForm() {
         </div>
       </fieldset>
 
+      {/* Einwilligungen */}
+      <fieldset className="space-y-3">
+        <legend className="text-lg font-semibold text-primary mb-4">
+          Einwilligungen
+        </legend>
+        <label className={checkboxLabel}>
+          <input
+            type="checkbox"
+            required
+            checked={privacyConsent}
+            onChange={(e) => setPrivacyConsent(e.target.checked)}
+            className={checkboxInput}
+          />
+          <span className="text-sm text-text">
+            Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+            <Link
+              href="/datenschutz"
+              target="_blank"
+              className="underline text-primary-light hover:text-primary"
+            >
+              Datenschutzerklärung
+            </Link>{" "}
+            zu. *
+          </span>
+        </label>
+        <label className={checkboxLabel}>
+          <input
+            type="checkbox"
+            required
+            checked={truthConsent}
+            onChange={(e) => setTruthConsent(e.target.checked)}
+            className={checkboxInput}
+          />
+          <span className="text-sm text-text">
+            Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+          </span>
+        </label>
+      </fieldset>
+
       {/* Submit */}
       <div className="pt-4 border-t border-border">
         <button
@@ -397,7 +445,7 @@ export default function StudentAssistantForm() {
           {loading ? "Wird eingereicht..." : "Antrag einreichen"}
         </button>
         <p className="mt-3 text-xs text-text-light">
-          Mit dem Absenden bestätigen Sie die Richtigkeit Ihrer Angaben.
+          * Pflichtfelder.
         </p>
       </div>
     </form>
