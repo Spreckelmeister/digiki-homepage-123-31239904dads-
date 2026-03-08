@@ -8,18 +8,6 @@ Offizielle Website des Förderprojekts DigiKI. Das Projekt unterstützt Grundsch
 
 ---
 
-## Vorschau
-
-| Startseite | Für Schulen |
-|---|---|
-| ![Startseite – Kinder mit Laptop und Lehrerin](public/images/icons/istock-kids-laptop-teacher.webp) | ![Für Schulen – Lehrerin unterstützt Schüler](public/images/icons/istock-teacher-supports-students.webp) |
-
-| Best-Practice-Datenbank | Über das Projekt |
-|---|---|
-| ![Best Practice – Teamwork](public/images/icons/istock-team-motivation.webp) | ![Über das Projekt – Computerklasse](public/images/icons/istock-teacher-computer-class.webp) |
-
----
-
 ## Tech-Stack
 
 | Technologie | Version | Zweck |
