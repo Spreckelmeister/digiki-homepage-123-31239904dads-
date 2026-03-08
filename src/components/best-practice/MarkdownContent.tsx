@@ -48,6 +48,8 @@ export default function MarkdownContent({ content }: MarkdownContentProps) {
               </a>
             );
           },
+          // Block external images to prevent tracking pixels and content injection
+          img: () => null,
           strong: ({ children }) => (
             <strong className="font-semibold text-text">{children}</strong>
           ),

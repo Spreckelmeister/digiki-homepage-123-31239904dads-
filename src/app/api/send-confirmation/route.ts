@@ -4,6 +4,15 @@ import nodemailer from "nodemailer";
 // Simple in-memory rate limiting
 const rateMap = new Map<string, number>();
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -14,7 +23,13 @@ export async function POST(request: NextRequest) {
       !type ||
       typeof email !== "string" ||
       typeof school_name !== "string" ||
-      !["student_assistant", "tool_license"].includes(type)
+      ![
+        "student_assistant",
+        "tool_license",
+      ].includes(type) ||
+      (contact_person !== undefined &&
+        contact_person !== null &&
+        typeof contact_person !== "string")
     ) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
@@ -74,7 +89,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.digiki-osnabrueck.de";
 
     const greeting = contact_person
-      ? `Guten Tag ${String(contact_person).slice(0, 100)},`
+      ? `Guten Tag ${escapeHtml(String(contact_person).slice(0, 100))},`
       : "Guten Tag,";
 
     const html = `
@@ -111,7 +126,7 @@ export async function POST(request: NextRequest) {
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
               <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Ihr Antrag auf <strong>${antragTyp}</strong> für
-                <strong>${String(school_name).slice(0, 200)}</strong> ist erfolgreich bei uns eingegangen.
+                <strong>${escapeHtml(String(school_name).slice(0, 200))}</strong> ist erfolgreich bei uns eingegangen.
               </p>
 
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
