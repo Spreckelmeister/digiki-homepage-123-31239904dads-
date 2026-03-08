@@ -107,7 +107,7 @@ export default function BestPracticePage() {
                   src="/images/icons/istock-colleague-high-five.webp"
                   alt="Kolleginnen und Kollegen freuen sich über erfolgreich erprobte Unterrichtsideen"
                   fill
-                  className="object-cover"
+                  className="object-cover object-top"
                   sizes="(max-width: 768px) 100vw, 33vw"
                 />
               </div>
