@@ -49,14 +49,25 @@ export async function GET(request: NextRequest) {
     limit: "5",
   });
 
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?${params}`,
-    {
-      headers: {
-        "User-Agent": "DigiKI-Homepage/1.0 (krafft@osnabrueck.de)",
-      },
-    }
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://nominatim.openstreetmap.org/search?${params}`,
+      {
+        headers: {
+          "User-Agent": "DigiKI-Homepage/1.0 (krafft@osnabrueck.de)",
+        },
+        signal: controller.signal,
+      }
+    );
+  } catch {
+    return NextResponse.json([], { status: 504 });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     return NextResponse.json([], { status: 502 });

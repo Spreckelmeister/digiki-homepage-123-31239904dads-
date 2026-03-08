@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordForm() {
   const router = useRouter();
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timer if component unmounts before redirect fires
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,7 +49,7 @@ export default function ResetPasswordForm() {
 
     setSuccess(true);
     // Redirect to login after short delay
-    setTimeout(() => router.push("/best-practice/login"), 3000);
+    redirectTimer.current = setTimeout(() => router.push("/best-practice/login"), 3000);
   }
 
   if (success) {
