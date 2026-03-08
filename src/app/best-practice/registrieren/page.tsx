@@ -5,6 +5,7 @@ import RegisterForm from "./RegisterForm";
 export const metadata: Metadata = {
   title: "Registrieren - Best Practice",
   description: "Erstellen Sie ein Konto, um auf die Best-Practice-Datenbank zuzugreifen.",
+  robots: { index: false, follow: false },
 };
 
 export default function RegisterPage() {

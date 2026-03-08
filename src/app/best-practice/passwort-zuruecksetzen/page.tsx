@@ -4,6 +4,7 @@ import ResetPasswordForm from "./ResetPasswordForm";
 export const metadata: Metadata = {
   title: "Neues Passwort festlegen – Best Practice",
   description: "Legen Sie ein neues Passwort für Ihr DigiKI-Konto fest.",
+  robots: { index: false, follow: false },
 };
 
 export default function PasswortZuruecksetzenPage() {

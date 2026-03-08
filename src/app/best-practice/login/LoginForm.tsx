@@ -6,6 +6,11 @@ import Link from "next/link";
 import { LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+const CALLBACK_ERRORS: Record<string, string> = {
+  "link-abgelaufen":
+    "Der Link ist abgelaufen. Bitte fordern Sie einen neuen an.",
+};
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -15,6 +20,9 @@ export default function LoginForm() {
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
       ? rawRedirect
       : "/best-practice/datenbank";
+
+  const callbackError = searchParams.get("error") ?? "";
+  const callbackErrorMsg = CALLBACK_ERRORS[callbackError] ?? "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,9 +57,9 @@ export default function LoginForm() {
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && (
+        {(callbackErrorMsg || error) && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-            {error}
+            {callbackErrorMsg || error}
           </div>
         )}
 

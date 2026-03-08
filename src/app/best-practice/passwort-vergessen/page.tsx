@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Passwort vergessen – Best Practice",
   description:
     "Setzen Sie Ihr Passwort zurück. Wir schicken Ihnen einen Link per E-Mail.",
+  robots: { index: false, follow: false },
 };
 
 export default function PastwortVergessenPage() {

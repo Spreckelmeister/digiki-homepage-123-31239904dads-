@@ -57,12 +57,6 @@ export default function RegisterForm() {
 
     setSuccess(true);
     setLoading(false);
-
-    // If email confirmation is disabled, redirect directly
-    setTimeout(() => {
-      router.push("/best-practice/datenbank");
-      router.refresh();
-    }, 2000);
   }
 
   return (
@@ -78,8 +72,12 @@ export default function RegisterForm() {
           <h2 className="text-lg font-semibold text-primary mb-2">
             Registrierung erfolgreich!
           </h2>
-          <p className="text-sm text-text-light">
-            Sie werden zur Datenbank weitergeleitet...
+          <p className="text-sm text-text-light mb-4">
+            Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den
+            Bestätigungslink, um Ihr Konto zu aktivieren.
+          </p>
+          <p className="text-xs text-text-light">
+            Keine E-Mail erhalten? Prüfen Sie bitte auch Ihren Spam-Ordner.
           </p>
         </div>
       ) : (

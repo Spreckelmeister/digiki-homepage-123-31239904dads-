@@ -6,6 +6,7 @@ import LoginForm from "./LoginForm";
 export const metadata: Metadata = {
   title: "Anmelden - Best Practice",
   description: "Melden Sie sich an, um auf die Best-Practice-Datenbank zuzugreifen.",
+  robots: { index: false, follow: false },
 };
 
 export default function LoginPage() {
