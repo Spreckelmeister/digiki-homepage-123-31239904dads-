@@ -80,34 +80,46 @@ export async function POST(request: NextRequest) {
     const html = `
 <!DOCTYPE html>
 <html lang="de">
-<head><meta charset="UTF-8" /></head>
-<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;padding:32px 16px;">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color:#F5F9F9;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-          <!-- Header -->
+        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:560px;width:100%;">
+          <!-- Logo-Header -->
           <tr>
-            <td style="background-color:#1a4a6e;padding:28px 32px;border-radius:10px 10px 0 0;">
-              <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:bold;">
-                DigiKI – Bestätigung Ihres Antrags
-              </h1>
+            <td align="center"
+              style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
+              <span style="font-size:26px;font-weight:bold;letter-spacing:-0.5px;color:#ffffff;">Digi</span><span
+                style="font-size:26px;font-weight:bold;letter-spacing:-0.5px;color:#00cabe;">KI</span>
+              <span style="margin-left:10px;font-size:12px;color:rgba(255,255,255,0.7);">Grundschulen Osnabrück</span>
             </td>
+          </tr>
+          <!-- Farbbalken -->
+          <tr>
+            <td style="height:4px;background:linear-gradient(90deg,#006363 0%,#00cabe 100%);"></td>
           </tr>
           <!-- Body -->
           <tr>
-            <td style="background-color:#ffffff;padding:32px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
-              <p style="margin:0 0 16px 0;color:#333;font-size:15px;">${greeting}</p>
-              <p style="margin:0 0 16px 0;color:#333;font-size:15px;">
+            <td style="background-color:#ffffff;padding:36px 32px;
+              border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
+              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
+                Bestätigung Ihres Antrags
+              </h1>
+              <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
+              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Ihr Antrag auf <strong>${antragTyp}</strong> für
                 <strong>${String(school_name).slice(0, 200)}</strong> ist erfolgreich bei uns eingegangen.
               </p>
 
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#e8f4f0;border-left:4px solid #2a8a6e;border-radius:4px;margin:24px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
-                  <td style="padding:16px;">
-                    <p style="margin:0 0 8px 0;font-weight:bold;color:#1a4a6e;font-size:14px;">Wie geht es weiter?</p>
-                    <p style="margin:0;color:#555;font-size:14px;line-height:1.5;">
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">Wie geht es weiter?</p>
+                    <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
                       Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah bei Ihnen.
                       Bei Fragen können Sie sich jederzeit per E-Mail an uns wenden.
                     </p>
@@ -115,13 +127,13 @@ export async function POST(request: NextRequest) {
                 </tr>
               </table>
 
-              <p style="margin:0 0 16px 0;color:#333;font-size:15px;">
+              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Den aktuellen Bearbeitungsstatus können Sie jederzeit in unserer
-                <a href="${siteUrl}/best-practice/datenbank" style="color:#1a4a6e;">Best-Practice-Datenbank</a>
+                <a href="${siteUrl}/best-practice/datenbank" style="color:#006363;">Best-Practice-Datenbank</a>
                 unter dem Abschnitt <em>„Meine Einreichungen"</em> mit Ihrer E-Mail-Adresse abrufen.
               </p>
 
-              <p style="margin:0;color:#333;font-size:15px;">
+              <p style="margin:0;color:#1A1A1A;font-size:15px;">
                 Mit freundlichen Grüßen<br />
                 <strong>Das DigiKI-Team</strong>
               </p>
@@ -129,12 +141,14 @@ export async function POST(request: NextRequest) {
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="background-color:#f4f6f8;padding:20px 32px;border-radius:0 0 10px 10px;border:1px solid #e0e0e0;border-top:none;">
-              <p style="margin:0;font-size:12px;color:#888;line-height:1.5;">
-                Diese E-Mail wurde automatisch versendet. Bitte antworten Sie nicht darauf.<br />
+            <td style="background-color:#F5F9F9;padding:20px 32px;
+              border:1px solid #DEE8E8;border-top:none;
+              border-radius:0 0 12px 12px;">
+              <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
+                Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
                 Kai Krafft · Bildungskoordinator, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#888;">krafft@osnabrueck.de</a>
+                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
               </p>
             </td>
           </tr>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Mail-Adresse bestätigen – DigiKI</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color:#F5F9F9;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:560px;width:100%;">
+
+          <!-- ── Logo-Header ── -->
+          <tr>
+            <td align="center"
+              style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
+              <table cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td>
+                    <!-- DigiKI Wortmarke (kein Bild-Host nötig) -->
+                    <span style="
+                      display:inline-block;
+                      font-size:26px;
+                      font-weight:bold;
+                      letter-spacing:-0.5px;
+                      color:#ffffff;">Digi</span><span style="
+                      display:inline-block;
+                      font-size:26px;
+                      font-weight:bold;
+                      letter-spacing:-0.5px;
+                      color:#00cabe;">KI</span>
+                    <span style="
+                      display:inline-block;
+                      margin-left:10px;
+                      font-size:12px;
+                      color:rgba(255,255,255,0.7);
+                      vertical-align:middle;
+                      padding-top:4px;
+                      letter-spacing:0.3px;">Grundschulen Osnabrück</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── Farbbalken ── -->
+          <tr>
+            <td style="height:4px;background:linear-gradient(90deg,#006363 0%,#00cabe 100%);"></td>
+          </tr>
+
+          <!-- ── Body ── -->
+          <tr>
+            <td style="background-color:#ffffff;padding:36px 32px;
+              border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
+
+              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
+                Bitte bestätigen Sie Ihre E-Mail-Adresse
+              </h1>
+              <p style="margin:0 0 24px 0;font-size:14px;color:#555555;line-height:1.6;">
+                Herzlich willkommen bei DigiKI! Klicken Sie auf den Button, um Ihr Konto
+                zu aktivieren und auf die Best-Practice-Datenbank zuzugreifen.
+              </p>
+
+              <!-- CTA-Button -->
+              <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 28px 0;">
+                <tr>
+                  <td style="border-radius:8px;background-color:#E8A838;">
+                    <a href="{{ .ConfirmationURL }}"
+                      style="display:inline-block;padding:14px 32px;font-size:15px;
+                        font-weight:bold;color:#ffffff;text-decoration:none;
+                        border-radius:8px;letter-spacing:0.2px;">
+                      E-Mail-Adresse bestätigen
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Hinweisbox -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#F5F9F9;border-left:4px solid #006363;
+                  border-radius:0 6px 6px 0;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0;font-size:13px;color:#555555;line-height:1.5;">
+                      Der Bestätigungs-Link ist <strong>24 Stunden</strong> gültig.
+                      Falls Sie sich nicht bei DigiKI registriert haben, können Sie
+                      diese E-Mail ignorieren.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback-Link -->
+              <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;">
+                Falls der Button nicht funktioniert, kopieren Sie diesen Link in Ihren Browser:<br />
+                <a href="{{ .ConfirmationURL }}"
+                  style="color:#006363;word-break:break-all;">
+                  {{ .ConfirmationURL }}
+                </a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── Footer ── -->
+          <tr>
+            <td style="background-color:#F5F9F9;padding:20px 32px;
+              border:1px solid #DEE8E8;border-top:none;
+              border-radius:0 0 12px 12px;">
+              <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
+                Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
+                DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
+                Kai Krafft · Bildungskoordinator, Stadt Osnabrück ·
+                <a href="mailto:krafft@osnabrueck.de"
+                  style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
