@@ -116,6 +116,18 @@ export default function StudentAssistantForm() {
       return;
     }
 
+    // Fire-and-forget confirmation email (non-blocking; silently ignored on failure)
+    fetch("/api/send-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "student_assistant",
+        email: schoolInfo.email,
+        school_name: schoolInfo.school_name,
+        contact_person: schoolInfo.contact_person,
+      }),
+    }).catch(() => {});
+
     setSuccess(true);
     setLoading(false);
   }

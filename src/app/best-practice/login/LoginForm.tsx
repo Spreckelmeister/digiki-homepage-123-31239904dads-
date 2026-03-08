@@ -101,7 +101,15 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-6 text-center text-sm text-text-light">
+      <div className="mt-6 space-y-2 text-center text-sm text-text-light">
+        <p>
+          <Link
+            href="/best-practice/passwort-vergessen"
+            className="text-primary-light underline hover:text-primary"
+          >
+            Passwort vergessen?
+          </Link>
+        </p>
         <p>
           Noch kein Konto?{" "}
           <Link
