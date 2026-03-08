@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterForm() {
-  const router = useRouter();
-
   const [fullName, setFullName] = useState("");
   const [school, setSchool] = useState("");
   const [email, setEmail] = useState("");

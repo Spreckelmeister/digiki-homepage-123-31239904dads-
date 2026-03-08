@@ -11,6 +11,12 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: [
           "/best-practice/admin/",
+          "/best-practice/datenbank",
+          "/best-practice/login",
+          "/best-practice/registrieren",
+          "/best-practice/passwort-vergessen",
+          "/best-practice/passwort-zuruecksetzen",
+          "/auth/",
           "/api/",
         ],
       },
