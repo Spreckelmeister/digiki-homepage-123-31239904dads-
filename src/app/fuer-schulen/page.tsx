@@ -53,8 +53,8 @@ export default function FuerSchulenPage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/pexels-rdne-8499534.webp"
-                alt="Grundschulkinder lernen mit digitalen Medien im Unterricht"
+                src="/images/icons/istock-teacher-supports-students.webp"
+                alt="Lehrkraft unterstützt Schüler an Computern im Unterricht"
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
@@ -208,8 +208,8 @@ export default function FuerSchulenPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
-                src="/images/icons/pexels-pavel-danilyuk-8423046.webp"
-                alt="Individuelle Lernbegleitung im Grundschulunterricht mit digitalen Hilfen"
+                src="/images/icons/istock-teacher-student-highfive.webp"
+                alt="Lehrerin und Schülerin feiern gemeinsam einen Lernerfolg"
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"

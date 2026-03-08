@@ -48,8 +48,8 @@ export default function BestPracticePage() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="/images/icons/pexels-rdne-8499534.webp"
-                alt="Grundschulkinder entdecken digitale Lernangebote"
+                src="/images/icons/istock-team-motivation.webp"
+                alt="Lehrkräfte teilen Best-Practice-Erfahrungen und motivieren sich gegenseitig"
                 width={500}
                 height={400}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[350px]"
@@ -80,8 +80,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/pexels-august-de-richelieu-4260477.webp"
-                  alt="Lehrkraft vermittelt digitale Unterrichtsinhalte"
+                  src="/images/icons/istock-kids-raise-hands.webp"
+                  alt="Begeisterte Grundschulkinder melden sich im Unterricht"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 33vw"
@@ -104,8 +104,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/pexels-pavel-danilyuk-8423046.webp"
-                  alt="Lehrkraft unterstützt ein Kind beim digitalen Lernen"
+                  src="/images/icons/istock-colleague-high-five.webp"
+                  alt="Kolleginnen und Kollegen freuen sich über erfolgreich erprobte Unterrichtsideen"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 33vw"
@@ -128,8 +128,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <Image
-                  src="/images/icons/pexels-pavel-danilyuk-8423009.webp"
-                  alt="Grundschulkinder lernen gemeinsam mit digitaler Unterstützung"
+                  src="/images/icons/unsplash-team-unity.avif"
+                  alt="Wachsende Gemeinschaft von Lehrkräften, die Best-Practice-Beispiele teilen"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 33vw"
