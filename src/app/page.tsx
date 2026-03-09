@@ -31,7 +31,7 @@ export default function HomePage() {
                 Digitale Kompetenz &amp; KI für{" "}
                 <span className="text-teal">Grundschulen</span>
               </h1>
-              <p className="text-lg md:text-xl text-teal/70 mb-8 leading-relaxed">
+              <p className="text-lg text-white/70 max-w-3xl mb-8">
                 {projectData.claim}. Kostenlose Schulungen, Tool-Lizenzen und
                 Begleitung für alle interessierten Grundschulen.
               </p>

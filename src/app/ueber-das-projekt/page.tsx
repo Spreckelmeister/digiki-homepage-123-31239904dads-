@@ -26,7 +26,7 @@ export default function UeberDasProjektPage() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Über das Projekt
               </h1>
-              <p className="text-lg text-teal/70 max-w-3xl">
+              <p className="text-lg text-white/70 max-w-3xl mb-8">
                 DigiKI ist ein 18-monatiges Projekt, das alle interessierten
                 Grundschulen in Stadt und Landkreis Osnabrück zu digitaler Kompetenz
                 und sachgerechtem Umgang mit KI befähigen soll.
