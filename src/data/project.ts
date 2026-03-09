@@ -5,7 +5,7 @@ export const projectData = {
   surveyUrl: "/bestandsaufnahme",
   contactEmail: "krafft@osnabrueck.de",
   projectLead: "Kai Krafft",
-  projectLeadRole: "Bildungskoordinator, Stadt Osnabrück",
+  projectLeadRole: "Bildungskoordinator Fachbereich 40-3 Bildung, Stadt Osnabrück",
   projectLeadAddress: "Bierstraße 20, 49074 Osnabrück",
 };
 
@@ -54,16 +54,15 @@ export const partners = [
   { name: "Stadt Osnabrück", logo: "/images/logos/stadt-osnabrueck.webp", url: "https://www.osnabrueck.de" },
   { name: "Landkreis Osnabrück", logo: "/images/logos/landkreis-os.png", url: "https://www.landkreis-osnabrueck.de" },
   { name: "KOS", logo: "/images/logos/KOS-Logo-Variante-01-horizontal-Printmedien-farbig.png", url: "https://www.kos.uni-osnabrueck.de" },
-  { name: "Medienzentrum Osnabrück", logo: null, url: "https://www.medienzentrum-osnabrueck.de" },
   { name: "RLSB Osnabrück", logo: "/images/logos/Logo RLSB OS transparent.png", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },
 ];
 
 // Förderer – Stiftungen und Herr Hellmann, mit Links zu den Homepages
 export const funders = [
-  { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de", logoClassName: "" },
-  { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.fromm-stiftung.de", logoClassName: "" },
-  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de", logoClassName: "max-h-16" },
-  { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true, logoClassName: "" },
+  { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de", logoClassName: "max-h-12" },
+  { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.fromm-stiftung.de", logoClassName: "max-h-12" },
+  { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de", logoClassName: "max-h-12" },
+  { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true, logoClassName: "max-h-12" },
 ];
 
 export const timelinePhases = [
@@ -154,6 +153,7 @@ export const participationOptions = [
       "Zertifikat",
     ],
     cta: "Zur Anmeldung",
+    ctaHref: "#kontakt",
     featured: true,
   },
   {
@@ -168,6 +168,7 @@ export const participationOptions = [
       "Dokumentation als Best Practice",
     ],
     cta: "Mehr erfahren",
+    ctaHref: "#downloads",
     featured: false,
   },
   {
@@ -182,6 +183,7 @@ export const participationOptions = [
       "Keine Voranmeldung als Schule nötig",
     ],
     cta: "Zu den Terminen",
+    ctaHref: "#kontakt",
     featured: false,
   },
 ];

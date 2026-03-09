@@ -298,7 +298,7 @@ export default function HomePage() {
             >
               Projektbeteiligte
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {partners.map((partner) => (
                 <a
                   key={partner.name}

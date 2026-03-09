@@ -212,5 +212,5 @@ Logos der Förderpartner liegen in `public/images/logos/`.
 
 ## Kontakt
 
-**Kai Krafft** – Bildungskoordinator, Stadt Osnabrück
+**Kai Krafft** – Bildungskoordinator Fachbereich 40-3 Bildung, Stadt Osnabrück
 ✉️ krafft@osnabrueck.de

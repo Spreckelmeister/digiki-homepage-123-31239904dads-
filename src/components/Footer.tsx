@@ -75,7 +75,7 @@ export default function Footer() {
             <h3 className="text-lg font-bold mb-4">Kontakt</h3>
             <address className="text-sm text-teal/60 not-italic leading-relaxed">
               <p className="font-medium text-white">Kai Krafft</p>
-              <p>Bildungskoordinator</p>
+              <p>Bildungskoordinator Fachbereich 40-3 Bildung</p>
               <p>Stadt Osnabrück</p>
               <p>Bierstraße 20, 49074 Osnabrück</p>
               <p className="mt-2">

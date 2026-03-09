@@ -146,7 +146,7 @@ export default function FuerSchulenPage() {
                   ))}
                 </ul>
                 <Link
-                  href="#kontakt"
+                  href={option.ctaHref ?? "#kontakt"}
                   className={`block text-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
                     option.featured
                       ? "bg-accent text-white hover:bg-accent-hover"
@@ -308,6 +308,7 @@ export default function FuerSchulenPage() {
 
       {/* Downloads */}
       <section
+        id="downloads"
         className="py-16 md:py-24 bg-white"
         aria-labelledby="downloads-heading"
       >

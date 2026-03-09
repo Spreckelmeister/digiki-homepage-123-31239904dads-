@@ -29,7 +29,7 @@ export default function ImpressumPage() {
                 <p>Fachbereich Bildung</p>
                 <p>Projekt DigiKI</p>
                 <p className="mt-2">Kai Krafft</p>
-                <p>Bildungskoordinator</p>
+                <p>Bildungskoordinator Fachbereich 40-3 Bildung</p>
                 <p className="mt-2">Bierstraße 20</p>
                 <p>49074 Osnabrück</p>
               </address>
