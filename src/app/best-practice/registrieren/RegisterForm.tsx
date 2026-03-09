@@ -2,8 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const PW_RULES = [
+  { label: "Mindestens 8 Zeichen",          test: (p: string) => p.length >= 8 },
+  { label: "Großbuchstabe (A–Z)",           test: (p: string) => /[A-Z]/.test(p) },
+  { label: "Kleinbuchstabe (a–z)",          test: (p: string) => /[a-z]/.test(p) },
+  { label: "Ziffer (0–9)",                  test: (p: string) => /[0-9]/.test(p) },
+  { label: "Sonderzeichen (!@#$… etc.)",    test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function isPasswordValid(p: string) {
+  return PW_RULES.every((r) => r.test(p));
+}
 
 export default function RegisterForm() {
   const [fullName, setFullName] = useState("");
@@ -21,8 +33,8 @@ export default function RegisterForm() {
     setError("");
     setLoading(true);
 
-    if (password.length < 8) {
-      setError("Das Passwort muss mindestens 8 Zeichen lang sein.");
+    if (!isPasswordValid(password)) {
+      setError("Das Passwort erfüllt nicht alle Anforderungen.");
       setLoading(false);
       return;
     }
@@ -145,18 +157,32 @@ export default function RegisterForm() {
                 htmlFor="password"
                 className="block text-sm font-medium text-text mb-1.5"
               >
-                Passwort (mind. 6 Zeichen)
+                Passwort
               </label>
               <input
                 id="password"
                 type="password"
                 required
-                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
-                placeholder="Mindestens 6 Zeichen"
+                placeholder="Sicheres Passwort wählen"
               />
+              {password.length > 0 && (
+                <ul className="mt-2.5 space-y-1">
+                  {PW_RULES.map((rule) => {
+                    const ok = rule.test(password);
+                    return (
+                      <li key={rule.label} className={`flex items-center gap-2 text-xs ${ok ? "text-green-600" : "text-text-light"}`}>
+                        {ok
+                          ? <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                          : <X className="w-3.5 h-3.5 shrink-0 text-red-400" aria-hidden="true" />}
+                        {rule.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-3 pt-2">
