@@ -294,74 +294,88 @@ export default function HomePage() {
           <div className="mb-16">
             <h2
               id="partners-heading"
-              className="text-2xl font-bold text-primary text-center mb-8"
+              className="text-2xl font-bold text-primary text-center mb-10"
             >
               Projektbeteiligte
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
               {partners.map((partner) => (
                 <a
                   key={partner.name}
                   href={partner.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-3 p-4 bg-bg rounded-xl border border-border hover:shadow-md hover:border-teal/30 transition-all"
+                  title={partner.name}
+                  className="relative w-[140px] h-[60px] transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
                 >
-                  <div className="h-14 w-full flex items-center justify-center">
-                    {partner.logo ? (
-                      <Image
-                        src={partner.logo}
-                        alt={`Logo ${partner.name}`}
-                        width={140}
-                        height={56}
-                        className="max-h-12 w-auto object-contain"
-                      />
-                    ) : (
-                      <span className="text-2xl font-bold text-primary/40">
-                        {partner.name.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-text-light font-medium text-center leading-tight">
-                    {partner.name}
-                  </span>
+                  {partner.logo ? (
+                    <Image
+                      src={partner.logo}
+                      alt={`Logo ${partner.name}`}
+                      fill
+                      className="object-contain"
+                      sizes="140px"
+                    />
+                  ) : (
+                    <span className="flex items-center justify-center w-full h-full text-sm font-semibold text-primary/60">
+                      {partner.name}
+                    </span>
+                  )}
                 </a>
               ))}
             </div>
           </div>
 
+          {/* Trennlinie */}
+          <div className="border-t border-border mb-16" />
+
           {/* Förderer */}
           <div>
-            <h2 className="text-2xl font-bold text-primary text-center mb-8">
+            <h2 className="text-2xl font-bold text-primary text-center mb-10">
               Gefördert durch
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
               {funders.map((funder) => {
-                const Wrapper = funder.url !== "#" ? "a" : "div";
-                const linkProps = funder.url !== "#" ? { href: funder.url, target: "_blank" as const, rel: "noopener noreferrer" } : {};
-                return (
-                  <Wrapper
+                const inner = funder.logo ? (
+                  <div
                     key={funder.name}
-                    {...linkProps}
-                    className="flex flex-col items-center justify-center gap-3 p-4 bg-bg rounded-xl border border-border hover:shadow-md hover:border-teal/30 transition-all"
+                    className="relative w-[140px] h-[60px]"
+                    title={funder.name}
                   >
-                    <div className="h-16 w-full flex items-center justify-center">
-                      {funder.logo ? (
-                        <Image
-                          src={funder.logo}
-                          alt={`Logo ${funder.name}`}
-                          width={160}
-                          height={64}
-                          className={`${funder.logoClassName || "max-h-12"} w-auto object-contain`}
-                        />
-                      ) : (
-                        <User className="w-8 h-8 text-teal" aria-hidden="true" />
-                      )}
-                    </div>
-                    <span className="text-xs text-text-light font-medium text-center leading-tight">
+                    <Image
+                      src={funder.logo}
+                      alt={`Logo ${funder.name}`}
+                      fill
+                      className="object-contain"
+                      sizes="140px"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    key={funder.name}
+                    className="flex flex-col items-center justify-center gap-1.5 w-[140px] h-[60px]"
+                  >
+                    <User className="w-7 h-7 text-primary/40" aria-hidden="true" />
+                    <span className="text-xs font-semibold text-text-light text-center leading-tight">
                       {funder.name}
                     </span>
-                  </Wrapper>
+                  </div>
+                );
+
+                return funder.url !== "#" ? (
+                  <a
+                    key={funder.name}
+                    href={funder.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <div key={funder.name} className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
+                    {inner}
+                  </div>
                 );
               })}
             </div>
