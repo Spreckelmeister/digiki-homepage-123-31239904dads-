@@ -60,7 +60,7 @@ export const partners = [
 // Förderer – Stiftungen und Herr Hellmann, mit Links zu den Homepages
 export const funders = [
   { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de" },
-  { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.fromm-stiftung.de" },
+  { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.facebook.com/FROMMStiftung/?locale=de_DE" },
   { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de" },
   { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true },
 ];
