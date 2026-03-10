@@ -72,11 +72,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If logged in and visiting login/register, redirect to datenbank
+  // Exception: ?confirmed=true means the user just verified their email and should see the login page
   const isAuthRoute =
     request.nextUrl.pathname === "/best-practice/login" ||
     request.nextUrl.pathname === "/best-practice/registrieren";
 
-  if (isAuthRoute && user) {
+  if (isAuthRoute && user && !request.nextUrl.searchParams.get("confirmed")) {
     const url = request.nextUrl.clone();
     url.pathname = "/best-practice/datenbank";
     return NextResponse.redirect(url);

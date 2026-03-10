@@ -11,6 +11,10 @@ const CALLBACK_ERRORS: Record<string, string> = {
     "Der Link ist abgelaufen. Bitte fordern Sie einen neuen an.",
 };
 
+const CALLBACK_SUCCESS: Record<string, string> = {
+  "confirmed": "Ihre E-Mail-Adresse wurde bestätigt. Sie können sich jetzt anmelden.",
+};
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,6 +27,7 @@ export default function LoginForm() {
 
   const callbackError = searchParams.get("error") ?? "";
   const callbackErrorMsg = CALLBACK_ERRORS[callbackError] ?? "";
+  const callbackSuccessMsg = CALLBACK_SUCCESS[searchParams.get("confirmed") ? "confirmed" : ""] ?? "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +62,11 @@ export default function LoginForm() {
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {callbackSuccessMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm">
+            {callbackSuccessMsg}
+          </div>
+        )}
         {(callbackErrorMsg || error) && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {callbackErrorMsg || error}
