@@ -13,7 +13,18 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#x27;");
 }
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
+
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { type, email, school_name, contact_person } = body;
@@ -86,7 +97,7 @@ export async function POST(request: NextRequest) {
       : "Ihr Antrag auf Tool-Lizenzen wurde eingereicht – DigiKI";
 
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.digiki-osnabrueck.de";
+      process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
 
     const greeting = contact_person
       ? `Guten Tag ${escapeHtml(String(contact_person).slice(0, 100))},`

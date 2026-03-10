@@ -1,7 +1,7 @@
 import { projectData } from "@/data/project";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-osnabrueck.de";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
 
 export function OrganizationJsonLd() {
   const jsonLd = {

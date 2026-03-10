@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
 import { OrganizationJsonLd } from "@/components/JsonLd";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-osnabrueck.de";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
 
 const inter = Inter({
   subsets: ["latin"],

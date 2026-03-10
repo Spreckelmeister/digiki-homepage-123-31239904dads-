@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-osnabrueck.de";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
 
 export default function robots(): MetadataRoute.Robots {
   return {

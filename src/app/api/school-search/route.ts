@@ -24,7 +24,18 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
+
 export async function GET(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
