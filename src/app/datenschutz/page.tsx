@@ -46,7 +46,7 @@ export default function DatenschutzPage() {
               </p>
               <address className="not-italic text-text-light leading-relaxed">
                 <p className="font-semibold text-text">Stadt Osnabrück</p>
-                <p>Kai Krafft – Bildungskoordinator Fachbereich 40-3 Bildung</p>
+                <p>Kai Krafft – Bildungskoordinator im Fachbereich 40-3 Bildung</p>
                 <p>Bierstraße 20</p>
                 <p>49074 Osnabrück</p>
                 <p className="mt-2">

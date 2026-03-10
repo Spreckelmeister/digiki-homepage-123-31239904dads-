@@ -5,7 +5,7 @@ export const projectData = {
   surveyUrl: "/bestandsaufnahme",
   contactEmail: "krafft@osnabrueck.de",
   projectLead: "Kai Krafft",
-  projectLeadRole: "Bildungskoordinator Fachbereich 40-3 Bildung, Stadt Osnabrück",
+  projectLeadRole: "Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück",
   projectLeadAddress: "Bierstraße 20, 49074 Osnabrück",
 };
 
@@ -51,7 +51,7 @@ export const features = [
 
 // Projektbeteiligte – mit echten Logos und Links zu den Homepages
 export const partners = [
-  { name: "Stadt Osnabrück", logo: "/images/logos/stadt-osnabrueck.webp", url: "https://www.osnabrueck.de" },
+  { name: "Stadt Osnabrück", logo: "/images/logos/Osnabrueck_Logo_Claim_RGB_RZ.svg", url: "https://www.osnabrueck.de" },
   { name: "Landkreis Osnabrück", logo: "/images/logos/landkreis-os.png", url: "https://www.landkreis-osnabrueck.de" },
   { name: "KOS", logo: "/images/logos/KOS-Logo-Variante-01-horizontal-Printmedien-farbig.png", url: "https://www.kos.uni-osnabrueck.de" },
   { name: "RLSB Osnabrück", logo: "/images/logos/Logo RLSB OS transparent.png", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },

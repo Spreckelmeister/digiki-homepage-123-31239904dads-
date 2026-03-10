@@ -74,7 +74,7 @@ export default function UeberDasProjektPage() {
                 </p>
                 <p>
                   Koordiniert wird das Projekt von der Stadt Osnabrück
-                  (Projektleiter: Kai Krafft, Bildungskoordinator Fachbereich 40-3 Bildung). Die
+                  (Projektleiter: Kai Krafft, Bildungskoordinator im Fachbereich 40-3 Bildung). Die
                   Finanzierung erfolgt durch die Friedel &amp; Gisela
                   Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung
                   Stahlwerk Georgsmarienhütte und Herrn Hellmann als privaten

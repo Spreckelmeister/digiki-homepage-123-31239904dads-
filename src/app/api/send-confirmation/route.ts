@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
                 Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator Fachbereich 40-3 Bildung, Stadt Osnabrück ·
+                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
                 <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
               </p>
             </td>
