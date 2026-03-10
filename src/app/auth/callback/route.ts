@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { type EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const token_hash = requestUrl.searchParams.get("token_hash");
+  const type = requestUrl.searchParams.get("type") as EmailOtpType | null;
 
   // Only allow safe relative paths
   const rawNext = requestUrl.searchParams.get("next") ?? "/best-practice/datenbank";
@@ -16,7 +19,6 @@ export async function GET(request: Request) {
   const origin = requestUrl.origin;
 
   if (
-    code &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
@@ -39,9 +41,16 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    if (token_hash && type) {
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if (!error) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+    } else if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
     }
   }
 
