@@ -197,7 +197,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[send-confirmation] Error:", err);
-    // Don't expose error details; email is non-critical
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: false, error: true }, { status: 500 });
   }
 }

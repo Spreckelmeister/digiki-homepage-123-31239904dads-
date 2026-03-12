@@ -63,6 +63,7 @@ export default function ToolLicenseForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [emailFailed, setEmailFailed] = useState(false);
 
   function handleSchoolInfoChange(field: string, value: string) {
     setSchoolInfo((prev) => ({ ...prev, [field]: value }));
@@ -161,17 +162,23 @@ export default function ToolLicenseForm() {
       return;
     }
 
-    // Fire-and-forget confirmation email (non-blocking; silently ignored on failure)
-    fetch("/api/send-confirmation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "tool_license",
-        email: schoolInfo.email,
-        school_name: schoolInfo.school_name,
-        contact_person: schoolInfo.contact_person,
-      }),
-    }).catch(() => {});
+    // Send confirmation email and notify user on failure
+    try {
+      const res = await fetch("/api/send-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "tool_license",
+          email: schoolInfo.email,
+          school_name: schoolInfo.school_name,
+          contact_person: schoolInfo.contact_person,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) setEmailFailed(true);
+    } catch {
+      setEmailFailed(true);
+    }
 
     setSuccess(true);
     setLoading(false);
@@ -186,11 +193,41 @@ export default function ToolLicenseForm() {
 
   if (success) {
     return (
-      <FormSuccess
-        title="Antrag erfolgreich eingereicht!"
-        message="Vielen Dank für Ihren Lizenz-Antrag. Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen."
-        submittedEmail={schoolInfo.email}
-      />
+      <>
+        {emailFailed && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-primary">
+                Bestätigungsmail nicht zugestellt
+              </h2>
+              <p className="text-sm text-text leading-relaxed">
+                Ihr Antrag wurde erfolgreich eingereicht – leider konnte die
+                Bestätigungs-E-Mail nicht versendet werden. Bitte informieren
+                Sie Kai Krafft direkt über das Kontaktformular.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setEmailFailed(false)}
+                  className="px-4 py-2 text-sm rounded-lg border border-border text-text hover:bg-bg transition-colors"
+                >
+                  Schließen
+                </button>
+                <a
+                  href="/fuer-schulen#kontakt"
+                  className="px-4 py-2 text-sm rounded-lg bg-accent text-white font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  Zum Kontakt
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+        <FormSuccess
+          title="Antrag erfolgreich eingereicht!"
+          message="Vielen Dank für Ihren Lizenz-Antrag. Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen."
+          submittedEmail={schoolInfo.email}
+        />
+      </>
     );
   }
 
