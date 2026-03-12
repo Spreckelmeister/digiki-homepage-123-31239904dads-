@@ -14,7 +14,7 @@ function escapeHtml(str: string): string {
 }
 
 const ALLOWED_ORIGINS = [
-  process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
   "http://localhost:3000",
   "http://localhost:3001",
 ].filter(Boolean) as string[];
