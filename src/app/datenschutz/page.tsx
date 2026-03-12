@@ -147,14 +147,20 @@ export default function DatenschutzPage() {
                 DSGVO (Einwilligung bei der Best-Practice-Veröffentlichung).
               </p>
               <h3 className="text-lg font-semibold text-text mb-2">
-                Auftragsverarbeitung (Supabase)
+                Auftragsverarbeitung (Supabase und Vercil)
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
                 Die Daten werden bei Supabase Inc. gespeichert. Supabase
                 verarbeitet die Daten ausschließlich in unserem Auftrag und
                 gemäß unseren Weisungen. Die Server befinden sich in der EU
-                (Frankfurt). Ein Auftragsverarbeitungsvertrag (AVV) gemäß
+                (Irland). Ein Auftragsverarbeitungsvertrag (AVV) gemäß
                 Art. 28 DSGVO liegt vor.
+              </p>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Webseite wird bei Vercil gehostet. Vercil verarbeitet die
+                Daten ausschließlich nach dem <a href="https://vercel.com/legal/dpa">Auftragsverarbeitungsvertrag</a>. 
+                Die Server befinden sich in der EU. 
+                Ein Auftragsverarbeitungsvertrag (AVV) gemäß Art. 28 DSGVO liegt vor.
               </p>
               <h3 className="text-lg font-semibold text-text mb-2">
                 Speicherdauer
@@ -164,6 +170,24 @@ export default function DatenschutzPage() {
                 des DigiKI-Projekts gespeichert und nach Projektabschluss
                 gelöscht, sofern keine gesetzlichen Aufbewahrungspflichten
                 bestehen.
+              </p>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Transparenz
+              </h3>
+              <p className="text-text-light leading-relaxed">
+                Die Webseite ist als Open Source Software veroeffentlicht und
+                ist unter{" "}
+                <a
+                  href="https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  DigiKi auf Github
+                </a>{" "}
+                erreichbar. Dies ermöglicht eine vollständige
+                Transparenz der Datenverarbeitung. Da sämtliche Datenbankenstruckturen
+                und Seitenquellcodes von unserer Webseite veröffentlicht sind.
               </p>
             </div>
 
@@ -175,11 +199,6 @@ export default function DatenschutzPage() {
                 Diese Website enthält Links zu externen Diensten, insbesondere:
               </p>
               <ul className="list-disc ml-6 text-text-light space-y-2 mb-4">
-                <li>
-                  <strong>Microsoft Forms</strong> für die
-                  Online-Bestandsaufnahme. Für die Datenverarbeitung durch
-                  Microsoft gelten die Datenschutzbestimmungen von Microsoft.
-                </li>
                 <li>
                   <strong>OpenStreetMap Nominatim</strong> für die
                   Adress-Autovervollständigung in den Antragsformularen. Die
