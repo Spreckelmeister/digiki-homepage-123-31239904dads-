@@ -152,9 +152,10 @@ export const participationOptions = [
       "Schwerpunkt Sprachförderung möglich",
       "Zertifikat",
     ],
-    cta: "Zur Anmeldung",
+    cta: "Bald verfügbar",
     ctaHref: "#kontakt",
     featured: true,
+    disabled: true, // Hier wird der Button deaktiviert
   },
   {
     title: "Early Adopter",
@@ -182,9 +183,10 @@ export const participationOptions = [
       "Auch für einzelne Lehrkräfte",
       "Keine Voranmeldung als Schule nötig",
     ],
-    cta: "Zu den Terminen",
+    cta: "Bald verfügbar",
     ctaHref: "#kontakt",
     featured: false,
+    disabled: true, // Hier wird der Button deaktiviert
   },
 ];
 

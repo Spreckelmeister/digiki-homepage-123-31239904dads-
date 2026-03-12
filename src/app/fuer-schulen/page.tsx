@@ -148,7 +148,9 @@ export default function FuerSchulenPage() {
                 <Link
                   href={option.ctaHref ?? "#kontakt"}
                   className={`block text-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-                    option.featured
+                    option.disabled
+                      ? "opacity-50 cursor-not-allowed pointer-events-none"
+                      : option.featured
                       ? "bg-accent text-white hover:bg-accent-hover"
                       : "bg-primary/10 text-primary hover:bg-primary/20"
                   }`}
