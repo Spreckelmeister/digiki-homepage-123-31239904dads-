@@ -118,9 +118,8 @@ export async function POST(request: NextRequest) {
           <tr>
             <td align="center"
               style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
-              <span style="font-size:26px;font-weight:bold;letter-spacing:-0.5px;color:#ffffff;">Digi</span><span
-                style="font-size:26px;font-weight:bold;letter-spacing:-0.5px;color:#00cabe;">KI</span>
-              <span style="margin-left:10px;font-size:12px;color:rgba(255,255,255,0.7);">Grundschulen Osnabrück</span>
+              <img src="${siteUrl}/images/logos/DigiKI.png" alt="DigiKI" height="48"
+                style="display:block;height:48px;width:auto;" />
             </td>
           </tr>
           <!-- Farbbalken -->
