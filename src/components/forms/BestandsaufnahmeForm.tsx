@@ -33,22 +33,22 @@ const STEPS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function ProgressBar({ step }: { step: number }) {
+function ProgressBar({ step, steps = STEPS }: { step: number; steps?: typeof STEPS }) {
   return (
     <div className="mb-8">
       {/* Mobile: step counter */}
       <div className="flex items-center justify-between mb-3 sm:hidden">
         <span className="text-sm font-semibold text-primary">
-          {STEPS[step].icon} {STEPS[step].label}
+          {steps[step].icon} {steps[step].label}
         </span>
         <span className="text-xs text-text-light font-medium bg-border px-2 py-0.5 rounded-full">
-          {step + 1} / {STEPS.length}
+          {step + 1} / {steps.length}
         </span>
       </div>
 
       {/* Desktop: dots */}
       <div className="hidden sm:flex items-center gap-1 mb-3">
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div key={i} className="flex items-center flex-1 last:flex-none">
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-all duration-300 ${
@@ -62,7 +62,7 @@ function ProgressBar({ step }: { step: number }) {
             >
               {i < step ? <Check className="w-4 h-4" /> : s.short}
             </div>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={`h-0.5 flex-1 mx-1 rounded transition-all duration-500 ${
                   i < step ? "bg-primary" : "bg-border"
@@ -77,12 +77,12 @@ function ProgressBar({ step }: { step: number }) {
       <div className="w-full bg-border rounded-full h-1.5">
         <div
           className="bg-gradient-to-r from-primary to-accent h-1.5 rounded-full transition-all duration-500"
-          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          style={{ width: `${((step + 1) / steps.length) * 100}%` }}
         />
       </div>
 
       <p className="hidden sm:block mt-2 text-xs text-text-light text-right">
-        Abschnitt {step + 1} von {STEPS.length}: {STEPS[step].label}
+        Abschnitt {step + 1} von {steps.length}: {steps[step].label}
       </p>
     </div>
   );
@@ -267,15 +267,75 @@ function TextArea({
   );
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+export interface BestandsaufnahmeData {
+  id: string;
+  school_name: string;
+  school_location: string | null;
+  student_count: string | null;
+  teacher_count: string | null;
+  is_startchancen_school: string | null;
+  daz_share: string | null;
+  respondent_role: string | null;
+  devices: string[];
+  devices_other: string | null;
+  tablet_count: string | null;
+  wlan_rating: number | null;
+  infrastructure: string[];
+  infrastructure_other: string | null;
+  challenges: string[];
+  challenges_other: string | null;
+  support_satisfaction: number | null;
+  digitization_level: number | null;
+  tools_used: string[];
+  tools_used_other: string | null;
+  usage_frequency: string | null;
+  diagnostic_tools: string[];
+  media_concept: string | null;
+  media_responsible: string | null;
+  ai_usage: string | null;
+  ai_purposes: string[];
+  ai_tools_used: string[];
+  ai_tools_other: string | null;
+  ai_competence: number | null;
+  ai_concerns: string[];
+  ai_concerns_other: string | null;
+  ai_trainings: string[];
+  ai_trainings_other: string | null;
+  training_needs: string[];
+  training_format: string[];
+  training_times: string[];
+  participation_count: string | null;
+  pioneer_interest: string | null;
+  has_best_practice: string | null;
+  best_practice_description: string | null;
+  share_practice: string | null;
+  support_needs: string[];
+  software_licenses: string[];
+  software_licenses_other: string | null;
+  student_support: string | null;
+  time_for_tools: string | null;
+  project_wishes: string | null;
+  additional_notes: string | null;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function BestandsaufnahmeForm() {
+export default function BestandsaufnahmeForm({
+  editMode = false,
+  initialData,
+  recordId,
+}: {
+  editMode?: boolean;
+  initialData?: BestandsaufnahmeData;
+  recordId?: string;
+}) {
   const { isSpam, HoneypotField } = useHoneypot();
 
   // Navigation
   const [step, setStep] = useState(0);
 
   // ── Teil A ──────────────────────────────────────────────────────────────────
-  const [schoolName, setSchoolName] = useState("");
+  const [schoolName, setSchoolName] = useState(initialData?.school_name ?? "");
 
   // School name autocomplete
   const {
@@ -300,68 +360,68 @@ export default function BestandsaufnahmeForm() {
     clearSchoolSuggestions();
     setShowSchoolSuggestions(false);
   }
-  const [schoolLocation, setSchoolLocation] = useState("");
-  const [studentCount, setStudentCount] = useState("");
-  const [teacherCount, setTeacherCount] = useState("");
-  const [isStartchancen, setIsStartchancen] = useState("");
-  const [dazShare, setDazShare] = useState("");
-  const [respondentRole, setRespondentRole] = useState("");
+  const [schoolLocation, setSchoolLocation] = useState(initialData?.school_location ?? "");
+  const [studentCount, setStudentCount] = useState(initialData?.student_count ?? "");
+  const [teacherCount, setTeacherCount] = useState(initialData?.teacher_count ?? "");
+  const [isStartchancen, setIsStartchancen] = useState(initialData?.is_startchancen_school ?? "");
+  const [dazShare, setDazShare] = useState(initialData?.daz_share ?? "");
+  const [respondentRole, setRespondentRole] = useState(initialData?.respondent_role ?? "");
   const [respondentRoleOther, setRespondentRoleOther] = useState("");
 
   // ── Teil B ──────────────────────────────────────────────────────────────────
-  const [devices, setDevices] = useState<string[]>([]);
-  const [devicesOther, setDevicesOther] = useState("");
-  const [tabletCount, setTabletCount] = useState("");
-  const [wlanRating, setWlanRating] = useState(0);
-  const [infrastructure, setInfrastructure] = useState<string[]>([]);
-  const [infrastructureOther, setInfrastructureOther] = useState("");
-  const [challenges, setChallenges] = useState<string[]>([]);
-  const [challengesOther, setChallengesOther] = useState("");
-  const [supportSatisfaction, setSupportSatisfaction] = useState(0);
+  const [devices, setDevices] = useState<string[]>(initialData?.devices ?? []);
+  const [devicesOther, setDevicesOther] = useState(initialData?.devices_other ?? "");
+  const [tabletCount, setTabletCount] = useState(initialData?.tablet_count ?? "");
+  const [wlanRating, setWlanRating] = useState(initialData?.wlan_rating ?? 0);
+  const [infrastructure, setInfrastructure] = useState<string[]>(initialData?.infrastructure ?? []);
+  const [infrastructureOther, setInfrastructureOther] = useState(initialData?.infrastructure_other ?? "");
+  const [challenges, setChallenges] = useState<string[]>(initialData?.challenges ?? []);
+  const [challengesOther, setChallengesOther] = useState(initialData?.challenges_other ?? "");
+  const [supportSatisfaction, setSupportSatisfaction] = useState(initialData?.support_satisfaction ?? 0);
 
   // ── Teil C ──────────────────────────────────────────────────────────────────
-  const [digitizationLevel, setDigitizationLevel] = useState(0);
-  const [toolsUsed, setToolsUsed] = useState<string[]>([]);
-  const [toolsUsedOther, setToolsUsedOther] = useState("");
-  const [usageFrequency, setUsageFrequency] = useState("");
-  const [diagnosticTools, setDiagnosticTools] = useState<string[]>([]);
+  const [digitizationLevel, setDigitizationLevel] = useState(initialData?.digitization_level ?? 0);
+  const [toolsUsed, setToolsUsed] = useState<string[]>(initialData?.tools_used ?? []);
+  const [toolsUsedOther, setToolsUsedOther] = useState(initialData?.tools_used_other ?? "");
+  const [usageFrequency, setUsageFrequency] = useState(initialData?.usage_frequency ?? "");
+  const [diagnosticTools, setDiagnosticTools] = useState<string[]>(initialData?.diagnostic_tools ?? []);
   const [diagnosticToolsOther, setDiagnosticToolsOther] = useState("");
-  const [mediaConcept, setMediaConcept] = useState("");
-  const [mediaResponsible, setMediaResponsible] = useState("");
+  const [mediaConcept, setMediaConcept] = useState(initialData?.media_concept ?? "");
+  const [mediaResponsible, setMediaResponsible] = useState(initialData?.media_responsible ?? "");
 
   // ── Teil D ──────────────────────────────────────────────────────────────────
-  const [aiUsage, setAiUsage] = useState("");
-  const [aiPurposes, setAiPurposes] = useState<string[]>([]);
-  const [aiToolsUsed, setAiToolsUsed] = useState<string[]>([]);
-  const [aiToolsOther, setAiToolsOther] = useState("");
-  const [aiCompetence, setAiCompetence] = useState(0);
-  const [aiConcerns, setAiConcerns] = useState<string[]>([]);
-  const [aiConcernsOther, setAiConcernsOther] = useState("");
-  const [aiTrainings, setAiTrainings] = useState<string[]>([]);
-  const [aiTrainingsOther, setAiTrainingsOther] = useState("");
+  const [aiUsage, setAiUsage] = useState(initialData?.ai_usage ?? "");
+  const [aiPurposes, setAiPurposes] = useState<string[]>(initialData?.ai_purposes ?? []);
+  const [aiToolsUsed, setAiToolsUsed] = useState<string[]>(initialData?.ai_tools_used ?? []);
+  const [aiToolsOther, setAiToolsOther] = useState(initialData?.ai_tools_other ?? "");
+  const [aiCompetence, setAiCompetence] = useState(initialData?.ai_competence ?? 0);
+  const [aiConcerns, setAiConcerns] = useState<string[]>(initialData?.ai_concerns ?? []);
+  const [aiConcernsOther, setAiConcernsOther] = useState(initialData?.ai_concerns_other ?? "");
+  const [aiTrainings, setAiTrainings] = useState<string[]>(initialData?.ai_trainings ?? []);
+  const [aiTrainingsOther, setAiTrainingsOther] = useState(initialData?.ai_trainings_other ?? "");
 
   // ── Teil E ──────────────────────────────────────────────────────────────────
-  const [trainingNeeds, setTrainingNeeds] = useState<string[]>([]);
-  const [trainingFormat, setTrainingFormat] = useState<string[]>([]);
-  const [trainingTimes, setTrainingTimes] = useState<string[]>([]);
-  const [participationCount, setParticipationCount] = useState("");
-  const [pioneerInterest, setPioneerInterest] = useState("");
+  const [trainingNeeds, setTrainingNeeds] = useState<string[]>(initialData?.training_needs ?? []);
+  const [trainingFormat, setTrainingFormat] = useState<string[]>(initialData?.training_format ?? []);
+  const [trainingTimes, setTrainingTimes] = useState<string[]>(initialData?.training_times ?? []);
+  const [participationCount, setParticipationCount] = useState(initialData?.participation_count ?? "");
+  const [pioneerInterest, setPioneerInterest] = useState(initialData?.pioneer_interest ?? "");
 
   // ── Teil F ──────────────────────────────────────────────────────────────────
-  const [hasBestPractice, setHasBestPractice] = useState("");
-  const [bestPracticeDescription, setBestPracticeDescription] = useState("");
-  const [sharePractice, setSharePractice] = useState("");
+  const [hasBestPractice, setHasBestPractice] = useState(initialData?.has_best_practice ?? "");
+  const [bestPracticeDescription, setBestPracticeDescription] = useState(initialData?.best_practice_description ?? "");
+  const [sharePractice, setSharePractice] = useState(initialData?.share_practice ?? "");
 
   // ── Teil G ──────────────────────────────────────────────────────────────────
-  const [supportNeeds, setSupportNeeds] = useState<string[]>([]);
-  const [softwareLicenses, setSoftwareLicenses] = useState<string[]>([]);
-  const [softwareLicensesOther, setSoftwareLicensesOther] = useState("");
-  const [studentSupport, setStudentSupport] = useState("");
-  const [timeForTools, setTimeForTools] = useState("");
+  const [supportNeeds, setSupportNeeds] = useState<string[]>(initialData?.support_needs ?? []);
+  const [softwareLicenses, setSoftwareLicenses] = useState<string[]>(initialData?.software_licenses ?? []);
+  const [softwareLicensesOther, setSoftwareLicensesOther] = useState(initialData?.software_licenses_other ?? "");
+  const [studentSupport, setStudentSupport] = useState(initialData?.student_support ?? "");
+  const [timeForTools, setTimeForTools] = useState(initialData?.time_for_tools ?? "");
 
   // ── Teil H ──────────────────────────────────────────────────────────────────
-  const [projectWishes, setProjectWishes] = useState("");
-  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [projectWishes, setProjectWishes] = useState(initialData?.project_wishes ?? "");
+  const [additionalNotes, setAdditionalNotes] = useState(initialData?.additional_notes ?? "");
 
   // ── Account-Daten (Login für Best-Practice-Datenbank) ────────────────────────
   const [contactPerson, setContactPerson] = useState("");
@@ -418,6 +478,10 @@ export default function BestandsaufnahmeForm() {
     setStep((s) => s - 1);
   }
 
+  // ─── lastStep: in editMode skip step 8 (account creation) ─────────────────
+  const lastStep = editMode ? 7 : 8;
+  const visibleSteps = editMode ? STEPS.slice(0, 8) : STEPS;
+
   // ─── Submit ─────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -431,6 +495,71 @@ export default function BestandsaufnahmeForm() {
     }
 
     setLoading(true);
+
+    // ── Edit mode: update existing record ──────────────────────────────────
+    if (editMode && recordId) {
+      const res = await fetch("/api/update-bestandsaufnahme", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId,
+          schoolName,
+          schoolLocation,
+          studentCount,
+          teacherCount: teacherCount || null,
+          isStartchancen,
+          dazShare,
+          respondentRole: respondentRole || null,
+          devices,
+          devicesOther: devicesOther || null,
+          tabletCount: tabletCount || null,
+          wlanRating: wlanRating || null,
+          infrastructure,
+          infrastructureOther: infrastructureOther || null,
+          challenges,
+          challengesOther: challengesOther || null,
+          supportSatisfaction: supportSatisfaction || null,
+          digitizationLevel: digitizationLevel || null,
+          toolsUsed,
+          toolsUsedOther: toolsUsedOther || null,
+          usageFrequency: usageFrequency || null,
+          diagnosticTools,
+          mediaConcept: mediaConcept || null,
+          mediaResponsible: mediaResponsible || null,
+          aiUsage: aiUsage || null,
+          aiPurposes,
+          aiToolsUsed,
+          aiToolsOther: aiToolsOther || null,
+          aiCompetence: aiCompetence || null,
+          aiConcerns,
+          aiConcernsOther: aiConcernsOther || null,
+          aiTrainings,
+          aiTrainingsOther: aiTrainingsOther || null,
+          trainingNeeds,
+          trainingFormat,
+          trainingTimes,
+          participationCount: participationCount || null,
+          pioneerInterest: pioneerInterest || null,
+          hasBestPractice: hasBestPractice || null,
+          bestPracticeDescription: bestPracticeDescription || null,
+          sharePractice: sharePractice || null,
+          supportNeeds,
+          softwareLicenses,
+          softwareLicensesOther: softwareLicensesOther || null,
+          studentSupport: studentSupport || null,
+          timeForTools: timeForTools || null,
+          projectWishes: projectWishes || null,
+          additionalNotes: additionalNotes || null,
+        }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        setStepError("Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+        return;
+      }
+      setSuccess(true);
+      return;
+    }
 
     // 1. Supabase-Account anlegen (sendet automatisch Bestätigungs-E-Mail)
     const supabase = createClient();
@@ -539,7 +668,16 @@ export default function BestandsaufnahmeForm() {
   }
 
   if (success) {
-    return (
+    return editMode ? (
+      <div className="rounded-xl bg-green-50 border border-green-200 px-6 py-8 text-center">
+        <p className="text-2xl mb-2">✅</p>
+        <h2 className="text-xl font-bold text-green-800 mb-2">Änderungen gespeichert!</h2>
+        <p className="text-sm text-green-700">Ihre Bestandsaufnahme wurde erfolgreich aktualisiert.</p>
+        <a href="/best-practice/datenbank" className="mt-4 inline-block text-sm text-primary underline hover:text-primary-light transition-colors">
+          Zurück zur Datenbank
+        </a>
+      </div>
+    ) : (
       <FormSuccess
         title="Vielen Dank für Ihre Teilnahme!"
         message="Ihre Bestandsaufnahme wurde übermittelt und Ihr DigiKI-Account wurde angelegt. Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink von Supabase, um Ihren Account zu aktivieren."
@@ -551,7 +689,7 @@ export default function BestandsaufnahmeForm() {
   return (
     <div>
       {HoneypotField}
-      <ProgressBar step={step} />
+      <ProgressBar step={step} steps={visibleSteps} />
 
       {/* Error banner */}
       {stepError && (
@@ -1188,7 +1326,7 @@ export default function BestandsaufnahmeForm() {
             </button>
           )}
 
-          {step < STEPS.length - 1 ? (
+          {step < lastStep ? (
             <button
               type="button"
               onClick={handleNext}
@@ -1204,7 +1342,7 @@ export default function BestandsaufnahmeForm() {
               className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent-hover transition-all disabled:opacity-50"
             >
               <Send className="w-4 h-4" aria-hidden="true" />
-              {loading ? "Wird übermittelt…" : "Bestandsaufnahme einreichen"}
+              {loading ? "Wird übermittelt…" : editMode ? "Änderungen speichern" : "Bestandsaufnahme einreichen"}
             </button>
           )}
         </div>

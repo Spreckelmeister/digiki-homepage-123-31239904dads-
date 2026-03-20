@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import BestPracticeList from "@/components/best-practice/BestPracticeList";
 import MySubmissions from "@/components/best-practice/MySubmissions";
+import MyBestandsaufnahme from "@/components/best-practice/MyBestandsaufnahme";
 
 export const metadata: Metadata = {
   title: "Best-Practice-Datenbank",
@@ -50,6 +51,7 @@ export default async function DatenbankPage() {
             categories={categories || []}
           />
           <MySubmissions />
+          <MyBestandsaufnahme />
         </div>
       </section>
     </>
