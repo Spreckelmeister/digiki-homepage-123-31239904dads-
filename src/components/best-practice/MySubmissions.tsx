@@ -143,24 +143,33 @@ function supportList(app: StudentAppFullResult): string {
 export default function MySubmissions() {
   const [email, setEmail]                   = useState("");
   const [loggedInEmail, setLoggedInEmail]   = useState<string | null>(null);
+  const [isAdmin, setIsAdmin]               = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState("");
   const [basicResult, setBasicResult]       = useState<BasicResult | null>(null);
   const [fullResult, setFullResult]         = useState<FullResult | null>(null);
   const [searched, setSearched]             = useState(false);
 
-  // Auto-fill E-Mail wenn eingeloggt
+  // Auto-fill E-Mail wenn eingeloggt, Rolle prüfen
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (data.user?.email) {
         setLoggedInEmail(data.user.email.toLowerCase());
         setEmail(data.user.email);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+        if (profile?.role === "admin") setIsAdmin(true);
       }
     });
   }, []);
 
+  // Admins bekommen nie die Voll-Ansicht (get_my_submissions_full schlägt fehl)
   const isOwner =
+    !isAdmin &&
     loggedInEmail !== null &&
     email.trim().toLowerCase() === loggedInEmail;
 

@@ -59,6 +59,16 @@ export default function MyBestandsaufnahme() {
         setLoading(false);
         return;
       }
+      // Admins haben keine eigene Bestandsaufnahme
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .single();
+      if (profile?.role === "admin") {
+        setLoading(false);
+        return;
+      }
       setIsLoggedIn(true);
       const { data: rpcData } = await supabase.rpc("get_my_submissions_full");
       const result = rpcData as FullResult | null;
