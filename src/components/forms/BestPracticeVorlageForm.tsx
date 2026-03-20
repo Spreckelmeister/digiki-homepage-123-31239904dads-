@@ -34,11 +34,6 @@ const RATING_RECOMMENDATION = [
 export default function BestPracticeVorlageForm() {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
-  if (isAdmin === true) return (
-    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
-      Admin-Accounts können keine Einreichungen vornehmen.
-    </div>
-  );
   // 1. Allgemeine Angaben
   const [schoolName, setSchoolName] = useState("");
   const [location, setLocation] = useState("");
@@ -217,6 +212,12 @@ export default function BestPracticeVorlageForm() {
 
   const inputClass =
     "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
+
+  if (isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können keine Einreichungen vornehmen.
+    </div>
+  );
 
   if (success) {
     return (

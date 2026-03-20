@@ -333,12 +333,6 @@ export default function BestandsaufnahmeForm({
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
 
-  if (!editMode && isAdmin === true) return (
-    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
-      Admin-Accounts können keine Bestandsaufnahme einreichen.
-    </div>
-  );
-
   // Navigation
   const [step, setStep] = useState(0);
 
@@ -693,6 +687,12 @@ export default function BestandsaufnahmeForm({
       />
     );
   }
+
+  if (!editMode && isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können keine Bestandsaufnahme einreichen.
+    </div>
+  );
 
   return (
     <div>
