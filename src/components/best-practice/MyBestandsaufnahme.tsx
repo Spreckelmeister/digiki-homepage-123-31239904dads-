@@ -2,46 +2,153 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ClipboardList, Pencil } from "lucide-react";
+import { ClipboardList, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { BestandsaufnahmeData } from "@/components/forms/BestandsaufnahmeForm";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
+    day: "numeric",
+    month: "long",
     year: "numeric",
   });
 }
 
-function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
+// ── Admin-style sub-components ────────────────────────────────────────────────
+
+function Section({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div>
-      <span className="text-xs font-semibold text-text">{label}: </span>
-      <span className="text-xs text-text-light">{value}</span>
+    <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-bg transition-colors"
+      >
+        <h3 className="text-base font-semibold text-primary">{title}</h3>
+        {open ? (
+          <ChevronUp className="w-4 h-4 text-text-light shrink-0" aria-hidden="true" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-text-light shrink-0" aria-hidden="true" />
+        )}
+      </button>
+      {open && (
+        <div className="px-6 pb-6 border-t border-border pt-4">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
 
-function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
+function Grid({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <p className="text-xs font-bold text-primary mb-1.5">{title}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">{children}</div>
+    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+      {children}
+    </dl>
+  );
+}
+
+function Field({
+  label,
+  value,
+  wide,
+}: {
+  label: string;
+  value: string | number | null | undefined;
+  wide?: boolean;
+}) {
+  if (value === null || value === undefined || value === "") return null;
+  return (
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm text-text">{String(value)}</dd>
     </div>
   );
 }
+
+function FieldList({
+  label,
+  values,
+  other,
+  wide,
+}: {
+  label: string;
+  values: string[] | null | undefined;
+  other?: string | null;
+  wide?: boolean;
+}) {
+  const list = [
+    ...(values ?? []),
+    ...(other ? [`Sonstiges: ${other}`] : []),
+  ];
+  if (list.length === 0) return null;
+  return (
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <dt className="text-xs font-medium text-text-light uppercase tracking-wider mb-1.5">
+        {label}
+      </dt>
+      <dd>
+        <ul className="flex flex-wrap gap-1.5">
+          {list.map((v) => (
+            <li
+              key={v}
+              className="inline-flex rounded-full bg-primary/5 px-2.5 py-0.5 text-xs text-primary"
+            >
+              {v}
+            </li>
+          ))}
+        </ul>
+      </dd>
+    </div>
+  );
+}
+
+function TextBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-xs font-medium text-text-light uppercase tracking-wider mb-1">
+        {label}
+      </p>
+      <p className="text-sm text-text whitespace-pre-wrap p-3 bg-bg rounded-lg">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface BestandsaufnahmeRecord extends BestandsaufnahmeData {
   contact_person: string | null;
   principal_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  respondent_role_other: string | null;
+  diagnostic_tools_other: string | null;
   status: string;
   created_at: string;
   updated_at: string | null;
 }
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MyBestandsaufnahme() {
   const [data, setData] = useState<BestandsaufnahmeRecord | null>(null);
@@ -55,7 +162,6 @@ export default function MyBestandsaufnahme() {
         setLoading(false);
         return;
       }
-      // Admins haben keine eigene Bestandsaufnahme
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -76,14 +182,17 @@ export default function MyBestandsaufnahme() {
 
   if (!isLoggedIn || loading) return null;
 
+  const r = data;
+
   return (
     <div className="mt-16 border-t border-border pt-12">
-      <div className="flex items-center justify-between gap-3 mb-2">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-primary" aria-hidden="true" />
           <h2 className="text-2xl font-bold text-primary">Meine Bestandsaufnahme</h2>
         </div>
-        {data && (
+        {r && (
           <Link
             href="/best-practice/meine-bestandsaufnahme/bearbeiten"
             className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-white transition-all"
@@ -94,7 +203,7 @@ export default function MyBestandsaufnahme() {
         )}
       </div>
 
-      {!data ? (
+      {!r ? (
         <div className="rounded-xl bg-bg border border-border px-6 py-8 text-center text-sm text-text-light">
           <p className="mb-3">Sie haben noch keine Bestandsaufnahme eingereicht.</p>
           <Link
@@ -105,102 +214,129 @@ export default function MyBestandsaufnahme() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="bg-white px-6 py-5 space-y-5">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-              <div>
-                <p className="font-semibold text-text text-base">{data.school_name}</p>
-                <p className="text-xs text-text-light mt-0.5">
-                  Eingereicht am {formatDate(data.created_at)}
-                  {data.updated_at && data.updated_at !== data.created_at && ` · Aktualisiert am ${formatDate(data.updated_at)}`}
-                </p>
-              </div>
-              <span className="inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 shrink-0 self-start">
-                {data.status === "neu" ? "Eingegangen" : data.status}
-              </span>
-            </div>
-
-            {/* Kontakt */}
-            <SectionBlock title="Kontakt">
-              <DetailField label="Ansprechperson" value={data.contact_person} />
-              <DetailField label="Schulleitung" value={data.principal_name} />
-              <DetailField label="E-Mail" value={data.contact_email} />
-              <DetailField label="Telefon" value={data.contact_phone} />
-            </SectionBlock>
-
-            {/* Teil A */}
-            <SectionBlock title="🏫 Allgemeine Angaben">
-              <DetailField label="Schulstandort" value={data.school_location} />
-              <DetailField label="Schüler/innen" value={data.student_count} />
-              <DetailField label="Lehrkräfte" value={data.teacher_count} />
-              <DetailField label="Startchancen-Schule" value={data.is_startchancen_school} />
-              <DetailField label="DaZ-Anteil" value={data.daz_share} />
-              <DetailField label="Ausfüllende Person" value={data.respondent_role} />
-            </SectionBlock>
-
-            {/* Teil B */}
-            <SectionBlock title="💻 Technische Ausstattung">
-              <DetailField label="Endgeräte" value={[...(data.devices ?? []), data.devices_other].filter(Boolean).join(", ")} />
-              <DetailField label="Tablets/iPads" value={data.tablet_count} />
-              <DetailField label="WLAN-Bewertung" value={data.wlan_rating ? `${data.wlan_rating} / 5` : null} />
-              <DetailField label="Infrastruktur" value={[...(data.infrastructure ?? []), data.infrastructure_other].filter(Boolean).join(", ")} />
-              <DetailField label="Herausforderungen" value={[...(data.challenges ?? []), data.challenges_other].filter(Boolean).join(", ")} />
-              <DetailField label="Zufriedenheit Support" value={data.support_satisfaction ? `${data.support_satisfaction} / 5` : null} />
-            </SectionBlock>
-
-            {/* Teil C */}
-            <SectionBlock title="📊 Stand Digitalisierung">
-              <DetailField label="Digitalisierungsgrad" value={data.digitization_level ? `${data.digitization_level} / 5` : null} />
-              <DetailField label="Tools im Einsatz" value={[...(data.tools_used ?? []), data.tools_used_other].filter(Boolean).join(", ")} />
-              <DetailField label="Nutzungshäufigkeit" value={data.usage_frequency} />
-              <DetailField label="Diagnostik-Tools" value={(data.diagnostic_tools ?? []).join(", ")} />
-              <DetailField label="Medienkonzept" value={data.media_concept} />
-              <DetailField label="Medienbeauftragte/r" value={data.media_responsible} />
-            </SectionBlock>
-
-            {/* Teil D */}
-            <SectionBlock title="🤖 Künstliche Intelligenz">
-              <DetailField label="KI-Nutzung" value={data.ai_usage} />
-              <DetailField label="KI wofür" value={(data.ai_purposes ?? []).join(", ")} />
-              <DetailField label="KI-Tools" value={[...(data.ai_tools_used ?? []), data.ai_tools_other].filter(Boolean).join(", ")} />
-              <DetailField label="KI-Kompetenzniveau" value={data.ai_competence ? `${data.ai_competence} / 5` : null} />
-              <DetailField label="Bedenken" value={[...(data.ai_concerns ?? []), data.ai_concerns_other].filter(Boolean).join(", ")} />
-              <DetailField label="KI-Fortbildungen" value={[...(data.ai_trainings ?? []), data.ai_trainings_other].filter(Boolean).join(", ")} />
-            </SectionBlock>
-
-            {/* Teil E */}
-            <SectionBlock title="🎓 Fortbildungsbedarf">
-              <DetailField label="Bedarf" value={(data.training_needs ?? []).join(", ")} />
-              <DetailField label="Formate" value={(data.training_format ?? []).join(", ")} />
-              <DetailField label="Zeiten" value={(data.training_times ?? []).join(", ")} />
-              <DetailField label="Erwartete Teilnehmer" value={data.participation_count} />
-              <DetailField label="Vorreiter-Schule" value={data.pioneer_interest} />
-            </SectionBlock>
-
-            {/* Teil F */}
-            <SectionBlock title="⭐ Best Practices">
-              <DetailField label="Best Practice vorhanden" value={data.has_best_practice} />
-              <DetailField label="Beschreibung" value={data.best_practice_description} />
-              <DetailField label="Bereit zum Teilen" value={data.share_practice} />
-            </SectionBlock>
-
-            {/* Teil G */}
-            <SectionBlock title="🛠️ Unterstützungsbedarf">
-              <DetailField label="Unterstützung gewünscht" value={(data.support_needs ?? []).join(", ")} />
-              <DetailField label="Software-Lizenzen" value={[...(data.software_licenses ?? []), data.software_licenses_other].filter(Boolean).join(", ")} />
-              <DetailField label="Studentische Unterstützung" value={data.student_support} />
-              <DetailField label="Zeit für Tools" value={data.time_for_tools} />
-            </SectionBlock>
-
-            {/* Teil H */}
-            {(data.project_wishes || data.additional_notes) && (
-              <SectionBlock title="💬 Offene Rückmeldung">
-                <DetailField label="Wünsche ans Projekt" value={data.project_wishes} />
-                <DetailField label="Weitere Anmerkungen" value={data.additional_notes} />
-              </SectionBlock>
-            )}
+        <div className="space-y-3">
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <span className="text-sm font-semibold text-text">{r.school_name}</span>
+            <span className="inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
+              {r.status === "neu" ? "Eingegangen" : r.status}
+            </span>
+            <span className="text-xs text-text-light">
+              Eingereicht am {formatDate(r.created_at)}
+              {r.updated_at && r.updated_at !== r.created_at &&
+                ` · Aktualisiert am ${formatDate(r.updated_at)}`}
+            </span>
           </div>
+
+          {/* Kontakt – always open */}
+          <Section title="👤 Kontaktdaten" defaultOpen>
+            <Grid>
+              <Field label="Ansprechperson" value={r.contact_person} />
+              <Field label="Schulleitung" value={r.principal_name} />
+              <Field label="E-Mail" value={r.contact_email} />
+              <Field label="Telefon" value={r.contact_phone} />
+            </Grid>
+          </Section>
+
+          {/* Teil A */}
+          <Section title="🏫 Teil A: Allgemeine Angaben">
+            <Grid>
+              <Field label="Name der Schule" value={r.school_name} />
+              <Field label="Schulstandort" value={r.school_location} />
+              <Field label="Anzahl Schüler/innen" value={r.student_count} />
+              <Field label="Anzahl Lehrkräfte" value={r.teacher_count} />
+              <Field label="Startchancen-Schule" value={r.is_startchancen_school} />
+              <Field label="DaZ-Anteil" value={r.daz_share} />
+              <Field
+                label="Ausfüllende Person"
+                value={
+                  r.respondent_role === "Sonstiges" && r.respondent_role_other
+                    ? `Sonstiges: ${r.respondent_role_other}`
+                    : r.respondent_role
+                }
+              />
+            </Grid>
+          </Section>
+
+          {/* Teil B */}
+          <Section title="💻 Teil B: Technische Ausstattung">
+            <Grid>
+              <FieldList label="Endgeräte" values={r.devices} other={r.devices_other} />
+              <Field label="Tablets/iPads (Anzahl)" value={r.tablet_count} />
+              <Field label="WLAN-Bewertung" value={r.wlan_rating ? `${r.wlan_rating} / 5` : null} />
+              <FieldList label="Digitale Infrastruktur" values={r.infrastructure} other={r.infrastructure_other} />
+              <FieldList label="Herausforderungen" values={r.challenges} other={r.challenges_other} wide />
+              <Field label="Zufriedenheit tech. Support" value={r.support_satisfaction ? `${r.support_satisfaction} / 5` : null} />
+            </Grid>
+          </Section>
+
+          {/* Teil C */}
+          <Section title="📊 Teil C: Aktueller Stand der Digitalisierung">
+            <Grid>
+              <Field label="Digitalisierungsgrad" value={r.digitization_level ? `${r.digitization_level} / 5` : null} />
+              <FieldList label="Digitale Tools im Einsatz" values={r.tools_used} other={r.tools_used_other} wide />
+              <Field label="Nutzungshäufigkeit" value={r.usage_frequency} />
+              <FieldList label="Diagnostik-Tools" values={r.diagnostic_tools} other={r.diagnostic_tools_other} />
+              <Field label="Medienkonzept" value={r.media_concept} />
+              <Field label="Medienbeauftragte/r" value={r.media_responsible} />
+            </Grid>
+          </Section>
+
+          {/* Teil D */}
+          <Section title="🤖 Teil D: Künstliche Intelligenz">
+            <Grid>
+              <Field label="KI-Nutzung im Kollegium" value={r.ai_usage} wide />
+              <FieldList label="KI wofür genutzt" values={r.ai_purposes} wide />
+              <FieldList label="Konkrete KI-Tools" values={r.ai_tools_used} other={r.ai_tools_other} />
+              <Field label="KI-Kompetenzniveau" value={r.ai_competence ? `${r.ai_competence} / 5` : null} />
+              <FieldList label="Bedenken gegenüber KI" values={r.ai_concerns} other={r.ai_concerns_other} wide />
+              <FieldList label="KI-Fortbildungen besucht" values={r.ai_trainings} other={r.ai_trainings_other} />
+            </Grid>
+          </Section>
+
+          {/* Teil E */}
+          <Section title="🎓 Teil E: Fortbildungsbedarf">
+            <Grid>
+              <FieldList label="Fortbildungsbedarf (max. 5)" values={r.training_needs} wide />
+              <FieldList label="Bevorzugte Formate" values={r.training_format} wide />
+              <FieldList label="Geeignete Zeiten" values={r.training_times} />
+              <Field label="Erwartete Teilnehmerzahl" value={r.participation_count} />
+              <Field label="Interesse Vorreiter-Schule" value={r.pioneer_interest} wide />
+            </Grid>
+          </Section>
+
+          {/* Teil F */}
+          <Section title="⭐ Teil F: Best Practices">
+            <Grid>
+              <Field label="Gelungene Beispiele vorhanden" value={r.has_best_practice} />
+              <Field label="Bereitschaft zur Weitergabe" value={r.share_practice} wide />
+              {r.best_practice_description && (
+                <div className="sm:col-span-2">
+                  <TextBlock label="Beschreibung" value={r.best_practice_description} />
+                </div>
+              )}
+            </Grid>
+          </Section>
+
+          {/* Teil G */}
+          <Section title="🛠️ Teil G: Unterstützungsbedarf">
+            <Grid>
+              <FieldList label="Gewünschte Unterstützung (max. 3)" values={r.support_needs} wide />
+              <FieldList label="Gewünschte Software-Lizenzen" values={r.software_licenses} other={r.software_licenses_other} wide />
+              <Field label="Studentische Unterstützung" value={r.student_support} />
+              <Field label="Zeit für Tools" value={r.time_for_tools} />
+            </Grid>
+          </Section>
+
+          {/* Teil H */}
+          {(r.project_wishes || r.additional_notes) && (
+            <Section title="💬 Teil H: Offene Rückmeldung">
+              <div className="space-y-4">
+                <TextBlock label="Wünsche an das Projekt DigiKI" value={r.project_wishes} />
+                <TextBlock label="Weitere Anmerkungen" value={r.additional_notes} />
+              </div>
+            </Section>
+          )}
         </div>
       )}
     </div>
