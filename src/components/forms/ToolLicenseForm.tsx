@@ -75,9 +75,18 @@ export default function ToolLicenseForm({
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
-  const [toolSelections, setToolSelections] = useState<ToolSelection[]>(
-    initialData?.tool_selections ?? createInitialToolSelections()
-  );
+  const [toolSelections, setToolSelections] = useState<ToolSelection[]>(() => {
+    const stored = initialData?.tool_selections;
+    if (!stored || stored.length === 0) return createInitialToolSelections();
+    // Ensure each category has at least 3 tool rows
+    return createInitialToolSelections().map((defaultCat) => {
+      const match = stored.find((s) => s.category === defaultCat.category);
+      if (!match) return defaultCat;
+      const tools = [...match.tools];
+      while (tools.length < 3) tools.push({ name: "", license_count: 0 });
+      return { ...match, tools };
+    });
+  });
   const [additionalTools, setAdditionalTools] = useState(initialData?.additional_tools ?? "");
 
   // Geplanter Einsatz
