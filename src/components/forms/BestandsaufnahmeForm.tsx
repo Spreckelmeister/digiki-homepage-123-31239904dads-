@@ -28,6 +28,7 @@ const STEPS = [
   { label: "Best Practices",          short: "F",  icon: "⭐" },
   { label: "Unterstützungsbedarf",    short: "G",  icon: "🛠️" },
   { label: "Offene Rückmeldung",      short: "H",  icon: "💬" },
+  { label: "Account anlegen",         short: "🔐", icon: "🔐" },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -391,6 +392,8 @@ export default function BestandsaufnahmeForm() {
         if (!teacherCount) return "Bitte geben Sie die Anzahl der Lehrkräfte an.";
         if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage.";
         if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil.";
+        break;
+      case 8:
         if (!contactPerson.trim()) return "Bitte geben Sie den Namen des Ansprechpartners an.";
         if (!principalName.trim()) return "Bitte geben Sie den Namen der Schulleitung an.";
         if (!contactEmail.trim() || !contactEmail.includes("@")) return "Bitte geben Sie eine gültige E-Mail-Adresse an.";
@@ -654,71 +657,6 @@ export default function BestandsaufnahmeForm() {
               )}
             </div>
 
-            {/* ── Account-Daten ──────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent mb-1">Login für die Best-Practice-Datenbank</p>
-                <p className="text-sm text-text-light">
-                  Mit diesen Angaben wird automatisch ein Account für die DigiKI Best-Practice-Datenbank angelegt.
-                  Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail, um den Account zu aktivieren.
-                </p>
-              </div>
-
-              <div>
-                <FieldLabel required>8. Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
-                <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
-                  placeholder="z. B. Maria Mustermann" />
-              </div>
-
-              <div>
-                <FieldLabel required>9. Name der Schulleitung</FieldLabel>
-                <TextInput id="principalName" value={principalName} onChange={setPrincipalName}
-                  placeholder="z. B. Thomas Müller" />
-              </div>
-
-              <div>
-                <FieldLabel required>10. E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
-                <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
-                  placeholder="ihre.email@schule.de" />
-              </div>
-
-              <div>
-                <FieldLabel>11. Telefonnummer</FieldLabel>
-                <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
-                  placeholder="z. B. 0541 12345" />
-              </div>
-
-              <div>
-                <FieldLabel required>12. Passwort (mind. 8 Zeichen)</FieldLabel>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Sicheres Passwort wählen"
-                  className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
-                />
-              </div>
-
-              <div>
-                <FieldLabel required>13. Passwort bestätigen</FieldLabel>
-                <input
-                  id="passwordConfirm"
-                  type="password"
-                  value={passwordConfirm}
-                  onChange={(e) => setPasswordConfirm(e.target.value)}
-                  placeholder="Passwort wiederholen"
-                  className={`w-full rounded-lg border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
-                    passwordConfirm && password !== passwordConfirm
-                      ? "border-red-400"
-                      : "border-border"
-                  }`}
-                />
-                {passwordConfirm && password !== passwordConfirm && (
-                  <p className="mt-1 text-xs text-red-500">Die Passwörter stimmen nicht überein.</p>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1164,6 +1102,75 @@ export default function BestandsaufnahmeForm() {
                   Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
                 </span>
               </label>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            STEP 8 – Account anlegen
+        ══════════════════════════════════════════════════════════════════ */}
+        {step === 8 && (
+          <div className="space-y-7">
+            <SectionHeading icon="🔐" title="Account für die Best-Practice-Datenbank" />
+
+            <p className="text-sm text-text-light leading-relaxed">
+              Mit diesen Angaben wird automatisch ein Login für die DigiKI Best-Practice-Datenbank angelegt.
+              Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail von Supabase – erst danach ist der Account aktiv.
+            </p>
+
+            <div>
+              <FieldLabel required>Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
+              <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
+                placeholder="z. B. Maria Mustermann" />
+            </div>
+
+            <div>
+              <FieldLabel required>Name der Schulleitung</FieldLabel>
+              <TextInput id="principalName" value={principalName} onChange={setPrincipalName}
+                placeholder="z. B. Thomas Müller" />
+            </div>
+
+            <div>
+              <FieldLabel required>E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
+              <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
+                placeholder="ihre.email@schule.de" />
+            </div>
+
+            <div>
+              <FieldLabel>Telefonnummer</FieldLabel>
+              <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
+                placeholder="z. B. 0541 12345" />
+            </div>
+
+            <div>
+              <FieldLabel required>Passwort (mind. 8 Zeichen)</FieldLabel>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Sicheres Passwort wählen"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+              />
+            </div>
+
+            <div>
+              <FieldLabel required>Passwort bestätigen</FieldLabel>
+              <input
+                id="passwordConfirm"
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="Passwort wiederholen"
+                className={`w-full rounded-lg border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
+                  passwordConfirm && password !== passwordConfirm
+                    ? "border-red-400"
+                    : "border-border"
+                }`}
+              />
+              {passwordConfirm && password !== passwordConfirm && (
+                <p className="mt-1 text-xs text-red-500">Die Passwörter stimmen nicht überein.</p>
+              )}
             </div>
           </div>
         )}
