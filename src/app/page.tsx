@@ -258,62 +258,65 @@ export default function HomePage() {
               Aktuelles
             </h2>
           </div>
+          {/* Event-Karten direkt unter der Überschrift */}
+          {newsItems.filter((i) => i.type === "event").map((item) => (
+            <article
+              key={item.id}
+              className="mb-6 bg-gradient-to-r from-primary to-accent rounded-xl p-6 shadow-sm text-white"
+            >
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="flex-1">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/20 rounded-full px-3 py-1 mb-3">
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    Veranstaltung
+                  </span>
+                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                  <p className="text-white/80 text-sm">{item.summary}</p>
+                </div>
+                {"dates" in item && item.dates && (
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:min-w-56">
+                    {item.dates.map((d) => (
+                      <div
+                        key={d.label}
+                        className="bg-white/15 rounded-lg px-4 py-3 border border-white/20"
+                      >
+                        <p className="font-semibold text-sm">{d.label}</p>
+                        <p className="text-white/70 text-sm">{d.time}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+
+          {/* Reguläre News */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...newsItems]
+              .filter((i) => i.type !== "event")
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .slice(0, 3)
-              .map((item) =>
-                item.type === "event" ? (
-                  <article
-                    key={item.id}
-                    className="md:col-span-3 bg-gradient-to-r from-primary to-accent rounded-xl p-6 shadow-sm text-white"
+              .map((item) => (
+                <article
+                  key={item.id}
+                  className="bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+                >
+                  <time
+                    dateTime={item.date}
+                    className="text-sm text-teal font-medium"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center gap-6">
-                      <div className="flex-1">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/20 rounded-full px-3 py-1 mb-3">
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          Veranstaltung
-                        </span>
-                        <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                        <p className="text-white/80 text-sm">{item.summary}</p>
-                      </div>
-                      {"dates" in item && item.dates && (
-                        <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:min-w-56">
-                          {item.dates.map((d) => (
-                            <div
-                              key={d.label}
-                              className="bg-white/15 rounded-lg px-4 py-3 border border-white/20"
-                            >
-                              <p className="font-semibold text-sm">{d.label}</p>
-                              <p className="text-white/70 text-sm">{d.time}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                ) : (
-                  <article
-                    key={item.id}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
-                  >
-                    <time
-                      dateTime={item.date}
-                      className="text-sm text-teal font-medium"
-                    >
-                      {new Date(item.date).toLocaleDateString("de-DE", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </time>
-                    <h3 className="text-lg font-semibold text-primary mt-2 mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-text-light">{item.summary}</p>
-                  </article>
-                )
-              )}
+                    {new Date(item.date).toLocaleDateString("de-DE", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </time>
+                  <h3 className="text-lg font-semibold text-primary mt-2 mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-text-light">{item.summary}</p>
+                </article>
+              ))}
           </div>
         </div>
       </section>
