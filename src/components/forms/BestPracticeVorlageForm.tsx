@@ -8,6 +8,7 @@ import type { VorlageData } from "@/lib/types";
 import RatingScale from "./RatingScale";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 
 const RATING_IMPLEMENTATION = [
   "Sehr einfach – sofort einsetzbar",
@@ -31,7 +32,13 @@ const RATING_RECOMMENDATION = [
 ];
 
 export default function BestPracticeVorlageForm() {
+  const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
+  if (isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können keine Einreichungen vornehmen.
+    </div>
+  );
   // 1. Allgemeine Angaben
   const [schoolName, setSchoolName] = useState("");
   const [location, setLocation] = useState("");

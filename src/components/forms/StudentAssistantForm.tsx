@@ -7,9 +7,16 @@ import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 
 export default function StudentAssistantForm() {
+  const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
+  if (isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können keine Anträge einreichen.
+    </div>
+  );
   const [schoolInfo, setSchoolInfo] = useState({
     school_name: "",
     school_street: "",

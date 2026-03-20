@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
 
 // ── Typen: Basis-Ansicht (anonym) ────────────────────────────
@@ -141,35 +142,30 @@ function supportList(app: StudentAppFullResult): string {
 }
 
 export default function MySubmissions() {
+  const isAdmin                             = useIsAdmin();
   const [email, setEmail]                   = useState("");
   const [loggedInEmail, setLoggedInEmail]   = useState<string | null>(null);
-  const [isAdmin, setIsAdmin]               = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState("");
   const [basicResult, setBasicResult]       = useState<BasicResult | null>(null);
   const [fullResult, setFullResult]         = useState<FullResult | null>(null);
   const [searched, setSearched]             = useState(false);
 
-  // Auto-fill E-Mail wenn eingeloggt, Rolle prüfen
+  // Auto-fill E-Mail wenn eingeloggt
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(({ data }) => {
       if (data.user?.email) {
         setLoggedInEmail(data.user.email.toLowerCase());
         setEmail(data.user.email);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-        if (profile?.role === "admin") setIsAdmin(true);
       }
     });
   }, []);
 
-  // Admins bekommen nie die Voll-Ansicht (get_my_submissions_full schlägt fehl)
+  // Admins nicht anzeigen
+  if (isAdmin === true) return null;
+
   const isOwner =
-    !isAdmin &&
     loggedInEmail !== null &&
     email.trim().toLowerCase() === loggedInEmail;
 
@@ -239,7 +235,7 @@ export default function MySubmissions() {
           Eingeloggt – volle Details verfügbar
         </p>
       )}
-      {loggedInEmail && !isOwner && email.trim() !== "" && (
+      {loggedInEmail && !isOwner && !isAdmin && email.trim() !== "" && (
         <p className="inline-flex items-center gap-1.5 mb-6 text-yellow-700 font-medium text-sm bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
           <span aria-hidden="true">⚠️</span>
           Fremde E-Mail – nur Status verfügbar (volle Details nur mit Ihrer Account-E-Mail{" "}

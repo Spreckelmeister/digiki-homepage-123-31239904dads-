@@ -6,6 +6,7 @@ import { Send, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 import {
   useSchoolAutocomplete,
   type SchoolSuggestion,
@@ -329,7 +330,14 @@ export default function BestandsaufnahmeForm({
   initialData?: BestandsaufnahmeData;
   recordId?: string;
 }) {
+  const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
+
+  if (!editMode && isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können keine Bestandsaufnahme einreichen.
+    </div>
+  );
 
   // Navigation
   const [step, setStep] = useState(0);
