@@ -154,6 +154,7 @@ export default function MyBestandsaufnahme() {
   const [data, setData] = useState<BestandsaufnahmeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -186,13 +187,27 @@ export default function MyBestandsaufnahme() {
 
   return (
     <div className="mt-16 border-t border-border pt-12">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-6">
+      {/* Header – always visible, clickable to toggle */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 mb-0 text-left group"
+      >
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-primary" aria-hidden="true" />
           <h2 className="text-2xl font-bold text-primary">Meine Bestandsaufnahme</h2>
         </div>
-        {r && (
+        <div className="flex items-center gap-3">
+          {open ? (
+            <ChevronUp className="w-5 h-5 text-text-light group-hover:text-primary transition-colors" aria-hidden="true" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-text-light group-hover:text-primary transition-colors" aria-hidden="true" />
+          )}
+        </div>
+      </button>
+
+      {open && r && (
+        <div className="mt-4 mb-4 flex justify-end">
           <Link
             href="/best-practice/meine-bestandsaufnahme/bearbeiten"
             className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-white transition-all"
@@ -200,11 +215,11 @@ export default function MyBestandsaufnahme() {
             <Pencil className="w-4 h-4" aria-hidden="true" />
             Bearbeiten
           </Link>
-        )}
-      </div>
+        </div>
+      )}
 
-      {!r ? (
-        <div className="rounded-xl bg-bg border border-border px-6 py-8 text-center text-sm text-text-light">
+      {open && !r && (
+        <div className="mt-6 rounded-xl bg-bg border border-border px-6 py-8 text-center text-sm text-text-light">
           <p className="mb-3">Sie haben noch keine Bestandsaufnahme eingereicht.</p>
           <Link
             href="/bestandsaufnahme"
@@ -213,8 +228,10 @@ export default function MyBestandsaufnahme() {
             Bestandsaufnahme ausfüllen
           </Link>
         </div>
-      ) : (
-        <div className="space-y-3">
+      )}
+
+      {open && r && (
+        <div className="space-y-3 mt-6">
           {/* Meta */}
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <span className="text-sm font-semibold text-text">{r.school_name}</span>
@@ -342,3 +359,4 @@ export default function MyBestandsaufnahme() {
     </div>
   );
 }
+
