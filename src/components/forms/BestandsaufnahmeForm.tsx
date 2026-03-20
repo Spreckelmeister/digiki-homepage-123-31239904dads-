@@ -34,14 +34,36 @@ const STEPS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function ProgressBar({ step, steps = STEPS }: { step: number; steps?: typeof STEPS }) {
+function ProgressBar({
+  step,
+  steps = STEPS,
+  onStepClick,
+}: {
+  step: number;
+  steps?: typeof STEPS;
+  onStepClick?: (i: number) => void;
+}) {
   return (
     <div className="mb-8">
-      {/* Mobile: step counter */}
+      {/* Mobile: dropdown in edit mode, counter otherwise */}
       <div className="flex items-center justify-between mb-3 sm:hidden">
-        <span className="text-sm font-semibold text-primary">
-          {steps[step].icon} {steps[step].label}
-        </span>
+        {onStepClick ? (
+          <select
+            value={step}
+            onChange={(e) => onStepClick(Number(e.target.value))}
+            className="text-sm font-semibold text-primary bg-transparent border-none outline-none cursor-pointer"
+          >
+            {steps.map((s, i) => (
+              <option key={i} value={i}>
+                {s.icon} {s.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-sm font-semibold text-primary">
+            {steps[step].icon} {steps[step].label}
+          </span>
+        )}
         <span className="text-xs text-text-light font-medium bg-border px-2 py-0.5 rounded-full">
           {step + 1} / {steps.length}
         </span>
@@ -49,8 +71,8 @@ function ProgressBar({ step, steps = STEPS }: { step: number; steps?: typeof STE
 
       {/* Desktop: dots */}
       <div className="hidden sm:flex items-center gap-1 mb-3">
-        {steps.map((s, i) => (
-          <div key={i} className="flex items-center flex-1 last:flex-none">
+        {steps.map((s, i) => {
+          const dot = (
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-all duration-300 ${
                 i < step
@@ -58,20 +80,31 @@ function ProgressBar({ step, steps = STEPS }: { step: number; steps?: typeof STE
                   : i === step
                   ? "bg-accent text-white ring-4 ring-accent/20 scale-110"
                   : "bg-border text-text-light"
-              }`}
+              } ${onStepClick ? "cursor-pointer hover:opacity-80" : ""}`}
               title={s.label}
             >
               {i < step ? <Check className="w-4 h-4" /> : s.short}
             </div>
-            {i < steps.length - 1 && (
-              <div
-                className={`h-0.5 flex-1 mx-1 rounded transition-all duration-500 ${
-                  i < step ? "bg-primary" : "bg-border"
-                }`}
-              />
-            )}
-          </div>
-        ))}
+          );
+          return (
+            <div key={i} className="flex items-center flex-1 last:flex-none">
+              {onStepClick ? (
+                <button type="button" onClick={() => onStepClick(i)} className="shrink-0">
+                  {dot}
+                </button>
+              ) : (
+                dot
+              )}
+              {i < steps.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 mx-1 rounded transition-all duration-500 ${
+                    i < step ? "bg-primary" : "bg-border"
+                  }`}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Bar */}
@@ -701,7 +734,11 @@ export default function BestandsaufnahmeForm({
   return (
     <div>
       {HoneypotField}
-      <ProgressBar step={step} steps={visibleSteps} />
+      <ProgressBar
+        step={step}
+        steps={visibleSteps}
+        onStepClick={editMode ? (i) => { setStepError(""); window.scrollTo({ top: 0, behavior: "smooth" }); setStep(i); } : undefined}
+      />
 
       {/* Error banner */}
       {stepError && (
