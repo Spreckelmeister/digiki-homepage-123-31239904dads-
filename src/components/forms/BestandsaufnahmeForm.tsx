@@ -278,6 +278,7 @@ export interface BestandsaufnahmeData {
   is_startchancen_school: string | null;
   daz_share: string | null;
   respondent_role: string | null;
+  respondent_role_other: string | null;
   devices: string[];
   devices_other: string | null;
   tablet_count: string | null;
@@ -292,6 +293,7 @@ export interface BestandsaufnahmeData {
   tools_used_other: string | null;
   usage_frequency: string | null;
   diagnostic_tools: string[];
+  diagnostic_tools_other: string | null;
   media_concept: string | null;
   media_responsible: string | null;
   ai_usage: string | null;
@@ -367,7 +369,7 @@ export default function BestandsaufnahmeForm({
   const [isStartchancen, setIsStartchancen] = useState(initialData?.is_startchancen_school ?? "");
   const [dazShare, setDazShare] = useState(initialData?.daz_share ?? "");
   const [respondentRole, setRespondentRole] = useState(initialData?.respondent_role ?? "");
-  const [respondentRoleOther, setRespondentRoleOther] = useState("");
+  const [respondentRoleOther, setRespondentRoleOther] = useState(initialData?.respondent_role_other ?? "");
 
   // ── Teil B ──────────────────────────────────────────────────────────────────
   const [devices, setDevices] = useState<string[]>(initialData?.devices ?? []);
@@ -386,7 +388,7 @@ export default function BestandsaufnahmeForm({
   const [toolsUsedOther, setToolsUsedOther] = useState(initialData?.tools_used_other ?? "");
   const [usageFrequency, setUsageFrequency] = useState(initialData?.usage_frequency ?? "");
   const [diagnosticTools, setDiagnosticTools] = useState<string[]>(initialData?.diagnostic_tools ?? []);
-  const [diagnosticToolsOther, setDiagnosticToolsOther] = useState("");
+  const [diagnosticToolsOther, setDiagnosticToolsOther] = useState(initialData?.diagnostic_tools_other ?? "");
   const [mediaConcept, setMediaConcept] = useState(initialData?.media_concept ?? "");
   const [mediaResponsible, setMediaResponsible] = useState(initialData?.media_responsible ?? "");
 

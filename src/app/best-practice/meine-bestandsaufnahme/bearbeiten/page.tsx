@@ -17,12 +17,10 @@ export default async function BestandsaufnahmeBearbeitenPage() {
     redirect("/best-practice/login");
   }
 
-  const { data: rpcData } = await supabase.rpc("get_my_submissions_full");
+  const { data: rpcData } = await supabase.rpc("get_my_bestandsaufnahme");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = rpcData as any;
-  const bestandsaufnahme = result?.bestandsaufnahme as (BestandsaufnahmeData & { id: string })[] | undefined;
-  const record = bestandsaufnahme?.[0] ?? null;
+  const record = (rpcData as any) as (BestandsaufnahmeData & { id: string }) | null;
 
   if (!record) {
     redirect("/bestandsaufnahme");
