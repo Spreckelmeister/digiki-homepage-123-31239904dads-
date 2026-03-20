@@ -38,32 +38,59 @@ interface BestPracticeFullResult extends BestPracticeResult {
 interface StudentAppFullResult {
   id: string;
   school_name: string;
+  school_street: string | null;
+  school_plz: string | null;
+  school_city: string | null;
+  principal_name: string | null;
   contact_person: string;
-  status: ApplicationStatus;
-  admin_notes: string | null;
-  start_date: string | null;
-  duration: string | null;
-  hours_per_week: string | null;
+  phone: string | null;
+  email: string;
+  teacher_count: number | null;
+  student_count: number | null;
   support_technical_setup: boolean;
   support_onboarding: boolean;
   support_tech_support: boolean;
   support_material_creation: boolean;
   support_classroom: boolean;
   support_other: boolean;
+  support_explanation: string | null;
+  start_date: string | null;
+  duration: string | null;
+  hours_per_week: string | null;
+  preferred_days: string | null;
+  has_wifi: boolean;
+  has_devices: boolean;
+  device_count: number | null;
+  has_interactive_displays: boolean;
+  has_school_server: boolean;
+  status: ApplicationStatus;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
 }
 interface ToolAppFullResult {
   id: string;
   school_name: string;
+  school_street: string | null;
+  school_plz: string | null;
+  school_city: string | null;
+  principal_name: string | null;
   contact_person: string;
-  status: ApplicationStatus;
-  admin_notes: string | null;
+  phone: string | null;
+  email: string;
+  teacher_count: number | null;
+  student_count: number | null;
+  tool_selections: ToolSelection[];
+  additional_tools: string | null;
   grade_levels: string | null;
   subjects: string | null;
   start_date: string | null;
   usage_description: string | null;
-  tool_selections: ToolSelection[];
+  privacy_concept_exists: boolean;
+  parental_consent: boolean;
+  it_infrastructure_meets_requirements: boolean;
+  status: ApplicationStatus;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -130,16 +157,6 @@ function AdminNoteBox({ note }: { note: string | null }) {
   );
 }
 
-function supportList(app: StudentAppFullResult): string {
-  const items: string[] = [];
-  if (app.support_technical_setup)    items.push("Technische Einrichtung");
-  if (app.support_onboarding)         items.push("Onboarding Lehrkräfte");
-  if (app.support_tech_support)       items.push("Technischer Support");
-  if (app.support_material_creation)  items.push("Materialerstellung");
-  if (app.support_classroom)          items.push("Unterrichtsbegleitung");
-  if (app.support_other)              items.push("Sonstiges");
-  return items.join(", ") || "–";
-}
 
 export default function MySubmissions() {
   const isAdmin                             = useIsAdmin();
@@ -408,22 +425,67 @@ export default function MySubmissions() {
               </div>
               <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
                 {fullResult.student_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-5">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div key={app.id} className="bg-white px-5 py-5 space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div>
                         <p className="font-semibold text-text">{app.school_name}</p>
                         <p className="text-xs text-text-light mt-0.5">
-                          Ansprechperson: {app.contact_person} · Eingereicht am {formatDate(app.created_at)}
+                          Eingereicht am {formatDate(app.created_at)}
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
                       <StatusBadge status={app.status} />
                     </div>
+                    {/* Schule */}
+                    <div>
+                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Schule</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <DetailField label="Adresse" value={[app.school_street, app.school_plz && app.school_city ? `${app.school_plz} ${app.school_city}` : null].filter(Boolean).join(", ")} />
+                        <DetailField label="Schulleitung" value={app.principal_name} />
+                        <DetailField label="Ansprechperson" value={app.contact_person} />
+                        <DetailField label="E-Mail" value={app.email} />
+                        <DetailField label="Telefon" value={app.phone} />
+                        <DetailField label="Lehrkräfte" value={app.teacher_count} />
+                        <DetailField label="Schüler/innen" value={app.student_count} />
+                      </div>
+                    </div>
+                    {/* Gewünschte Unterstützung */}
+                    <div>
+                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Gewünschte Unterstützung</p>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          app.support_technical_setup && "Technische Einrichtung",
+                          app.support_onboarding && "Onboarding Lehrkräfte",
+                          app.support_tech_support && "Technischer Support",
+                          app.support_material_creation && "Materialerstellung",
+                          app.support_classroom && "Unterrichtsbegleitung",
+                          app.support_other && "Sonstiges",
+                        ].filter(Boolean).map((label) => (
+                          <span key={String(label)} className="inline-flex rounded-full bg-primary/5 px-2.5 py-0.5 text-xs text-primary">{String(label)}</span>
+                        ))}
+                      </div>
+                      <DetailField label="Erläuterung" value={app.support_explanation} />
+                    </div>
+                    {/* Zeitraum & Infrastruktur */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      <DetailField label="Gewünschte Unterstützung" value={supportList(app)} />
                       <DetailField label="Startdatum" value={app.start_date ? formatDate(app.start_date) : null} />
                       <DetailField label="Dauer" value={app.duration} />
                       <DetailField label="Std. / Woche" value={app.hours_per_week} />
+                      <DetailField label="Bevorzugte Tage" value={app.preferred_days} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Technische Ausstattung</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          app.has_wifi && "WLAN vorhanden",
+                          app.has_devices && (app.device_count ? `Geräte: ${app.device_count}` : "Geräte vorhanden"),
+                          app.has_interactive_displays && "Interaktive Displays",
+                          app.has_school_server && "Schulserver",
+                        ].filter(Boolean).map((label) => (
+                          <span key={String(label)} className="inline-flex rounded-full bg-primary/5 px-2.5 py-0.5 text-xs text-primary">{String(label)}</span>
+                        ))}
+                      </div>
                     </div>
                     <AdminNoteBox note={app.admin_notes} />
                   </div>
@@ -442,39 +504,74 @@ export default function MySubmissions() {
               </div>
               <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
                 {fullResult.tool_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-5">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div key={app.id} className="bg-white px-5 py-5 space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div>
                         <p className="font-semibold text-text">{app.school_name}</p>
                         <p className="text-xs text-text-light mt-0.5">
-                          Ansprechperson: {app.contact_person} · Eingereicht am {formatDate(app.created_at)}
+                          Eingereicht am {formatDate(app.created_at)}
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
                       <StatusBadge status={app.status} />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      <DetailField label="Klassenstufen" value={app.grade_levels} />
-                      <DetailField label="Fächer" value={app.subjects} />
-                      <DetailField label="Startdatum" value={app.start_date ? formatDate(app.start_date) : null} />
-                      <DetailField label="Einsatzbeschreibung" value={app.usage_description} />
+                    {/* Schule */}
+                    <div>
+                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Schule</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <DetailField label="Adresse" value={[app.school_street, app.school_plz && app.school_city ? `${app.school_plz} ${app.school_city}` : null].filter(Boolean).join(", ")} />
+                        <DetailField label="Schulleitung" value={app.principal_name} />
+                        <DetailField label="Ansprechperson" value={app.contact_person} />
+                        <DetailField label="E-Mail" value={app.email} />
+                        <DetailField label="Telefon" value={app.phone} />
+                        <DetailField label="Lehrkräfte" value={app.teacher_count} />
+                        <DetailField label="Schüler/innen" value={app.student_count} />
+                      </div>
                     </div>
+                    {/* Tools */}
                     {app.tool_selections?.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-text mb-1">Beantragte Tools:</p>
+                      <div>
+                        <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Beantragte Tools</p>
                         <div className="space-y-0.5">
                           {app.tool_selections.flatMap((cat) =>
-                            cat.tools
-                              .filter((t) => t.name)
-                              .map((t, i) => (
-                                <p key={`${cat.category}-${i}`} className="text-xs text-text-light">
-                                  {cat.category}: <strong>{t.name}</strong> ({t.license_count} Lizenzen)
-                                </p>
-                              ))
+                            cat.tools.filter((t) => t.name).map((t, i) => (
+                              <p key={`${cat.category}-${i}`} className="text-xs text-text-light">
+                                {cat.category}: <strong className="text-text">{t.name}</strong> ({t.license_count} Lizenzen)
+                              </p>
+                            ))
                           )}
                         </div>
                       </div>
                     )}
+                    {app.additional_tools && (
+                      <DetailField label="Weitere gewünschte Tools" value={app.additional_tools} />
+                    )}
+                    {/* Einsatz */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <DetailField label="Klassenstufen" value={app.grade_levels} />
+                      <DetailField label="Fächer / Bereiche" value={app.subjects} />
+                      <DetailField label="Geplanter Beginn" value={app.start_date ? formatDate(app.start_date) : null} />
+                    </div>
+                    {app.usage_description && (
+                      <div>
+                        <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1">Einsatzbeschreibung</p>
+                        <p className="text-sm text-text whitespace-pre-wrap p-3 bg-bg rounded-lg">{app.usage_description}</p>
+                      </div>
+                    )}
+                    {/* Datenschutz */}
+                    <div>
+                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Datenschutz</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          app.privacy_concept_exists && "Datenschutzkonzept vorhanden",
+                          app.parental_consent && "Elterneinwilligung liegt vor",
+                          app.it_infrastructure_meets_requirements && "IT-Infrastruktur erfüllt Anforderungen",
+                        ].filter(Boolean).map((label) => (
+                          <span key={String(label)} className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs text-green-700">{String(label)}</span>
+                        ))}
+                      </div>
+                    </div>
                     <AdminNoteBox note={app.admin_notes} />
                   </div>
                 ))}
