@@ -241,6 +241,13 @@ export const newsItems = [
     slug: "bestandsaufnahme",
   },
   {
+    id: "4",
+    title: "Onlinekonferenzen im April und Mai",
+    date: "2026-04-27",
+    summary: "Informieren Sie sich über DigiKI in einer unserer Onlinekonferenzen: Mo. 27.04.2026 um 15:30 Uhr oder Fr. 08.05.2026 um 13:30 Uhr. Alle Informationen zum Projekt finden Sie auf digiki-os.de.",
+    slug: "onlinekonferenzen",
+  },
+  {
     id: "3",
     title: "Pilotschulung vor den Sommerferien",
     date: "2026-06-01",
