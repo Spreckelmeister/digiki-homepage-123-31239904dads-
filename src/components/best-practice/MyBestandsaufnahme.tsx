@@ -40,11 +40,7 @@ interface BestandsaufnahmeRecord extends BestandsaufnahmeData {
   contact_phone: string | null;
   status: string;
   created_at: string;
-  updated_at: string;
-}
-
-interface FullResult {
-  bestandsaufnahme: BestandsaufnahmeRecord[];
+  updated_at: string | null;
 }
 
 export default function MyBestandsaufnahme() {
@@ -70,10 +66,9 @@ export default function MyBestandsaufnahme() {
         return;
       }
       setIsLoggedIn(true);
-      const { data: rpcData } = await supabase.rpc("get_my_submissions_full");
-      const result = rpcData as FullResult | null;
-      if (result?.bestandsaufnahme?.length) {
-        setData(result.bestandsaufnahme[0]);
+      const { data: rpcData } = await supabase.rpc("get_my_bestandsaufnahme");
+      if (rpcData) {
+        setData(rpcData as BestandsaufnahmeRecord);
       }
       setLoading(false);
     });
@@ -118,7 +113,7 @@ export default function MyBestandsaufnahme() {
                 <p className="font-semibold text-text text-base">{data.school_name}</p>
                 <p className="text-xs text-text-light mt-0.5">
                   Eingereicht am {formatDate(data.created_at)}
-                  {data.updated_at !== data.created_at && ` · Aktualisiert am ${formatDate(data.updated_at)}`}
+                  {data.updated_at && data.updated_at !== data.created_at && ` · Aktualisiert am ${formatDate(data.updated_at)}`}
                 </p>
               </div>
               <span className="inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 shrink-0 self-start">

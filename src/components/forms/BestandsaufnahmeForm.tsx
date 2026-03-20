@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { Send, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
@@ -330,7 +330,6 @@ export default function BestandsaufnahmeForm({
   initialData?: BestandsaufnahmeData;
   recordId?: string;
 }) {
-  const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
 
   // Navigation
@@ -432,6 +431,7 @@ export default function BestandsaufnahmeForm({
   const [contactPhone, setContactPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // ── Einwilligungen ──────────────────────────────────────────────────────────
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -440,6 +440,7 @@ export default function BestandsaufnahmeForm({
   const [stepError, setStepError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const isAdmin = useIsAdmin();
 
   // KI is "actively used" if the answer mentions "Ja"
   const kiAktivGenutzt = aiUsage.startsWith("Ja");
@@ -669,6 +670,13 @@ export default function BestandsaufnahmeForm({
     setLoading(false);
   }
 
+  if (!editMode && isAdmin === null) return null;
+  if (!editMode && isAdmin === true) return (
+    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+      Admin-Accounts können die Bestandsaufnahme nicht nutzen.
+    </div>
+  );
+
   if (success) {
     return editMode ? (
       <div className="rounded-xl bg-green-50 border border-green-200 px-6 py-8 text-center">
@@ -687,12 +695,6 @@ export default function BestandsaufnahmeForm({
       />
     );
   }
-
-  if (!editMode && isAdmin === true) return (
-    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
-      Admin-Accounts können keine Bestandsaufnahme einreichen.
-    </div>
-  );
 
   return (
     <div>
@@ -1289,31 +1291,66 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required>Passwort (mind. 8 Zeichen)</FieldLabel>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sicheres Passwort wählen"
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
-              />
+              <FieldLabel required>Passwort</FieldLabel>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sicheres Passwort wählen"
+                  className="w-full rounded-lg border border-border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-light hover:text-text transition-colors"
+                  aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {[
+                    { ok: password.length >= 8,          label: "Mindestens 8 Zeichen" },
+                    { ok: /[A-Z]/.test(password),        label: "Großbuchstabe (A–Z)" },
+                    { ok: /[0-9]/.test(password),        label: "Zahl (0–9)" },
+                    { ok: /[^A-Za-z0-9]/.test(password), label: "Sonderzeichen (!@#…)" },
+                  ].map(({ ok, label }) => (
+                    <li key={label} className={`flex items-center gap-1.5 text-xs ${ok ? "text-green-600" : "text-text-light"}`}>
+                      <Check className={`w-3.5 h-3.5 shrink-0 ${ok ? "opacity-100" : "opacity-20"}`} strokeWidth={3} />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div>
               <FieldLabel required>Passwort bestätigen</FieldLabel>
-              <input
-                id="passwordConfirm"
-                type="password"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                placeholder="Passwort wiederholen"
-                className={`w-full rounded-lg border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
-                  passwordConfirm && password !== passwordConfirm
-                    ? "border-red-400"
-                    : "border-border"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  id="passwordConfirm"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="Passwort wiederholen"
+                  className={`w-full rounded-lg border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
+                    passwordConfirm && password !== passwordConfirm
+                      ? "border-red-400"
+                      : "border-border"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-light hover:text-text transition-colors"
+                  aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               {passwordConfirm && password !== passwordConfirm && (
                 <p className="mt-1 text-xs text-red-500">Die Passwörter stimmen nicht überein.</p>
               )}

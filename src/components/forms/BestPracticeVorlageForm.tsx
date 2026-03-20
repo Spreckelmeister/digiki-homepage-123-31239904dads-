@@ -213,6 +213,7 @@ export default function BestPracticeVorlageForm() {
   const inputClass =
     "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
 
+  if (isAdmin === null) return null;
   if (isAdmin === true) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können keine Einreichungen vornehmen.

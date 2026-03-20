@@ -148,6 +148,7 @@ export default function StudentAssistantForm() {
   const checkboxInput =
     "w-4 h-4 rounded border-border text-accent focus:ring-accent";
 
+  if (isAdmin === null) return null;
   if (isAdmin === true) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können keine Anträge einreichen.
