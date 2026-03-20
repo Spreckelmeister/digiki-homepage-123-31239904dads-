@@ -3,6 +3,8 @@ export interface Profile {
   full_name: string;
   school: string;
   role: "teacher" | "admin";
+  phone?: string | null;
+  principal_name?: string | null;
   created_at: string;
 }
 

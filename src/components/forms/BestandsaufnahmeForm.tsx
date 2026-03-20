@@ -362,6 +362,14 @@ export default function BestandsaufnahmeForm() {
   const [projectWishes, setProjectWishes] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
 
+  // ── Account-Daten (Login für Best-Practice-Datenbank) ────────────────────────
+  const [contactPerson, setContactPerson] = useState("");
+  const [principalName, setPrincipalName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+
   // ── Einwilligungen ──────────────────────────────────────────────────────────
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [truthConsent, setTruthConsent] = useState(false);
@@ -383,6 +391,11 @@ export default function BestandsaufnahmeForm() {
         if (!teacherCount) return "Bitte geben Sie die Anzahl der Lehrkräfte an.";
         if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage.";
         if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil.";
+        if (!contactPerson.trim()) return "Bitte geben Sie den Namen des Ansprechpartners an.";
+        if (!principalName.trim()) return "Bitte geben Sie den Namen der Schulleitung an.";
+        if (!contactEmail.trim() || !contactEmail.includes("@")) return "Bitte geben Sie eine gültige E-Mail-Adresse an.";
+        if (password.length < 8) return "Das Passwort muss mindestens 8 Zeichen lang sein.";
+        if (password !== passwordConfirm) return "Die Passwörter stimmen nicht überein.";
         break;
     }
     return "";
@@ -415,63 +428,104 @@ export default function BestandsaufnahmeForm() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const { error: insertError } = await supabase
-      .from("bestandsaufnahme_responses")
-      .insert({
-        school_name: schoolName,
-        school_location: schoolLocation,
-        student_count: studentCount,
-        teacher_count: teacherCount || null,
-        is_startchancen_school: isStartchancen,
-        daz_share: dazShare,
-        respondent_role: respondentRole || null,
-        respondent_role_other: respondentRoleOther || null,
-        devices,
-        devices_other: devicesOther || null,
-        tablet_count: tabletCount || null,
-        wlan_rating: wlanRating || null,
-        infrastructure,
-        infrastructure_other: infrastructureOther || null,
-        challenges,
-        challenges_other: challengesOther || null,
-        support_satisfaction: supportSatisfaction || null,
-        digitization_level: digitizationLevel || null,
-        tools_used: toolsUsed,
-        tools_used_other: toolsUsedOther || null,
-        usage_frequency: usageFrequency || null,
-        diagnostic_tools: diagnosticTools,
-        diagnostic_tools_other: diagnosticToolsOther || null,
-        media_concept: mediaConcept || null,
-        media_responsible: mediaResponsible || null,
-        ai_usage: aiUsage || null,
-        ai_purposes: aiPurposes,
-        ai_tools_used: aiToolsUsed,
-        ai_tools_other: aiToolsOther || null,
-        ai_competence: aiCompetence || null,
-        ai_concerns: aiConcerns,
-        ai_concerns_other: aiConcernsOther || null,
-        ai_trainings: aiTrainings,
-        ai_trainings_other: aiTrainingsOther || null,
-        training_needs: trainingNeeds,
-        training_format: trainingFormat,
-        training_times: trainingTimes,
-        participation_count: participationCount || null,
-        pioneer_interest: pioneerInterest || null,
-        has_best_practice: hasBestPractice || null,
-        best_practice_description: bestPracticeDescription || null,
-        share_practice: sharePractice || null,
-        support_needs: supportNeeds,
-        software_licenses: softwareLicenses,
-        software_licenses_other: softwareLicensesOther || null,
-        student_support: studentSupport || null,
-        time_for_tools: timeForTools || null,
-        project_wishes: projectWishes || null,
-        additional_notes: additionalNotes || null,
-      });
 
-    if (insertError) {
-      console.error("Insert error:", insertError.message);
+    // 1. Supabase-Account anlegen (sendet automatisch Bestätigungs-E-Mail)
+    const supabase = createClient();
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: contactEmail,
+      password,
+      options: {
+        data: {
+          full_name: contactPerson,
+          school: schoolName,
+        },
+      },
+    });
+
+    if (signUpError) {
+      console.error("SignUp error:", signUpError.message);
+      if (signUpError.message.toLowerCase().includes("already registered") ||
+          signUpError.message.toLowerCase().includes("already been registered") ||
+          signUpError.message.toLowerCase().includes("user already exists")) {
+        setStepError("Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'.");
+      } else {
+        setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+      }
+      setLoading(false);
+      return;
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Bestandsaufnahme-Daten + Profil serverseitig speichern und Bestätigungsmail senden
+    const res = await fetch("/api/register-bestandsaufnahme", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        contactEmail,
+        contactPerson,
+        principalName,
+        contactPhone: contactPhone || null,
+        schoolName,
+        schoolLocation,
+        studentCount,
+        teacherCount: teacherCount || null,
+        isStartchancen,
+        dazShare,
+        respondentRole: respondentRole || null,
+        respondentRoleOther: respondentRoleOther || null,
+        devices,
+        devicesOther: devicesOther || null,
+        tabletCount: tabletCount || null,
+        wlanRating: wlanRating || null,
+        infrastructure,
+        infrastructureOther: infrastructureOther || null,
+        challenges,
+        challengesOther: challengesOther || null,
+        supportSatisfaction: supportSatisfaction || null,
+        digitizationLevel: digitizationLevel || null,
+        toolsUsed,
+        toolsUsedOther: toolsUsedOther || null,
+        usageFrequency: usageFrequency || null,
+        diagnosticTools,
+        diagnosticToolsOther: diagnosticToolsOther || null,
+        mediaConcept: mediaConcept || null,
+        mediaResponsible: mediaResponsible || null,
+        aiUsage: aiUsage || null,
+        aiPurposes,
+        aiToolsUsed,
+        aiToolsOther: aiToolsOther || null,
+        aiCompetence: aiCompetence || null,
+        aiConcerns,
+        aiConcernsOther: aiConcernsOther || null,
+        aiTrainings,
+        aiTrainingsOther: aiTrainingsOther || null,
+        trainingNeeds,
+        trainingFormat,
+        trainingTimes,
+        participationCount: participationCount || null,
+        pioneerInterest: pioneerInterest || null,
+        hasBestPractice: hasBestPractice || null,
+        bestPracticeDescription: bestPracticeDescription || null,
+        sharePractice: sharePractice || null,
+        supportNeeds,
+        softwareLicenses,
+        softwareLicensesOther: softwareLicensesOther || null,
+        studentSupport: studentSupport || null,
+        timeForTools: timeForTools || null,
+        projectWishes: projectWishes || null,
+        additionalNotes: additionalNotes || null,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Register error:", res.status);
       setStepError("Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
       setLoading(false);
       return;
@@ -485,7 +539,8 @@ export default function BestandsaufnahmeForm() {
     return (
       <FormSuccess
         title="Vielen Dank für Ihre Teilnahme!"
-        message="Ihre Antworten wurden erfolgreich übermittelt. Wir melden uns zeitnah bei Ihnen."
+        message="Ihre Bestandsaufnahme wurde übermittelt und Ihr DigiKI-Account wurde angelegt. Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink von Supabase, um Ihren Account zu aktivieren."
+        submittedEmail={contactEmail}
       />
     );
   }
@@ -597,6 +652,72 @@ export default function BestandsaufnahmeForm() {
               {respondentRole === "Sonstiges" && (
                 <OtherInput value={respondentRoleOther} onChange={setRespondentRoleOther} />
               )}
+            </div>
+
+            {/* ── Account-Daten ──────────────────────────────────────────────── */}
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 space-y-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent mb-1">Login für die Best-Practice-Datenbank</p>
+                <p className="text-sm text-text-light">
+                  Mit diesen Angaben wird automatisch ein Account für die DigiKI Best-Practice-Datenbank angelegt.
+                  Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail, um den Account zu aktivieren.
+                </p>
+              </div>
+
+              <div>
+                <FieldLabel required>8. Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
+                <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
+                  placeholder="z. B. Maria Mustermann" />
+              </div>
+
+              <div>
+                <FieldLabel required>9. Name der Schulleitung</FieldLabel>
+                <TextInput id="principalName" value={principalName} onChange={setPrincipalName}
+                  placeholder="z. B. Thomas Müller" />
+              </div>
+
+              <div>
+                <FieldLabel required>10. E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
+                <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
+                  placeholder="ihre.email@schule.de" />
+              </div>
+
+              <div>
+                <FieldLabel>11. Telefonnummer</FieldLabel>
+                <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
+                  placeholder="z. B. 0541 12345" />
+              </div>
+
+              <div>
+                <FieldLabel required>12. Passwort (mind. 8 Zeichen)</FieldLabel>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sicheres Passwort wählen"
+                  className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+                />
+              </div>
+
+              <div>
+                <FieldLabel required>13. Passwort bestätigen</FieldLabel>
+                <input
+                  id="passwordConfirm"
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="Passwort wiederholen"
+                  className={`w-full rounded-lg border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
+                    passwordConfirm && password !== passwordConfirm
+                      ? "border-red-400"
+                      : "border-border"
+                  }`}
+                />
+                {passwordConfirm && password !== passwordConfirm && (
+                  <p className="mt-1 text-xs text-red-500">Die Passwörter stimmen nicht überein.</p>
+                )}
+              </div>
             </div>
           </div>
         )}

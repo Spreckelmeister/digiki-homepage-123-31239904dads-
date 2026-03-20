@@ -131,10 +131,10 @@ export default function LoginForm() {
         <p>
           Noch kein Konto?{" "}
           <Link
-            href="/best-practice/registrieren"
+            href="/bestandsaufnahme"
             className="text-primary-light underline hover:text-primary"
           >
-            Jetzt registrieren
+            Bestandsaufnahme ausfüllen
           </Link>
         </p>
       </div>
