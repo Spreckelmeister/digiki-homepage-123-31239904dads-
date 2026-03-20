@@ -9,43 +9,81 @@ import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 
-export default function StudentAssistantForm() {
+interface StudentAppData {
+  id: string;
+  school_name: string;
+  school_street: string | null;
+  school_plz: string | null;
+  school_city: string | null;
+  principal_name: string | null;
+  contact_person: string;
+  phone: string | null;
+  email: string;
+  teacher_count: number | null;
+  student_count: number | null;
+  support_technical_setup: boolean;
+  support_onboarding: boolean;
+  support_tech_support: boolean;
+  support_material_creation: boolean;
+  support_classroom: boolean;
+  support_other: boolean;
+  support_explanation: string | null;
+  start_date: string | null;
+  duration: string | null;
+  hours_per_week: string | null;
+  preferred_days: string | null;
+  has_wifi: boolean;
+  has_devices: boolean;
+  device_count: number | null;
+  has_interactive_displays: boolean;
+  has_school_server: boolean;
+}
+
+export default function StudentAssistantForm({
+  editMode = false,
+  initialData,
+  recordId,
+}: {
+  editMode?: boolean;
+  initialData?: StudentAppData;
+  recordId?: string;
+}) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
   const [schoolInfo, setSchoolInfo] = useState({
-    school_name: "",
-    school_street: "",
-    school_plz: "",
-    school_city: "",
-    principal_name: "",
-    contact_person: "",
-    phone: "",
-    email: "",
-    teacher_count: "",
-    student_count: "",
+    school_name:    initialData?.school_name    ?? "",
+    school_street:  initialData?.school_street  ?? "",
+    school_plz:     initialData?.school_plz     ?? "",
+    school_city:    initialData?.school_city     ?? "",
+    principal_name: initialData?.principal_name ?? "",
+    contact_person: initialData?.contact_person ?? "",
+    phone:          initialData?.phone          ?? "",
+    email:          initialData?.email          ?? "",
+    teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
+    student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
   // Gewünschte Unterstützung
-  const [supportTechnicalSetup, setSupportTechnicalSetup] = useState(false);
-  const [supportOnboarding, setSupportOnboarding] = useState(false);
-  const [supportTechSupport, setSupportTechSupport] = useState(false);
-  const [supportMaterialCreation, setSupportMaterialCreation] = useState(false);
-  const [supportClassroom, setSupportClassroom] = useState(false);
-  const [supportOther, setSupportOther] = useState(false);
-  const [supportExplanation, setSupportExplanation] = useState("");
+  const [supportTechnicalSetup, setSupportTechnicalSetup] = useState(initialData?.support_technical_setup ?? false);
+  const [supportOnboarding, setSupportOnboarding] = useState(initialData?.support_onboarding ?? false);
+  const [supportTechSupport, setSupportTechSupport] = useState(initialData?.support_tech_support ?? false);
+  const [supportMaterialCreation, setSupportMaterialCreation] = useState(initialData?.support_material_creation ?? false);
+  const [supportClassroom, setSupportClassroom] = useState(initialData?.support_classroom ?? false);
+  const [supportOther, setSupportOther] = useState(initialData?.support_other ?? false);
+  const [supportExplanation, setSupportExplanation] = useState(initialData?.support_explanation ?? "");
 
   // Zeitraum & Umfang
-  const [startDate, setStartDate] = useState("");
-  const [duration, setDuration] = useState("");
-  const [hoursPerWeek, setHoursPerWeek] = useState("");
-  const [preferredDays, setPreferredDays] = useState("");
+  const [startDate, setStartDate] = useState(initialData?.start_date ?? "");
+  const [duration, setDuration] = useState(initialData?.duration ?? "");
+  const [hoursPerWeek, setHoursPerWeek] = useState(initialData?.hours_per_week ?? "");
+  const [preferredDays, setPreferredDays] = useState(initialData?.preferred_days ?? "");
 
   // Technische Voraussetzungen
-  const [hasWifi, setHasWifi] = useState(false);
-  const [hasDevices, setHasDevices] = useState(false);
-  const [deviceCount, setDeviceCount] = useState("");
-  const [hasInteractiveDisplays, setHasInteractiveDisplays] = useState(false);
-  const [hasSchoolServer, setHasSchoolServer] = useState(false);
+  const [hasWifi, setHasWifi] = useState(initialData?.has_wifi ?? false);
+  const [hasDevices, setHasDevices] = useState(initialData?.has_devices ?? false);
+  const [deviceCount, setDeviceCount] = useState(initialData?.device_count != null ? String(initialData.device_count) : "");
+  const [hasInteractiveDisplays, setHasInteractiveDisplays] = useState(initialData?.has_interactive_displays ?? false);
+  const [hasSchoolServer, setHasSchoolServer] = useState(initialData?.has_school_server ?? false);
 
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [truthConsent, setTruthConsent] = useState(false);
@@ -62,6 +100,51 @@ export default function StudentAssistantForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (editMode) {
+      setLoading(true);
+      const res = await fetch("/api/update-student-app", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId,
+          school_name:              schoolInfo.school_name,
+          school_street:            schoolInfo.school_street || null,
+          school_plz:               schoolInfo.school_plz || null,
+          school_city:              schoolInfo.school_city || null,
+          principal_name:           schoolInfo.principal_name || null,
+          contact_person:           schoolInfo.contact_person,
+          phone:                    schoolInfo.phone || null,
+          email:                    schoolInfo.email,
+          teacher_count:            schoolInfo.teacher_count ? parseInt(schoolInfo.teacher_count) : null,
+          student_count:            schoolInfo.student_count ? parseInt(schoolInfo.student_count) : null,
+          support_technical_setup:  supportTechnicalSetup,
+          support_onboarding:       supportOnboarding,
+          support_tech_support:     supportTechSupport,
+          support_material_creation: supportMaterialCreation,
+          support_classroom:        supportClassroom,
+          support_other:            supportOther,
+          support_explanation:      supportExplanation || null,
+          start_date:               startDate || null,
+          duration:                 duration || null,
+          hours_per_week:           hoursPerWeek || null,
+          preferred_days:           preferredDays || null,
+          has_wifi:                 hasWifi,
+          has_devices:              hasDevices,
+          device_count:             hasDevices && deviceCount ? parseInt(deviceCount) : null,
+          has_interactive_displays: hasInteractiveDisplays,
+          has_school_server:        hasSchoolServer,
+        }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+        return;
+      }
+      setSuccess(true);
+      return;
+    }
 
     if (isSpam) {
       setSuccess(true);
@@ -156,6 +239,19 @@ export default function StudentAssistantForm() {
   );
 
   if (success) {
+    if (editMode) {
+      return (
+        <div className="rounded-xl bg-green-50 border border-green-200 px-6 py-8 text-center space-y-4">
+          <p className="text-lg font-semibold text-green-800">Änderungen gespeichert!</p>
+          <Link
+            href="/best-practice/datenbank"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+          >
+            Zur Datenbank
+          </Link>
+        </div>
+      );
+    }
     return (
       <>
         {emailFailed && (
@@ -197,19 +293,21 @@ export default function StudentAssistantForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {HoneypotField}
+      {!editMode && HoneypotField}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-        Im Rahmen des Projekts DigiKI können Grundschulen in Stadt und Landkreis
-        Osnabrück kostenlos studentische Hilfskräfte beantragen, die bei der
-        Einrichtung digitaler Tools, technischem Support und der
-        Materialerstellung unterstützen.
-      </div>
+      {!editMode && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
+          Im Rahmen des Projekts DigiKI können Grundschulen in Stadt und Landkreis
+          Osnabrück kostenlos studentische Hilfskräfte beantragen, die bei der
+          Einrichtung digitaler Tools, technischem Support und der
+          Materialerstellung unterstützen.
+        </div>
+      )}
 
       {/* 1. Schulinfo */}
       <SchoolInfoFields
@@ -454,44 +552,46 @@ export default function StudentAssistantForm() {
         </div>
       </fieldset>
 
-      {/* Einwilligungen */}
-      <fieldset className="space-y-3">
-        <legend className="text-lg font-semibold text-primary mb-4">
-          Einwilligungen
-        </legend>
-        <label className={checkboxLabel}>
-          <input
-            type="checkbox"
-            required
-            checked={privacyConsent}
-            onChange={(e) => setPrivacyConsent(e.target.checked)}
-            className={checkboxInput}
-          />
-          <span className="text-sm text-text">
-            Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
-            <Link
-              href="/datenschutz"
-              target="_blank"
-              className="underline text-primary-light hover:text-primary"
-            >
-              Datenschutzerklärung
-            </Link>{" "}
-            zu. *
-          </span>
-        </label>
-        <label className={checkboxLabel}>
-          <input
-            type="checkbox"
-            required
-            checked={truthConsent}
-            onChange={(e) => setTruthConsent(e.target.checked)}
-            className={checkboxInput}
-          />
-          <span className="text-sm text-text">
-            Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
-          </span>
-        </label>
-      </fieldset>
+      {/* Einwilligungen – nur im normalen Modus */}
+      {!editMode && (
+        <fieldset className="space-y-3">
+          <legend className="text-lg font-semibold text-primary mb-4">
+            Einwilligungen
+          </legend>
+          <label className={checkboxLabel}>
+            <input
+              type="checkbox"
+              required
+              checked={privacyConsent}
+              onChange={(e) => setPrivacyConsent(e.target.checked)}
+              className={checkboxInput}
+            />
+            <span className="text-sm text-text">
+              Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+              <Link
+                href="/datenschutz"
+                target="_blank"
+                className="underline text-primary-light hover:text-primary"
+              >
+                Datenschutzerklärung
+              </Link>{" "}
+              zu. *
+            </span>
+          </label>
+          <label className={checkboxLabel}>
+            <input
+              type="checkbox"
+              required
+              checked={truthConsent}
+              onChange={(e) => setTruthConsent(e.target.checked)}
+              className={checkboxInput}
+            />
+            <span className="text-sm text-text">
+              Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+            </span>
+          </label>
+        </fieldset>
+      )}
 
       {/* Submit */}
       <div className="pt-4 border-t border-border">
@@ -501,11 +601,15 @@ export default function StudentAssistantForm() {
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           <Send className="w-5 h-5" aria-hidden="true" />
-          {loading ? "Wird eingereicht..." : "Antrag einreichen"}
+          {loading
+            ? (editMode ? "Wird gespeichert..." : "Wird eingereicht...")
+            : (editMode ? "Änderungen speichern" : "Antrag einreichen")}
         </button>
-        <p className="mt-3 text-xs text-text-light">
-          * Pflichtfelder.
-        </p>
+        {!editMode && (
+          <p className="mt-3 text-xs text-text-light">
+            * Pflichtfelder.
+          </p>
+        )}
       </div>
     </form>
   );

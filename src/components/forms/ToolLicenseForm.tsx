@@ -28,37 +28,68 @@ function createInitialToolSelections(): ToolSelection[] {
   }));
 }
 
-export default function ToolLicenseForm() {
+interface ToolAppData {
+  id: string;
+  school_name: string;
+  school_street: string | null;
+  school_plz: string | null;
+  school_city: string | null;
+  principal_name: string | null;
+  contact_person: string;
+  phone: string | null;
+  email: string;
+  teacher_count: number | null;
+  student_count: number | null;
+  tool_selections: Array<{ category: string; tools: Array<{ name: string; license_count: number }> }>;
+  additional_tools: string | null;
+  grade_levels: string | null;
+  subjects: string | null;
+  start_date: string | null;
+  usage_description: string | null;
+  privacy_concept_exists: boolean;
+  parental_consent: boolean;
+  it_infrastructure_meets_requirements: boolean;
+}
+
+export default function ToolLicenseForm({
+  editMode = false,
+  initialData,
+  recordId,
+}: {
+  editMode?: boolean;
+  initialData?: ToolAppData;
+  recordId?: string;
+}) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
   const [schoolInfo, setSchoolInfo] = useState({
-    school_name: "",
-    school_street: "",
-    school_plz: "",
-    school_city: "",
-    principal_name: "",
-    contact_person: "",
-    phone: "",
-    email: "",
-    teacher_count: "",
-    student_count: "",
+    school_name:    initialData?.school_name    ?? "",
+    school_street:  initialData?.school_street  ?? "",
+    school_plz:     initialData?.school_plz     ?? "",
+    school_city:    initialData?.school_city     ?? "",
+    principal_name: initialData?.principal_name ?? "",
+    contact_person: initialData?.contact_person ?? "",
+    phone:          initialData?.phone          ?? "",
+    email:          initialData?.email          ?? "",
+    teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
+    student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
   const [toolSelections, setToolSelections] = useState<ToolSelection[]>(
-    createInitialToolSelections
+    initialData?.tool_selections ?? createInitialToolSelections()
   );
-  const [additionalTools, setAdditionalTools] = useState("");
+  const [additionalTools, setAdditionalTools] = useState(initialData?.additional_tools ?? "");
 
   // Geplanter Einsatz
-  const [gradeLevels, setGradeLevels] = useState("");
-  const [subjects, setSubjects] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [usageDescription, setUsageDescription] = useState("");
+  const [gradeLevels, setGradeLevels] = useState(initialData?.grade_levels ?? "");
+  const [subjects, setSubjects] = useState(initialData?.subjects ?? "");
+  const [startDate, setStartDate] = useState(initialData?.start_date ?? "");
+  const [usageDescription, setUsageDescription] = useState(initialData?.usage_description ?? "");
 
   // Datenschutz
-  const [privacyConcept, setPrivacyConcept] = useState(false);
-  const [parentalConsent, setParentalConsent] = useState(false);
-  const [itInfrastructure, setItInfrastructure] = useState(false);
+  const [privacyConcept, setPrivacyConcept] = useState(editMode ? (initialData?.privacy_concept_exists ?? true) : false);
+  const [parentalConsent, setParentalConsent] = useState(editMode ? (initialData?.parental_consent ?? true) : false);
+  const [itInfrastructure, setItInfrastructure] = useState(editMode ? (initialData?.it_infrastructure_meets_requirements ?? true) : false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [truthConsent, setTruthConsent] = useState(false);
 
@@ -101,6 +132,52 @@ export default function ToolLicenseForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (editMode) {
+      setLoading(true);
+      // Filter out empty tool entries before sending
+      const filteredSelections = toolSelections
+        .map((cat) => ({
+          ...cat,
+          tools: cat.tools.filter((t) => t.name.trim() !== ""),
+        }))
+        .filter((cat) => cat.tools.length > 0);
+
+      const res = await fetch("/api/update-tool-app", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId,
+          school_name:                          schoolInfo.school_name,
+          school_street:                        schoolInfo.school_street || null,
+          school_plz:                           schoolInfo.school_plz || null,
+          school_city:                          schoolInfo.school_city || null,
+          principal_name:                       schoolInfo.principal_name || null,
+          contact_person:                       schoolInfo.contact_person,
+          phone:                                schoolInfo.phone || null,
+          email:                                schoolInfo.email,
+          teacher_count:                        schoolInfo.teacher_count ? parseInt(schoolInfo.teacher_count) : null,
+          student_count:                        schoolInfo.student_count ? parseInt(schoolInfo.student_count) : null,
+          tool_selections:                      filteredSelections,
+          additional_tools:                     additionalTools || null,
+          grade_levels:                         gradeLevels || null,
+          subjects:                             subjects || null,
+          start_date:                           startDate || null,
+          usage_description:                    usageDescription || null,
+          privacy_concept_exists:               privacyConcept,
+          parental_consent:                     parentalConsent,
+          it_infrastructure_meets_requirements: itInfrastructure,
+        }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+        return;
+      }
+      setSuccess(true);
+      return;
+    }
 
     if (isSpam) {
       setSuccess(true);
@@ -201,6 +278,19 @@ export default function ToolLicenseForm() {
   );
 
   if (success) {
+    if (editMode) {
+      return (
+        <div className="rounded-xl bg-green-50 border border-green-200 px-6 py-8 text-center space-y-4">
+          <p className="text-lg font-semibold text-green-800">Änderungen gespeichert!</p>
+          <Link
+            href="/best-practice/datenbank"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+          >
+            Zur Datenbank
+          </Link>
+        </div>
+      );
+    }
     return (
       <>
         {emailFailed && (
@@ -242,20 +332,22 @@ export default function ToolLicenseForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {HoneypotField}
+      {!editMode && HoneypotField}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-        Dank der Förderung durch die Stiftungen und Herrn Hellmann können
-        Grundschulen in Stadt und Landkreis Osnabrück kostenlose Lizenzen für
-        ausgewählte, DSGVO-konforme Lern-Tools beantragen. Alle Tools sind auf
-        ihren pädagogischen Nutzen geprüft und auf die Bedürfnisse von
-        Grundschulen abgestimmt.
-      </div>
+      {!editMode && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
+          Dank der Förderung durch die Stiftungen und Herrn Hellmann können
+          Grundschulen in Stadt und Landkreis Osnabrück kostenlose Lizenzen für
+          ausgewählte, DSGVO-konforme Lern-Tools beantragen. Alle Tools sind auf
+          ihren pädagogischen Nutzen geprüft und auf die Bedürfnisse von
+          Grundschulen abgestimmt.
+        </div>
+      )}
 
       {/* 1. Schulinfo */}
       <SchoolInfoFields
@@ -449,38 +541,42 @@ export default function ToolLicenseForm() {
               für den Tool-Einsatz. *
             </span>
           </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              required
-              checked={privacyConsent}
-              onChange={(e) => setPrivacyConsent(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
-              <Link
-                href="/datenschutz"
-                target="_blank"
-                className="underline text-primary-light hover:text-primary"
-              >
-                Datenschutzerklärung
-              </Link>{" "}
-              zu. *
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              required
-              checked={truthConsent}
-              onChange={(e) => setTruthConsent(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
-            </span>
-          </label>
+          {!editMode && (
+            <>
+              <label className={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  required
+                  checked={privacyConsent}
+                  onChange={(e) => setPrivacyConsent(e.target.checked)}
+                  className={checkboxInput}
+                />
+                <span className="text-sm text-text">
+                  Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+                  <Link
+                    href="/datenschutz"
+                    target="_blank"
+                    className="underline text-primary-light hover:text-primary"
+                  >
+                    Datenschutzerklärung
+                  </Link>{" "}
+                  zu. *
+                </span>
+              </label>
+              <label className={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  required
+                  checked={truthConsent}
+                  onChange={(e) => setTruthConsent(e.target.checked)}
+                  className={checkboxInput}
+                />
+                <span className="text-sm text-text">
+                  Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+                </span>
+              </label>
+            </>
+          )}
         </div>
       </fieldset>
 
@@ -492,11 +588,15 @@ export default function ToolLicenseForm() {
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           <Send className="w-5 h-5" aria-hidden="true" />
-          {loading ? "Wird eingereicht..." : "Antrag einreichen"}
+          {loading
+            ? (editMode ? "Wird gespeichert..." : "Wird eingereicht...")
+            : (editMode ? "Änderungen speichern" : "Antrag einreichen")}
         </button>
-        <p className="mt-3 text-xs text-text-light">
-          * Pflichtfelder.
-        </p>
+        {!editMode && (
+          <p className="mt-3 text-xs text-text-light">
+            * Pflichtfelder.
+          </p>
+        )}
       </div>
     </form>
   );

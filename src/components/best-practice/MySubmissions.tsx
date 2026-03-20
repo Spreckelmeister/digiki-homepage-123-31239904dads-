@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck } from "lucide-react";
+import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
@@ -435,7 +435,18 @@ export default function MySubmissions() {
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
-                      <StatusBadge status={app.status} />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StatusBadge status={app.status} />
+                        {app.status === "neu" && (
+                          <Link
+                            href={`/best-practice/meine-einreichungen/hilfskraefte/${app.id}/bearbeiten`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all shrink-0"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Bearbeiten
+                          </Link>
+                        )}
+                      </div>
                     </div>
                     {/* Schule */}
                     <div>
@@ -514,7 +525,18 @@ export default function MySubmissions() {
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
-                      <StatusBadge status={app.status} />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StatusBadge status={app.status} />
+                        {app.status === "neu" && (
+                          <Link
+                            href={`/best-practice/meine-einreichungen/tool-lizenzen/${app.id}/bearbeiten`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all shrink-0"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Bearbeiten
+                          </Link>
+                        )}
+                      </div>
                     </div>
                     {/* Schule */}
                     <div>
