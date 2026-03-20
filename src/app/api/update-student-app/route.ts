@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -13,6 +14,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Auth check via session client
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -26,18 +28,19 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "recordId fehlt" }, { status: 400 });
   }
 
+  // Use admin client to bypass RLS (tables have no SELECT/UPDATE policy for users)
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   // Verify record exists, belongs to this user's email, and status is "neu"
-  const { data: existing, error: fetchError } = await supabase
+  const { data: existing } = await admin
     .from("applications_student_assistants")
-    .select("id, status, email")
+    .select("id, status")
     .eq("id", recordId)
     .ilike("email", user.email ?? "")
     .maybeSingle();
-
-  if (fetchError) {
-    console.error("[update-student-app] fetch error:", fetchError.message);
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
-  }
 
   if (!existing) {
     return NextResponse.json({ error: "Datensatz nicht gefunden" }, { status: 404 });
@@ -50,7 +53,7 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("applications_student_assistants")
     .update({
       school_name:              fields.school_name,
@@ -81,8 +84,7 @@ export async function PUT(request: NextRequest) {
       has_school_server:        fields.has_school_server,
       updated_at:               new Date().toISOString(),
     })
-    .eq("id", recordId)
-    .ilike("email", user.email ?? "");
+    .eq("id", recordId);
 
   if (error) {
     console.error("[update-student-app]", error.message);
