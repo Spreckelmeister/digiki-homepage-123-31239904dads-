@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck, Pencil } from "lucide-react";
+import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
@@ -167,6 +167,8 @@ export default function MySubmissions() {
   const [basicResult, setBasicResult]       = useState<BasicResult | null>(null);
   const [fullResult, setFullResult]         = useState<FullResult | null>(null);
   const [searched, setSearched]             = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId]           = useState<string | null>(null);
 
   // Auto-fill E-Mail wenn eingeloggt
   useEffect(() => {
@@ -228,6 +230,31 @@ export default function MySubmissions() {
       }
       setBasicResult(data as BasicResult);
     }
+  }
+
+  async function handleDelete(type: "student" | "tool", id: string) {
+    setDeletingId(id);
+    const route = type === "student" ? "/api/delete-student-app" : "/api/delete-tool-app";
+    const res = await fetch(route, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recordId: id }),
+    });
+    setDeletingId(null);
+    setConfirmDeleteId(null);
+    if (!res.ok) {
+      setError("Löschen fehlgeschlagen. Bitte versuchen Sie es erneut.");
+      return;
+    }
+    // Remove from local state
+    setFullResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        student_apps: prev.student_apps.filter((a) => a.id !== id),
+        tool_apps: prev.tool_apps.filter((a) => a.id !== id),
+      };
+    });
   }
 
   const totalCount = fullResult
@@ -435,16 +462,43 @@ export default function MySubmissions() {
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         <StatusBadge status={app.status} />
-                        {app.status === "neu" && (
+                        {app.status === "neu" && confirmDeleteId !== app.id && (
                           <Link
                             href={`/best-practice/meine-einreichungen/hilfskraefte/${app.id}/bearbeiten`}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all shrink-0"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                             Bearbeiten
                           </Link>
+                        )}
+                        {app.status === "neu" && confirmDeleteId !== app.id && (
+                          <button
+                            onClick={() => setConfirmDeleteId(app.id)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-600 hover:text-white transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Löschen
+                          </button>
+                        )}
+                        {confirmDeleteId === app.id && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-red-700 font-medium">Wirklich löschen?</span>
+                            <button
+                              onClick={() => handleDelete("student", app.id)}
+                              disabled={deletingId === app.id}
+                              className="text-xs font-semibold bg-red-600 text-white rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === app.id ? "…" : "Ja, löschen"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-bg transition-colors"
+                            >
+                              Abbrechen
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -525,16 +579,43 @@ export default function MySubmissions() {
                           {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         <StatusBadge status={app.status} />
-                        {app.status === "neu" && (
+                        {app.status === "neu" && confirmDeleteId !== app.id && (
                           <Link
                             href={`/best-practice/meine-einreichungen/tool-lizenzen/${app.id}/bearbeiten`}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all shrink-0"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                             Bearbeiten
                           </Link>
+                        )}
+                        {app.status === "neu" && confirmDeleteId !== app.id && (
+                          <button
+                            onClick={() => setConfirmDeleteId(app.id)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-600 hover:text-white transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Löschen
+                          </button>
+                        )}
+                        {confirmDeleteId === app.id && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-red-700 font-medium">Wirklich löschen?</span>
+                            <button
+                              onClick={() => handleDelete("tool", app.id)}
+                              disabled={deletingId === app.id}
+                              className="text-xs font-semibold bg-red-600 text-white rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === app.id ? "…" : "Ja, löschen"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-bg transition-colors"
+                            >
+                              Abbrechen
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
