@@ -242,10 +242,15 @@ export const newsItems = [
   },
   {
     id: "4",
-    title: "Onlinekonferenzen im April und Mai",
+    title: "Informationskonferenzen: Jetzt anmelden",
     date: "2026-04-27",
-    summary: "Informieren Sie sich über DigiKI in einer unserer Onlinekonferenzen: Mo. 27.04.2026 um 15:30 Uhr oder Fr. 08.05.2026 um 13:30 Uhr. Alle Informationen zum Projekt finden Sie auf digiki-os.de.",
+    summary: "Lernen Sie DigiKI in einer unserer Onlinekonferenzen kennen und stellen Sie Ihre Fragen direkt an das Team.",
     slug: "onlinekonferenzen",
+    type: "event" as const,
+    dates: [
+      { label: "Montag, 27. April 2026", time: "15:30 Uhr" },
+      { label: "Freitag, 8. Mai 2026",   time: "13:30 Uhr" },
+    ],
   },
   {
     id: "3",
