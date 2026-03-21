@@ -22,7 +22,9 @@
       "Bash(magick:*)",
       "Bash(convert:*)",
       "Bash(gswin64c:*)",
-      "Bash(gswin32c --version:*)"
+      "Bash(gswin32c --version:*)",
+      "Bash(find /c/Users/wuest/OneDrive/Projekte/Webseite-Kai/Homepage/src/components -type f -name *Form*.tsx -o -name *Form*.ts)",
+      "Bash(grep -r \"Onlinekonferenz\\\\|April\\\\|Mai\\\\|27\\\\|04\\\\.05\\\\|08\\\\.05\" c:/Users/wuest/OneDrive/Projekte/Webseite-Kai/Homepage/src --include=*.tsx --include=*.ts)"
     ]
   }
 }
