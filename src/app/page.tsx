@@ -4,6 +4,7 @@ import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, Cale
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
+import AnimatedSection from "@/components/AnimatedSection";
 import {
   projectData,
   stats,
@@ -32,7 +33,7 @@ export default function HomePage() {
                 Digitale Kompetenz &amp; KI für{" "}
                 <span className="text-teal">Grundschulen</span>
               </h1>
-              <p className="text-lg text-white/70 max-w-3xl mb-8">
+              <p className="text-lg text-white/85 max-w-3xl mb-8">
                 {projectData.claim}. Kostenlose Schulungen, Tool-Lizenzen und
                 Begleitung für alle interessierten Grundschulen.
               </p>
@@ -88,7 +89,7 @@ export default function HomePage() {
 
       {/* Projektvorstellung */}
       <section className="py-16 md:py-24" aria-labelledby="vision-heading">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
@@ -120,7 +121,7 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       {/* Features */}
@@ -128,7 +129,7 @@ export default function HomePage() {
         className="py-16 md:py-24 bg-white"
         aria-labelledby="features-heading"
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2
               id="features-heading"
@@ -151,15 +152,15 @@ export default function HomePage() {
               />
             ))}
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       {/* Online-Formulare */}
       <section
-        className="py-16 md:py-24"
+        className="py-16 md:py-24 bg-white"
         aria-labelledby="forms-heading"
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2
               id="forms-heading"
@@ -175,11 +176,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link
               href="/fuer-schulen/antrag-tool-lizenzen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <Laptop
-                  className="h-6 w-6 text-accent"
+                  className="h-6 w-6 text-primary"
                   aria-hidden="true"
                 />
               </div>
@@ -199,7 +200,7 @@ export default function HomePage() {
 
             <Link
               href="/fuer-schulen/antrag-hilfskraefte"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <Users2
@@ -223,7 +224,7 @@ export default function HomePage() {
 
             <Link
               href="/best-practice/einreichen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <BookOpen
@@ -245,12 +246,12 @@ export default function HomePage() {
               </span>
             </Link>
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       {/* Aktuelles */}
       <section className="py-16 md:py-24" aria-labelledby="news-heading">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2
               id="news-heading"
@@ -327,7 +328,7 @@ export default function HomePage() {
                 </article>
               ))}
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       {/* Partner & Förderer */}
@@ -335,12 +336,12 @@ export default function HomePage() {
         className="py-16 md:py-24 bg-white"
         aria-labelledby="partners-heading"
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Projektbeteiligte */}
           <div className="mb-16">
             <h2
               id="partners-heading"
-              className="text-2xl font-bold text-primary text-center mb-10"
+              className="text-3xl md:text-4xl font-bold text-primary text-center mb-10"
             >
               Projektbeteiligte
             </h2>
@@ -377,7 +378,7 @@ export default function HomePage() {
 
           {/* Förderer */}
           <div>
-            <h2 className="text-2xl font-bold text-primary text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
               Gefördert durch
             </h2>
             <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
@@ -426,19 +427,19 @@ export default function HomePage() {
               })}
             </div>
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-primary" aria-labelledby="cta-heading">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h2
             id="cta-heading"
             className="text-3xl md:text-4xl font-bold text-white mb-4"
           >
             Ihre Schule ist dabei?
           </h2>
-          <p className="text-lg text-teal/70 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
             Starten Sie jetzt mit der Online-Bestandsaufnahme und sichern Sie
             sich einen Platz in den Intensivschulungen.
           </p>
@@ -459,7 +460,7 @@ export default function HomePage() {
               Alle Teilnahmeoptionen
             </Link>
           </div>
-        </div>
+        </AnimatedSection>
       </section>
 
       <ContactSection />

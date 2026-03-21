@@ -6,7 +6,7 @@ export default function ContactSection() {
   return (
     <section
       id="kontakt"
-      className="py-16 md:py-24 bg-primary"
+      className="py-16 md:py-24 bg-primary border-t border-white/10"
       aria-labelledby="contact-section-heading"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -19,7 +19,7 @@ export default function ContactSection() {
             >
               Interesse? Sprechen Sie uns an!
             </h2>
-            <p className="text-lg text-white/70 mb-8">
+            <p className="text-lg text-white/80 mb-8">
               Wir beraten Sie gerne persönlich zu den Teilnahmemöglichkeiten und
               finden gemeinsam das passende Format für Ihre Schule.
             </p>
@@ -30,7 +30,7 @@ export default function ContactSection() {
                   <Mail className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/60">E-Mail</p>
+                  <p className="text-sm text-white/70">E-Mail</p>
                   <a
                     href={`mailto:${projectData.contactEmail}`}
                     className="hover:text-white transition-colors"
@@ -44,7 +44,7 @@ export default function ContactSection() {
                   <MapPin className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/60">Adresse</p>
+                  <p className="text-sm text-white/70">Adresse</p>
                   <p>{projectData.projectLeadAddress}</p>
                 </div>
               </div>
@@ -65,14 +65,14 @@ export default function ContactSection() {
             <div className="space-y-3">
               <a
                 href={`mailto:${projectData.contactEmail}?subject=Interesse an DigiKI-Teilnahme`}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
               >
                 <Mail className="w-4 h-4" aria-hidden="true" />
                 E-Mail schreiben
               </a>
               <Link
                 href={projectData.surveyUrl}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-6 py-3 text-lg font-semibold text-white hover:bg-white/20 transition-colors"
               >
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 Zur Bestandsaufnahme

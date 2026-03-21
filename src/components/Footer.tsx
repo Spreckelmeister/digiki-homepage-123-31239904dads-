@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Projekt-Info */}
           <div>
             <h3 className="text-lg font-bold mb-4">DigiKI</h3>
-            <p className="text-sm text-teal/60 leading-relaxed">
+            <p className="text-sm text-white/80 leading-relaxed">
               Digitalisierung & Künstliche Intelligenz an Grundschulen
               Osnabrück. Ein Projekt der Stadt Osnabrück, gefördert durch
               regionale Stiftungen und private Förderer.
@@ -22,7 +22,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Startseite
                 </Link>
@@ -30,7 +30,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/ueber-das-projekt"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Über das Projekt
                 </Link>
@@ -38,7 +38,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/fuer-schulen"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Für Schulen
                 </Link>
@@ -46,7 +46,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/best-practice"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Best Practice
                 </Link>
@@ -54,7 +54,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/impressum"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Impressum
                 </Link>
@@ -62,7 +62,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/datenschutz"
-                  className="text-teal/60 hover:text-white transition-colors"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   Datenschutz
                 </Link>
@@ -73,7 +73,7 @@ export default function Footer() {
           {/* Kontakt */}
           <div>
             <h3 className="text-lg font-bold mb-4">Kontakt</h3>
-            <address className="text-sm text-teal/60 not-italic leading-relaxed">
+            <address className="text-sm text-white/80 not-italic leading-relaxed">
               <p className="font-medium text-white">Kai Krafft</p>
               <p>Bildungskoordinator im Fachbereich 40-3 Bildung</p>
               <p>Stadt Osnabrück</p>
@@ -90,7 +90,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-white/10 text-center text-sm text-teal/60">
+        <div className="mt-8 pt-8 border-t border-white/10 text-center text-sm text-white/70">
           <p>
             &copy; {new Date().getFullYear()} DigiKI – Stadt Osnabrück. Alle
             Rechte vorbehalten.
