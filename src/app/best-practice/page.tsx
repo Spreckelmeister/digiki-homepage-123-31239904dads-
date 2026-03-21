@@ -39,12 +39,17 @@ export default function BestPracticePage() {
                   <LogIn className="w-5 h-5" aria-hidden="true" />
                   Anmelden
                 </Link>
-                <Link
-                  href="/best-practice/registrieren"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
-                >
-                  Kostenlos registrieren
-                </Link>
+                <div className="flex flex-col items-start gap-1">
+                  <Link
+                    href="/best-practice/registrieren"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+                  >
+                    Registrieren via Bestandsaufnahme
+                  </Link>
+                  <p className="text-xs text-white/50 px-1">
+                    Die Registrierung erfolgt im Rahmen der Online-Bestandsaufnahme.
+                  </p>
+                </div>
               </div>
             </div>
             <div className="hidden lg:block">
@@ -159,15 +164,17 @@ export default function BestPracticePage() {
           <h2 className="text-2xl md:text-3xl font-bold text-primary mb-4">
             Jetzt Zugang erhalten
           </h2>
-          <p className="text-lg text-text-light max-w-2xl mx-auto mb-8">
-            Registrieren Sie sich kostenlos, um auf die Best-Practice-Datenbank
-            zuzugreifen. Sie benötigen lediglich eine E-Mail-Adresse.
+          <p className="text-lg text-text-light max-w-2xl mx-auto mb-4">
+            Die Registrierung für die Best-Practice-Datenbank erfolgt im Rahmen
+            der Online-Bestandsaufnahme. So stellen wir sicher, dass die
+            Bestandsaufnahme von der passenden Person an Ihrer Schule ausgefüllt
+            wird – und Sie direkt danach Zugang erhalten.
           </p>
           <Link
             href="/best-practice/registrieren"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
           >
-            Kostenlos registrieren
+            Registrieren via Bestandsaufnahme
           </Link>
         </div>
       </section>
