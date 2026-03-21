@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
-import ContactSection from "@/components/ContactSection";
 import BestPracticeList from "@/components/best-practice/BestPracticeList";
 import MySubmissions from "@/components/best-practice/MySubmissions";
 import MyBestandsaufnahme from "@/components/best-practice/MyBestandsaufnahme";
@@ -55,8 +54,6 @@ export default async function DatenbankPage() {
           <MyBestandsaufnahme />
         </div>
       </section>
-
-      <ContactSection />
     </>
   );
 }

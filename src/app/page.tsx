@@ -429,8 +429,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <ContactSection />
-
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-primary" aria-labelledby="cta-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
@@ -463,6 +461,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ContactSection />
     </>
   );
 }
