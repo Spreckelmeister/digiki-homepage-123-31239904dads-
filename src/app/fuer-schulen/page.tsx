@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Download, Check, FileText, PenLine, Quote, ArrowRight } from "lucide-react";
+import { Check, PenLine, Quote, ArrowRight, Laptop, Users2, BookOpen } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
@@ -309,84 +309,84 @@ export default function FuerSchulenPage() {
         </div>
       </section>
 
-      {/* Downloads */}
+      {/* Online-Formulare */}
       <section
         id="downloads"
         className="py-16 md:py-24 bg-white"
         aria-labelledby="downloads-heading"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2
-            id="downloads-heading"
-            className="text-2xl md:text-3xl font-bold text-primary text-center mb-12"
-          >
-            Downloads &amp; Materialien
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                title: "Antrag Tool-Lizenzen",
-                description: "Formular zur Beantragung stiftungsfinanzierter Tool-Lizenzen für adaptive Lernplattformen.",
-                format: "DOCX",
-                downloadHref: "/downloads/Antrag_Tool_Lizenzen_DigiKI.docx",
-                formHref: "/fuer-schulen/antrag-tool-lizenzen",
-              },
-              {
-                title: "Antrag Studentische Hilfskräfte",
-                description: "Formular zur Beantragung studentischer Unterstützung bei der Einrichtung digitaler Tools.",
-                format: "DOCX",
-                downloadHref: "/downloads/Antrag_Studentische_Hilfskraefte_DigiKI.docx",
-                formHref: "/fuer-schulen/antrag-hilfskraefte",
-              },
-              {
-                title: "Best-Practice-Vorlage",
-                description: "Strukturierte Vorlage zur Dokumentation Ihrer Unterrichtserfahrungen mit digitalen Tools.",
-                format: "DOCX",
-                downloadHref: "/downloads/Best-Practice-Vorlage-Grundschule.docx",
-                formHref: "/best-practice/einreichen",
-              },
-            ].map((doc) => (
-              <div
-                key={doc.title}
-                className="bg-bg rounded-xl p-6 border border-border hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText
-                      className="w-5 h-5 text-primary"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-primary">
-                      {doc.title}
-                    </h3>
-                    <span className="text-xs text-text-light font-medium uppercase">{doc.format}</span>
-                  </div>
-                </div>
-                <p className="text-sm text-text-light mb-4">
-                  {doc.description}
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href={doc.formHref}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <PenLine className="w-4 h-4" aria-hidden="true" />
-                    Online ausfüllen
-                  </Link>
-                  <a
-                    href={doc.downloadHref}
-                    download
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-light hover:text-primary border border-border hover:border-primary/30 px-4 py-2 rounded-lg transition-colors"
-                    title={`${doc.title} herunterladen (${doc.format})`}
-                  >
-                    <Download className="w-4 h-4" aria-hidden="true" />
-                    Herunterladen
-                  </a>
-                </div>
+          <div className="text-center mb-12">
+            <h2
+              id="downloads-heading"
+              className="text-2xl md:text-3xl font-bold text-primary mb-4"
+            >
+              Online beantragen
+            </h2>
+            <p className="text-lg text-text-light max-w-2xl mx-auto">
+              Alle Anträge und Formulare direkt online ausfüllen – schnell und unkompliziert.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link
+              href="/fuer-schulen/antrag-tool-lizenzen"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                <Laptop className="h-6 w-6 text-accent" aria-hidden="true" />
               </div>
-            ))}
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Kostenlose Tool-Lizenzen
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                DSGVO-konforme Lern-Tools für Ihre Schule beantragen – finanziert durch Stiftungen.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
+
+            <Link
+              href="/fuer-schulen/antrag-hilfskraefte"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <Users2 className="h-6 w-6 text-primary" aria-hidden="true" />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Studentische Hilfskräfte
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                Kostenlose Unterstützung bei der Einrichtung digitaler Tools und technischem Support.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
+
+            <Link
+              href="/best-practice/einreichen"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <BookOpen className="h-6 w-6 text-primary" aria-hidden="true" />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+                Best Practice einreichen
+              </h3>
+              <p className="text-sm text-text-light mb-4">
+                Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen Tools und teilen Sie sie mit anderen.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                <PenLine className="w-4 h-4" aria-hidden="true" />
+                Online ausfüllen
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </Link>
           </div>
         </div>
       </section>
