@@ -72,7 +72,7 @@ export default function ContactSection() {
               </a>
               <Link
                 href={projectData.surveyUrl}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/20 transition-colors"
               >
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 Zur Bestandsaufnahme
