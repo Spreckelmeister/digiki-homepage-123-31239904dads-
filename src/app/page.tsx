@@ -287,7 +287,7 @@ export default function HomePage() {
                         </a>
                         <a
                           href={`mailto:kraft@osnabrueck.de?subject=${encodeURIComponent("Anmeldung Informationskonferenz " + d.label)}`}
-                          className="shrink-0 bg-white text-primary font-semibold text-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors"
+                          className="bg-white/15 rounded-lg px-4 py-3 border border-white/20 hover:bg-white/25 transition-colors text-sm font-semibold"
                         >
                           Anmelden
                         </a>
