@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Database, Search, BookOpen, LogIn } from "lucide-react";
+import ContactSection from "@/components/ContactSection";
 
 export const metadata: Metadata = {
   title: "Best Practice",
@@ -170,6 +171,8 @@ export default function BestPracticePage() {
           </Link>
         </div>
       </section>
+
+      <ContactSection />
     </>
   );
 }

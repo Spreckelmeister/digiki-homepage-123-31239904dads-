@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays } from "lucide-react";
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
+import ContactSection from "@/components/ContactSection";
 import {
   projectData,
   stats,
@@ -276,12 +277,20 @@ export default function HomePage() {
                 {"dates" in item && item.dates && (
                   <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:min-w-56">
                     {item.dates.map((d) => (
-                      <div
-                        key={d.label}
-                        className="bg-white/15 rounded-lg px-4 py-3 border border-white/20"
-                      >
-                        <p className="font-semibold text-sm">{d.label}</p>
-                        <p className="text-white/70 text-sm">{d.time}</p>
+                      <div key={d.label} className="flex items-center gap-2">
+                        <a
+                          href={`mailto:kraft@osnabrueck.de?subject=${encodeURIComponent("Anmeldung Informationskonferenz " + d.label)}`}
+                          className="flex-1 bg-white/15 rounded-lg px-4 py-3 border border-white/20 hover:bg-white/25 transition-colors"
+                        >
+                          <p className="font-semibold text-sm">{d.label}</p>
+                          <p className="text-white/70 text-sm">{d.time}</p>
+                        </a>
+                        <a
+                          href={`mailto:kraft@osnabrueck.de?subject=${encodeURIComponent("Anmeldung Informationskonferenz " + d.label)}`}
+                          className="shrink-0 bg-white text-primary font-semibold text-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors"
+                        >
+                          Anmelden
+                        </a>
                       </div>
                     ))}
                   </div>
@@ -419,6 +428,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ContactSection />
 
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-primary" aria-labelledby="cta-heading">

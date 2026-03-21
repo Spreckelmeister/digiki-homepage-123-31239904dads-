@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Timeline from "@/components/Timeline";
+import ContactSection from "@/components/ContactSection";
 import { timelinePhases } from "@/data/project";
 import { BookOpen, Target, Lightbulb, Heart } from "lucide-react";
 
@@ -322,6 +323,8 @@ export default function UeberDasProjektPage() {
           </div>
         </div>
       </section>
+
+      <ContactSection />
     </>
   );
 }

@@ -229,15 +229,15 @@ export const newsItems = [
   {
     id: "1",
     title: "DigiKI-Projekt startet",
-    date: "2026-03-01",
-    summary: "Das Projekt DigiKI geht an den Start! Alle Grundschulen in Stadt und Landkreis Osnabrück sind herzlich zur Teilnahme eingeladen.",
+    date: "2026-04-15",
+    summary: "Das Projekt DigiKI startet am 15. April 2026! Alle Grundschulen in Stadt und Landkreis Osnabrück sind herzlich zur Teilnahme eingeladen.",
     slug: "projekt-gestartet",
   },
   {
     id: "2",
-    title: "Online-Bestandsaufnahme ab April",
-    date: "2026-04-01",
-    summary: "Ab April startet die Online-Bestandsaufnahme an allen Grundschulen. Der kurze Fragebogen (ca. 10 Min.) hilft uns, die Angebote passgenau zu gestalten.",
+    title: "Online-Bestandsaufnahme ab 15. April",
+    date: "2026-04-15",
+    summary: "Ab dem 15. April startet die Online-Bestandsaufnahme an allen Grundschulen. Der kurze Fragebogen (ca. 10 Min.) hilft uns, die Angebote passgenau zu gestalten.",
     slug: "bestandsaufnahme",
   },
   {
