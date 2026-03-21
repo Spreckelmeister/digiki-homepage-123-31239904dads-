@@ -34,7 +34,7 @@ export default function BestandsaufnahmePage() {
           <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-4 h-4" aria-hidden="true" />
-              Ca. 15 Minuten
+              Ca. 10 Minuten
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Info className="w-4 h-4" aria-hidden="true" />
