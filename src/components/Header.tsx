@@ -36,10 +36,10 @@ export default function Header() {
               className="flex items-center gap-2 text-xl font-bold text-primary"
             >
               <Image
-                src="/images/logos/DigiKI.png"
+                src="/images/logos/DigiKI_Logo_v5.svg"
                 alt="DigiKI Osnabrück"
-                width={120}
-                height={40}
+                width={480}
+                height={220}
                 className="h-10 w-auto"
                 priority
               />

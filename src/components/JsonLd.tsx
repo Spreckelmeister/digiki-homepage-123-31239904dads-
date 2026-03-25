@@ -9,7 +9,7 @@ export function OrganizationJsonLd() {
     "@type": "Organization",
     name: "DigiKI",
     url: siteUrl,
-    logo: `${siteUrl}/images/logos/DigiKI.png`,
+    logo: `${siteUrl}/images/logos/DigiKI_Logo_v5.svg`,
     description: projectData.claim,
     address: {
       "@type": "PostalAddress",

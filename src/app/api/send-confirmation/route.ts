@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
           <tr>
             <td align="center"
               style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
-              <img src="https://digiki-os.de/images/logos/DigiKI.png"
+              <img src="https://digiki-os.de/images/logos/DigiKI_Logo_v5.svg"
                 alt="DigiKI – Grundschulen Osnabrück"
                 width="160" height="auto"
                 style="display:block;border:0;height:auto;" />
