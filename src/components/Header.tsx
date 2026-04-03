@@ -28,7 +28,7 @@ export default function Header() {
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
         aria-label="Hauptnavigation"
       >
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-20 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
             <Link
@@ -40,7 +40,7 @@ export default function Header() {
                 alt="DigiKI Osnabrück"
                 width={480}
                 height={220}
-                className="h-10 w-auto"
+                className="h-14 w-auto"
                 priority
               />
             </Link>
