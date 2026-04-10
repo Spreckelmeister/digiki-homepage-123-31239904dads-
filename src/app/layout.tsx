@@ -48,6 +48,15 @@ export const metadata: Metadata = {
     description:
       "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück.",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: true,
+    },
+  },
 };
 
 export default function RootLayout({
