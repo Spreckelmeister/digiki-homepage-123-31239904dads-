@@ -227,8 +227,8 @@ export default function UeberDasProjektPage() {
                 </div>
                 <div className="lg:col-span-2">
                   <div className="rounded-xl overflow-hidden shadow-md">
-                    <Image
-                      src="/images/icons/istock-teacher-tablet-explains.webp"
+                    <ProtectedImage
+                      src={blobImages["istock-teacher-tablet-explains"]}
                       alt="Junge Lehrerin erklärt Schülern Lerninhalte mit einem digitalen Tablet"
                       width={400}
                       height={280}
@@ -286,9 +286,9 @@ export default function UeberDasProjektPage() {
                   </p>
                 </div>
                 <div className="hidden lg:block rounded-xl overflow-hidden">
-                  <Image
-                  src="/images/icons/istock-woman-tablet-teaching.webp"
-                  alt="Lehrerin mit Tablet begleitet Kinder im Unterricht"
+                  <ProtectedImage
+                    src={blobImages["istock-woman-tablet-teaching"]}
+                    alt="Lehrerin mit Tablet begleitet Kinder im Unterricht"
                     width={300}
                     height={200}
                     className="w-full h-[150px] object-cover"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Image from "next/image";
+import ProtectedImage from "@/components/ProtectedImage";
+import { blobImages } from "@/data/images.generated";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -29,8 +30,8 @@ export default function LoginPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="hidden lg:block">
-              <Image
-                src="/images/icons/istock-students-hands-up.webp"
+              <ProtectedImage
+                src={blobImages["istock-students-hands-up"]}
                 alt="Begeisterte Grundschulkinder melden sich aktiv im Unterricht"
                 width={500}
                 height={400}

@@ -5,7 +5,9 @@ import { Check, PenLine, Quote, ArrowRight, Laptop, Users2, BookOpen } from "luc
 import Accordion from "@/components/Accordion";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
+import ProtectedImage from "@/components/ProtectedImage";
 import { projectData, participationOptions, faqItems } from "@/data/project";
+import { blobImages } from "@/data/images.generated";
 
 export const metadata: Metadata = {
   title: "Kostenlose Fortbildung Digitalisierung & KI für Grundschulen",
@@ -210,8 +212,8 @@ export default function FuerSchulenPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/icons/istock-teacher-student-highfive.webp"
+              <ProtectedImage
+                src={blobImages["istock-teacher-student-highfive"]}
                 alt="Lehrerin und Schülerin feiern gemeinsam einen Lernerfolg"
                 width={600}
                 height={400}
