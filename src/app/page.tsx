@@ -94,7 +94,7 @@ export default function HomePage() {
         <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
-              <Image
+              <ProtectedImage
                 src="/images/icons/pexels-rdne-8499534.webp"
                 alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
                 width={600}

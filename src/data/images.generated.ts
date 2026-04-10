@@ -13,6 +13,7 @@ export const blobImages = {
   "istock-teacher-tablet-explains": "https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com/images/istock-teacher-tablet-explains.jpg",
   "istock-team-motivation": "https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com/images/istock-team-motivation.jpg",
   "istock-woman-tablet-teaching": "https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com/images/istock-woman-tablet-teaching.jpg",
+  "unsplash-team-unity": "https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com/images/unsplash-team-unity.jpg",
 } as const;
 
 export type BlobImageKey = keyof typeof blobImages;

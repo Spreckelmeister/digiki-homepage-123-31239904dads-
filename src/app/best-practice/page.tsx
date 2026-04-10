@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { Database, Search, BookOpen, LogIn } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
@@ -135,8 +134,8 @@ export default function BestPracticePage() {
 
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
-                <Image
-                  src="/images/icons/unsplash-team-unity.avif"
+                <ProtectedImage
+                  src={blobImages["unsplash-team-unity"]}
                   alt="Wachsende Gemeinschaft von Lehrkräften, die Best-Practice-Beispiele teilen"
                   fill
                   className="object-cover"
