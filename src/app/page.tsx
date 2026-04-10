@@ -276,22 +276,28 @@ export default function HomePage() {
                   <p className="text-white/80 text-sm">{item.summary}</p>
                 </div>
                 {"dates" in item && item.dates && (
-                  <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:min-w-56">
+                  <div className="flex flex-col gap-3 md:min-w-72">
                     {item.dates.map((d) => (
-                      <div key={d.label} className="flex items-center gap-2">
+                      <div
+                        key={d.label}
+                        className="bg-white/15 rounded-lg px-4 py-3 border border-white/20"
+                      >
+                        <p className="font-semibold text-sm">{d.label}</p>
+                        <p className="text-white/80 text-sm mb-3">{d.time}</p>
                         <a
-                          href={`mailto:kraft@osnabrueck.de?subject=${encodeURIComponent("Anmeldung Informationskonferenz " + d.label)}`}
-                          className="flex-1 bg-white/15 rounded-lg px-4 py-3 border border-white/20 hover:bg-white/25 transition-colors"
+                          href={d.joinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-white text-primary rounded-md px-3 py-1.5 text-sm font-semibold hover:bg-white/90 transition-colors"
                         >
-                          <p className="font-semibold text-sm">{d.label}</p>
-                          <p className="text-white/70 text-sm">{d.time}</p>
+                          Per Teams teilnehmen
+                          <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                         </a>
-                        <a
-                          href={`mailto:kraft@osnabrueck.de?subject=${encodeURIComponent("Anmeldung Informationskonferenz " + d.label)}`}
-                          className="bg-white/15 rounded-lg px-4 py-3 border border-white/20 hover:bg-white/25 transition-colors text-sm font-semibold"
-                        >
-                          Anmelden
-                        </a>
+                        <p className="text-xs text-white/75 mt-3 leading-relaxed">
+                          Besprechungs-ID: {d.meetingId}
+                          <br />
+                          Passcode: {d.passcode}
+                        </p>
                       </div>
                     ))}
                   </div>
