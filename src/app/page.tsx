@@ -5,6 +5,8 @@ import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
+import ProtectedImage from "@/components/ProtectedImage";
+import { blobImages } from "@/data/images.generated";
 import {
   projectData,
   stats,
@@ -55,8 +57,8 @@ export default function HomePage() {
             </div>
             <div className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <Image
-                  src="/images/icons/istock-kids-laptop-teacher.webp"
+                <ProtectedImage
+                  src={blobImages["istock-kids-laptop-teacher"]}
                   alt="Grundschulkinder arbeiten mit Laptops im Unterricht, begleitet von ihrer Lehrkraft"
                   width={600}
                   height={400}

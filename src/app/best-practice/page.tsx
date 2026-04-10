@@ -55,8 +55,8 @@ export default function BestPracticePage() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image
-                src="/images/icons/istock-team-motivation.webp"
+              <ProtectedImage
+                src={blobImages["istock-team-motivation"]}
                 alt="Lehrkräfte teilen Best-Practice-Erfahrungen und motivieren sich gegenseitig"
                 width={500}
                 height={400}

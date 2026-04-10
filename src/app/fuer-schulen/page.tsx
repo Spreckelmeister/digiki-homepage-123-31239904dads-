@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { Check, PenLine, Quote, ArrowRight, Laptop, Users2, BookOpen } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { FAQPageJsonLd } from "@/components/JsonLd";
@@ -55,8 +54,8 @@ export default function FuerSchulenPage() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image
-                src="/images/icons/istock-teacher-supports-students.webp"
+              <ProtectedImage
+                src={blobImages["istock-teacher-supports-students"]}
                 alt="Lehrkraft unterstützt Schüler an Computern im Unterricht"
                 width={500}
                 height={350}

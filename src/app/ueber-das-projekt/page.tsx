@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Timeline from "@/components/Timeline";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
@@ -86,8 +85,8 @@ export default function UeberDasProjektPage() {
               </div>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/icons/istock-elearning-support.webp"
+              <ProtectedImage
+                src={blobImages["istock-elearning-support"]}
                 alt="Unterstützung beim E-Learning in der Grundschule – DigiKI-Projekt"
                 width={500}
                 height={400}
