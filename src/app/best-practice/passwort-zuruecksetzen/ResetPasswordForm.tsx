@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, Check, X } from "lucide-react";
+import { KeyRound, Check, X, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const PW_RULES = [
@@ -29,6 +29,8 @@ export default function ResetPasswordForm() {
   }, []);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -96,15 +98,28 @@ export default function ResetPasswordForm() {
           >
             Neues Passwort
           </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
-            placeholder="Sicheres Passwort wählen"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+              placeholder="Sicheres Passwort wählen"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-primary transition-colors"
+            >
+              {showPassword
+                ? <EyeOff className="w-5 h-5" aria-hidden="true" />
+                : <Eye className="w-5 h-5" aria-hidden="true" />}
+            </button>
+          </div>
           {password.length > 0 && (
             <ul className="mt-2.5 space-y-1">
               {PW_RULES.map((rule) => {
@@ -129,16 +144,29 @@ export default function ResetPasswordForm() {
           >
             Passwort bestätigen
           </label>
-          <input
-            id="confirm"
-            type="password"
-            required
-            minLength={8}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
-            placeholder="Passwort wiederholen"
-          />
+          <div className="relative">
+            <input
+              id="confirm"
+              type={showConfirm ? "text" : "password"}
+              required
+              minLength={8}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+              placeholder="Passwort wiederholen"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((v) => !v)}
+              aria-label={showConfirm ? "Passwort verbergen" : "Passwort anzeigen"}
+              aria-pressed={showConfirm}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-primary transition-colors"
+            >
+              {showConfirm
+                ? <EyeOff className="w-5 h-5" aria-hidden="true" />
+                : <Eye className="w-5 h-5" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
 
         <button
