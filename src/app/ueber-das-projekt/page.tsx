@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Timeline from "@/components/Timeline";
 import ContactSection from "@/components/ContactSection";
+import ProtectedImage from "@/components/ProtectedImage";
 import { timelinePhases } from "@/data/project";
+import { blobImages } from "@/data/images.generated";
 import { BookOpen, Target, Lightbulb, Heart } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -34,8 +36,8 @@ export default function UeberDasProjektPage() {
               </p>
             </div>
             <div className="hidden lg:block">
-              <Image
-                src="/images/icons/istock-teacher-computer-class.webp"
+              <ProtectedImage
+                src={blobImages["istock-teacher-computer-class"]}
                 alt="Erfahrene Lehrkraft leitet Computerunterricht an einer Grundschule"
                 width={500}
                 height={350}

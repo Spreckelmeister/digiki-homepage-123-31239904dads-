@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Database, Search, BookOpen, LogIn } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
+import ProtectedImage from "@/components/ProtectedImage";
+import { blobImages } from "@/data/images.generated";
 
 export const metadata: Metadata = {
   title: "Best Practice",
@@ -85,8 +87,8 @@ export default function BestPracticePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
-                <Image
-                  src="/images/icons/istock-kids-raise-hands.webp"
+                <ProtectedImage
+                  src={blobImages["istock-kids-raise-hands"]}
                   alt="Begeisterte Grundschulkinder melden sich im Unterricht"
                   fill
                   className="object-cover"
@@ -109,8 +111,8 @@ export default function BestPracticePage() {
 
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
-                <Image
-                  src="/images/icons/istock-colleague-high-five.webp"
+                <ProtectedImage
+                  src={blobImages["istock-colleague-high-five"]}
                   alt="Kolleginnen und Kollegen freuen sich über erfolgreich erprobte Unterrichtsideen"
                   fill
                   className="object-cover object-top"

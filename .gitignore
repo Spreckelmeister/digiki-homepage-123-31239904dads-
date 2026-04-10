@@ -40,3 +40,9 @@ yarn-error.log*
 next-env.d.ts
 *.pdf
 *.zip
+
+# Rohdateien lizenzierter Bilder (werden zu Vercel Blob hochgeladen)
+/private-images
+
+.vercel
+.env*.local
