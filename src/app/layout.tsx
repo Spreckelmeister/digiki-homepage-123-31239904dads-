@@ -75,6 +75,7 @@ export default function RootLayout({
         <Footer />
         <CookieBanner />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
