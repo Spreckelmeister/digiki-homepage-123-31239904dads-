@@ -71,6 +71,16 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Logos und öffentliche Bilder dürfen von externen Origins (z. B. Email-Clients) geladen werden
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
     ];
   },
 };
