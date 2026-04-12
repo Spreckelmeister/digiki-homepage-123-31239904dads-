@@ -321,7 +321,7 @@ export default function HomePage() {
                     >
                       <p className="font-bold text-primary text-lg">{d.label}</p>
                       <p className="text-text-light mb-4">{d.time}</p>
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="mb-4">
                         <a
                           href={d.joinUrl}
                           target="_blank"
@@ -330,14 +330,6 @@ export default function HomePage() {
                         >
                           Per Teams teilnehmen
                           <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                        </a>
-                        <a
-                          href={d.icsUrl}
-                          download
-                          className="inline-flex items-center gap-1.5 border border-border text-primary rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/5 transition-colors"
-                        >
-                          <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
-                          Kalender
                         </a>
                       </div>
                       <p className="text-xs text-text-light leading-relaxed">
