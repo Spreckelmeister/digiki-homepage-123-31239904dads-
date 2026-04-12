@@ -462,7 +462,7 @@ export default function HomePage() {
                     {inner}
                   </a>
                 ) : (
-                  <div key={funder.name} className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
+                  <div key={funder.name} className="-ml-4 md:-ml-6 transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
                     {inner}
                   </div>
                 );

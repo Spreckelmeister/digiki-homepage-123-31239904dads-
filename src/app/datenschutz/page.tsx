@@ -260,17 +260,6 @@ export default function DatenschutzPage() {
                 Niedersachsen), Prinzenstraße 5, 30159 Hannover.
               </p>
             </div>
-
-            <div className="bg-teal/5 rounded-lg p-6 border border-teal/20">
-              <p className="text-sm text-text-light">
-                <strong className="text-text">Hinweis:</strong> Für eine
-                vollständige DSGVO-Konformität empfehlen wir, diese
-                Datenschutzerklärung durch den Datenschutzbeauftragten der Stadt
-                Osnabrück prüfen und ggf. ergänzen zu lassen – insbesondere
-                hinsichtlich des Hostings, etwaiger Analyse-Tools und der
-                genauen Verarbeitungszwecke.
-              </p>
-            </div>
           </div>
         </div>
       </section>
