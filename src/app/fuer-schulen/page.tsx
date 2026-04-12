@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, PenLine, ArrowRight, Laptop, Users2, BookOpen } from "lucide-react";
+import { Check, PenLine, ArrowRight, Laptop, Users2, BookOpen, Clock } from "lucide-react";
 import Accordion from "@/components/Accordion";
+import StatCounter from "@/components/StatCounter";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
@@ -166,30 +167,14 @@ export default function FuerSchulenPage() {
       </section>
 
       {/* Social Proof */}
-      <section className="py-12 md:py-16 bg-primary/5" aria-labelledby="social-proof-heading">
+      <section className="bg-white py-12 border-y border-border" aria-label="Projekt in Zahlen">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 id="social-proof-heading" className="sr-only">Stimmen und Zahlen</h2>
-
-          {/* Statistiken */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            <div className="text-center">
-              <p className="text-3xl md:text-4xl font-bold text-accent">50+</p>
-              <p className="text-sm text-text-light mt-1">Grundschulen eingeladen</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl md:text-4xl font-bold text-accent">300+</p>
-              <p className="text-sm text-text-light mt-1">Lehrkräfte werden geschult</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl md:text-4xl font-bold text-accent">100%</p>
-              <p className="text-sm text-text-light mt-1">kostenlos für Schulen</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl md:text-4xl font-bold text-accent">18</p>
-              <p className="text-sm text-text-light mt-1">Monate Begleitung</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCounter value="50+" label="Grundschulen" description="eingeladen" />
+            <StatCounter value="300+" label="Lehrkräfte" description="werden geschult" />
+            <StatCounter value="100%" label="Kostenlos" description="für Schulen" />
+            <StatCounter value="18" label="Monate" description="Begleitung" />
           </div>
-
         </div>
       </section>
 
@@ -318,18 +303,22 @@ export default function FuerSchulenPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link
               href="/fuer-schulen/antrag-tool-lizenzen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-primary hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
-                <Laptop className="h-6 w-6 text-accent" aria-hidden="true" />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
+                <Laptop className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Kostenlose Tool-Lizenzen
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 DSGVO-konforme Lern-Tools für Ihre Schule beantragen – finanziert durch Stiftungen.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 5 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -338,18 +327,22 @@ export default function FuerSchulenPage() {
 
             <Link
               href="/fuer-schulen/antrag-hilfskraefte"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-[#00cabe] hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                <Users2 className="h-6 w-6 text-primary" aria-hidden="true" />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#00cabe]/10">
+                <Users2 className="h-8 w-8 text-[#00cabe]" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Studentische Hilfskräfte
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 Kostenlose Unterstützung bei der Einrichtung digitaler Tools und technischem Support.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 5 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -358,18 +351,22 @@ export default function FuerSchulenPage() {
 
             <Link
               href="/best-practice/einreichen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-accent/30 transition-all"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-[#E8A838] hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                <BookOpen className="h-6 w-6 text-primary" aria-hidden="true" />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E8A838]/10">
+                <BookOpen className="h-8 w-8 text-[#E8A838]" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Best Practice einreichen
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen Tools und teilen Sie sie mit anderen.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 10 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
