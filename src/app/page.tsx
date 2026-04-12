@@ -430,36 +430,32 @@ export default function HomePage() {
 
           {/* Förderer */}
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
               Gefördert durch
             </h2>
-            <p className="text-center text-text-light max-w-2xl mx-auto mb-10">
-              DigiKI wird ausschließlich durch Stiftungen und private Förderer
-              finanziert – für Schulen entstehen keine Kosten.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
               {funders.map((funder) => {
-                const card = (
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white p-6 h-[120px] shadow-sm hover:shadow-md transition-shadow">
-                    {funder.logo ? (
-                      <div className="relative w-[120px] h-[50px]">
-                        <Image
-                          src={funder.logo}
-                          alt={`Logo ${funder.name}`}
-                          fill
-                          className="object-contain"
-                          sizes="120px"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <User className="w-8 h-8 text-accent" aria-hidden="true" />
-                        <span className="text-sm font-semibold text-primary text-center leading-tight">
-                          Privater Förderer
-                        </span>
-                      </>
-                    )}
-                    <span className="text-xs text-text-light text-center leading-tight">
+                const inner = funder.logo ? (
+                  <div
+                    key={funder.name}
+                    className="relative w-[140px] h-[60px]"
+                    title={funder.name}
+                  >
+                    <Image
+                      src={funder.logo}
+                      alt={`Logo ${funder.name}`}
+                      fill
+                      className="object-contain"
+                      sizes="140px"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    key={funder.name}
+                    className="flex flex-col items-center justify-center gap-1.5 w-[140px] h-[60px]"
+                  >
+                    <User className="w-7 h-7 text-primary/40" aria-hidden="true" />
+                    <span className="text-xs font-semibold text-text-light text-center leading-tight">
                       {funder.name}
                     </span>
                   </div>
@@ -471,11 +467,14 @@ export default function HomePage() {
                     href={funder.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
                   >
-                    {card}
+                    {inner}
                   </a>
                 ) : (
-                  <div key={funder.name}>{card}</div>
+                  <div key={funder.name} className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
+                    {inner}
+                  </div>
                 );
               })}
             </div>
