@@ -2,15 +2,15 @@ BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//DigiKI//Infokonferenz//DE
 CALSCALE:GREGORIAN
-METHOD:PUBLISH
 BEGIN:VEVENT
+UID:digiki-infokonferenz-20260504@digiki-os.de
+DTSTAMP:20260412T120000Z
 DTSTART:20260504T133000Z
 DTEND:20260504T143000Z
-SUMMARY:DigiKI Informationskonferenz
-DESCRIPTION:Lernen Sie DigiKI in unserer Online-Videokonferenz per Microsoft Teams kennen.\n\nTeilnehmen: https://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET\nBesprechungs-ID: 395 778 805 454 52\nPasscode: v9Uj3Qz7
+SUMMARY:DigiKI Informationskonferenz – 4. Mai 2026
+DESCRIPTION:Offene Informationsveranstaltung des DigiKI-Projekts.\n\nPer Teams teilnehmen:\nhttps://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET\n\nBesprechungs-ID: 395 778 805 454 52\nPasscode: v9Uj3Qz7
 LOCATION:Microsoft Teams (online)
 URL:https://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET
 STATUS:CONFIRMED
-ORGANIZER;CN=Kai Krafft:mailto:krafft@osnabrueck.de
 END:VEVENT
 END:VCALENDAR

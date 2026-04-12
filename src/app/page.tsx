@@ -300,55 +300,53 @@ export default function HomePage() {
           {newsItems.filter((i) => i.type === "event").map((item) => (
             <article
               key={item.id}
-              className="mb-6 bg-gradient-to-r from-primary to-accent rounded-xl p-6 shadow-sm text-white"
+              className="mb-8 rounded-xl overflow-hidden shadow-sm border border-border"
             >
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div className="flex-1">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/20 rounded-full px-3 py-1 mb-3">
-                    <CalendarDays className="w-3.5 h-3.5" />
-                    Offene Informationsveranstaltung
-                  </span>
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-white/80 text-sm">{item.summary}</p>
-                </div>
-                {"dates" in item && item.dates && (
-                  <div className="flex flex-col gap-3 md:min-w-72">
-                    {item.dates.map((d) => (
-                      <div
-                        key={d.label}
-                        className="bg-white/15 rounded-lg px-4 py-3 border border-white/20"
-                      >
-                        <p className="font-semibold text-sm">{d.label}</p>
-                        <p className="text-white/80 text-sm mb-3">{d.time}</p>
+              {/* Header */}
+              <div className="bg-primary px-6 py-5">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/15 text-white rounded-full px-3 py-1 mb-3">
+                  <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+                  Offene Informationsveranstaltung
+                </span>
+                <h3 className="text-xl font-bold text-white">{item.title}</h3>
+              </div>
+
+              {/* Termine */}
+              {"dates" in item && item.dates && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
+                  {item.dates.map((d) => (
+                    <div
+                      key={d.label}
+                      className="bg-white p-6"
+                    >
+                      <p className="font-bold text-primary text-lg">{d.label}</p>
+                      <p className="text-text-light mb-4">{d.time}</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
                         <a
                           href={d.joinUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 bg-white text-primary rounded-md px-3 py-1.5 text-sm font-semibold hover:bg-white/90 transition-colors"
+                          className="inline-flex items-center gap-1.5 bg-accent text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-accent-hover transition-colors"
                         >
                           Per Teams teilnehmen
                           <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                         </a>
-                        <div className="flex items-center gap-3 mt-3">
-                          <a
-                            href={d.icsUrl}
-                            download
-                            className="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-md px-3 py-1.5 text-xs font-medium hover:bg-white/25 transition-colors"
-                          >
-                            <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
-                            Zum Kalender hinzufügen
-                          </a>
-                        </div>
-                        <p className="text-xs text-white/75 mt-2 leading-relaxed">
-                          Besprechungs-ID: {d.meetingId}
-                          <br />
-                          Passcode: {d.passcode}
-                        </p>
+                        <a
+                          href={d.icsUrl}
+                          download
+                          className="inline-flex items-center gap-1.5 border border-border text-primary rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/5 transition-colors"
+                        >
+                          <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+                          Kalender
+                        </a>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <p className="text-xs text-text-light leading-relaxed">
+                        ID: {d.meetingId} · Passcode: {d.passcode}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </article>
           ))}
 
