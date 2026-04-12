@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays } from "lucide-react";
+import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays, Quote } from "lucide-react";
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
@@ -95,8 +95,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <ProtectedImage
-                src="/images/icons/pexels-rdne-8499534.webp"
-                alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
+                src={blobImages["istock-kids-raise-hands"]}
+                alt="Begeisterte Grundschulkinder melden sich im Unterricht"
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"
@@ -122,6 +122,26 @@ export default function HomePage() {
                 Schüler.
               </p>
             </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Zitat */}
+      <section className="py-16 md:py-24 bg-white" aria-label="Zitat">
+        <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto bg-white rounded-xl p-8 shadow-sm border border-border">
+            <Quote className="w-8 h-8 text-accent/30 mb-4" aria-hidden="true" />
+            <blockquote className="text-lg text-text leading-relaxed mb-4">
+              &bdquo;Unser Leitsatz: Pädagogik vor Technik. DigiKI digitalisiert nicht den
+              Unterricht, sondern entlastet Lehrkräfte – mit KI-Werkzeugen, die
+              binnendifferenzierten Unterricht und Sprachförderung bei DaZ-Kindern
+              ermöglichen. So bleibt mehr Zeit für das, was wirklich zählt: die Kinder.&ldquo;
+            </blockquote>
+            <footer className="text-sm text-text-light">
+              <span className="font-semibold text-primary">{projectData.projectLead}</span>
+              {" – "}
+              {projectData.projectLeadRole}
+            </footer>
           </div>
         </AnimatedSection>
       </section>

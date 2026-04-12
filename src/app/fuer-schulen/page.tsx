@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, PenLine, Quote, ArrowRight, Laptop, Users2, BookOpen } from "lucide-react";
+import { Check, PenLine, ArrowRight, Laptop, Users2, BookOpen } from "lucide-react";
 import Accordion from "@/components/Accordion";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
@@ -190,19 +190,6 @@ export default function FuerSchulenPage() {
             </div>
           </div>
 
-          {/* Zitat */}
-          <div className="max-w-3xl mx-auto bg-white rounded-xl p-8 shadow-sm border border-border">
-            <Quote className="w-8 h-8 text-accent/30 mb-4" aria-hidden="true" />
-            <blockquote className="text-lg text-text leading-relaxed mb-4">
-              &bdquo;Unser Ziel ist es, dass jede Grundschule in Osnabrück von der Digitalisierung profitiert –
-              unabhängig von Größe oder Vorerfahrung. Mit DigiKI schaffen wir die Grundlage dafür.&ldquo;
-            </blockquote>
-            <footer className="text-sm text-text-light">
-              <span className="font-semibold text-primary">{projectData.projectLead}</span>
-              {" – "}
-              {projectData.projectLeadRole}
-            </footer>
-          </div>
         </div>
       </section>
 

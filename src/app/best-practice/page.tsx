@@ -87,8 +87,8 @@ export default function BestPracticePage() {
             <div className="bg-white rounded-xl shadow-sm border border-border text-center overflow-hidden">
               <div className="relative h-40 w-full">
                 <ProtectedImage
-                  src={blobImages["istock-kids-raise-hands"]}
-                  alt="Begeisterte Grundschulkinder melden sich im Unterricht"
+                  src="/images/icons/pexels-rdne-8499534.webp"
+                  alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 33vw"
