@@ -254,6 +254,7 @@ export const newsItems = [
         joinUrl: "https://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET",
         meetingId: "395 778 805 454 52",
         passcode: "v9Uj3Qz7",
+        icsUrl: "/downloads/digiki-infokonferenz-04-05-2026.ics",
       },
       {
         label: "Freitag, 8. Mai 2026",
@@ -261,6 +262,7 @@ export const newsItems = [
         joinUrl: "https://teams.microsoft.com/meet/32306686851328?p=zGyTsk1lwUEFPCqJPu",
         meetingId: "323 066 868 513 28",
         passcode: "FC2wn7CS",
+        icsUrl: "/downloads/digiki-infokonferenz-08-05-2026.ics",
       },
     ],
   },

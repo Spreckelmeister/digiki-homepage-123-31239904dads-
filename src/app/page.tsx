@@ -1,10 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays, Quote } from "lucide-react";
+import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays, Quote, Clock } from "lucide-react";
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
+import CountdownBadge from "@/components/CountdownBadge";
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
 import {
@@ -31,6 +32,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
+              <CountdownBadge />
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                 Digitale Kompetenz &amp; KI für{" "}
                 <span className="text-teal">Grundschulen</span>
@@ -198,22 +200,26 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link
               href="/fuer-schulen/antrag-tool-lizenzen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-primary hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
                 <Laptop
-                  className="h-6 w-6 text-primary"
+                  className="h-8 w-8 text-primary"
                   aria-hidden="true"
                 />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Kostenlose Tool-Lizenzen
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 DSGVO-konforme Lern-Tools für Ihre Schule beantragen –
                 finanziert durch Stiftungen.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 5 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -222,22 +228,26 @@ export default function HomePage() {
 
             <Link
               href="/fuer-schulen/antrag-hilfskraefte"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-[#00cabe] hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#00cabe]/10">
                 <Users2
-                  className="h-6 w-6 text-primary"
+                  className="h-8 w-8 text-[#00cabe]"
                   aria-hidden="true"
                 />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Studentische Hilfskräfte
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 Kostenlose Unterstützung bei der Einrichtung digitaler
                 Tools und technischem Support.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 5 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -246,22 +256,26 @@ export default function HomePage() {
 
             <Link
               href="/best-practice/einreichen"
-              className="group bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+              className="group bg-white rounded-xl p-6 shadow-sm border border-border border-t-4 border-t-[#E8A838] hover:shadow-md transition-shadow"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E8A838]/10">
                 <BookOpen
-                  className="h-6 w-6 text-primary"
+                  className="h-8 w-8 text-[#E8A838]"
                   aria-hidden="true"
                 />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
                 Best Practice einreichen
               </h3>
-              <p className="text-sm text-text-light mb-4">
+              <p className="text-sm text-text-light mb-3">
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen
                 Tools und teilen Sie sie mit anderen.
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                Bearbeitungszeit ca. 10 Min.
+              </p>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -292,7 +306,7 @@ export default function HomePage() {
                 <div className="flex-1">
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/20 rounded-full px-3 py-1 mb-3">
                     <CalendarDays className="w-3.5 h-3.5" />
-                    Veranstaltung
+                    Offene Informationsveranstaltung
                   </span>
                   <h3 className="text-xl font-bold mb-2">{item.title}</h3>
                   <p className="text-white/80 text-sm">{item.summary}</p>
@@ -315,7 +329,17 @@ export default function HomePage() {
                           Per Teams teilnehmen
                           <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                         </a>
-                        <p className="text-xs text-white/75 mt-3 leading-relaxed">
+                        <div className="flex items-center gap-3 mt-3">
+                          <a
+                            href={d.icsUrl}
+                            download
+                            className="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-md px-3 py-1.5 text-xs font-medium hover:bg-white/25 transition-colors"
+                          >
+                            <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+                            Zum Kalender hinzufügen
+                          </a>
+                        </div>
+                        <p className="text-xs text-white/75 mt-2 leading-relaxed">
                           Besprechungs-ID: {d.meetingId}
                           <br />
                           Passcode: {d.passcode}
@@ -406,32 +430,36 @@ export default function HomePage() {
 
           {/* Förderer */}
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-4">
               Gefördert durch
             </h2>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            <p className="text-center text-text-light max-w-2xl mx-auto mb-10">
+              DigiKI wird ausschließlich durch Stiftungen und private Förderer
+              finanziert – für Schulen entstehen keine Kosten.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {funders.map((funder) => {
-                const inner = funder.logo ? (
-                  <div
-                    key={funder.name}
-                    className="relative w-[140px] h-[60px]"
-                    title={funder.name}
-                  >
-                    <Image
-                      src={funder.logo}
-                      alt={`Logo ${funder.name}`}
-                      fill
-                      className="object-contain"
-                      sizes="140px"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    key={funder.name}
-                    className="flex flex-col items-center justify-center gap-1.5 w-[140px] h-[60px]"
-                  >
-                    <User className="w-7 h-7 text-primary/40" aria-hidden="true" />
-                    <span className="text-xs font-semibold text-text-light text-center leading-tight">
+                const card = (
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white p-6 h-[120px] shadow-sm hover:shadow-md transition-shadow">
+                    {funder.logo ? (
+                      <div className="relative w-[120px] h-[50px]">
+                        <Image
+                          src={funder.logo}
+                          alt={`Logo ${funder.name}`}
+                          fill
+                          className="object-contain"
+                          sizes="120px"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <User className="w-8 h-8 text-accent" aria-hidden="true" />
+                        <span className="text-sm font-semibold text-primary text-center leading-tight">
+                          Privater Förderer
+                        </span>
+                      </>
+                    )}
+                    <span className="text-xs text-text-light text-center leading-tight">
                       {funder.name}
                     </span>
                   </div>
@@ -443,14 +471,11 @@ export default function HomePage() {
                     href={funder.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
                   >
-                    {inner}
+                    {card}
                   </a>
                 ) : (
-                  <div key={funder.name} className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
-                    {inner}
-                  </div>
+                  <div key={funder.name}>{card}</div>
                 );
               })}
             </div>

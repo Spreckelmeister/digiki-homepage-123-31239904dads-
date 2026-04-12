@@ -67,6 +67,14 @@ export default function Footer() {
                   Datenschutz
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/barrierefreiheit"
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  Barrierefreiheit
+                </Link>
+              </li>
             </ul>
           </div>
 

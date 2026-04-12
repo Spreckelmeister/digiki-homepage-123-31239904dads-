@@ -38,7 +38,7 @@ export default function BestandsaufnahmePage() {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Info className="w-4 h-4" aria-hidden="true" />
-              39 Fragen in 8 Abschnitten
+              39 Fragen in 9 Abschnitten
             </span>
           </div>
         </div>

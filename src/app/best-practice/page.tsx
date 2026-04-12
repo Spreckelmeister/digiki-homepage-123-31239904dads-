@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Database, Search, BookOpen, LogIn } from "lucide-react";
+import { Database, Search, BookOpen, LogIn, Clock, Sparkles } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
@@ -159,8 +159,73 @@ export default function BestPracticePage() {
         </div>
       </section>
 
+      {/* Bald verfügbar */}
+      <section className="bg-bg py-16 md:py-24" aria-labelledby="coming-soon-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2
+              id="coming-soon-heading"
+              className="text-2xl md:text-3xl font-bold text-primary mb-4"
+            >
+              Datenbank durchsuchen
+            </h2>
+            <p className="text-lg text-text-light max-w-2xl mx-auto">
+              Hier finden Sie bald erprobte Unterrichtsbeispiele, die Sie nach
+              Fach, Klassenstufe und Kategorie filtern können.
+            </p>
+          </div>
+
+          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-[#00cabe] p-[1px]">
+            <div className="rounded-2xl bg-gradient-to-br from-primary/[0.03] via-[#00cabe]/[0.06] to-primary/[0.03] backdrop-blur-sm p-8 md:p-12">
+              {/* Decorative background pattern */}
+              <div className="absolute inset-0 opacity-[0.04]" aria-hidden="true">
+                <div className="absolute top-6 left-8 w-20 h-20 rounded-full border-2 border-primary" />
+                <div className="absolute top-12 right-12 w-32 h-32 rounded-full border-2 border-[#00cabe]" />
+                <div className="absolute bottom-8 left-1/4 w-16 h-16 rounded-full border-2 border-primary" />
+                <div className="absolute bottom-6 right-1/3 w-24 h-24 rounded-full border-2 border-[#00cabe]" />
+              </div>
+
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="mb-6 flex items-center justify-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#00cabe] shadow-lg">
+                    <Clock className="h-7 w-7 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#00cabe] to-primary shadow-lg">
+                    <Sparkles className="h-7 w-7 text-white" aria-hidden="true" />
+                  </div>
+                </div>
+
+                <span className="mb-4 inline-block rounded-full bg-gradient-to-r from-primary to-[#00cabe] px-5 py-1.5 text-sm font-semibold text-white tracking-wide">
+                  Bald verfügbar
+                </span>
+
+                <h3 className="text-xl md:text-2xl font-bold text-primary mb-3">
+                  Die Sammlung wird gerade aufgebaut
+                </h3>
+                <p className="text-text-light max-w-xl text-base md:text-lg leading-relaxed mb-6">
+                  Die ersten Best-Practice-Beispiele werden ab Herbst 2026 hier
+                  veröffentlicht. Lehrkräfte aus dem DigiKI-Projekt dokumentieren
+                  derzeit ihre Unterrichtserfahrungen mit digitalen Tools und KI.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="flex items-center gap-2 rounded-lg bg-white/80 border border-primary/10 px-4 py-2.5 text-sm text-primary font-medium shadow-sm">
+                    <Database className="h-4 w-4 text-[#00cabe]" aria-hidden="true" />
+                    Praxisbeispiele aus 50+ Grundschulen
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-white/80 border border-primary/10 px-4 py-2.5 text-sm text-primary font-medium shadow-sm">
+                    <Search className="h-4 w-4 text-[#00cabe]" aria-hidden="true" />
+                    Filterbar nach Fach &amp; Klassenstufe
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="bg-bg py-16 md:py-24">
+      <section className="py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-primary mb-4">
             Jetzt Zugang erhalten
