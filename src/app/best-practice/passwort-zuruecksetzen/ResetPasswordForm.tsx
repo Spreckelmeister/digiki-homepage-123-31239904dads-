@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Check, X, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,26 @@ const PW_RULES = [
 
 function isPasswordValid(p: string) {
   return PW_RULES.every((r) => r.test(p));
+}
+
+function PasswordRulesCheck({ password }: { password: string }) {
+  const results = useMemo(
+    () => PW_RULES.map((rule) => ({ label: rule.label, ok: rule.test(password) })),
+    [password]
+  );
+
+  return (
+    <ul className="mt-2.5 space-y-1">
+      {results.map((r) => (
+        <li key={r.label} className={`flex items-center gap-2 text-xs ${r.ok ? "text-green-600" : "text-text-light"}`}>
+          {r.ok
+            ? <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            : <X className="w-3.5 h-3.5 shrink-0 text-red-400" aria-hidden="true" />}
+          {r.label}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default function ResetPasswordForm() {
@@ -120,21 +140,7 @@ export default function ResetPasswordForm() {
                 : <Eye className="w-5 h-5" aria-hidden="true" />}
             </button>
           </div>
-          {password.length > 0 && (
-            <ul className="mt-2.5 space-y-1">
-              {PW_RULES.map((rule) => {
-                const ok = rule.test(password);
-                return (
-                  <li key={rule.label} className={`flex items-center gap-2 text-xs ${ok ? "text-green-600" : "text-text-light"}`}>
-                    {ok
-                      ? <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                      : <X className="w-3.5 h-3.5 shrink-0 text-red-400" aria-hidden="true" />}
-                    {rule.label}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          {password.length > 0 && <PasswordRulesCheck password={password} />}
         </div>
 
         <div>

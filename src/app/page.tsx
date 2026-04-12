@@ -423,7 +423,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
               Gefördert durch
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 justify-items-center items-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-items-center items-center max-w-3xl mx-auto">
               {funders.map((funder) => {
                 const inner = funder.logo ? (
                   <div

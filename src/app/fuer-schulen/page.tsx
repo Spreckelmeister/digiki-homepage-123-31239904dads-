@@ -53,13 +53,13 @@ export default function FuerSchulenPage() {
                 </Link>
               </div>
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block" style={{ aspectRatio: "500 / 300" }}>
               <ProtectedImage
                 src={blobImages["istock-teacher-supports-students"]}
                 alt="Lehrkraft unterstützt Schüler an Computern im Unterricht"
                 width={500}
-                height={350}
-                className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+                height={300}
+                className="rounded-2xl shadow-2xl object-cover w-full h-full"
                 sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>
@@ -197,13 +197,13 @@ export default function FuerSchulenPage() {
       <section className="py-16 md:py-24 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="rounded-2xl overflow-hidden shadow-lg">
+            <div className="rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: "600 / 400" }}>
               <ProtectedImage
                 src={blobImages["istock-teacher-student-highfive"]}
                 alt="Lehrerin und Schülerin feiern gemeinsam einen Lernerfolg"
                 width={600}
                 height={400}
-                className="w-full h-auto object-cover"
+                className="w-full h-full object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
