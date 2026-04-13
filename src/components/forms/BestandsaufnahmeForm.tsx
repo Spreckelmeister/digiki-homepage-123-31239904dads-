@@ -748,7 +748,7 @@ export default function BestandsaufnahmeForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="min-h-[640px]">
         {/* ══════════════════════════════════════════════════════════════════
             STEP 0 – Teil A: Allgemeine Angaben
         ══════════════════════════════════════════════════════════════════ */}

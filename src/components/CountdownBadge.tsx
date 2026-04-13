@@ -12,12 +12,10 @@ function getDaysUntil(target: Date): number {
 }
 
 export default function CountdownBadge() {
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [daysLeft, setDaysLeft] = useState<number>(() => getDaysUntil(TARGET_DATE));
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    setDaysLeft(getDaysUntil(TARGET_DATE));
-
     const interval = setInterval(() => {
       setDaysLeft(getDaysUntil(TARGET_DATE));
     }, 60_000);
@@ -25,7 +23,7 @@ export default function CountdownBadge() {
     return () => clearInterval(interval);
   }, []);
 
-  if (dismissed || daysLeft === null) return null;
+  if (dismissed) return null;
 
   const hasStarted = daysLeft <= 0;
 

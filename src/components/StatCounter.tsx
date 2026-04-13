@@ -96,8 +96,8 @@ export default function StatCounter({ value, label, description }: StatCounterPr
   return (
     <div
       ref={ref}
-      className={`text-center p-6 transition-all duration-700 ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      className={`text-center p-6 transition-opacity duration-700 ${
+        isVisible ? "opacity-100" : "opacity-0"
       }`}
     >
       <div className="text-3xl md:text-4xl font-bold text-accent mb-1 tabular-nums">
