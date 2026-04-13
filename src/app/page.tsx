@@ -136,8 +136,8 @@ export default function HomePage() {
             <blockquote className="text-lg text-text leading-relaxed mb-4">
               &bdquo;Unser Leitsatz: Pädagogik vor Technik. DigiKI digitalisiert nicht den
               Unterricht, sondern entlastet Lehrkräfte – mit KI-Werkzeugen, die
-              binnendifferenzierten Unterricht und Sprachförderung bei DaZ-Kindern
-              ermöglichen. So bleibt mehr Zeit für das, was wirklich zählt: die Kinder.&ldquo;
+              binnendifferenzierten Unterricht und individuelle Förderung ermöglichen.
+              So bleibt mehr Zeit für das, was wirklich zählt: die Kinder.&ldquo;
             </blockquote>
             <footer className="text-sm text-text-light">
               <span className="font-semibold text-primary">{projectData.projectLead}</span>
