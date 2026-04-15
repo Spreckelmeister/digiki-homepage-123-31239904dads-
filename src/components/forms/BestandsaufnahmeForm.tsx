@@ -267,9 +267,9 @@ function RatingRow({
 }
 
 function TextInput({
-  id, value, onChange, placeholder, type = "text", min,
+  id, value, onChange, placeholder, type = "text", min, required,
 }: {
-  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number;
+  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean;
 }) {
   return (
     <input
@@ -277,6 +277,7 @@ function TextInput({
       type={type}
       value={value}
       min={min}
+      required={required}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
@@ -498,18 +499,69 @@ export default function BestandsaufnahmeForm({
   // ─── Step validation ────────────────────────────────────────────────────────
   function validateStep(s: number): string {
     switch (s) {
-      case 0:
-        if (!schoolName.trim()) return "Bitte geben Sie den Namen der Schule an.";
-        if (!schoolLocation) return "Bitte wählen Sie den Schulstandort.";
-        if (!studentCount) return "Bitte wählen Sie die Schüleranzahl.";
-        if (!teacherCount) return "Bitte geben Sie die Anzahl der Lehrkräfte an.";
-        if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage.";
-        if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil.";
+      case 0: // Teil A
+        if (!schoolName.trim()) return "Bitte geben Sie den Namen der Schule an (Frage 1).";
+        if (!schoolLocation) return "Bitte wählen Sie den Schulstandort (Frage 2).";
+        if (!studentCount) return "Bitte wählen Sie die Schüleranzahl (Frage 3).";
+        if (!teacherCount) return "Bitte geben Sie die Anzahl der Lehrkräfte an (Frage 4).";
+        if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage (Frage 5).";
+        if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil (Frage 6).";
+        if (!respondentRole) return "Bitte geben Sie an, wer die Umfrage ausfüllt (Frage 7).";
         break;
-      case 8:
+      case 1: // Teil B
+        if (devices.length === 0) return "Bitte wählen Sie mindestens ein Endgerät (Frage 8).";
+        if (!tabletCount) return "Bitte geben Sie die Tablet-Anzahl an (Frage 9).";
+        if (!wlanRating) return "Bitte bewerten Sie die WLAN-Abdeckung (Frage 10).";
+        if (infrastructure.length === 0) return "Bitte wählen Sie die digitale Infrastruktur (Frage 11).";
+        if (challenges.length === 0) return "Bitte wählen Sie mindestens eine Herausforderung (Frage 12).";
+        if (!supportSatisfaction) return "Bitte bewerten Sie den technischen Support (Frage 13).";
+        break;
+      case 2: // Teil C
+        if (!digitizationLevel) return "Bitte schätzen Sie den Digitalisierungsgrad ein (Frage 14).";
+        if (toolsUsed.length === 0) return "Bitte wählen Sie mindestens ein digitales Tool (Frage 15).";
+        if (!usageFrequency) return "Bitte geben Sie die Einsatzhäufigkeit an (Frage 16).";
+        if (diagnosticTools.length === 0) return "Bitte beantworten Sie Frage 17 (Diagnostik-Tools).";
+        if (!mediaConcept) return "Bitte beantworten Sie Frage 18 (Medienkonzept).";
+        if (!mediaResponsible) return "Bitte beantworten Sie Frage 19 (Medienbeauftragte Person).";
+        break;
+      case 3: // Teil D
+        if (!aiUsage) return "Bitte beantworten Sie Frage 20 (KI-Nutzung).";
+        if (kiAktivGenutzt) {
+          if (aiPurposes.length === 0) return "Bitte wählen Sie mindestens einen KI-Zweck (Frage 21).";
+          if (aiToolsUsed.length === 0) return "Bitte wählen Sie mindestens ein KI-Tool (Frage 22).";
+        }
+        if (!aiCompetence) return "Bitte schätzen Sie das KI-Kompetenzniveau ein (Frage 23).";
+        if (aiConcerns.length === 0) return "Bitte wählen Sie mindestens eine Bedenken-Option (Frage 24).";
+        if (aiTrainings.length === 0) return "Bitte beantworten Sie Frage 25 (KI-Fortbildungen).";
+        break;
+      case 4: // Teil E
+        if (trainingNeeds.length === 0) return "Bitte wählen Sie mindestens einen Fortbildungsbedarf (Frage 26).";
+        if (trainingFormat.length === 0) return "Bitte wählen Sie ein Schulungsformat (Frage 27).";
+        if (trainingTimes.length === 0) return "Bitte wählen Sie die Fortbildungszeiten (Frage 28).";
+        if (!participationCount) return "Bitte geben Sie die voraussichtliche Teilnehmerzahl an (Frage 29).";
+        if (!pioneerInterest) return "Bitte beantworten Sie Frage 30 (Vorreiter-Schule).";
+        break;
+      case 5: // Teil F
+        if (!hasBestPractice) return "Bitte beantworten Sie Frage 31 (Best-Practice-Beispiele).";
+        if (hasBestPractice === "Ja" && !bestPracticeDescription.trim()) {
+          return "Bitte beschreiben Sie das Best-Practice-Beispiel (Frage 32).";
+        }
+        if (!sharePractice) return "Bitte beantworten Sie Frage 33 (Erfahrungen teilen).";
+        break;
+      case 6: // Teil G
+        if (supportNeeds.length === 0) return "Bitte wählen Sie mindestens eine Unterstützungsart (Frage 34).";
+        if (softwareLicenses.length === 0) return "Bitte wählen Sie die Software-Lizenzen (Frage 35).";
+        if (!studentSupport) return "Bitte beantworten Sie Frage 36 (studentische Unterstützung).";
+        if (!timeForTools) return "Bitte beantworten Sie Frage 37 (Zeit für Tools).";
+        break;
+      case 7:
+        // Teil H (Fragen 38 + 39) ist optional – keine Pflichtvalidierung.
+        break;
+      case 8: // Account
         if (!contactPerson.trim()) return "Bitte geben Sie den Namen des Ansprechpartners an.";
         if (!principalName.trim()) return "Bitte geben Sie den Namen der Schulleitung an.";
         if (!contactEmail.trim() || !contactEmail.includes("@")) return "Bitte geben Sie eine gültige E-Mail-Adresse an.";
+        if (!contactPhone.trim()) return "Bitte geben Sie eine Telefonnummer an.";
         if (password.length < 8) return "Das Passwort muss mindestens 8 Zeichen lang sein.";
         if (password !== passwordConfirm) return "Die Passwörter stimmen nicht überein.";
         break;
@@ -554,6 +606,16 @@ export default function BestandsaufnahmeForm({
     setStepError("");
 
     if (isSpam) { setSuccess(true); return; }
+
+    // Pflichtfelder auf dem letzten Step prüfen – verhindert generische Fehler
+    // und gibt dem Nutzer eine klare Meldung.
+    if (!editMode) {
+      const finalErr = validateStep(lastStep);
+      if (finalErr) {
+        setStepError(finalErr);
+        return;
+      }
+    }
 
     if (!privacyConsent || !truthConsent) {
       setStepError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
@@ -1362,9 +1424,9 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel>Telefonnummer</FieldLabel>
+              <FieldLabel required>Telefonnummer</FieldLabel>
               <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
-                placeholder="z. B. 0541 12345" />
+                placeholder="z. B. 0541 12345" required />
             </div>
 
             <div>
