@@ -481,11 +481,15 @@ export default function BestandsaufnahmeForm({
   const [success, setSuccess] = useState(false);
   const isAdmin = useIsAdmin();
 
+  // Intent-Flag: echte Submit-Versuche (Klick auf den Einreichen-Button)
+  const submitIntentRef = useRef(false);
+
   // Fehlermeldung beim Wechsel des Steps immer zurücksetzen, damit keine
   // späte Fehlermeldung aus einem asynchronen Submit auf einem neuen Step
   // sichtbar bleibt.
   useEffect(() => {
     setStepError("");
+    submitIntentRef.current = false;
   }, [step]);
 
   // KI is "actively used" if the answer mentions "Ja"
@@ -537,18 +541,15 @@ export default function BestandsaufnahmeForm({
 
     // Wenn Nutzer in einem Textfeld auf Enter drückt, soll das nicht das Formular
     // vorzeitig abschicken, sondern wie "Weiter" wirken.
-    // Nur echte Submit-Button-Klicks sollen einreichen – Enter in Textfeldern oder
-    // implizite Submits (z. B. durch Browser-Autofill) werden ignoriert bzw. als
-    // „Weiter" interpretiert.
-    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    const isRealSubmit = submitter?.getAttribute("type") === "submit";
+    // Nur echte Submit-Button-Klicks dürfen hier durchgehen. Der Button setzt
+    // submitIntentRef auf true (onClick), das wird hier geprüft und direkt
+    // wieder zurückgesetzt, damit ein zweiter (unerwünschter) Submit nicht
+    // durchläuft.
+    const hadIntent = submitIntentRef.current;
+    submitIntentRef.current = false;
+    if (!hadIntent) return;
 
-    if (step !== lastStep) {
-      if (isRealSubmit) handleNext();
-      return;
-    }
-
-    if (!isRealSubmit) return;
+    if (step !== lastStep) return;
 
     setStepError("");
 
@@ -1460,6 +1461,7 @@ export default function BestandsaufnahmeForm({
             <button
               type="submit"
               disabled={loading}
+              onClick={() => { submitIntentRef.current = true; }}
               className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent-hover transition-all disabled:opacity-50"
             >
               <Send className="w-4 h-4" aria-hidden="true" />
