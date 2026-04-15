@@ -525,6 +525,14 @@ export default function BestandsaufnahmeForm({
   // ─── Submit ─────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Wenn Nutzer in einem Textfeld auf Enter drückt, soll das nicht das Formular
+    // vorzeitig abschicken, sondern wie "Weiter" wirken.
+    if (step !== lastStep) {
+      handleNext();
+      return;
+    }
+
     setStepError("");
 
     if (isSpam) { setSuccess(true); return; }

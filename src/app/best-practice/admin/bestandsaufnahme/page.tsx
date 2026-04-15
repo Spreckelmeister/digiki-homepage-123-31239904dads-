@@ -19,6 +19,8 @@ export default async function BestandsaufnahmeAdminPage() {
     .select(
       "id, school_name, school_location, student_count, respondent_role, status, created_at"
     )
+    .not("school_name", "ilike", "%test%")
+    .not("school_name", "ilike", "%admin%")
     .order("created_at", { ascending: false });
 
   const rows = responses || [];
