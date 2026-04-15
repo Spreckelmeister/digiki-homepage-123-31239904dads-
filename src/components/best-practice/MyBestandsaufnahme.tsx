@@ -304,6 +304,9 @@ export default function MyBestandsaufnahme() {
             <Grid>
               <Field label="KI-Nutzung im Kollegium" value={r.ai_usage} wide />
               <FieldList label="KI wofür genutzt" values={r.ai_purposes} wide />
+              {r.ai_purposes_other && (
+                <Field label="Sonstige KI-Nutzung" value={r.ai_purposes_other} wide />
+              )}
               <FieldList label="Konkrete KI-Tools" values={r.ai_tools_used} other={r.ai_tools_other} />
               <Field label="KI-Kompetenzniveau" value={r.ai_competence ? `${r.ai_competence} / 5` : null} />
               <FieldList label="Bedenken gegenüber KI" values={r.ai_concerns} other={r.ai_concerns_other} wide />

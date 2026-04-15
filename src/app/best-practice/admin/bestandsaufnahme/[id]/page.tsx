@@ -171,6 +171,9 @@ export default async function BestandsaufnahmeDetailPage({
             <Grid>
               <Field label="KI-Nutzung im Kollegium" value={r.ai_usage} />
               <FieldList label="KI wofür genutzt" values={r.ai_purposes} wide />
+              {r.ai_purposes_other && (
+                <Field label="Sonstige KI-Nutzung" value={r.ai_purposes_other} wide />
+              )}
               <FieldList
                 label="Konkrete KI-Tools"
                 values={r.ai_tools_used}

@@ -331,6 +331,7 @@ export interface BestandsaufnahmeData {
   media_responsible: string | null;
   ai_usage: string | null;
   ai_purposes: string[];
+  ai_purposes_other: string | null;
   ai_tools_used: string[];
   ai_tools_other: string | null;
   ai_competence: number | null;
@@ -429,6 +430,7 @@ export default function BestandsaufnahmeForm({
   // ── Teil D ──────────────────────────────────────────────────────────────────
   const [aiUsage, setAiUsage] = useState(initialData?.ai_usage ?? "");
   const [aiPurposes, setAiPurposes] = useState<string[]>(initialData?.ai_purposes ?? []);
+  const [aiPurposesOther, setAiPurposesOther] = useState(initialData?.ai_purposes_other ?? "");
   const [aiToolsUsed, setAiToolsUsed] = useState<string[]>(initialData?.ai_tools_used ?? []);
   const [aiToolsOther, setAiToolsOther] = useState(initialData?.ai_tools_other ?? "");
   const [aiCompetence, setAiCompetence] = useState(initialData?.ai_competence ?? 0);
@@ -576,6 +578,7 @@ export default function BestandsaufnahmeForm({
           mediaResponsible: mediaResponsible || null,
           aiUsage: aiUsage || null,
           aiPurposes,
+          aiPurposesOther: aiPurposesOther || null,
           aiToolsUsed,
           aiToolsOther: aiToolsOther || null,
           aiCompetence: aiCompetence || null,
@@ -680,6 +683,7 @@ export default function BestandsaufnahmeForm({
         mediaResponsible: mediaResponsible || null,
         aiUsage: aiUsage || null,
         aiPurposes,
+        aiPurposesOther: aiPurposesOther || null,
         aiToolsUsed,
         aiToolsOther: aiToolsOther || null,
         aiCompetence: aiCompetence || null,
@@ -1010,6 +1014,9 @@ export default function BestandsaufnahmeForm({
                         "Recherche/Fortbildung",
                         "Sonstiges",
                       ]} />
+                    {aiPurposes.includes("Sonstiges") && (
+                      <OtherInput value={aiPurposesOther} onChange={setAiPurposesOther} />
+                    )}
                   </div>
 
                   <div>

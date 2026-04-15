@@ -56,6 +56,7 @@ export async function PUT(request: NextRequest) {
       media_responsible:        fields.mediaResponsible,
       ai_usage:                 fields.aiUsage,
       ai_purposes:              fields.aiPurposes,
+      ai_purposes_other:        fields.aiPurposesOther,
       ai_tools_used:            fields.aiToolsUsed,
       ai_tools_other:           fields.aiToolsOther,
       ai_competence:            fields.aiCompetence,
