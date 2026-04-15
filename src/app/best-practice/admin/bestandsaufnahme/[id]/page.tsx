@@ -204,6 +204,13 @@ export default async function BestandsaufnahmeDetailPage({
                 values={r.training_needs}
                 wide
               />
+              {r.training_needs_other && (
+                <Field
+                  label="Sonstiger Fortbildungsbedarf"
+                  value={r.training_needs_other}
+                  wide
+                />
+              )}
               <FieldList
                 label="Bevorzugte Formate"
                 values={r.training_format}

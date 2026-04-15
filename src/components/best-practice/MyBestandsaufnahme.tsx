@@ -315,6 +315,9 @@ export default function MyBestandsaufnahme() {
           <Section title="🎓 Teil E: Fortbildungsbedarf">
             <Grid>
               <FieldList label="Fortbildungsbedarf (max. 5)" values={r.training_needs} wide />
+              {r.training_needs_other && (
+                <Field label="Sonstiger Fortbildungsbedarf" value={r.training_needs_other} wide />
+              )}
               <FieldList label="Bevorzugte Formate" values={r.training_format} wide />
               <FieldList label="Geeignete Zeiten" values={r.training_times} />
               <Field label="Erwartete Teilnehmerzahl" value={r.participation_count} />

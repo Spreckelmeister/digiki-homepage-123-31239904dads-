@@ -64,6 +64,7 @@ export async function PUT(request: NextRequest) {
       ai_trainings:             fields.aiTrainings,
       ai_trainings_other:       fields.aiTrainingsOther,
       training_needs:           fields.trainingNeeds,
+      training_needs_other:     fields.trainingNeedsOther,
       training_format:          fields.trainingFormat,
       training_times:           fields.trainingTimes,
       participation_count:      fields.participationCount,

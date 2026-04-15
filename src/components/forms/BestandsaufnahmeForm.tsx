@@ -339,6 +339,7 @@ export interface BestandsaufnahmeData {
   ai_trainings: string[];
   ai_trainings_other: string | null;
   training_needs: string[];
+  training_needs_other: string | null;
   training_format: string[];
   training_times: string[];
   participation_count: string | null;
@@ -438,6 +439,7 @@ export default function BestandsaufnahmeForm({
 
   // ── Teil E ──────────────────────────────────────────────────────────────────
   const [trainingNeeds, setTrainingNeeds] = useState<string[]>(initialData?.training_needs ?? []);
+  const [trainingNeedsOther, setTrainingNeedsOther] = useState(initialData?.training_needs_other ?? "");
   const [trainingFormat, setTrainingFormat] = useState<string[]>(initialData?.training_format ?? []);
   const [trainingTimes, setTrainingTimes] = useState<string[]>(initialData?.training_times ?? []);
   const [participationCount, setParticipationCount] = useState(initialData?.participation_count ?? "");
@@ -574,6 +576,7 @@ export default function BestandsaufnahmeForm({
           aiTrainings,
           aiTrainingsOther: aiTrainingsOther || null,
           trainingNeeds,
+          trainingNeedsOther: trainingNeedsOther || null,
           trainingFormat,
           trainingTimes,
           participationCount: participationCount || null,
@@ -677,6 +680,7 @@ export default function BestandsaufnahmeForm({
         aiTrainings,
         aiTrainingsOther: aiTrainingsOther || null,
         trainingNeeds,
+        trainingNeedsOther: trainingNeedsOther || null,
         trainingFormat,
         trainingTimes,
         participationCount: participationCount || null,
@@ -1082,6 +1086,9 @@ export default function BestandsaufnahmeForm({
                   "Change Management / Digitale Schulentwicklung",
                   "Sonstiges",
                 ]} />
+              {trainingNeeds.includes("Sonstiges") && (
+                <OtherInput value={trainingNeedsOther} onChange={setTrainingNeedsOther} />
+              )}
             </div>
 
             <div>
