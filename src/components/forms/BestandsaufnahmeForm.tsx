@@ -503,6 +503,24 @@ export default function BestandsaufnahmeForm({
     }
   }, [stepError]);
 
+  // Beim Erreichen des Account-Steps gezielt das Ansprechpartner-Feld fokussieren.
+  // Der Browser versucht sonst per Autofill auf das Telefon-Feld zu springen –
+  // daher mehrfach versuchen, um gegen verzögertes Autofill zu gewinnen.
+  useEffect(() => {
+    if (step !== 8 || editMode) return;
+    const tryFocus = () => {
+      const el = document.getElementById("contactPerson") as HTMLInputElement | null;
+      if (el) el.focus();
+    };
+    tryFocus();
+    const t1 = setTimeout(tryFocus, 50);
+    const t2 = setTimeout(tryFocus, 200);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [step, editMode]);
+
   // KI is "actively used" if the answer mentions "Ja"
   const kiAktivGenutzt = aiUsage.startsWith("Ja");
 
