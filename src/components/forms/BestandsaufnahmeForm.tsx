@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -481,6 +481,13 @@ export default function BestandsaufnahmeForm({
   const [success, setSuccess] = useState(false);
   const isAdmin = useIsAdmin();
 
+  // Fehlermeldung beim Wechsel des Steps immer zurücksetzen, damit keine
+  // späte Fehlermeldung aus einem asynchronen Submit auf einem neuen Step
+  // sichtbar bleibt.
+  useEffect(() => {
+    setStepError("");
+  }, [step]);
+
   // KI is "actively used" if the answer mentions "Ja"
   const kiAktivGenutzt = aiUsage.startsWith("Ja");
 
@@ -538,6 +545,16 @@ export default function BestandsaufnahmeForm({
     setStepError("");
 
     if (isSpam) { setSuccess(true); return; }
+
+    // Pflichtfelder auf dem letzten Step prüfen, bevor ein Signup gestartet wird –
+    // verhindert generische „Beim Anlegen des Accounts …"-Fehler bei leeren Feldern.
+    if (!editMode) {
+      const finalErr = validateStep(lastStep);
+      if (finalErr) {
+        setStepError(finalErr);
+        return;
+      }
+    }
 
     if (!privacyConsent || !truthConsent) {
       setStepError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
