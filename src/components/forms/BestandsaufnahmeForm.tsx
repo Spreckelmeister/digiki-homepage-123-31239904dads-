@@ -537,24 +537,22 @@ export default function BestandsaufnahmeForm({
 
     // Wenn Nutzer in einem Textfeld auf Enter drückt, soll das nicht das Formular
     // vorzeitig abschicken, sondern wie "Weiter" wirken.
+    // Nur echte Submit-Button-Klicks sollen einreichen – Enter in Textfeldern oder
+    // implizite Submits (z. B. durch Browser-Autofill) werden ignoriert bzw. als
+    // „Weiter" interpretiert.
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const isRealSubmit = submitter?.getAttribute("type") === "submit";
+
     if (step !== lastStep) {
-      handleNext();
+      if (isRealSubmit) handleNext();
       return;
     }
+
+    if (!isRealSubmit) return;
 
     setStepError("");
 
     if (isSpam) { setSuccess(true); return; }
-
-    // Pflichtfelder auf dem letzten Step prüfen, bevor ein Signup gestartet wird –
-    // verhindert generische „Beim Anlegen des Accounts …"-Fehler bei leeren Feldern.
-    if (!editMode) {
-      const finalErr = validateStep(lastStep);
-      if (finalErr) {
-        setStepError(finalErr);
-        return;
-      }
-    }
 
     if (!privacyConsent || !truthConsent) {
       setStepError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
