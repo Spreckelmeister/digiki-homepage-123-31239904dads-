@@ -225,6 +225,7 @@ function OtherInput({
   return (
     <input
       type="text"
+      required
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
@@ -267,9 +268,9 @@ function RatingRow({
 }
 
 function TextInput({
-  id, value, onChange, placeholder, type = "text", min, required,
+  id, value, onChange, placeholder, type = "text", min, required, autoFocus,
 }: {
-  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean;
+  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean; autoFocus?: boolean;
 }) {
   return (
     <input
@@ -278,6 +279,7 @@ function TextInput({
       value={value}
       min={min}
       required={required}
+      autoFocus={autoFocus}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
@@ -493,6 +495,14 @@ export default function BestandsaufnahmeForm({
     submitIntentRef.current = false;
   }, [step]);
 
+  // Wenn eine Fehlermeldung erscheint, zum Seitenanfang scrollen, damit der
+  // Nutzer sie sofort sieht.
+  useEffect(() => {
+    if (stepError && typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [stepError]);
+
   // KI is "actively used" if the answer mentions "Ja"
   const kiAktivGenutzt = aiUsage.startsWith("Ja");
 
@@ -507,20 +517,38 @@ export default function BestandsaufnahmeForm({
         if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage (Frage 5).";
         if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil (Frage 6).";
         if (!respondentRole) return "Bitte geben Sie an, wer die Umfrage ausfüllt (Frage 7).";
+        if (respondentRole === "Sonstiges" && !respondentRoleOther.trim()) {
+          return "Bitte spezifizieren Sie die Rolle unter 'Sonstiges' (Frage 7).";
+        }
         break;
       case 1: // Teil B
         if (devices.length === 0) return "Bitte wählen Sie mindestens ein Endgerät (Frage 8).";
+        if (devices.includes("Sonstiges") && !devicesOther.trim()) {
+          return "Bitte geben Sie an, welches sonstige Endgerät (Frage 8).";
+        }
         if (!tabletCount) return "Bitte geben Sie die Tablet-Anzahl an (Frage 9).";
         if (!wlanRating) return "Bitte bewerten Sie die WLAN-Abdeckung (Frage 10).";
         if (infrastructure.length === 0) return "Bitte wählen Sie die digitale Infrastruktur (Frage 11).";
+        if (infrastructure.includes("Sonstiges") && !infrastructureOther.trim()) {
+          return "Bitte geben Sie an, welche sonstige Infrastruktur (Frage 11).";
+        }
         if (challenges.length === 0) return "Bitte wählen Sie mindestens eine Herausforderung (Frage 12).";
+        if (challenges.includes("Sonstiges") && !challengesOther.trim()) {
+          return "Bitte geben Sie die sonstige Herausforderung an (Frage 12).";
+        }
         if (!supportSatisfaction) return "Bitte bewerten Sie den technischen Support (Frage 13).";
         break;
       case 2: // Teil C
         if (!digitizationLevel) return "Bitte schätzen Sie den Digitalisierungsgrad ein (Frage 14).";
         if (toolsUsed.length === 0) return "Bitte wählen Sie mindestens ein digitales Tool (Frage 15).";
+        if (toolsUsed.includes("Sonstiges") && !toolsUsedOther.trim()) {
+          return "Bitte geben Sie das sonstige Tool an (Frage 15).";
+        }
         if (!usageFrequency) return "Bitte geben Sie die Einsatzhäufigkeit an (Frage 16).";
         if (diagnosticTools.length === 0) return "Bitte beantworten Sie Frage 17 (Diagnostik-Tools).";
+        if (diagnosticTools.includes("Sonstiges") && !diagnosticToolsOther.trim()) {
+          return "Bitte geben Sie das sonstige Diagnostik-Tool an (Frage 17).";
+        }
         if (!mediaConcept) return "Bitte beantworten Sie Frage 18 (Medienkonzept).";
         if (!mediaResponsible) return "Bitte beantworten Sie Frage 19 (Medienbeauftragte Person).";
         break;
@@ -528,14 +556,29 @@ export default function BestandsaufnahmeForm({
         if (!aiUsage) return "Bitte beantworten Sie Frage 20 (KI-Nutzung).";
         if (kiAktivGenutzt) {
           if (aiPurposes.length === 0) return "Bitte wählen Sie mindestens einen KI-Zweck (Frage 21).";
+          if (aiPurposes.includes("Sonstiges") && !aiPurposesOther.trim()) {
+            return "Bitte geben Sie den sonstigen KI-Zweck an (Frage 21).";
+          }
           if (aiToolsUsed.length === 0) return "Bitte wählen Sie mindestens ein KI-Tool (Frage 22).";
+          if (aiToolsUsed.includes("Sonstiges") && !aiToolsOther.trim()) {
+            return "Bitte geben Sie das sonstige KI-Tool an (Frage 22).";
+          }
         }
         if (!aiCompetence) return "Bitte schätzen Sie das KI-Kompetenzniveau ein (Frage 23).";
         if (aiConcerns.length === 0) return "Bitte wählen Sie mindestens eine Bedenken-Option (Frage 24).";
+        if (aiConcerns.includes("Sonstiges") && !aiConcernsOther.trim()) {
+          return "Bitte geben Sie die sonstige Bedenken-Option an (Frage 24).";
+        }
         if (aiTrainings.length === 0) return "Bitte beantworten Sie Frage 25 (KI-Fortbildungen).";
+        if (aiTrainings.includes("Sonstiges") && !aiTrainingsOther.trim()) {
+          return "Bitte geben Sie die sonstige KI-Fortbildung an (Frage 25).";
+        }
         break;
       case 4: // Teil E
         if (trainingNeeds.length === 0) return "Bitte wählen Sie mindestens einen Fortbildungsbedarf (Frage 26).";
+        if (trainingNeeds.includes("Sonstiges") && !trainingNeedsOther.trim()) {
+          return "Bitte geben Sie den sonstigen Fortbildungsbedarf an (Frage 26).";
+        }
         if (trainingFormat.length === 0) return "Bitte wählen Sie ein Schulungsformat (Frage 27).";
         if (trainingTimes.length === 0) return "Bitte wählen Sie die Fortbildungszeiten (Frage 28).";
         if (!participationCount) return "Bitte geben Sie die voraussichtliche Teilnehmerzahl an (Frage 29).";
@@ -551,11 +594,15 @@ export default function BestandsaufnahmeForm({
       case 6: // Teil G
         if (supportNeeds.length === 0) return "Bitte wählen Sie mindestens eine Unterstützungsart (Frage 34).";
         if (softwareLicenses.length === 0) return "Bitte wählen Sie die Software-Lizenzen (Frage 35).";
+        if (softwareLicenses.includes("Sonstiges") && !softwareLicensesOther.trim()) {
+          return "Bitte geben Sie die sonstige Software-Lizenz an (Frage 35).";
+        }
         if (!studentSupport) return "Bitte beantworten Sie Frage 36 (studentische Unterstützung).";
         if (!timeForTools) return "Bitte beantworten Sie Frage 37 (Zeit für Tools).";
         break;
-      case 7:
-        // Teil H (Fragen 38 + 39) ist optional – keine Pflichtvalidierung.
+      case 7: // Teil H – Fragen 38 + 39 optional, aber Einwilligungen sind Pflicht
+        if (!privacyConsent) return "Bitte stimmen Sie der Datenschutzerklärung zu.";
+        if (!truthConsent) return "Bitte bestätigen Sie die Richtigkeit Ihrer Angaben.";
         break;
       case 8: // Account
         if (!contactPerson.trim()) return "Bitte geben Sie den Namen des Ansprechpartners an.";
@@ -1408,7 +1455,7 @@ export default function BestandsaufnahmeForm({
             <div>
               <FieldLabel required>Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
               <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
-                placeholder="z. B. Maria Mustermann" />
+                placeholder="z. B. Maria Mustermann" autoFocus />
             </div>
 
             <div>
