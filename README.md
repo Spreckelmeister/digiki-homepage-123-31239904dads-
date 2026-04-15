@@ -2,9 +2,13 @@
 
 > **Digitalisierung & Künstliche Intelligenz an Grundschulen Osnabrück**
 
-Offizielle Website des Förderprojekts DigiKI. Das Projekt unterstützt Grundschulen im Raum Osnabrück dabei, KI-gestützte Werkzeuge gezielt im Unterricht einzusetzen – mit Schwerpunkt auf Sprachförderung, Inklusion und praxiserprobten Best-Practice-Beispielen.
+Offizielle Website des Förderprojekts DigiKI. Das Projekt befähigt alle
+Grundschulen in Stadt und Landkreis Osnabrück zu digitaler Kompetenz und
+sachgerechtem Umgang mit KI – mit kostenlosen Schulungen, Tool-Lizenzen und
+studentischer Unterstützung.
 
-🌐 **Live:** [digiki-osnabrueck.de](https://digiki-osnabrueck.de) &nbsp;|&nbsp; GitHub: [Spreckelmeister/digiki-homepage](https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-)
+🌐 **Live:** [digiki-os.de](https://www.digiki-os.de)
+📦 **Repo:** [Spreckelmeister/digiki-homepage](https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-)
 
 ---
 
@@ -12,15 +16,18 @@ Offizielle Website des Förderprojekts DigiKI. Das Projekt unterstützt Grundsch
 
 | Technologie | Version | Zweck |
 |---|---|---|
-| [Next.js](https://nextjs.org) | 15.5 | App Router, SSR/SSG |
+| [Next.js](https://nextjs.org) | 15.5 (App Router) | SSR/SSG, API-Routen |
 | [React](https://react.dev) | 19 | UI-Framework |
 | [TypeScript](https://www.typescriptlang.org) | 5.9 | Typsicherheit |
 | [Tailwind CSS](https://tailwindcss.com) | v4 | Styling |
-| [Supabase](https://supabase.com) | 2.x | Datenbank, Auth |
+| [Supabase](https://supabase.com) | 2.x | Datenbank, Auth, RLS |
+| [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) | 2.x | Lizenzierte Bilder außerhalb des Repos |
+| [Framer Motion](https://www.framer.com/motion/) | 12 | Dezente Animationen |
 | [Lucide React](https://lucide.dev) | 0.468 | Icons |
+| [Nodemailer](https://nodemailer.com) | 8 | Transaktions-Mails |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | 10 | Markdown-Rendering |
 
-Deployment: **Vercel** (automatisch via GitHub-Push)
+**Hosting:** Vercel (Region `fra1`) – automatisches Deploy bei jedem Push auf `main`.
 
 ---
 
@@ -28,46 +35,65 @@ Deployment: **Vercel** (automatisch via GitHub-Push)
 
 ```
 src/
-├── app/                        # Next.js App Router
-│   ├── page.tsx                # Startseite
-│   ├── ueber-das-projekt/      # Projektbeschreibung & Timeline
-│   ├── fuer-schulen/           # Angebote für teilnehmende Schulen
-│   │   ├── antrag-hilfskraefte/    # Formular: Studentische Hilfskräfte
-│   │   └── antrag-tool-lizenzen/   # Formular: Tool-Lizenzen
-│   ├── best-practice/          # Best-Practice-Bereich (teilw. auth-geschützt)
-│   │   ├── page.tsx            # Übersicht
-│   │   ├── datenbank/          # Beitragssuche (🔒 Login erforderlich)
-│   │   ├── einreichen/         # Vorlage einreichen (öffentlich)
-│   │   ├── login/              # Login
-│   │   ├── registrieren/       # Registrierung
-│   │   └── admin/              # Verwaltung (🔒 nur Admins)
-│   ├── bestandsaufnahme/       # Digitale Bestandsaufnahme für Schulen
+├── app/                              # Next.js App Router
+│   ├── page.tsx                      # Startseite
+│   ├── layout.tsx                    # Globales Layout, Meta-Tags, noimageindex
+│   ├── ueber-das-projekt/            # Projektbeschreibung & Timeline
+│   ├── fuer-schulen/                 # Teilnahmeoptionen + Anträge
+│   │   ├── antrag-hilfskraefte/
+│   │   └── antrag-tool-lizenzen/
+│   ├── bestandsaufnahme/             # 9-stufige Online-Umfrage für Schulen
+│   ├── best-practice/
+│   │   ├── page.tsx                  # Übersicht ("Bald verfügbar")
+│   │   ├── datenbank/                # 🔒 Login – Beispiele durchsuchen
+│   │   ├── einreichen/               # Beitrag einreichen (Login-pflichtig)
+│   │   ├── login/ | registrieren/
+│   │   ├── passwort-vergessen/ | passwort-zuruecksetzen/
+│   │   ├── meine-einreichungen/      # Eigene Anträge verwalten
+│   │   ├── meine-bestandsaufnahme/   # Eigene Bestandsaufnahme bearbeiten
+│   │   └── admin/                    # 🔒 Admin – Beiträge, Anträge, Bestandsaufnahmen
 │   ├── api/
-│   │   ├── address-search/     # Adressvervollständigung (rate-limited)
-│   │   └── school-search/      # Schulsuche (rate-limited)
-│   ├── impressum/
-│   └── datenschutz/
+│   │   ├── register-bestandsaufnahme/    # Submit der Bestandsaufnahme
+│   │   ├── update-bestandsaufnahme/      # Edit-Mode
+│   │   ├── send-confirmation/            # Bestätigungs-Mail (Nodemailer)
+│   │   ├── address-search/               # Adressvervollständigung (rate-limited)
+│   │   └── school-search/                # Schulsuche (rate-limited)
+│   ├── auth/callback/                # Supabase Auth-Callback
+│   ├── barrierefreiheit/             # Erklärung zur Barrierefreiheit
+│   ├── impressum/ | datenschutz/
+│
 ├── components/
-│   ├── Header.tsx / Footer.tsx
-│   ├── best-practice/          # Alle Best-Practice-Komponenten
-│   └── forms/                  # Wiederverwendbare Formulare
+│   ├── Header.tsx | Footer.tsx
+│   ├── CountdownBadge.tsx            # Hero-Countdown zum Projektstart
+│   ├── StatCounter.tsx               # Animierter Count-up für Statistiken
+│   ├── ProtectedImage.tsx            # next/image + Download-Schutz
+│   ├── AnimatedSection.tsx           # Opacity-Fade beim Scroll (kein Y-Shift)
+│   ├── Accordion.tsx                 # FAQ, CLS-frei mit scrollHeight
+│   ├── best-practice/                # Auth-Status, Admin-Nav, Datenansicht
+│   └── forms/                        # BestandsaufnahmeForm, OtherInput, …
+│
+├── data/
+│   ├── project.ts                    # Projekt-Stammdaten (Stats, Events, Partner)
+│   └── images.generated.ts           # AUTO-GENERATED – Vercel-Blob-URLs
+│
 ├── lib/
-│   ├── types.ts
-│   └── supabase/               # client.ts / server.ts / middleware.ts
-└── middleware.ts               # Auth-Schutz für /best-practice/datenbank & /admin
+│   ├── supabase/                     # client.ts / server.ts / middleware.ts
+│   └── useIsAdmin.ts
+│
+└── middleware.ts                     # Auth-Schutz /best-practice/datenbank & /admin
 
+scripts/
+└── upload-images.ts                  # Lädt lizenzierte Bilder zu Vercel Blob
+
+private-images/                       # 🚫 git-ignored – iStock-Rohdateien lokal
 public/
 ├── images/
-│   ├── icons/                  # Seitenbilder (WebP / AVIF)
-│   ├── logos/                  # Partner- und Institutionslogos
-│   ├── hero/                   # Hero-Bilder
-│   ├── team/                   # Teamfotos
-│   ├── timeline/               # Zeitstrahl-Grafiken
-│   └── best-practice/          # Best-Practice-Bilder
-└── downloads/
-    ├── Antrag_Studentische_Hilfskraefte_DigiKI.docx
-    ├── Antrag_Tool_Lizenzen_DigiKI.docx
-    └── Best-Practice-Vorlage-Grundschule.docx
+│   ├── icons/                        # Kleine Bilder, die nicht lizenziert sind
+│   └── logos/                        # Partner- und Institutionslogos
+└── downloads/                        # .ics-Kalender, DOCX-Vorlagen
+
+supabase-email-templates/             # HTML-Templates für Supabase Auth-Mails
+supabase-migration-*.sql              # SQL-Migrationen (Reihenfolge siehe unten)
 ```
 
 ---
@@ -76,16 +102,19 @@ public/
 
 | Pfad | Beschreibung | Auth |
 |------|-------------|------|
-| `/` | Startseite: Hero, Statistiken, Features, Partner | Öffentlich |
+| `/` | Startseite: Hero mit Countdown, Stats, Zitat, Features, Events, Partner | Öffentlich |
 | `/ueber-das-projekt` | Projektbeschreibung, Timeline, Budget | Öffentlich |
-| `/fuer-schulen` | Teilnahmeoptionen, Antragsformulare, Downloads, FAQ | Öffentlich |
+| `/fuer-schulen` | Teilnahmeoptionen, Statistik-Streifen, FAQ, Anträge | Öffentlich |
 | `/fuer-schulen/antrag-hilfskraefte` | Antrag auf studentische Hilfskräfte | Öffentlich |
 | `/fuer-schulen/antrag-tool-lizenzen` | Antrag auf Tool-Lizenzen | Öffentlich |
-| `/bestandsaufnahme` | Digitale Bestandsaufnahme für Schulen | Öffentlich |
-| `/best-practice` | Best-Practice-Übersicht | Öffentlich |
-| `/best-practice/einreichen` | Vorlage einreichen | Öffentlich |
-| `/best-practice/datenbank` | Best-Practice-Beiträge durchsuchen | 🔒 Login |
-| `/best-practice/admin` | Beiträge verwalten, Anträge prüfen | 🔒 Admin |
+| `/bestandsaufnahme` | 9-stufige Umfrage + automatisches Konto-Anlegen | Öffentlich |
+| `/best-practice` | Übersicht (mit „Bald verfügbar"-Section) | Öffentlich |
+| `/best-practice/datenbank` | Beiträge durchsuchen | 🔒 Login |
+| `/best-practice/einreichen` | Beitrag einreichen | 🔒 Login |
+| `/best-practice/meine-einreichungen` | Eigene Anträge bearbeiten | 🔒 Login |
+| `/best-practice/meine-bestandsaufnahme` | Eigene Bestandsaufnahme bearbeiten | 🔒 Login |
+| `/best-practice/admin` | Beiträge, Anträge, Bestandsaufnahmen verwalten | 🔒 Admin |
+| `/barrierefreiheit` | Erklärung zur Barrierefreiheit (NBGG/BITV 2.0) | Öffentlich |
 | `/impressum` | Impressum | Öffentlich |
 | `/datenschutz` | Datenschutzerklärung | Öffentlich |
 
@@ -95,122 +124,180 @@ public/
 
 ### Voraussetzungen
 
-- Node.js >= 18
-- npm >= 9
+- Node.js ≥ 20
+- npm ≥ 10
+- Zugang zum Supabase-Projekt (für Datenbank) und Vercel-Projekt (für Blob-Upload)
 
 ### Setup
 
 ```bash
-# 1. Repository klonen
 git clone https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-.git
 cd digiki-homepage
-
-# 2. Abhängigkeiten installieren
 npm install
 
-# 3. Umgebungsvariablen anlegen (siehe unten)
-cp .env.local.example .env.local
+# Umgebungsvariablen vom Vercel-Projekt ziehen:
+npx vercel link         # einmalig Projekt verknüpfen
+npx vercel env pull .env.local
 
-# 4. Entwicklungsserver starten
-npm run dev
+npm run dev             # → http://localhost:3000
 ```
 
-Browser öffnen: http://localhost:3000
-
-### Weitere Befehle
+### npm-Skripte
 
 ```bash
-npm run build   # Produktions-Build
-npm run start   # Produktions-Server starten
-npm run lint    # ESLint ausführen
+npm run dev              # Entwicklungsserver
+npm run build            # Produktions-Build
+npm run start            # Produktions-Server starten
+npm run lint             # ESLint
+npm run upload-images    # Bilder aus private-images/ zu Vercel Blob hochladen
 ```
 
 ---
 
 ## Umgebungsvariablen
 
-Datei `.env.local` im Projektstamm anlegen:
+Alle Variablen werden im Vercel-Projekt verwaltet und per `vercel env pull`
+nach `.env.local` gezogen (nicht manuell setzen).
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://<dein-projekt>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<dein-anon-key>
-```
-
-Beide Werte sind im Supabase-Dashboard unter **Settings -> API** zu finden.
-
-> **Hinweis:** Ohne diese Variablen läuft die Seite im eingeschränkten Modus – alle öffentlichen Seiten sind erreichbar, geschützte Bereiche (`/datenbank`, `/admin`) leiten automatisch zum Login weiter.
+| Variable | Zweck |
+|----------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase-Projekt-URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `NEXT_PUBLIC_SITE_URL` | Kanonische Domain (für Auth-Callbacks) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob Schreibzugriff (nur für `upload-images`) |
+| `SMTP_*` | Mail-Zugangsdaten für Nodemailer |
 
 ---
 
 ## Datenbank (Supabase)
 
-Die SQL-Migrationen liegen im Projektstamm und müssen der Reihe nach im **Supabase SQL-Editor** ausgeführt werden:
+Die Migrationen werden **in aufsteigender Reihenfolge** im Supabase SQL-Editor
+ausgeführt. Alle Migrationen sind idempotent (`CREATE OR REPLACE` /
+`IF NOT EXISTS`).
 
 | Datei | Inhalt |
 |-------|--------|
 | `supabase-migration.sql` | Basis-Schema: Tabellen, Policies |
-| `supabase-migration-002-address-split.sql` | Adressfelder aufgeteilt |
-| `supabase-migration-003-security-fixes.sql` | RLS-Sicherheitskorrekturen |
-| `supabase-migration-004-bestandsaufnahme.sql` | Tabelle für Bestandsaufnahmen |
-| `supabase-migration-005-email-lookup.sql` | E-Mail-Lookup-Funktionen (nur `authenticated`) |
+| `…-002-address-split.sql` | Adressfelder aufgeteilt |
+| `…-003-security-fixes.sql` | RLS-Sicherheitskorrekturen |
+| `…-004-bestandsaufnahme.sql` | Tabelle `bestandsaufnahme_responses` |
+| `…-005-email-lookup.sql` / `-rls-bestandsaufnahme.sql` | Auth-Lookup-Funktionen |
+| `…-006-account-registration.sql` | Konto-Anlage bei Bestandsaufnahme |
+| `…-007-bestandsaufnahme-submissions.sql` | RPC zum Abfragen eigener Daten |
+| `…-008-bestandsaufnahme-update-policy.sql` | Update-Policy für Nutzer |
+| `…-009-get-my-bestandsaufnahme.sql` | RPC `get_my_bestandsaufnahme()` |
+| `…-010-fix-get-my-submissions.sql` | Bugfix für RPC |
+| `…-011-full-submission-details.sql` | Vollständige Daten für eigene Einreichungen |
+| `…-012-reject-admin-applications.sql` | Admin-Konten dürfen keine Anträge stellen |
+| `…-013-training-needs-other.sql` | Freitextspalte für „Sonstiges" (Frage 26) |
+| `…-014-ai-purposes-other.sql` | Freitextspalte für „Sonstiges" (Frage 21) |
 
-> Alle Migrationen sind idempotent (`CREATE OR REPLACE` / `IF NOT EXISTS`) und können sicher mehrfach ausgeführt werden.
+---
+
+## Bilder & Lizenzen
+
+Alle lizenzierten iStock-Fotos liegen **außerhalb des Repos** im Vercel Blob
+Store. Workflow:
+
+1. Bilder werden in den lokalen, git-ignorierten Ordner
+   [`private-images/`](private-images/) gelegt.
+2. `npm run upload-images` lädt sie nach Vercel Blob hoch und schreibt die URLs
+   nach [`src/data/images.generated.ts`](src/data/images.generated.ts).
+3. Seiten binden die Bilder über
+   [`<ProtectedImage>`](src/components/ProtectedImage.tsx) ein (blockiert
+   Rechtsklick/Drag, verhindert `noimageindex` Google-Indexierung).
+
+**Im Repo verbleiben nur:**
+- `public/images/logos/` – Partner- und Förderer-Logos (öffentlich)
+- `public/images/icons/pexels-rdne-8499534.webp` – CC0-lizenziert
+
+Die `Cross-Origin-Resource-Policy` für `/images/*` ist auf `cross-origin`
+gesetzt, damit Logos in den E-Mail-Clients (Gmail, Outlook …) geladen werden
+können – alle anderen Pfade bleiben auf `same-origin`.
+
+---
+
+## E-Mails
+
+Template-Dateien liegen im Ordner
+[`supabase-email-templates/`](supabase-email-templates/):
+
+- `confirm-signup.html` – Willkommens-Mail nach Registrierung
+- `reset-password.html` – Passwort-Reset-Link
+- `password-changed.html` – Bestätigung nach Passwort-Änderung
+
+Die Templates müssen manuell im **Supabase-Dashboard** (Authentication → Email
+Templates) eingefügt werden. Alle Logos werden als PNG eingebunden (nicht SVG,
+da Email-Clients SVG meist nicht rendern).
 
 ---
 
 ## Deployment
 
-Die Seite ist für **Vercel** optimiert und wird bei jedem Push auf `main` automatisch neu gebaut.
+Push auf `main` → Vercel baut und deployed automatisch.
 
 ### Ersteinrichtung
 
-1. Repository auf [github.com](https://github.com) pushen
-2. Auf [vercel.com](https://vercel.com) einloggen → **Add New Project**
-3. GitHub-Repository auswählen → **Import**
-4. Umgebungsvariablen (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in den Vercel-Einstellungen eintragen
-5. **Deploy** klicken – fertig
+1. Repository auf GitHub pushen
+2. In Vercel: **Add New Project** → Repo auswählen → Import
+3. Umgebungsvariablen übernehmen (Supabase, SMTP, BLOB_READ_WRITE_TOKEN)
+4. Domain unter **Settings → Domains** verbinden
 
-Eigene Domain unter **Settings -> Domains** in Vercel hinterlegen.
+### Vercel-Features im Einsatz
+
+- **Analytics** – anonyme Seitenaufrufe
+- **Speed Insights** – Web Vitals (CLS, INP, LCP)
+- **Blob Storage** – Bilderablage
+- **Deployments** – automatische Preview-URLs pro PR
 
 ---
 
-## Bilder
+## Performance & Accessibility
 
-Alle Seitenbilder liegen in `public/images/icons/` und werden als **WebP** oder **AVIF** ausgeliefert.
-
-| Dateiname | Verwendet auf |
-|-----------|--------------|
-| `istock-kids-laptop-teacher.webp` | Startseite – Hero |
-| `pexels-rdne-8499534.webp` | Startseite – Unsere Vision |
-| `istock-team-motivation.webp` | Best Practice – Hero |
-| `istock-kids-raise-hands.webp` | Best Practice – Beispiele durchsuchen |
-| `istock-colleague-high-five.webp` | Best Practice – Praxiserprobte Inhalte |
-| `unsplash-team-unity.avif` | Best Practice – Wachsende Sammlung |
-| `istock-students-hands-up.webp` | Best Practice – Login |
-| `istock-teacher-computer-class.webp` | Über das Projekt – Header |
-| `istock-elearning-support.webp` | Über das Projekt – Warum DigiKI? |
-| `istock-teacher-tablet-explains.webp` | Über das Projekt – Sprachförderung |
-| `istock-woman-tablet-teaching.webp` | Über das Projekt – Budget |
-| `istock-teacher-supports-students.webp` | Für Schulen – Hero |
-| `istock-teacher-student-highfive.webp` | Für Schulen – Sie sind nicht allein |
-
-> **Hinweis:** Die iStock-Bilder sind aktuell Vorschauversionen mit Wasserzeichen. Nach Freigabe des Budgets durch die Stiftungen werden sie durch lizenzierte Vollversionen (gleiche Dateinamen) ersetzt.
-
-Logos der Förderpartner liegen in `public/images/logos/`.
+- **Web Vitals** (Ziel-P75): LCP < 2.5 s, INP < 200 ms, CLS < 0.1
+- Bilder: `next/image` mit `aspect-ratio` auf Containern → kein CLS beim Laden
+- Animationen verzichten auf Y-Shift (`AnimatedSection`, `StatCounter`) → kein CLS
+- `CountdownBadge` initialisiert `daysLeft` im `useState`-Initializer → kein
+  SSR/Client-Mismatch
+- `Accordion` nutzt dynamisches `scrollHeight` statt fixem `max-h-96`
+- `<meta robots="…noimageindex">` im Root-Layout → keine Bilder in Google-Bildersuche
 
 ---
 
 ## Sicherheit
 
-- **HTTP-Security-Header** für alle Routen: `X-Frame-Options: DENY`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `Permissions-Policy`
+- **HTTP-Security-Header** global: `X-Frame-Options: DENY`,
+  `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, `Cross-Origin-Opener-Policy: same-origin`,
+  `Cross-Origin-Resource-Policy: same-origin` (außer `/images/*`),
+  `Permissions-Policy`, strikte `Content-Security-Policy`
 - **Row-Level Security (RLS)** in Supabase für alle Tabellen aktiv
-- **API-Routen** (`/api/address-search`, `/api/school-search`): Rate-Limiting und Eingabelängenbegrenzung
-- **Passwortmindestlänge** bei Registrierung: 8 Zeichen
+- **API-Rate-Limiting** auf den Suchrouten
+- **Honeypot-Feld** im Bestandsaufnahme-Formular gegen Bots
+- **Passwort-Regeln**: min. 8 Zeichen, Groß-/Kleinbuchstabe, Ziffer, Sonderzeichen
 - **Auth-Middleware** schützt `/best-practice/datenbank` und `/best-practice/admin`
+
+---
+
+## Bestandsaufnahme-Formular
+
+Mehrstufiges Formular mit **9 Abschnitten** (Teil A–H + Konto-Anlage).
+Besonderheiten:
+
+- Submit-Guard via `submitIntentRef` – nur ein Klick auf „Einreichen" löst den
+  Supabase-Signup aus (kein versehentliches Abschicken durch Enter/Autofill)
+- Bei jedem Step-Wechsel wird die Fehlermeldung zurückgesetzt
+- Auto-Scroll zum Seitenanfang, wenn eine Fehlermeldung erscheint
+- Pflichtfeld-Validierung pro Step (Teil H / Fragen 38+39 optional)
+- „Sonstiges"-Eingabefelder werden erst eingeblendet und validiert, wenn die
+  Option angewählt ist
+- Admin-/Test-Einträge (School-Name enthält „Test" oder „Admin") werden im
+  Admin-Listing automatisch ausgeblendet
 
 ---
 
 ## Kontakt
 
 **Kai Krafft** – Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück
-✉️ krafft@osnabrueck.de
+
+✉️ [krafft@osnabrueck.de](mailto:krafft@osnabrueck.de)
