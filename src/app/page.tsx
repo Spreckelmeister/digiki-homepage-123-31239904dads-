@@ -473,21 +473,28 @@ export default function HomePage() {
           {/* Trennlinie */}
           <div className="border-t border-border my-16" />
 
-          {/* In Kooperation mit */}
+          {/* Fördermittelmanagement */}
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
-              In Kooperation mit
+              Fördermittelmanagement über
             </h2>
             <div className="flex justify-center items-center">
-              <div className="relative w-[180px] h-[80px]">
-                <Image
-                  src="/images/logos/HdS_Logo_2017.png"
-                  alt="Logo Haus der Stiftungen"
-                  fill
-                  className="object-contain"
-                  sizes="180px"
-                />
-              </div>
+              <a
+                href="https://www.hausdesstiftens.org/foerderfonds/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
+              >
+                <div className="relative w-[180px] h-[80px]">
+                  <Image
+                    src="/images/logos/HdS_Logo_2017.png"
+                    alt="Logo Haus des Stiftens"
+                    fill
+                    className="object-contain"
+                    sizes="180px"
+                  />
+                </div>
+              </a>
             </div>
           </div>
         </AnimatedSection>
