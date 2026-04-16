@@ -137,6 +137,15 @@ export default function LoginForm() {
             Bestandsaufnahme ausfüllen
           </Link>
         </p>
+        <p className="pt-2 border-t border-border mt-4">
+          Bestätigungs-Link aus der E-Mail funktioniert nicht?{" "}
+          <Link
+            href="/best-practice/code-einloesen"
+            className="text-primary-light underline hover:text-primary"
+          >
+            6-stelligen Code eingeben
+          </Link>
+        </p>
       </div>
     </div>
   );

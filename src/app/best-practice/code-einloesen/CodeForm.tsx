@@ -1,0 +1,198 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { KeyRound, CheckCircle2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+type Mode = "signup" | "recovery";
+
+export default function CodeForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const initialMode: Mode =
+    params.get("type") === "recovery" ? "recovery" : "signup";
+
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setMode(params.get("type") === "recovery" ? "recovery" : "signup");
+  }, [params]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    const cleanToken = token.replace(/\s+/g, "");
+    if (!/^\d{6}$/.test(cleanToken)) {
+      setError("Bitte geben Sie den 6-stelligen Code aus der E-Mail ein.");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createClient();
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: cleanToken,
+      type: mode === "recovery" ? "recovery" : "signup",
+    });
+
+    if (verifyError) {
+      console.error("Verify error:", verifyError.message);
+      const msg = verifyError.message.toLowerCase();
+      if (msg.includes("expired")) {
+        setError(
+          "Der Code ist abgelaufen. Bitte fordern Sie einen neuen Link an.",
+        );
+      } else if (msg.includes("invalid") || msg.includes("not found")) {
+        setError(
+          "Code oder E-Mail-Adresse passen nicht. Bitte prüfen Sie Ihre Eingabe.",
+        );
+      } else {
+        setError(
+          "Der Code konnte nicht verifiziert werden. Bitte versuchen Sie es erneut.",
+        );
+      }
+      setLoading(false);
+      return;
+    }
+
+    setSuccess(true);
+    setLoading(false);
+
+    setTimeout(() => {
+      router.push(
+        mode === "recovery"
+          ? "/best-practice/passwort-zuruecksetzen"
+          : "/best-practice/datenbank",
+      );
+    }, 1200);
+  }
+
+  if (success) {
+    return (
+      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+          <CheckCircle2 className="h-7 w-7 text-green-600" aria-hidden="true" />
+        </div>
+        <h2 className="text-lg font-semibold text-primary mb-2">
+          {mode === "recovery"
+            ? "Code bestätigt"
+            : "E-Mail-Adresse bestätigt"}
+        </h2>
+        <p className="text-sm text-text-light">
+          Sie werden in einem Moment weitergeleitet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
+      <p className="text-sm text-text-light mb-6 leading-relaxed">
+        Manche Schul- und Firmen-Netzwerke scannen E-Mail-Links automatisch und
+        machen sie dadurch ungültig. Als Alternative finden Sie in der E-Mail
+        einen <strong>6-stelligen Code</strong>, den Sie hier eingeben können.
+      </p>
+
+      {/* Modus-Auswahl */}
+      <div className="flex gap-2 mb-6 p-1 bg-bg rounded-lg">
+        <button
+          type="button"
+          onClick={() => setMode("signup")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            mode === "signup"
+              ? "bg-white text-primary shadow-sm"
+              : "text-text-light hover:text-primary"
+          }`}
+        >
+          E-Mail bestätigen
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("recovery")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            mode === "recovery"
+              ? "bg-white text-primary shadow-sm"
+              : "text-text-light hover:text-primary"
+          }`}
+        >
+          Passwort zurücksetzen
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="code-email"
+            className="block text-sm font-medium text-text mb-1.5"
+          >
+            E-Mail-Adresse
+          </label>
+          <input
+            id="code-email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+            placeholder="ihre.email@schule.de"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="code-token"
+            className="block text-sm font-medium text-text mb-1.5"
+          >
+            6-stelliger Code
+          </label>
+          <input
+            id="code-token"
+            type="text"
+            required
+            inputMode="numeric"
+            pattern="[0-9\s]*"
+            maxLength={7}
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            className="w-full rounded-lg border border-border px-4 py-3 text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+            placeholder="123 456"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
+        >
+          <KeyRound className="w-5 h-5" aria-hidden="true" />
+          {loading ? "Wird verifiziert..." : "Code bestätigen"}
+        </button>
+      </form>
+
+      <div className="mt-6 text-center text-sm text-text-light">
+        <Link
+          href="/best-practice/login"
+          className="text-primary-light underline hover:text-primary"
+        >
+          Zurück zur Anmeldung
+        </Link>
+      </div>
+    </div>
+  );
+}
