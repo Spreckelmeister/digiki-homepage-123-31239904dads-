@@ -41,6 +41,21 @@ export default function ForgotPasswordForm() {
           Link zum Zurücksetzen Ihres Passworts zugeschickt. Bitte prüfen Sie
           auch Ihren Spam-Ordner.
         </p>
+        <div className="bg-bg border border-border rounded-lg p-4 mb-6 text-left">
+          <p className="text-sm text-text mb-2">
+            <strong>Link funktioniert nicht?</strong>
+          </p>
+          <p className="text-sm text-text-light mb-3">
+            In der E-Mail finden Sie auch einen <strong>6-stelligen Code</strong>,
+            den Sie stattdessen eingeben können.
+          </p>
+          <Link
+            href="/best-practice/code-einloesen?type=recovery"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline hover:text-primary/80 transition-colors"
+          >
+            Zur Code-Eingabe
+          </Link>
+        </div>
         <Link
           href="/best-practice/login"
           className="text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
