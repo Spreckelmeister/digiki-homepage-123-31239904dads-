@@ -24,15 +24,12 @@ export default function DatenschutzPage() {
               <h2 className="text-xl font-bold text-primary mb-4">
                 1. Datenschutz auf einen Blick
               </h2>
-              <h3 className="text-lg font-semibold text-text mb-2">
-                Allgemeine Hinweise
-              </h3>
               <p className="text-text-light leading-relaxed">
                 Die folgenden Hinweise geben einen einfachen Überblick darüber,
                 was mit Ihren personenbezogenen Daten passiert, wenn Sie diese
                 Website besuchen. Personenbezogene Daten sind alle Daten, mit
                 denen Sie persönlich identifiziert werden können. Ausführliche
-                Informationen zum Thema Datenschutz entnehmen Sie unserer unter
+                Informationen zum Thema Datenschutz entnehmen Sie der unter
                 diesem Text aufgeführten Datenschutzerklärung.
               </p>
             </div>
@@ -71,27 +68,29 @@ export default function DatenschutzPage() {
               <h2 className="text-xl font-bold text-primary mb-4">
                 3. Datenerfassung auf dieser Website
               </h2>
+
               <h3 className="text-lg font-semibold text-text mb-2">Cookies</h3>
               <p className="text-text-light leading-relaxed mb-4">
-                Diese Website verwendet technisch notwendige Cookies, um die
-                Funktionalität zu gewährleisten. Technisch notwendige Cookies
-                werden auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO
-                gespeichert. Der Websitebetreiber hat ein berechtigtes Interesse
-                an der Speicherung von technisch notwendigen Cookies zur
-                technisch fehlerfreien und optimierten Bereitstellung seiner
-                Dienste. Sie können Ihren Browser so einstellen, dass Sie über
-                das Setzen von Cookies informiert werden und Cookies nur im
-                Einzelfall erlauben. Bei der Deaktivierung von Cookies kann die
-                Funktionalität dieser Website eingeschränkt sein.
+                Diese Website verwendet <strong>technisch notwendige Cookies</strong>,
+                um die Funktionalität zu gewährleisten. Dazu gehören insbesondere
+                Session-Cookies zur sicheren Anmeldung in der
+                Best-Practice-Datenbank (gesetzt durch Supabase Auth). Technisch
+                notwendige Cookies werden auf Grundlage von Art. 6 Abs. 1 lit. f
+                DSGVO (berechtigtes Interesse) gespeichert. Sie können Ihren
+                Browser so einstellen, dass Sie über das Setzen von Cookies
+                informiert werden und Cookies nur im Einzelfall erlauben. Bei
+                der Deaktivierung von Cookies kann die Funktionalität dieser
+                Website eingeschränkt sein.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
                 Server-Log-Dateien
               </h3>
               <p className="text-text-light leading-relaxed mb-2">
-                Der Provider dieser Seiten erhebt und speichert automatisch
-                Informationen in sogenannten Server-Log-Dateien, die Ihr
-                Browser automatisch übermittelt. Dies sind:
+                Der Hosting-Provider dieser Seiten (Vercel, siehe Ziffer 5)
+                erhebt und speichert automatisch Informationen in sogenannten
+                Server-Log-Dateien, die Ihr Browser automatisch übermittelt.
+                Dies sind:
               </p>
               <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
                 <li>Browsertyp und Browserversion</li>
@@ -103,142 +102,278 @@ export default function DatenschutzPage() {
               </ul>
               <p className="text-text-light leading-relaxed">
                 Eine Zusammenführung dieser Daten mit anderen Datenquellen wird
-                nicht vorgenommen. Die Erfassung dieser Daten erfolgt auf
-                Grundlage von Art. 6 Abs. 1 lit. f DSGVO. Der
-                Websitebetreiber hat ein berechtigtes Interesse an der technisch
-                fehlerfreien Darstellung und der Optimierung seiner Website –
-                hierzu müssen die Server-Log-Files erfasst werden.
+                nicht vorgenommen. Die Erfassung erfolgt auf Grundlage von
+                Art. 6 Abs. 1 lit. f DSGVO. Der Websitebetreiber hat ein
+                berechtigtes Interesse an der technisch fehlerfreien Darstellung
+                und der Sicherheit seiner Website.
               </p>
             </div>
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                4. Online-Formulare und Datenbank
+                4. Online-Formulare und Datenbank (Supabase)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Diese Website bietet Online-Formulare an, über die Schulen
-                Anträge einreichen können (z.&thinsp;B. Tool-Lizenzen,
-                studentische Hilfskräfte, Best-Practice-Dokumentationen). Die
-                in den Formularen eingegebenen Daten werden über eine
-                verschlüsselte Verbindung (HTTPS) an unseren
-                Datenbank-Dienstleister Supabase übermittelt und dort
-                gespeichert.
+                Anträge einreichen (Tool-Lizenzen, studentische Hilfskräfte,
+                Best-Practice-Dokumentationen) und die digitale Bestandsaufnahme
+                ausfüllen können. Außerdem kann ein Login-Konto für die
+                Best-Practice-Datenbank erstellt werden. Die eingegebenen Daten
+                werden über eine verschlüsselte Verbindung (HTTPS) an unseren
+                Datenbank- und Authentifizierungs-Dienstleister
+                <strong> Supabase</strong> übermittelt und dort gespeichert.
               </p>
+
               <h3 className="text-lg font-semibold text-text mb-2">
                 Welche Daten werden erhoben?
               </h3>
               <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
                 <li>Schulname und Schuladresse (Straße, PLZ, Ort)</li>
                 <li>Name der Schulleitung und Kontaktperson</li>
-                <li>E-Mail-Adresse und Telefonnummer</li>
+                <li>E-Mail-Adresse, Telefonnummer</li>
+                <li>Passwort (gesalzen und gehasht, nicht im Klartext)</li>
                 <li>Angaben zu Schülerzahl und Lehrkräften</li>
                 <li>
                   Formularspezifische Angaben (z.&thinsp;B. gewünschte Tools,
-                  Unterstützungsbereiche, Unterrichtserfahrungen)
+                  Unterstützungsbereiche, Unterrichtserfahrungen,
+                  Selbsteinschätzungen zur Digitalisierung)
                 </li>
               </ul>
+
               <h3 className="text-lg font-semibold text-text mb-2">
                 Zweck und Rechtsgrundlage
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
-                Die Verarbeitung erfolgt zur Bearbeitung Ihres Antrags im
-                Rahmen des DigiKI-Projekts auf Grundlage von Art. 6 Abs. 1
-                lit. b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a
-                DSGVO (Einwilligung bei der Best-Practice-Veröffentlichung).
+                Die Verarbeitung erfolgt zur Bearbeitung Ihres Antrags bzw. Ihrer
+                Teilnahme am DigiKI-Projekt auf Grundlage von Art. 6 Abs. 1 lit.
+                b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO
+                (Einwilligung bei der Best-Practice-Veröffentlichung und beim
+                Konto-Anlegen im Rahmen der Bestandsaufnahme).
               </p>
+
               <h3 className="text-lg font-semibold text-text mb-2">
-                Auftragsverarbeitung (Supabase und Vercil)
+                Auftragsverarbeitung
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
-                Die Daten werden bei Supabase Inc. gespeichert. Supabase
-                verarbeitet die Daten ausschließlich in unserem Auftrag und
-                gemäß unseren Weisungen. Die Server befinden sich in der EU
-                (Irland). Ein Auftragsverarbeitungsvertrag (AVV) gemäß
-                Art. 28 DSGVO liegt vor.
+                Die Daten werden bei der <strong>Supabase Inc.</strong>
+                gespeichert. Supabase verarbeitet die Daten ausschließlich in
+                unserem Auftrag und gemäß unseren Weisungen. Die Projekt-Server
+                befinden sich in der EU (Region Irland). Ein
+                Auftragsverarbeitungsvertrag (AVV) gemäß Art. 28 DSGVO liegt
+                vor.
               </p>
-              <p className="text-text-light leading-relaxed mb-4">
-                Die Webseite wird bei Vercil gehostet. Vercil verarbeitet die
-                Daten ausschließlich nach dem <a href="https://vercel.com/legal/dpa">Auftragsverarbeitungsvertrag</a>. 
-                Die Server befinden sich in der EU. 
-                Ein Auftragsverarbeitungsvertrag (AVV) gemäß Art. 28 DSGVO liegt vor.
-              </p>
+
               <h3 className="text-lg font-semibold text-text mb-2">
                 Speicherdauer
               </h3>
               <p className="text-text-light leading-relaxed">
-                Die über die Formulare erhobenen Daten werden für die Dauer
-                des DigiKI-Projekts gespeichert und nach Projektabschluss
-                gelöscht, sofern keine gesetzlichen Aufbewahrungspflichten
-                bestehen.
+                Die über die Formulare erhobenen Daten werden für die Dauer des
+                DigiKI-Projekts gespeichert und nach Projektabschluss gelöscht,
+                sofern keine gesetzlichen Aufbewahrungspflichten bestehen.
               </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                5. Hosting, Bild-Speicher und Analyse (Vercel)
+              </h2>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Webseite wird bei <strong>Vercel Inc.</strong> (440 N Barranca
+                Ave #4133, Covina, CA 91723, USA) gehostet. Vercel verarbeitet
+                die Daten ausschließlich nach dem{" "}
+                <a
+                  href="https://vercel.com/legal/dpa"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Auftragsverarbeitungsvertrag
+                </a>{" "}
+                (AVV gemäß Art. 28 DSGVO). Die Auslieferung erfolgt über
+                EU-Server (Region Frankfurt, fra1); Vercel ist zudem nach dem
+                EU-US Data Privacy Framework zertifiziert.
+              </p>
+
               <h3 className="text-lg font-semibold text-text mb-2">
-                Transparenz
+                Vercel Blob Storage (Bilder)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Grafiken und Fotos der Website werden über Vercel Blob Storage
+                ausgeliefert (CDN, EU-Region). Beim Laden eines Bildes wird Ihre
+                IP-Adresse an Vercel übermittelt. Eine Speicherung personenbezogener
+                Informationen erfolgt nicht.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Vercel Analytics und Speed Insights
               </h3>
               <p className="text-text-light leading-relaxed">
-                Die Webseite ist als Open Source Software veroeffentlicht und
-                ist unter{" "}
+                Zur Reichweitenmessung und Performance-Analyse nutzen wir
+                Vercel Analytics sowie Vercel Speed Insights. Beide Dienste
+                arbeiten <strong>cookielos</strong> und erfassen ausschließlich
+                anonymisierte, aggregierte Kennzahlen (z.&thinsp;B.
+                Seitenaufrufe, Gerätetyp, ungefähre geografische Region, Web
+                Vitals). Es werden keine Profile gebildet und keine IP-Adressen
+                dauerhaft gespeichert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f
+                DSGVO (berechtigtes Interesse an einer fehlerfreien und
+                performanten Bereitstellung der Website).
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                6. Microsoft Teams (Informationsveranstaltungen)
+              </h2>
+              <p className="text-text-light leading-relaxed mb-4">
+                Auf dieser Website werden Links zu offenen
+                Informationsveranstaltungen per <strong>Microsoft Teams</strong>{" "}
+                veröffentlicht. Wenn Sie einen solchen Link anklicken, werden
+                Sie auf die Server der Microsoft Corporation (One Microsoft Way,
+                Redmond, WA 98052-6399, USA) bzw. Microsoft Ireland Operations
+                Limited weitergeleitet. Die Stadt Osnabrück hat keinen Einfluss
+                auf die dort stattfindende Datenverarbeitung.
+              </p>
+              <p className="text-text-light leading-relaxed mb-4">
+                Bei Teilnahme an einer Teams-Besprechung verarbeitet Microsoft
+                u.&thinsp;a. Ihren angezeigten Namen, Ihre IP-Adresse,
+                Geräteinformationen sowie – je nach Aktivierung – Audio-, Video-
+                und Chat-Inhalte. Weitere Informationen finden Sie in der{" "}
+                <a
+                  href="https://privacy.microsoft.com/de-de/privacystatement"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Datenschutzerklärung von Microsoft
+                </a>
+                .
+              </p>
+              <p className="text-text-light leading-relaxed">
+                Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO (Einwilligung
+                durch aktives Klicken auf den Teilnehmen-Link) bzw. Art. 6 Abs. 1
+                lit. e DSGVO (Wahrnehmung einer Aufgabe im öffentlichen
+                Interesse). Ein Auftritt in der Konferenz ist freiwillig –
+                Kamera und Mikrofon können jederzeit deaktiviert werden.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                7. E-Mail-Versand (transaktionale Nachrichten)
+              </h2>
+              <p className="text-text-light leading-relaxed mb-4">
+                Im Rahmen der Kontoregistrierung, Passwort-Wiederherstellung
+                und Formular-Einreichung versenden wir transaktionale E-Mails
+                (z.&thinsp;B. Bestätigungslinks, 8-stellige Verifizierungscodes,
+                Eingangsbestätigungen). Der Versand erfolgt über den SMTP-Server
+                unseres Hosting-Anbieters <strong>checkdomain GmbH</strong>{" "}
+                (An der Wiemelke 7, 41366 Schwalmtal, Deutschland) sowie über
+                den E-Mail-Dienst von Supabase Auth.
+              </p>
+              <p className="text-text-light leading-relaxed">
+                Inhalt und Empfängeradresse werden ausschließlich zum Zweck des
+                jeweiligen Versands verarbeitet und nicht für andere Zwecke
+                verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
+                (Vertragsanbahnung / Vertragserfüllung). Mit der checkdomain GmbH
+                besteht ein Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO;
+                die Server stehen in Deutschland.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                8. Externe Dienste und Schriftarten
+              </h2>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                OpenStreetMap Nominatim (Adress-Autovervollständigung)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Für die Adress-Vervollständigung in den Antragsformularen
+                nutzen wir den Dienst Nominatim der OpenStreetMap Foundation.
+                Die Anfragen werden über unseren Server weitergeleitet, sodass
+                Ihre IP-Adresse <strong>nicht</strong> direkt an OpenStreetMap
+                übermittelt wird. Es gelten die{" "}
+                <a
+                  href="https://osmfoundation.org/wiki/Privacy_Policy"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Datenschutzbestimmungen der OpenStreetMap Foundation
+                </a>
+                . Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+                Interesse an einer benutzerfreundlichen Adresseingabe).
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Schriftart Inter (self-hosted)
+              </h3>
+              <p className="text-text-light leading-relaxed">
+                Die Schriftart „Inter" wird lokal über unseren Server
+                ausgeliefert (Self-Hosting via <code>next/font</code>). Es
+                findet <strong>keine</strong> Verbindung zu Google Fonts oder
+                anderen externen Font-Servern statt.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                9. Transparenz (Open Source)
+              </h2>
+              <p className="text-text-light leading-relaxed">
+                Der Quellcode dieser Website ist als Open-Source-Software
+                veröffentlicht und unter{" "}
                 <a
                   href="https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-"
                   className="text-primary-light underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  DigiKi auf Github
+                  DigiKI auf GitHub
                 </a>{" "}
-                erreichbar. Dies ermöglicht eine vollständige
-                Transparenz der Datenverarbeitung. Da sämtliche Datenbankenstruckturen
-                und Seitenquellcodes von unserer Webseite veröffentlicht sind.
+                einsehbar. Datenbank-Strukturen und Seitenquellcode sind
+                vollständig offengelegt. Dies ermöglicht eine unabhängige
+                Überprüfung der Datenverarbeitung.
               </p>
             </div>
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                5. Externe Dienste und Links
-              </h2>
-              <p className="text-text-light leading-relaxed mb-4">
-                Diese Website enthält Links zu externen Diensten, insbesondere:
-              </p>
-              <ul className="list-disc ml-6 text-text-light space-y-2 mb-4">
-                <li>
-                  <strong>OpenStreetMap Nominatim</strong> für die
-                  Adress-Autovervollständigung in den Antragsformularen. Die
-                  Anfragen werden über unseren Server weitergeleitet, sodass
-                  Ihre IP-Adresse nicht direkt an OpenStreetMap übermittelt
-                  wird. Es gelten die{" "}
-                  <a
-                    href="https://osmfoundation.org/wiki/Privacy_Policy"
-                    className="text-primary-light underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Datenschutzbestimmungen der OpenStreetMap Foundation
-                  </a>
-                  . Die Nutzung erfolgt auf Grundlage von Art. 6 Abs. 1
-                  lit. f DSGVO (berechtigtes Interesse an einer
-                  benutzerfreundlichen Adresseingabe).
-                </li>
-              </ul>
-              <p className="text-text-light leading-relaxed">
-                Schriftarten werden lokal von dieser Website ausgeliefert
-                (Self-Hosting). Es findet keine Verbindung zu externen
-                Font-Servern statt.
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold text-primary mb-4">
-                6. Ihre Rechte
+                10. Ihre Rechte
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Sie haben im Rahmen der geltenden gesetzlichen Bestimmungen
-                jederzeit das Recht auf unentgeltliche Auskunft über Ihre
-                gespeicherten personenbezogenen Daten, deren Herkunft und
-                Empfänger und den Zweck der Datenverarbeitung und ggf. ein
-                Recht auf Berichtigung oder Löschung dieser Daten. Hierzu sowie
-                zu weiteren Fragen zum Thema personenbezogene Daten können Sie
-                sich jederzeit an uns wenden:
+                jederzeit folgende Rechte:
               </p>
+              <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
+                <li>
+                  <strong>Auskunft</strong> über die gespeicherten Daten (Art. 15
+                  DSGVO)
+                </li>
+                <li>
+                  <strong>Berichtigung</strong> unrichtiger Daten (Art. 16 DSGVO)
+                </li>
+                <li>
+                  <strong>Löschung</strong> Ihrer Daten (Art. 17 DSGVO)
+                </li>
+                <li>
+                  <strong>Einschränkung</strong> der Verarbeitung (Art. 18 DSGVO)
+                </li>
+                <li>
+                  <strong>Datenübertragbarkeit</strong> (Art. 20 DSGVO)
+                </li>
+                <li>
+                  <strong>Widerspruch</strong> gegen die Verarbeitung (Art. 21
+                  DSGVO)
+                </li>
+                <li>
+                  <strong>Widerruf</strong> erteilter Einwilligungen mit Wirkung
+                  für die Zukunft (Art. 7 Abs. 3 DSGVO)
+                </li>
+              </ul>
               <p className="text-text-light">
+                Für alle Anfragen wenden Sie sich bitte an:{" "}
                 <a
                   href="mailto:krafft@osnabrueck.de"
                   className="text-primary-light underline"
@@ -250,7 +385,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                7. Recht auf Beschwerde
+                11. Recht auf Beschwerde
               </h2>
               <p className="text-text-light leading-relaxed">
                 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde
