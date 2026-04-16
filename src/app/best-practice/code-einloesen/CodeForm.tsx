@@ -38,42 +38,74 @@ export default function CodeForm() {
 
     setLoading(true);
     const supabase = createClient();
+    const primaryType: Mode = mode;
+    const fallbackType: Mode = mode === "recovery" ? "signup" : "recovery";
+
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: cleanToken,
-      type: mode === "recovery" ? "recovery" : "signup",
+      type: primaryType,
     });
 
-    if (verifyError) {
-      console.error("Verify error:", verifyError.message);
-      const msg = verifyError.message.toLowerCase();
-      if (msg.includes("expired")) {
-        setError(
-          "Der Code ist abgelaufen. Bitte fordern Sie einen neuen Link an.",
+    if (!verifyError) {
+      // Primärer Modus hat funktioniert → normaler Redirect
+      setSuccess(true);
+      setLoading(false);
+      setTimeout(() => {
+        router.push(
+          primaryType === "recovery"
+            ? "/best-practice/passwort-zuruecksetzen"
+            : "/best-practice/datenbank",
         );
-      } else if (msg.includes("invalid") || msg.includes("not found")) {
-        setError(
-          "Code oder E-Mail-Adresse passen nicht. Bitte prüfen Sie Ihre Eingabe.",
-        );
-      } else {
-        setError(
-          "Der Code konnte nicht verifiziert werden. Bitte versuchen Sie es erneut.",
-        );
-      }
+      }, 1200);
+      return;
+    }
+
+    console.error("Verify error (primary):", verifyError.message);
+    const msg = verifyError.message.toLowerCase();
+
+    // Bei abgelaufenem Code sofort abbrechen – kein Typ-Verwechsler-Fallback sinnvoll.
+    if (msg.includes("expired")) {
+      setError("Der Code ist abgelaufen. Bitte fordern Sie einen neuen Link an.");
       setLoading(false);
       return;
     }
 
-    setSuccess(true);
-    setLoading(false);
+    // Prüfen, ob der Code zum anderen Typ passt (Nutzer hat den Modus verwechselt).
+    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("token")) {
+      const { error: fallbackError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: cleanToken,
+        type: fallbackType,
+      });
 
-    setTimeout(() => {
-      router.push(
-        mode === "recovery"
-          ? "/best-practice/passwort-zuruecksetzen"
-          : "/best-practice/datenbank",
+      if (!fallbackError) {
+        const typLabel = fallbackType === "recovery" ? "Passwort zurücksetzen" : "E-Mail bestätigen";
+        setError(
+          `Hinweis: Sie haben den Code für „${typLabel}" eingegeben, nicht für „${primaryType === "recovery" ? "Passwort zurücksetzen" : "E-Mail bestätigen"}". Sie werden trotzdem richtig weitergeleitet …`,
+        );
+        setSuccess(true);
+        setLoading(false);
+        setTimeout(() => {
+          router.push(
+            fallbackType === "recovery"
+              ? "/best-practice/passwort-zuruecksetzen"
+              : "/best-practice/datenbank",
+          );
+        }, 1800);
+        return;
+      }
+
+      // Auch Fallback fehlgeschlagen → Code oder Email falsch
+      setError(
+        "Code oder E-Mail-Adresse passen nicht. Bitte prüfen Sie Ihre Eingabe (Groß-/Kleinschreibung, Leerzeichen) und dass Sie den aktuellsten Code aus der E-Mail verwenden.",
       );
-    }, 1200);
+      setLoading(false);
+      return;
+    }
+
+    setError("Der Code konnte nicht verifiziert werden. Bitte versuchen Sie es erneut.");
+    setLoading(false);
   }
 
   if (success) {
