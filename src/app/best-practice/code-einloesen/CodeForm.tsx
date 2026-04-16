@@ -31,8 +31,8 @@ export default function CodeForm() {
     setError("");
 
     const cleanToken = token.replace(/\s+/g, "");
-    if (!/^\d{6}$/.test(cleanToken)) {
-      setError("Bitte geben Sie den 6-stelligen Code aus der E-Mail ein.");
+    if (!/^[A-Za-z0-9]{6,10}$/.test(cleanToken)) {
+      setError("Bitte geben Sie den Code aus der E-Mail ein (8 Zeichen).");
       return;
     }
 
@@ -99,7 +99,7 @@ export default function CodeForm() {
       <p className="text-sm text-text-light mb-6 leading-relaxed">
         Manche Schul- und Firmen-Netzwerke scannen E-Mail-Links automatisch und
         machen sie dadurch ungültig. Als Alternative finden Sie in der E-Mail
-        einen <strong>6-stelligen Code</strong>, den Sie hier eingeben können.
+        einen <strong>8-stelligen Code</strong>, den Sie hier eingeben können.
       </p>
 
       {/* Modus-Auswahl */}
@@ -159,19 +159,19 @@ export default function CodeForm() {
             htmlFor="code-token"
             className="block text-sm font-medium text-text mb-1.5"
           >
-            6-stelliger Code
+            8-stelliger Code
           </label>
           <input
             id="code-token"
             type="text"
             required
-            inputMode="numeric"
-            pattern="[0-9\s]*"
-            maxLength={7}
+            inputMode="text"
+            maxLength={12}
+            autoComplete="one-time-code"
             value={token}
             onChange={(e) => setToken(e.target.value)}
             className="w-full rounded-lg border border-border px-4 py-3 text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
-            placeholder="123 456"
+            placeholder="12345678"
           />
         </div>
 

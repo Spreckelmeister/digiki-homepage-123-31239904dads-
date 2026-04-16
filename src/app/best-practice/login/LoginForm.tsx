@@ -143,7 +143,7 @@ export default function LoginForm() {
             href="/best-practice/code-einloesen"
             className="text-primary-light underline hover:text-primary"
           >
-            6-stelligen Code eingeben
+            8-stelligen Code eingeben
           </Link>
         </p>
       </div>

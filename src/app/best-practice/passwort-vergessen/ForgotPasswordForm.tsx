@@ -46,7 +46,7 @@ export default function ForgotPasswordForm() {
             <strong>Link funktioniert nicht?</strong>
           </p>
           <p className="text-sm text-text-light mb-3">
-            In der E-Mail finden Sie auch einen <strong>6-stelligen Code</strong>,
+            In der E-Mail finden Sie auch einen <strong>8-stelligen Code</strong>,
             den Sie stattdessen eingeben können.
           </p>
           <Link
