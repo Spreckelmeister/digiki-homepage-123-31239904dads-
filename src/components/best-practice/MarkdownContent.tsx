@@ -33,8 +33,15 @@ export default function MarkdownContent({ content }: MarkdownContentProps) {
             </ol>
           ),
           a: ({ href, children }) => {
-            // Only allow http/https links to prevent javascript: XSS
-            if (href && !href.startsWith("http://") && !href.startsWith("https://")) {
+            // Nur absolute https/http-Links erlauben — blockt javascript:,
+            // data:, protocol-relative (//) und alle anderen Schemata.
+            if (!href) return <span>{children}</span>;
+            try {
+              const url = new URL(href);
+              if (url.protocol !== "https:" && url.protocol !== "http:") {
+                return <span>{children}</span>;
+              }
+            } catch {
               return <span>{children}</span>;
             }
             return (

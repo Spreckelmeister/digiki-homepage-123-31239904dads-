@@ -45,12 +45,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    // Basic email validation
-    if (
-      !email.includes("@") ||
-      email.length > 200 ||
-      email.length < 5
-    ) {
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 200) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 

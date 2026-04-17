@@ -9,12 +9,17 @@ export async function GET(request: Request) {
   const token_hash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type") as EmailOtpType | null;
 
-  // Only allow safe relative paths
+  // Only allow safe relative paths — normalize to prevent path traversal
   const rawNext = requestUrl.searchParams.get("next") ?? "/best-practice/datenbank";
-  const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//")
-      ? rawNext
+  let next: string;
+  try {
+    const parsed = new URL(rawNext, "http://localhost");
+    next = parsed.pathname.startsWith("/") && !parsed.pathname.startsWith("//")
+      ? parsed.pathname + parsed.search
       : "/best-practice/datenbank";
+  } catch {
+    next = "/best-practice/datenbank";
+  }
 
   const origin = requestUrl.origin;
 
