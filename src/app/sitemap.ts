@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-os.de"
+).replace(/\/+$/, "");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -18,6 +19,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${siteUrl}/ueber-das-projekt`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/bestandsaufnahme`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/best-practice`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${siteUrl}/fuer-schulen/antrag-hilfskraefte`,
       lastModified: new Date(),
       changeFrequency: "monthly",
@@ -30,22 +49,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${siteUrl}/ueber-das-projekt`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${siteUrl}/best-practice`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
       url: `${siteUrl}/best-practice/einreichen`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/barrierefreiheit`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.3,
     },
     {
       url: `${siteUrl}/impressum`,
