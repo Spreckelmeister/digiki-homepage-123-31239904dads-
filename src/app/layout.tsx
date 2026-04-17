@@ -36,13 +36,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
     description:
-      "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück.",
+      "Kostenlose Schulungen, Tool-Lizenzen und individuelle Begleitung für alle Grundschulen in Stadt und Landkreis Osnabrück. Gefördert durch regionale Stiftungen.",
     type: "website",
     locale: "de_DE",
     siteName: "DigiKI",
     images: [
       {
-        url: "/images/og-image.png",
+        url: "https://www.digiki-os.de/images/og-image.png",
         width: 1200,
         height: 630,
         alt: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     title: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
     description:
       "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück.",
-    images: ["/images/og-image.png"],
+    images: ["https://www.digiki-os.de/images/og-image.png"],
   },
   robots: {
     index: true,
