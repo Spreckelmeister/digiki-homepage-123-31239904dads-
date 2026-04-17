@@ -5,7 +5,7 @@ import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
-import CountdownBadge from "@/components/CountdownBadge";
+
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
 import {
@@ -32,7 +32,6 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <CountdownBadge />
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                 Digitale Kompetenz &amp; KI für{" "}
                 <span className="text-teal">Grundschulen</span>
@@ -348,27 +347,41 @@ export default function HomePage() {
               .filter((i) => i.type !== "event")
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .slice(0, 3)
-              .map((item) => (
-                <article
-                  key={item.id}
-                  className="bg-white rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
-                >
-                  <time
-                    dateTime={item.date}
-                    className="text-sm text-teal font-medium"
+              .map((item) => {
+                const isPast = new Date(item.date) < new Date();
+                return (
+                  <article
+                    key={item.id}
+                    className={`rounded-xl p-6 shadow-sm border transition-shadow hover:shadow-md ${
+                      isPast
+                        ? "bg-bg border-border/60"
+                        : "bg-white border-border"
+                    }`}
                   >
-                    {new Date(item.date).toLocaleDateString("de-DE", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </time>
-                  <h3 className="text-lg font-semibold text-primary mt-2 mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-sm text-text-light">{item.summary}</p>
-                </article>
-              ))}
+                    <div className="flex items-center gap-2">
+                      <time
+                        dateTime={item.date}
+                        className={`text-sm font-medium ${isPast ? "text-text-light" : "text-teal"}`}
+                      >
+                        {new Date(item.date).toLocaleDateString("de-DE", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </time>
+                      {isPast && (
+                        <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 font-medium">
+                          Gestartet
+                        </span>
+                      )}
+                    </div>
+                    <h3 className={`text-lg font-semibold mt-2 mb-2 ${isPast ? "text-primary/80" : "text-primary"}`}>
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-text-light">{item.summary}</p>
+                  </article>
+                );
+              })}
           </div>
         </AnimatedSection>
       </section>

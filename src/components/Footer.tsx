@@ -4,21 +4,16 @@ export default function Footer() {
   return (
     <footer className="bg-primary text-white" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/70">
+        <div className="text-center text-sm text-white/70">
           <p>
             &copy; {new Date().getFullYear()} DigiKI – Stadt Osnabrück
+            <span className="mx-2">·</span>
+            <Link href="/impressum" className="hover:text-white transition-colors">Impressum</Link>
+            <span className="mx-2">·</span>
+            <Link href="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
+            <span className="mx-2">·</span>
+            <Link href="/barrierefreiheit" className="hover:text-white transition-colors">Barrierefreiheit</Link>
           </p>
-          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Rechtliches">
-            <Link href="/impressum" className="hover:text-white transition-colors">
-              Impressum
-            </Link>
-            <Link href="/datenschutz" className="hover:text-white transition-colors">
-              Datenschutz
-            </Link>
-            <Link href="/barrierefreiheit" className="hover:text-white transition-colors">
-              Barrierefreiheit
-            </Link>
-          </nav>
         </div>
       </div>
     </footer>
