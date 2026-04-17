@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const CALLBACK_ERRORS: Record<string, string> = {
@@ -31,6 +31,7 @@ export default function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -98,15 +99,27 @@ export default function LoginForm() {
           >
             Passwort
           </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
-            placeholder="Ihr Passwort"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+              placeholder="Ihr Passwort"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-primary transition-colors"
+            >
+              {showPassword
+                ? <EyeOff className="w-5 h-5" aria-hidden="true" />
+                : <Eye className="w-5 h-5" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
 
         <button

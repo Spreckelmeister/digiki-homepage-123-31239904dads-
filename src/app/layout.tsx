@@ -40,12 +40,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "de_DE",
     siteName: "DigiKI",
+    images: [
+      {
+        url: "/images/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
     description:
       "Digitale Kompetenz und KI für alle Grundschulen in Stadt und Landkreis Osnabrück.",
+    images: ["/images/og-image.png"],
   },
   robots: {
     index: true,

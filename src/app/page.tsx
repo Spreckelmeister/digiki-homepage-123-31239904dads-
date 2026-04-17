@@ -5,7 +5,7 @@ import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
-
+import { EventsJsonLd } from "@/components/JsonLd";
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
 import {
@@ -20,6 +20,7 @@ import {
 export default function HomePage() {
   return (
     <>
+      <EventsJsonLd />
       {/* Hero Section */}
       <section className="relative bg-primary overflow-hidden">
         {/* Hintergrund-Muster */}
