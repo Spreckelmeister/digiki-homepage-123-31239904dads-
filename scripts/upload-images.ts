@@ -1,7 +1,8 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
-import { list, put } from "@vercel/blob";
+import { del, list, put } from "@vercel/blob";
 import { config } from "dotenv";
+import sharp from "sharp";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -11,8 +12,19 @@ const OUTPUT_FILE = resolve("src/data/images.generated.ts");
 const BLOB_PREFIX = "images/";
 const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
+// Komprimierungs-Einstellungen
+const MAX_WIDTH = 1920;
+const WEBP_QUALITY = 82;
+
 function slugFromFilename(file: string): string {
   return basename(file, extname(file));
+}
+
+async function compressToWebp(input: Buffer): Promise<Buffer> {
+  return sharp(input)
+    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
 }
 
 async function main() {
@@ -22,6 +34,8 @@ async function main() {
     );
     process.exit(1);
   }
+
+  const recompress = process.argv.includes("--recompress");
 
   const entries = await readdir(SOURCE_DIR, { withFileTypes: true });
   const files = entries
@@ -34,7 +48,10 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`📂 ${files.length} Bild(er) gefunden in ${SOURCE_DIR}\n`);
+  console.log(`📂 ${files.length} Bild(er) gefunden in ${SOURCE_DIR}`);
+  console.log(`   Komprimierung: max ${MAX_WIDTH}px Breite, WebP Q${WEBP_QUALITY}`);
+  if (recompress) console.log(`   🔄 --recompress: Alle Bilder werden neu hochgeladen`);
+  console.log();
 
   const existing = await list({ prefix: BLOB_PREFIX });
   const existingByPath = new Map(existing.blobs.map((b) => [b.pathname, b]));
@@ -43,27 +60,50 @@ async function main() {
 
   for (const file of files) {
     const slug = slugFromFilename(file);
-    const pathname = `${BLOB_PREFIX}${file}`;
-    const existingBlob = existingByPath.get(pathname);
+    const webpFilename = `${slug}.webp`;
+    const webpPathname = `${BLOB_PREFIX}${webpFilename}`;
 
-    if (existingBlob) {
-      console.log(`↻  ${file} — bereits hochgeladen, überspringe`);
-      results.push({ slug, url: existingBlob.url, filename: file });
+    // Auch alte JPG-Versionen als "bereits vorhanden" erkennen
+    const existingWebp = existingByPath.get(webpPathname);
+
+    if (existingWebp && !recompress) {
+      console.log(`↻  ${file} → ${webpFilename} — bereits vorhanden, überspringe`);
+      results.push({ slug, url: existingWebp.url, filename: webpFilename });
       continue;
     }
 
-    const data = await readFile(join(SOURCE_DIR, file));
-    console.log(`⬆  ${file} (${(data.length / 1024 / 1024).toFixed(2)} MB) …`);
+    // Original einlesen und komprimieren
+    const raw = await readFile(join(SOURCE_DIR, file));
+    const rawMb = (raw.length / 1024 / 1024).toFixed(2);
 
-    const blob = await put(pathname, data, {
+    const compressed = await compressToWebp(raw);
+    const compMb = (compressed.length / 1024 / 1024).toFixed(2);
+    const savings = (100 - (compressed.length / raw.length) * 100).toFixed(0);
+
+    console.log(`⬆  ${file} (${rawMb} MB) → ${webpFilename} (${compMb} MB, −${savings}%) …`);
+
+    // Alte JPG-Version löschen, falls vorhanden
+    const oldJpgPathname = `${BLOB_PREFIX}${file}`;
+    const oldJpg = existingByPath.get(oldJpgPathname);
+    if (oldJpg && extname(file).toLowerCase() !== ".webp") {
+      await del(oldJpg.url);
+      console.log(`   🗑  Alte Version ${file} gelöscht`);
+    }
+
+    // Alte WebP-Version löschen bei --recompress
+    if (existingWebp && recompress) {
+      await del(existingWebp.url);
+    }
+
+    const blob = await put(webpPathname, compressed, {
       access: "public",
       addRandomSuffix: false,
-      contentType: `image/${extname(file).slice(1).replace("jpg", "jpeg")}`,
+      contentType: "image/webp",
       cacheControlMaxAge: 31536000,
     });
 
     console.log(`   → ${blob.url}`);
-    results.push({ slug, url: blob.url, filename: file });
+    results.push({ slug, url: blob.url, filename: webpFilename });
   }
 
   results.sort((a, b) => a.slug.localeCompare(b.slug));
@@ -83,9 +123,10 @@ async function main() {
   ].join("\n");
 
   await writeFile(OUTPUT_FILE, body, "utf8");
-  console.log(`\n✅ URLs geschrieben nach ${OUTPUT_FILE}`);
-  console.log(`   ${results.length} Einträge:`);
-  for (const r of results) console.log(`   • ${r.slug}`);
+
+  const totalRaw = files.length;
+  console.log(`\n✅ ${totalRaw} Bilder verarbeitet → URLs in ${OUTPUT_FILE}`);
+  for (const r of results) console.log(`   • ${r.slug} → ${r.filename}`);
 }
 
 main().catch((err) => {
