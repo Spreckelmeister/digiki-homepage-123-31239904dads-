@@ -1,7 +1,8 @@
 import { projectData } from "@/data/project";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.digiki-os.de"
+).replace(/\/+$/, "");
 
 export function OrganizationJsonLd() {
   const jsonLd = {
@@ -50,34 +51,39 @@ export function EventsJsonLd() {
     },
   ];
 
-  const jsonLd = events.map((event) => ({
-    "@context": "https://schema.org",
-    "@type": "Event",
-    name: event.name,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
-    eventStatus: "https://schema.org/EventScheduled",
-    location: {
-      "@type": "VirtualLocation",
-      url: event.url,
-    },
-    organizer: {
-      "@type": "Organization",
-      name: "DigiKI – Stadt Osnabrück",
-      url: siteUrl,
-    },
-    description:
-      "Offene Informationsveranstaltung: Lernen Sie das DigiKI-Projekt kennen und stellen Sie Ihre Fragen direkt an das Team.",
-    isAccessibleForFree: true,
-    image: `${siteUrl}/images/og-image.png`,
-  }));
-
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <>
+      {events.map((event) => (
+        <script
+          key={event.startDate}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Event",
+              name: event.name,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+              eventStatus: "https://schema.org/EventScheduled",
+              location: {
+                "@type": "VirtualLocation",
+                url: event.url,
+              },
+              organizer: {
+                "@type": "Organization",
+                name: "DigiKI – Stadt Osnabrück",
+                url: siteUrl,
+              },
+              description:
+                "Offene Informationsveranstaltung: Lernen Sie das DigiKI-Projekt kennen und stellen Sie Ihre Fragen direkt an das Team.",
+              isAccessibleForFree: true,
+              image: `${siteUrl}/images/og-image.png`,
+            }),
+          }}
+        />
+      ))}
+    </>
   );
 }
 
