@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import Link from "next/link";
 import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -140,7 +140,7 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   );
 }
 
-function RadioGroup({
+const RadioGroup = memo(function RadioGroup({
   name, value, onChange, options,
 }: {
   name: string; value: string; onChange: (v: string) => void; options: string[];
@@ -174,9 +174,9 @@ function RadioGroup({
       ))}
     </div>
   );
-}
+});
 
-function CheckboxGroup({
+const CheckboxGroup = memo(function CheckboxGroup({
   values, onChange, options, max,
 }: {
   values: string[]; onChange: (v: string[]) => void; options: string[]; max?: number;
@@ -215,7 +215,7 @@ function CheckboxGroup({
       })}
     </div>
   );
-}
+});
 
 function OtherInput({
   value, onChange, placeholder = "Bitte angeben",

@@ -76,7 +76,7 @@ export default async function BestandsaufnahmeAdminPage() {
               Noch keine Bestandsaufnahmen eingegangen.
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden min-h-[400px]">
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
