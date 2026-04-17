@@ -81,23 +81,26 @@ export default function BarrierefreiheitPage() {
               </h2>
               <p className="text-text-light leading-relaxed">
                 Sollten Sie nach einer Kontaktaufnahme keine zufriedenstellende
-                Lösung erhalten, können Sie sich an die Schlichtungsstelle nach
-                § 16 BGG wenden:
+                Lösung erhalten, können Sie sich an die zuständige Stelle des
+                Landes Niedersachsen wenden:
               </p>
               <address className="mt-4 text-text-light not-italic leading-relaxed">
                 <p className="font-semibold text-primary">
-                  Schlichtungsstelle nach dem Behindertengleichstellungsgesetz
+                  Landesbeauftragte für Menschen mit Behinderungen
                 </p>
-                <p>bei dem Beauftragten der Bundesregierung für die Belange</p>
-                <p>von Menschen mit Behinderungen</p>
-                <p>Mauerstraße 53, 10117 Berlin</p>
+                <p>Niedersächsisches Ministerium für Soziales, Arbeit,</p>
+                <p>Gesundheit und Gleichstellung</p>
+                <p>Hannah-Arendt-Platz 2, 30159 Hannover</p>
                 <p className="mt-2">
+                  Telefon: 0511 120-4006
+                </p>
+                <p className="mt-1">
                   E-Mail:{" "}
                   <a
-                    href="mailto:info@schlichtungsstelle-bgg.de"
+                    href="mailto:behindertenbeauftragte@ms.niedersachsen.de"
                     className="text-accent hover:underline"
                   >
-                    info@schlichtungsstelle-bgg.de
+                    behindertenbeauftragte@ms.niedersachsen.de
                   </a>
                 </p>
               </address>

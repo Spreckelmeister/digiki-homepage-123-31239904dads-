@@ -62,6 +62,30 @@ export default function DatenschutzPage() {
                 und Mittel der Verarbeitung von personenbezogenen Daten
                 entscheidet.
               </p>
+
+              <h3 className="text-lg font-semibold text-text mt-6 mb-2">
+                Datenschutzbeauftragte
+              </h3>
+              <address className="not-italic text-text-light leading-relaxed">
+                <p className="font-semibold text-text">
+                  Städtische Datenschutzbeauftragte
+                </p>
+                <p>Frau Claas</p>
+                <p>Stadt Osnabrück</p>
+                <p>Luisenstraße 18, 49074 Osnabrück</p>
+                <p className="mt-2">
+                  Telefon: 0541 323-3695
+                </p>
+                <p className="mt-1">
+                  E-Mail:{" "}
+                  <a
+                    href="mailto:datenschutz@osnabrueck.de"
+                    className="text-primary-light underline"
+                  >
+                    datenschutz@osnabrueck.de
+                  </a>
+                </p>
+              </address>
             </div>
 
             <div>

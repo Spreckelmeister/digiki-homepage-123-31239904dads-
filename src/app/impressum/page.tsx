@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Impressum",
   description:
-    "Impressum der DigiKI-Projektwebsite. Angaben gemäß § 5 TMG: Stadt Osnabrück, Bildungskoordination.",
+    "Impressum der DigiKI-Projektwebsite. Angaben gemäß § 5 DDG: Stadt Osnabrück, Bildungskoordination.",
 };
 
 export default function ImpressumPage() {
@@ -22,7 +22,7 @@ export default function ImpressumPage() {
           <div className="bg-white rounded-xl p-8 shadow-sm border border-border space-y-8">
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                Angaben gemäß § 5 TMG
+                Angaben gemäß § 5 DDG
               </h2>
               <address className="not-italic text-text-light leading-relaxed">
                 <p className="font-semibold text-text">Stadt Osnabrück</p>
@@ -50,7 +50,7 @@ export default function ImpressumPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV
+                Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
               </h2>
               <p className="text-text-light">
                 Kai Krafft
@@ -68,9 +68,9 @@ export default function ImpressumPage() {
                 Haftung für Inhalte
               </h2>
               <p className="text-text-light leading-relaxed">
-                Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene
+                Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene
                 Inhalte auf diesen Seiten nach den allgemeinen Gesetzen
-                verantwortlich. Nach §§ 8 bis 10 TMG sind wir als
+                verantwortlich. Nach §§ 8 bis 10 DDG sind wir als
                 Diensteanbieter jedoch nicht verpflichtet, übermittelte oder
                 gespeicherte fremde Informationen zu überwachen oder nach
                 Umständen zu forschen, die auf eine rechtswidrige Tätigkeit

@@ -14,11 +14,13 @@ export default function CookieBanner() {
 
   const accept = () => {
     localStorage.setItem("digiki-cookie-consent", "accepted");
+    window.dispatchEvent(new Event("cookie-consent-changed"));
     setVisible(false);
   };
 
   const decline = () => {
     localStorage.setItem("digiki-cookie-consent", "declined");
+    window.dispatchEvent(new Event("cookie-consent-changed"));
     setVisible(false);
   };
 
