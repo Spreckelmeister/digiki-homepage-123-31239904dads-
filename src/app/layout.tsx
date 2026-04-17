@@ -17,6 +17,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  verification: {
+    google: "h9-cmaMDG5FFZLAVyGRxsfxREQtkL8Z4fZgd2XeCD-k",
+  },
   title: {
     default: "DigiKI – Digitalisierung & KI an Grundschulen Osnabrück",
     template: "%s | DigiKI",
