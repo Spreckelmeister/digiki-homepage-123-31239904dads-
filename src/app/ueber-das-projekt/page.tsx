@@ -79,7 +79,7 @@ export default function UeberDasProjektPage() {
                   (Projektleiter: Kai Krafft, Bildungskoordinator im Fachbereich 40-3 Bildung). Die
                   Finanzierung erfolgt durch die Friedel &amp; Gisela
                   Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung
-                  Stahlwerk Georgsmarienhütte und Herrn Hellmann als privaten
+                  Stahlwerk Georgsmarienhütte und Klaus Hellmann als privaten
                   Förderer.
                 </p>
               </div>
@@ -317,7 +317,7 @@ export default function UeberDasProjektPage() {
                 <p className="text-sm text-text-light text-center">
                   Gefördert durch die Friedel &amp; Gisela Bohnenkamp-Stiftung,
                   die Fromm-Stiftung, die Stiftung Stahlwerk Georgsmarienhütte
-                  und Herrn Hellmann.
+                  und Klaus Hellmann.
                 </p>
               </div>
             </div>

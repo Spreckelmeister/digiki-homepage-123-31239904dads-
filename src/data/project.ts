@@ -57,12 +57,12 @@ export const partners = [
   { name: "RLSB Osnabrück", logo: "/images/logos/Logo RLSB OS transparent.png", url: "https://www.rlsb.de/organisation/dienststellen/regionalabteilung-osnabrueck" },
 ];
 
-// Förderer – Stiftungen und Herr Hellmann, mit Links zu den Homepages
+// Förderer – Stiftungen und Klaus Hellmann, mit Links zu den Homepages
 export const funders = [
   { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de" },
   { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.facebook.com/FROMMStiftung/?locale=de_DE" },
   { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de" },
-  { name: "Herr Hellmann", logo: null, url: "#", isPrivate: true },
+  { name: "Klaus Hellmann", logo: null, url: "#", isPrivate: true },
 ];
 
 export const timelinePhases = [
@@ -197,7 +197,7 @@ export const faqItems = [
   },
   {
     question: "Ist die Teilnahme kostenlos?",
-    answer: "Ja, die Teilnahme an allen Angeboten ist für die Schulen kostenlos. Das Projekt wird durch regionale Stiftungen und private Förderer finanziert – darunter die Friedel & Gisela Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung Stahlwerk Georgsmarienhütte und Herr Hellmann.",
+    answer: "Ja, die Teilnahme an allen Angeboten ist für die Schulen kostenlos. Das Projekt wird durch regionale Stiftungen und private Förderer finanziert – darunter die Friedel & Gisela Bohnenkamp-Stiftung, die Fromm-Stiftung, die Stiftung Stahlwerk Georgsmarienhütte und Klaus Hellmann.",
   },
   {
     question: "Welche Tools und Plattformen werden eingesetzt?",

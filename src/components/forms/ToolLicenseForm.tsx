@@ -350,7 +350,7 @@ export default function ToolLicenseForm({
 
       {!editMode && (
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-          Dank der Förderung durch die Stiftungen und Herrn Hellmann können
+          Dank der Förderung durch die Stiftungen und Klaus Hellmann können
           Grundschulen in Stadt und Landkreis Osnabrück kostenlose Lizenzen für
           ausgewählte, DSGVO-konforme Lern-Tools beantragen. Alle Tools sind auf
           ihren pädagogischen Nutzen geprüft und auf die Bedürfnisse von
