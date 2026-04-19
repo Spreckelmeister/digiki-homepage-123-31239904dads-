@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, FileText, Eye, EyeOff } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import AdminTable from "@/components/best-practice/AdminTable";
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function AdminPage() {
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
   const { data: practices } = await supabase
     .from("best_practices")
@@ -39,7 +40,7 @@ export default async function AdminPage() {
               </p>
               <AdminNav />
             </div>
-            <AuthStatus />
+            <AuthStatus initialProfile={profile} />
           </div>
         </div>
       </section>

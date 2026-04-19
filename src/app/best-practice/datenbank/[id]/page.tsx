@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, BookOpen, Wrench } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import MarkdownContent from "@/components/best-practice/MarkdownContent";
 
@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function BestPracticeDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
   const { data: practice } = await supabase
     .from("best_practices")
@@ -73,7 +74,7 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
                 {practice.title}
               </h1>
             </div>
-            <AuthStatus />
+            <AuthStatus initialProfile={profile} />
           </div>
         </div>
       </section>

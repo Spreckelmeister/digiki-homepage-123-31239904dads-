@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import ApplicationDetail, {
@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function ToolLizenzenDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
   const { data: app } = await supabase
     .from("applications_tool_licenses")
@@ -61,7 +62,7 @@ export default async function ToolLizenzenDetailPage({ params }: PageProps) {
               <p className="text-lg text-white/70 mt-1">{app.school_name}</p>
               <AdminNav />
             </div>
-            <AuthStatus />
+            <AuthStatus initialProfile={profile} />
           </div>
         </div>
       </section>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardList, FileText, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import ApplicationsTable from "@/components/best-practice/ApplicationsTable";
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function AntraegePage() {
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
   const [{ data: studentApps }, { data: toolApps }] = await Promise.all([
     supabase
@@ -66,7 +67,7 @@ export default async function AntraegePage() {
               </p>
               <AdminNav />
             </div>
-            <AuthStatus />
+            <AuthStatus initialProfile={profile} />
           </div>
         </div>
       </section>

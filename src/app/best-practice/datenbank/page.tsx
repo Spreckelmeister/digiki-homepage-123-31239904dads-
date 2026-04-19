@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import BestPracticeList from "@/components/best-practice/BestPracticeList";
 import MySubmissions from "@/components/best-practice/MySubmissions";
@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 export default async function DatenbankPage() {
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
   const { data: practices } = await supabase
     .from("best_practices")
@@ -38,7 +39,7 @@ export default async function DatenbankPage() {
                 Erprobte Unterrichtsbeispiele mit digitalen Tools und KI.
               </p>
             </div>
-            <AuthStatus />
+            <AuthStatus initialProfile={profile} />
           </div>
         </div>
       </section>

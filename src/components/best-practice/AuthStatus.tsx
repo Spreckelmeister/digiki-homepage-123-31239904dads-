@@ -7,11 +7,18 @@ import { LogOut, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
-export default function AuthStatus() {
+export default function AuthStatus({
+  initialProfile,
+}: {
+  initialProfile?: Profile | null;
+} = {}) {
   const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(
+    initialProfile ?? null
+  );
 
   useEffect(() => {
+    if (initialProfile) return;
     async function loadProfile() {
       const supabase = createClient();
       const {
@@ -27,7 +34,7 @@ export default function AuthStatus() {
       }
     }
     loadProfile();
-  }, []);
+  }, [initialProfile]);
 
   async function handleLogout() {
     const supabase = createClient();
