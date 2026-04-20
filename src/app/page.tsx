@@ -476,7 +476,7 @@ export default function HomePage() {
                     {inner}
                   </a>
                 ) : (
-                  <div key={funder.name} className="-ml-4 md:-ml-6 transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
+                  <div key={funder.name} className="md:-ml-6 transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
                     {inner}
                   </div>
                 );
@@ -484,32 +484,31 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Trennlinie */}
-          <div className="border-t border-border my-16" />
+          {/* Kurze, dezentere Trennlinie für die Attributionsebene */}
+          <div className="mx-auto w-20 border-t border-border/70 my-14" />
 
-          {/* Fördermittelmanagement */}
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
-              Fördermittelmanagement über
-            </h2>
-            <div className="flex justify-center items-center">
-              <a
-                href="https://www.hausdesstiftens.org/foerderfonds/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
-              >
-                <div className="relative w-[180px] h-[80px]">
-                  <Image
-                    src="/images/logos/HdS_Logo_2017.png"
-                    alt="Logo Haus des Stiftens"
-                    fill
-                    className="object-contain"
-                    sizes="180px"
-                  />
-                </div>
-              </a>
-            </div>
+          {/* Durchgeführt von – bewusst kleinere Hierarchie als Projektbeteiligte & Förderer */}
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-xs uppercase tracking-[0.25em] text-text-light font-medium">
+              Durchgeführt von
+            </p>
+            <a
+              href="https://www.hausdesstiftens.org/foerderfonds/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Haus des Stiftens (externer Link)"
+              className="opacity-80 transition-all duration-200 hover:opacity-100 hover:scale-105 hover:drop-shadow-md"
+            >
+              <div className="relative w-[120px] h-[48px]">
+                <Image
+                  src="/images/logos/HdS_Logo_2017.png"
+                  alt="Logo Haus des Stiftens"
+                  fill
+                  className="object-contain"
+                  sizes="120px"
+                />
+              </div>
+            </a>
           </div>
         </AnimatedSection>
       </section>
