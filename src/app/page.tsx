@@ -489,7 +489,7 @@ export default function HomePage() {
 
           {/* Durchgeführt von – bewusst kleinere Hierarchie als Projektbeteiligte & Förderer */}
           <div className="flex flex-col items-center gap-4">
-            <p className="text-xs uppercase tracking-[0.25em] text-text-light font-medium">
+            <p className="text-xs uppercase tracking-[0.25em] text-primary font-medium">
               Durchgeführt von
             </p>
             <a
