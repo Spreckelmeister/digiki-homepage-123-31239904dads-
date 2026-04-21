@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordForm() {
@@ -89,6 +89,22 @@ export default function ForgotPasswordForm() {
             className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
             placeholder="ihre.email@schule.de"
           />
+          {/\.nibis\.de\s*$/i.test(email.trim()) && (
+            <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>
+                An NIBIS-Adressen (<code className="font-mono text-xs">@*.nibis.de</code>) können aktuell
+                keine Mails zugestellt werden. Bitte wenden Sie sich für das Zurücksetzen des Passworts an{" "}
+                <a
+                  href="mailto:krafft@osnabrueck.de"
+                  className="underline hover:text-red-900"
+                >
+                  krafft@osnabrueck.de
+                </a>
+                .
+              </span>
+            </p>
+          )}
         </div>
 
         <button

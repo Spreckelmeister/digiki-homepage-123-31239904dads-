@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, memo } from "react";
 import Link from "next/link";
-import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff } from "lucide-react";
+import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
@@ -1467,8 +1467,33 @@ export default function BestandsaufnahmeForm({
 
             <p className="text-sm text-text-light leading-relaxed">
               Mit diesen Angaben wird automatisch ein Login für die DigiKI Best-Practice-Datenbank angelegt.
-              Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail von Supabase – erst danach ist der Account aktiv.
+              Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail – erst danach ist der Account aktiv.
             </p>
+
+            <div
+              role="note"
+              className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+              <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
+              <div className="space-y-1">
+                <p className="font-semibold">
+                  Hinweis zu NIBIS-Adressen (<code className="font-mono text-xs">@*.nibis.de</code>)
+                </p>
+                <p className="leading-relaxed">
+                  Der niedersächsische Bildungsserver blockiert derzeit automatisierte Bestätigungsmails unseres Projekts.
+                  Eine Zustellung an Adressen wie <code className="font-mono text-xs">schulleitung@xxxxx.nibis.de</code> ist
+                  aktuell <strong>nicht möglich</strong>. Bitte nutzen Sie für die Registrierung eine andere
+                  dienstliche oder private E-Mail-Adresse. Bei Fragen:{" "}
+                  <a
+                    href="mailto:krafft@osnabrueck.de"
+                    className="underline hover:text-amber-950"
+                  >
+                    krafft@osnabrueck.de
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
 
             <div>
               <FieldLabel required>Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
@@ -1486,6 +1511,15 @@ export default function BestandsaufnahmeForm({
               <FieldLabel required>E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
                 placeholder="ihre.email@schule.de" />
+              {/\.nibis\.de\s*$/i.test(contactEmail.trim()) && (
+                <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>
+                    An NIBIS-Adressen (<code className="font-mono text-xs">@*.nibis.de</code>) können aktuell
+                    keine Bestätigungsmails zugestellt werden. Bitte verwenden Sie eine andere E-Mail-Adresse.
+                  </span>
+                </p>
+              )}
             </div>
 
             <div>
