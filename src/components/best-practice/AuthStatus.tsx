@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
@@ -50,6 +50,13 @@ export default function AuthStatus({
       <span className="text-white/70">
         Angemeldet als <strong className="text-white">{profile.full_name}</strong>
       </span>
+      <Link
+        href="/best-practice/konto"
+        className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
+      >
+        <User className="w-4 h-4" aria-hidden="true" />
+        Konto
+      </Link>
       {profile.role === "admin" && (
         <Link
           href="/best-practice/admin"

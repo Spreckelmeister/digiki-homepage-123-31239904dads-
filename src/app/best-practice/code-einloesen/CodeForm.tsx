@@ -6,14 +6,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { KeyRound, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type Mode = "signup" | "recovery";
+type Mode = "signup" | "recovery" | "email_change";
+
+const MODE_LABELS: Record<Mode, string> = {
+  signup: "E-Mail bestätigen",
+  recovery: "Passwort zurücksetzen",
+  email_change: "E-Mail ändern",
+};
+
+const MODE_REDIRECTS: Record<Mode, string> = {
+  signup: "/best-practice/datenbank",
+  recovery: "/best-practice/passwort-zuruecksetzen",
+  email_change: "/best-practice/konto",
+};
+
+function parseMode(value: string | null): Mode {
+  if (value === "recovery") return "recovery";
+  if (value === "email_change") return "email_change";
+  return "signup";
+}
 
 export default function CodeForm() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const initialMode: Mode =
-    params.get("type") === "recovery" ? "recovery" : "signup";
+  const initialMode: Mode = parseMode(params.get("type"));
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
@@ -23,7 +40,7 @@ export default function CodeForm() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    setMode(params.get("type") === "recovery" ? "recovery" : "signup");
+    setMode(parseMode(params.get("type")));
   }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -39,7 +56,9 @@ export default function CodeForm() {
     setLoading(true);
     const supabase = createClient();
     const primaryType: Mode = mode;
-    const fallbackType: Mode = mode === "recovery" ? "signup" : "recovery";
+    const fallbackTypes: Mode[] = (
+      ["signup", "recovery", "email_change"] as Mode[]
+    ).filter((t) => t !== primaryType);
 
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
@@ -52,11 +71,7 @@ export default function CodeForm() {
       setSuccess(true);
       setLoading(false);
       setTimeout(() => {
-        router.push(
-          primaryType === "recovery"
-            ? "/best-practice/passwort-zuruecksetzen"
-            : "/best-practice/datenbank",
-        );
+        router.push(MODE_REDIRECTS[primaryType]);
       }, 1200);
       return;
     }
@@ -71,32 +86,29 @@ export default function CodeForm() {
       return;
     }
 
-    // Prüfen, ob der Code zum anderen Typ passt (Nutzer hat den Modus verwechselt).
+    // Prüfen, ob der Code zu einem anderen Typ passt (Nutzer hat den Modus verwechselt).
     if (msg.includes("invalid") || msg.includes("not found") || msg.includes("token")) {
-      const { error: fallbackError } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: cleanToken,
-        type: fallbackType,
-      });
+      for (const fallbackType of fallbackTypes) {
+        const { error: fallbackError } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: cleanToken,
+          type: fallbackType,
+        });
 
-      if (!fallbackError) {
-        const typLabel = fallbackType === "recovery" ? "Passwort zurücksetzen" : "E-Mail bestätigen";
-        setError(
-          `Hinweis: Sie haben den Code für „${typLabel}" eingegeben, nicht für „${primaryType === "recovery" ? "Passwort zurücksetzen" : "E-Mail bestätigen"}". Sie werden trotzdem richtig weitergeleitet …`,
-        );
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-          router.push(
-            fallbackType === "recovery"
-              ? "/best-practice/passwort-zuruecksetzen"
-              : "/best-practice/datenbank",
+        if (!fallbackError) {
+          setError(
+            `Hinweis: Sie haben den Code für „${MODE_LABELS[fallbackType]}" eingegeben, nicht für „${MODE_LABELS[primaryType]}". Sie werden trotzdem richtig weitergeleitet …`,
           );
-        }, 1800);
-        return;
+          setSuccess(true);
+          setLoading(false);
+          setTimeout(() => {
+            router.push(MODE_REDIRECTS[fallbackType]);
+          }, 1800);
+          return;
+        }
       }
 
-      // Auch Fallback fehlgeschlagen → Code oder Email falsch
+      // Alle Fallbacks fehlgeschlagen → Code oder Email falsch
       setError(
         "Code oder E-Mail-Adresse passen nicht. Bitte prüfen Sie Ihre Eingabe (Groß-/Kleinschreibung, Leerzeichen) und dass Sie den aktuellsten Code aus der E-Mail verwenden.",
       );
@@ -117,7 +129,9 @@ export default function CodeForm() {
         <h2 className="text-lg font-semibold text-primary mb-2">
           {mode === "recovery"
             ? "Code bestätigt"
-            : "E-Mail-Adresse bestätigt"}
+            : mode === "email_change"
+              ? "Neue E-Mail-Adresse bestätigt"
+              : "E-Mail-Adresse bestätigt"}
         </h2>
         <p className="text-sm text-text-light">
           Sie werden in einem Moment weitergeleitet.
@@ -135,29 +149,21 @@ export default function CodeForm() {
       </p>
 
       {/* Modus-Auswahl */}
-      <div className="flex gap-2 mb-6 p-1 bg-bg rounded-lg">
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            mode === "signup"
-              ? "bg-white text-primary shadow-sm"
-              : "text-text-light hover:text-primary"
-          }`}
-        >
-          E-Mail bestätigen
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("recovery")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            mode === "recovery"
-              ? "bg-white text-primary shadow-sm"
-              : "text-text-light hover:text-primary"
-          }`}
-        >
-          Passwort zurücksetzen
-        </button>
+      <div className="flex flex-col sm:flex-row gap-1 mb-6 p-1 bg-bg rounded-lg">
+        {(["signup", "recovery", "email_change"] as Mode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              mode === m
+                ? "bg-white text-primary shadow-sm"
+                : "text-text-light hover:text-primary"
+            }`}
+          >
+            {MODE_LABELS[m]}
+          </button>
+        ))}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
