@@ -5,6 +5,7 @@ import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import BestandsaufnahmeStatusManager from "@/components/best-practice/BestandsaufnahmeStatusManager";
+import UserEmailManager from "@/components/best-practice/UserEmailManager";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -78,6 +79,14 @@ export default async function BestandsaufnahmeDetailPage({
             initialStatus={r.status}
             adminNotes={r.admin_notes ?? ""}
           />
+
+          {/* Login-E-Mail ändern (für Fälle wie NIBIS, bei denen keine Aktivierungsmail ankommt) */}
+          {r.user_id && r.contact_email && (
+            <UserEmailManager
+              userId={r.user_id}
+              currentEmail={r.contact_email}
+            />
+          )}
 
           {/* Teil A */}
           <Section title="🏫 Teil A: Allgemeine Angaben">
