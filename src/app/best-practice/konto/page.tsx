@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import MyEmailChanger from "@/components/best-practice/MyEmailChanger";
+import MyPasswordChanger from "@/components/best-practice/MyPasswordChanger";
+import MyAccountDeleter from "@/components/best-practice/MyAccountDeleter";
 
 export const metadata: Metadata = {
   title: "Konto - DigiKI",
@@ -52,6 +54,12 @@ export default async function KontoPage() {
       <section className="py-8 md:py-12">
         <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 space-y-6">
           <MyEmailChanger currentEmail={user.email ?? ""} />
+          <MyPasswordChanger email={user.email ?? ""} />
+
+          {/* Danger zone – visuell abgesetzt */}
+          <div className="pt-4">
+            <MyAccountDeleter />
+          </div>
         </div>
       </section>
     </>
