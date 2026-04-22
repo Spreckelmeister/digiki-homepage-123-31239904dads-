@@ -101,7 +101,15 @@ export default function StatCounter({ value, label, description }: StatCounterPr
       }`}
     >
       <div className="text-3xl md:text-4xl font-bold text-accent-strong mb-1 tabular-nums whitespace-nowrap">
-        {displayValue}
+        {/* Layout-stabiler Rahmen: der unsichtbare Endwert reserviert die Breite,
+            damit die Animation keine Forced-Reflows auf Mobile auslöst.
+            Screen-Reader lesen den finalen Wert; der sichtbare Zahl-Lauf ist aria-hidden. */}
+        <span className="relative inline-block">
+          <span className="invisible">{value}</span>
+          <span aria-hidden="true" className="absolute inset-0">
+            {displayValue}
+          </span>
+        </span>
       </div>
       <div className="text-lg font-semibold text-primary">{label}</div>
       <div className="text-sm text-text-light mt-1">{description}</div>

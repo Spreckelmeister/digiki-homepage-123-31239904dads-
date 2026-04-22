@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // CSS direkt in die HTML-Antwort inlinen → eliminiert den render-blockenden
+  // CSS-Fetch aus dem kritischen Pfad (HTML+CSS in einer Response statt zwei).
+  experimental: {
+    inlineCss: true,
+    // Tree-shaking für Lucide-Icons: nur die tatsächlich verwendeten Icons landen im Bundle.
+    optimizePackageImports: ["lucide-react"],
+  },
   // Packages, die vorkompilierten ES5/ES2015-Code mit Polyfills ausliefern,
   // re-transpilieren wir via SWC auf die Browserslist-Targets (package.json).
   // Spart Array.prototype.at, Object.hasOwn, String.trimEnd/Start etc.
