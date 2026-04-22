@@ -449,7 +449,11 @@ export default function HomePage() {
                   >
                     <Image
                       src={funder.logo}
-                      alt={`Logo ${funder.name}`}
+                      alt={
+                        "logoAlt" in funder && funder.logoAlt
+                          ? funder.logoAlt
+                          : `Logo ${funder.name}`
+                      }
                       fill
                       className="object-contain"
                       sizes="140px"
