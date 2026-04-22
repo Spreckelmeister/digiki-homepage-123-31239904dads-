@@ -100,7 +100,7 @@ export default function StatCounter({ value, label, description }: StatCounterPr
         isVisible ? "opacity-100" : "opacity-0"
       }`}
     >
-      <div className="text-3xl md:text-4xl font-bold text-accent mb-1 tabular-nums">
+      <div className="text-3xl md:text-4xl font-bold text-accent-strong mb-1 tabular-nums">
         {displayValue}
       </div>
       <div className="text-lg font-semibold text-primary">{label}</div>

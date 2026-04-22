@@ -4,8 +4,10 @@
   /* Offizielle Farben Stadt Osnabrück */
   --color-primary: #006363;       /* Barrierefreie Alternative zum Osnabrück-Türkis */
   --color-primary-light: #00cabe; /* Osnabrück-Türkis */
-  --color-accent: #E8A838;        /* Warmgelb für CTAs */
+  --color-accent: #E8A838;        /* Warmgelb – für Buttons mit dunkler Schrift (text-text) */
   --color-accent-hover: #d4962e;
+  --color-accent-strong: #AB7A0E; /* Dunkleres Warm-Gold für Text auf Weiß (Large-Text AA ~3.8:1) */
+  --color-accent-strong-hover: #8F660A;
   --color-teal: #00cabe;          /* Osnabrück-Türkis */
   --color-teal-dark: #006363;     /* Barrierefreie Alternativfarbe */
   --color-bg: #F5F9F9;

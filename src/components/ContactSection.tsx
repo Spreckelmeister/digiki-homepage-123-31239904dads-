@@ -30,7 +30,7 @@ export default function ContactSection() {
                   <Mail className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/70">E-Mail</p>
+                  <p className="text-sm text-white/90">E-Mail</p>
                   <a
                     href={`mailto:${projectData.contactEmail}`}
                     className="hover:text-white transition-colors"
@@ -44,7 +44,7 @@ export default function ContactSection() {
                   <MapPin className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/70">Adresse</p>
+                  <p className="text-sm text-white/90">Adresse</p>
                   <p>{projectData.projectLeadAddress}</p>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export default function ContactSection() {
             <h3 className="text-lg font-semibold text-white mb-1">
               Ihr Ansprechpartner
             </h3>
-            <p className="text-white/70 mb-6">{projectData.projectLeadRole}</p>
+            <p className="text-white/90 mb-6">{projectData.projectLeadRole}</p>
 
             <p className="text-2xl font-bold text-white mb-6">
               {projectData.projectLead}
@@ -65,7 +65,7 @@ export default function ContactSection() {
             <div className="space-y-3">
               <a
                 href={`mailto:${projectData.contactEmail}?subject=Interesse an DigiKI-Teilnahme`}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
               >
                 <Mail className="w-4 h-4" aria-hidden="true" />
                 E-Mail schreiben

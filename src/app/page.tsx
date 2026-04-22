@@ -44,7 +44,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href={projectData.surveyUrl}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
                 >
                   Jetzt teilnehmen
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
@@ -102,7 +102,7 @@ export default function HomePage() {
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
               />
             </div>
             <div>
@@ -326,7 +326,8 @@ export default function HomePage() {
                           href={d.joinUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 bg-accent text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-accent-hover transition-colors"
+                          aria-label={`Per Teams teilnehmen – ${d.label}, ${d.time}`}
+                          className="inline-flex items-center gap-1.5 bg-accent text-text rounded-lg px-4 py-2 text-sm font-semibold hover:bg-accent-hover transition-colors"
                         >
                           Per Teams teilnehmen
                           <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
