@@ -277,8 +277,8 @@ export default function UeberDasProjektPage() {
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-border">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center mb-8">
                 <div className="lg:col-span-2 text-center lg:text-left">
-                  <div className="text-4xl font-bold text-accent mb-2">
-                    240.000 &euro;
+                  <div className="text-4xl font-bold text-accent-strong mb-2 whitespace-nowrap">
+                    240.000&nbsp;&euro;
                   </div>
                   <p className="text-text-light">
                     Gesamtbudget – finanziert durch Stiftungen und private Förderer

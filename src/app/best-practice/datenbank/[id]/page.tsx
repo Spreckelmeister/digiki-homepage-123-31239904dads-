@@ -165,7 +165,7 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
           <div className="mt-12 pt-8 border-t border-border">
             <Link
               href="/best-practice/datenbank"
-              className="inline-flex items-center gap-2 text-primary-light hover:text-primary transition-colors font-medium"
+              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"
             >
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Zurück zur Datenbank

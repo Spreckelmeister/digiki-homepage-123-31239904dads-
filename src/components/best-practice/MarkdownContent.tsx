@@ -47,7 +47,7 @@ export default function MarkdownContent({ content }: MarkdownContentProps) {
             return (
               <a
                 href={href}
-                className="text-primary-light underline hover:text-primary"
+                className="text-primary underline hover:text-primary/80"
                 target="_blank"
                 rel="noopener noreferrer"
               >

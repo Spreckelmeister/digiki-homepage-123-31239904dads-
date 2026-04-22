@@ -13,7 +13,7 @@ export const stats = [
   { value: "300+", label: "Lehrkräfte", description: "werden geschult" },
   { value: "18", label: "Monate", description: "Projektlaufzeit" },
   { value: "50+", label: "Grundschulen", description: "in Stadt & Landkreis" },
-  { value: "240.000 €", label: "Förderung", description: "von Stiftungen & Förderern" },
+  { value: "240.000 €", label: "Förderung", description: "von Stiftungen & Förderern" },
 ];
 
 export const features = [

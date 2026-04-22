@@ -532,7 +532,7 @@ export default function HomePage() {
               href={projectData.surveyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
             >
               Zur Bestandsaufnahme
               <ExternalLink className="w-5 h-5" aria-hidden="true" />

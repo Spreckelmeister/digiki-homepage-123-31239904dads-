@@ -41,7 +41,7 @@ export default function ImpressumPage() {
                 E-Mail:{" "}
                 <a
                   href="mailto:krafft@osnabrueck.de"
-                  className="text-primary-light underline hover:text-primary"
+                  className="text-primary underline hover:text-primary/80"
                 >
                   krafft@osnabrueck.de
                 </a>

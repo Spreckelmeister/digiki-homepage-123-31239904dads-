@@ -199,7 +199,7 @@ export default function RegisterForm() {
                   <Link
                     href="/datenschutz"
                     target="_blank"
-                    className="underline text-primary-light hover:text-primary"
+                    className="underline text-primary hover:text-primary/80"
                   >
                     Datenschutzerklärung
                   </Link>{" "}
@@ -235,7 +235,7 @@ export default function RegisterForm() {
               Bereits registriert?{" "}
               <Link
                 href="/best-practice/login"
-                className="text-primary-light underline hover:text-primary"
+                className="text-primary underline hover:text-primary/80"
               >
                 Zur Anmeldung
               </Link>

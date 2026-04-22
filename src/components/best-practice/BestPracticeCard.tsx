@@ -42,7 +42,7 @@ export default function BestPracticeCard({ practice }: BestPracticeCardProps) {
       </div>
       <Link
         href={`/best-practice/datenbank/${practice.id}`}
-        className="inline-flex items-center gap-1 text-sm font-medium text-primary-light hover:text-primary transition-colors"
+        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
       >
         Mehr lesen
         <ArrowRight className="w-4 h-4" aria-hidden="true" />

@@ -120,7 +120,7 @@ export default function ForgotPasswordForm() {
       <div className="mt-6 text-center text-sm text-text-light">
         <Link
           href="/best-practice/login"
-          className="text-primary-light underline hover:text-primary"
+          className="text-primary underline hover:text-primary/80"
         >
           Zurück zur Anmeldung
         </Link>

@@ -83,7 +83,7 @@ export default function AdminTable({ practices }: AdminTableProps) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/best-practice/admin/${p.id}/bearbeiten`}
-                      className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
                     >
                       <Pencil className="w-4 h-4" aria-hidden="true" />
                       Bearbeiten
@@ -129,7 +129,7 @@ export default function AdminTable({ practices }: AdminTableProps) {
             <div className="flex gap-4">
               <Link
                 href={`/best-practice/admin/${p.id}/bearbeiten`}
-                className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80"
               >
                 <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeiten

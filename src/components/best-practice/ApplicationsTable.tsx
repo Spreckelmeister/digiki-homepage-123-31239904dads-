@@ -101,7 +101,7 @@ export default function ApplicationsTable({
                 <td className="py-4 px-4 text-right">
                   <Link
                     href={getDetailHref(app.type, app.id)}
-                    className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary transition-colors"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
                   >
                     <Eye className="w-4 h-4" aria-hidden="true" />
                     Ansehen
@@ -139,7 +139,7 @@ export default function ApplicationsTable({
             </p>
             <Link
               href={getDetailHref(app.type, app.id)}
-              className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80"
             >
               <Eye className="w-3.5 h-3.5" aria-hidden="true" />
               Ansehen

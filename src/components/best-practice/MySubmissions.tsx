@@ -340,7 +340,7 @@ export default function MySubmissions() {
                       {bp.published && (
                         <Link
                           href={`/best-practice/datenbank/${bp.id}`}
-                          className="inline-flex items-center gap-1 text-xs text-primary-light hover:text-primary transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                         >
                           Ansehen <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                         </Link>
@@ -423,7 +423,7 @@ export default function MySubmissions() {
                         {bp.published && (
                           <Link
                             href={`/best-practice/datenbank/${bp.id}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary-light hover:text-primary transition-colors"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                           >
                             Ansehen <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                           </Link>

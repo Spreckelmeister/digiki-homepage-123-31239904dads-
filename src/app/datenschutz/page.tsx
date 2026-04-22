@@ -50,7 +50,7 @@ export default function DatenschutzPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:krafft@osnabrueck.de"
-                    className="text-primary-light underline"
+                    className="text-primary underline"
                   >
                     krafft@osnabrueck.de
                   </a>
@@ -80,7 +80,7 @@ export default function DatenschutzPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:datenschutz@osnabrueck.de"
-                    className="text-primary-light underline"
+                    className="text-primary underline"
                   >
                     datenschutz@osnabrueck.de
                   </a>
@@ -207,7 +207,7 @@ export default function DatenschutzPage() {
                 die Daten ausschließlich nach dem{" "}
                 <a
                   href="https://vercel.com/legal/dpa"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -264,7 +264,7 @@ export default function DatenschutzPage() {
                 und Chat-Inhalte. Weitere Informationen finden Sie in der{" "}
                 <a
                   href="https://privacy.microsoft.com/de-de/privacystatement"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -339,7 +339,7 @@ export default function DatenschutzPage() {
                 Art. 46 DSGVO. Weitere Informationen:{" "}
                 <a
                   href="https://resend.com/legal/privacy-policy"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -348,7 +348,7 @@ export default function DatenschutzPage() {
                 {" "}und{" "}
                 <a
                   href="https://resend.com/legal/dpa"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -386,7 +386,7 @@ export default function DatenschutzPage() {
                 übermittelt wird. Es gelten die{" "}
                 <a
                   href="https://osmfoundation.org/wiki/Privacy_Policy"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -416,7 +416,7 @@ export default function DatenschutzPage() {
                 veröffentlicht und unter{" "}
                 <a
                   href="https://github.com/Spreckelmeister/digiki-homepage-123-31239904dads-"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -466,7 +466,7 @@ export default function DatenschutzPage() {
                 Für alle Anfragen wenden Sie sich bitte an:{" "}
                 <a
                   href="mailto:krafft@osnabrueck.de"
-                  className="text-primary-light underline"
+                  className="text-primary underline"
                 >
                   krafft@osnabrueck.de
                 </a>

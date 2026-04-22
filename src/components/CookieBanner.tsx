@@ -40,7 +40,7 @@ export default function CookieBanner() {
             finden Sie in unserer{" "}
             <a
               href="/datenschutz"
-              className="text-primary-light underline hover:text-primary"
+              className="text-primary underline hover:text-primary/80"
             >
               Datenschutzerklärung
             </a>

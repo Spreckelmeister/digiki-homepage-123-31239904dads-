@@ -571,7 +571,7 @@ export default function StudentAssistantForm({
               <Link
                 href="/datenschutz"
                 target="_blank"
-                className="underline text-primary-light hover:text-primary"
+                className="underline text-primary hover:text-primary/80"
               >
                 Datenschutzerklärung
               </Link>{" "}

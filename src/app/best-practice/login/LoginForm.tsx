@@ -136,7 +136,7 @@ export default function LoginForm() {
         <p>
           <Link
             href="/best-practice/passwort-vergessen"
-            className="text-primary-light underline hover:text-primary"
+            className="text-primary underline hover:text-primary/80"
           >
             Passwort vergessen?
           </Link>
@@ -145,7 +145,7 @@ export default function LoginForm() {
           Noch kein Konto?{" "}
           <Link
             href="/bestandsaufnahme"
-            className="text-primary-light underline hover:text-primary"
+            className="text-primary underline hover:text-primary/80"
           >
             Bestandsaufnahme ausfüllen
           </Link>
@@ -154,7 +154,7 @@ export default function LoginForm() {
           Bestätigungs-Link aus der E-Mail funktioniert nicht?{" "}
           <Link
             href="/best-practice/code-einloesen"
-            className="text-primary-light underline hover:text-primary"
+            className="text-primary underline hover:text-primary/80"
           >
             8-stelligen Code eingeben
           </Link>
