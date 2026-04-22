@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface AccordionItem {
@@ -38,8 +38,6 @@ function AccordionEntry({
   isOpen: boolean;
   onToggle: () => void;
 }) {
-  const contentRef = useRef<HTMLDivElement>(null);
-
   return (
     <div className="bg-white rounded-xl border border-border overflow-hidden">
       <button
@@ -55,16 +53,17 @@ function AccordionEntry({
           aria-hidden="true"
         />
       </button>
+      {/* Grid-template-rows-Trick: 0fr → 1fr animiert ohne JS-Layout-Read.
+          Vermeidet den Forced Reflow, den `scrollHeight` im Inline-Style ausgelöst hat. */}
       <div
-        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
-        style={{
-          maxHeight: isOpen
-            ? `${contentRef.current?.scrollHeight ?? 500}px`
-            : "0px",
-        }}
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
-        <div ref={contentRef} className="px-6 pb-4 text-sm text-text-light leading-relaxed">
-          {item.answer}
+        <div className="overflow-hidden">
+          <div className="px-6 pb-4 text-sm text-text-light leading-relaxed">
+            {item.answer}
+          </div>
         </div>
       </div>
     </div>
