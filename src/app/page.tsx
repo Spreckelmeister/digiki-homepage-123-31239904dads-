@@ -96,14 +96,14 @@ export default function HomePage() {
       <section className="py-16 md:py-24" aria-labelledby="vision-heading">
         <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="rounded-2xl overflow-hidden shadow-lg">
+            <div className="rounded-2xl overflow-hidden shadow-lg max-w-sm mx-auto lg:max-w-none">
               <ProtectedImage
                 src={blobImages["istock-kids-raise-hands"]}
                 alt="Begeisterte Grundschulkinder melden sich im Unterricht"
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+                sizes="(max-width: 640px) 384px, (max-width: 1024px) 50vw, 600px"
               />
             </div>
             <div>
