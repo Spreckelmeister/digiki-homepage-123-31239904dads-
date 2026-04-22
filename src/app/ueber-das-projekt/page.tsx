@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import Timeline from "@/components/Timeline";
+import dynamic from "next/dynamic";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
+
+// Timeline ist unterhalb des Folds – lazy-loaded in eigenem Chunk,
+// damit der Above-the-fold-Pfad schneller interaktiv wird.
+const Timeline = dynamic(() => import("@/components/Timeline"));
 import { timelinePhases } from "@/data/project";
 import { blobImages } from "@/data/images.generated";
 import { BookOpen, Target, Lightbulb, Heart } from "lucide-react";
@@ -227,14 +231,15 @@ export default function UeberDasProjektPage() {
                   </div>
                 </div>
                 <div className="lg:col-span-2">
-                  <div className="rounded-xl overflow-hidden shadow-md max-w-xs mx-auto lg:max-w-none">
+                  <div className="rounded-xl overflow-hidden shadow-md max-w-[280px] mx-auto lg:max-w-none">
                     <ProtectedImage
                       src={blobImages["istock-teacher-tablet-explains"]}
                       alt="Junge Lehrerin erklärt Schülern Lerninhalte mit einem digitalen Tablet"
                       width={400}
                       height={280}
                       className="w-full h-auto object-cover"
-                      sizes="(max-width: 640px) 320px, (max-width: 1024px) 40vw, 400px"
+                      quality={65}
+                      sizes="(max-width: 640px) 260px, (max-width: 1024px) 35vw, 400px"
                     />
                   </div>
                 </div>

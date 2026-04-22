@@ -34,7 +34,7 @@ export default function FuerSchulenPage() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Machen Sie Ihre Grundschule fit für die digitale Zukunft
               </h1>
-              <p className="text-lg text-white/70 max-w-3xl mb-8">
+              <p className="text-lg text-white/90 max-w-3xl mb-8">
                 Kostenlose Schulungen, Tool-Lizenzen und individuelle Begleitung –
                 für alle Grundschulen in Stadt und Landkreis Osnabrück.
               </p>
@@ -132,7 +132,7 @@ export default function FuerSchulenPage() {
                   <h3 className="text-xl font-bold text-primary">
                     {option.title}
                   </h3>
-                  <p className="text-sm text-accent-strong font-medium">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                     {option.subtitle}
                   </p>
                 </div>
@@ -152,9 +152,10 @@ export default function FuerSchulenPage() {
                 </ul>
                 <Link
                   href={option.ctaHref ?? "#kontakt"}
+                  aria-disabled={option.disabled || undefined}
                   className={`block text-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
                     option.disabled
-                      ? "opacity-50 cursor-not-allowed pointer-events-none"
+                      ? "bg-bg text-text-light cursor-not-allowed pointer-events-none border border-border"
                       : option.featured
                       ? "bg-accent text-text hover:bg-accent-hover"
                       : "bg-primary/10 text-primary hover:bg-primary/20"
@@ -184,14 +185,15 @@ export default function FuerSchulenPage() {
       <section className="py-16 md:py-24 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: "600 / 400" }}>
+            <div className="rounded-2xl overflow-hidden shadow-lg max-w-sm mx-auto md:max-w-none" style={{ aspectRatio: "600 / 400" }}>
               <ProtectedImage
                 src={blobImages["istock-teacher-student-highfive"]}
                 alt="Lehrerin und Schülerin feiern gemeinsam einen Lernerfolg"
                 width={600}
                 height={400}
                 className="w-full h-full object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
+                quality={65}
+                sizes="(max-width: 640px) 384px, (max-width: 1024px) 50vw, 600px"
               />
             </div>
             <div>
@@ -316,11 +318,11 @@ export default function FuerSchulenPage() {
               <p className="text-sm text-text-light mb-3">
                 DSGVO-konforme Lern-Tools für Ihre Schule beantragen – finanziert durch Stiftungen.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -340,11 +342,11 @@ export default function FuerSchulenPage() {
               <p className="text-sm text-text-light mb-3">
                 Kostenlose Unterstützung bei der Einrichtung digitaler Tools und technischem Support.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -364,11 +366,11 @@ export default function FuerSchulenPage() {
               <p className="text-sm text-text-light mb-3">
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen Tools und teilen Sie sie mit anderen.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 10 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />

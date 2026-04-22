@@ -216,11 +216,11 @@ export default function HomePage() {
                 DSGVO-konforme Lern-Tools für Ihre Schule beantragen –
                 finanziert durch Stiftungen.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -244,11 +244,11 @@ export default function HomePage() {
                 Kostenlose Unterstützung bei der Einrichtung digitaler
                 Tools und technischem Support.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -272,11 +272,11 @@ export default function HomePage() {
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen
                 Tools und teilen Sie sie mit anderen.
               </p>
-              <p className="inline-flex items-center gap-1 text-xs text-text-light/70 mb-4">
+              <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 10 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:underline">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -364,7 +364,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-2">
                       <time
                         dateTime={item.date}
-                        className={`text-sm font-medium ${isPast ? "text-text-light" : "text-teal"}`}
+                        className={`text-sm font-medium ${isPast ? "text-text-light" : "text-primary"}`}
                       >
                         {new Date(item.date).toLocaleDateString("de-DE", {
                           day: "numeric",
@@ -378,7 +378,7 @@ export default function HomePage() {
                         </span>
                       )}
                     </div>
-                    <h3 className={`text-lg font-semibold mt-2 mb-2 ${isPast ? "text-primary/80" : "text-primary"}`}>
+                    <h3 className={`text-lg font-semibold mt-2 mb-2 ${isPast ? "text-text-light" : "text-primary"}`}>
                       {item.title}
                     </h3>
                     <p className="text-sm text-text-light">{item.summary}</p>
