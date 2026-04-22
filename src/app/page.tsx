@@ -394,7 +394,7 @@ export default function HomePage() {
       >
         <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Projektbeteiligte */}
-          <div className="mb-16">
+          <div id="projektbeteiligte" className="mb-16 scroll-mt-24">
             <h2
               id="partners-heading"
               className="text-3xl md:text-4xl font-bold text-primary text-center mb-10"
@@ -433,7 +433,7 @@ export default function HomePage() {
           <div className="border-t border-border mb-16" />
 
           {/* Förderer */}
-          <div>
+          <div id="foerderer" className="scroll-mt-24">
             <h2 className="text-3xl md:text-4xl font-bold text-primary text-center mb-10">
               Gefördert durch
             </h2>
@@ -488,7 +488,7 @@ export default function HomePage() {
           <div className="mx-auto w-20 border-t border-border/70 my-14" />
 
           {/* Durchgeführt von – bewusst kleinere Hierarchie als Projektbeteiligte & Förderer */}
-          <div className="flex flex-col items-center gap-4">
+          <div id="projekttraegerschaft" className="flex flex-col items-center gap-4 scroll-mt-24">
             <p className="text-xs uppercase tracking-[0.25em] text-primary font-medium">
               Projektträgerschaft
             </p>

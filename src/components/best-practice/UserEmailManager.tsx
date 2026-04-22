@@ -42,7 +42,7 @@ export default function UserEmailManager({ userId, currentEmail }: Props) {
       }
       setMessage({
         type: "ok",
-        text: `E-Mail aktualisiert. An ${newEmail.trim()} wurde eine neue Bestätigungsmail gesendet.`,
+        text: `E-Mail aktualisiert. ${newEmail.trim()} ist ab sofort die Login-Adresse. Eine Info-Mail wurde an die neue Adresse geschickt – der Nutzer kann sich direkt mit dem bisherigen Passwort anmelden.`,
       });
       setNewEmail("");
       router.refresh();
@@ -94,8 +94,10 @@ export default function UserEmailManager({ userId, currentEmail }: Props) {
         </div>
 
         <p className="text-xs text-text-light leading-relaxed">
-          Die neue Adresse erhält automatisch eine Bestätigungsmail. Der Account wird erst
-          nach Klick auf den Bestätigungslink aktiv – das alte Passwort bleibt erhalten.
+          Die neue Adresse wird direkt als verifiziert markiert (Admin-Override) – der Nutzer
+          kann sich sofort mit der neuen Adresse und dem bisherigen Passwort anmelden.
+          An die neue Adresse geht automatisch eine Info-Mail, dass das Admin-Team die
+          Änderung vorgenommen hat.
         </p>
 
         <div className="flex items-center gap-3 pt-1">
@@ -105,7 +107,7 @@ export default function UserEmailManager({ userId, currentEmail }: Props) {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Mail className="w-4 h-4" aria-hidden="true" />
-            {saving ? "Wird aktualisiert..." : "E-Mail ändern & neu versenden"}
+            {saving ? "Wird aktualisiert..." : "E-Mail ändern"}
           </button>
 
           {message && (

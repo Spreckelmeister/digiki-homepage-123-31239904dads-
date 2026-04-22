@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { KeyRound, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +28,7 @@ function parseMode(value: string | null): Mode {
 
 export default function CodeForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useSearchParams();
 
   const initialMode: Mode = parseMode(params.get("type"));
@@ -42,6 +43,13 @@ export default function CodeForm() {
   useEffect(() => {
     setMode(parseMode(params.get("type")));
   }, [params]);
+
+  function selectMode(m: Mode) {
+    setMode(m);
+    const qs = new URLSearchParams(params.toString());
+    qs.set("type", m);
+    router.replace(`${pathname}?${qs.toString()}`, { scroll: false });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -154,7 +162,7 @@ export default function CodeForm() {
           <button
             key={m}
             type="button"
-            onClick={() => setMode(m)}
+            onClick={() => selectMode(m)}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               mode === m
                 ? "bg-white text-primary shadow-sm"
