@@ -12,6 +12,9 @@ import {
   type SchoolSuggestion,
 } from "./useSchoolAutocomplete";
 
+// Modul-Level: einmal kompiliert, nicht pro Keystroke neu.
+const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
+
 // ─── Helper: toggle item in array with optional max ──────────────────────────
 function toggle(arr: string[], val: string, max?: number): string[] {
   if (arr.includes(val)) return arr.filter((v) => v !== val);
@@ -1511,7 +1514,7 @@ export default function BestandsaufnahmeForm({
               <FieldLabel required>E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
                 placeholder="ihre.email@schule.de" />
-              {/\.nibis\.de\s*$/i.test(contactEmail.trim()) && (
+              {NIBIS_PATTERN.test(contactEmail.trim()) && (
                 <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>

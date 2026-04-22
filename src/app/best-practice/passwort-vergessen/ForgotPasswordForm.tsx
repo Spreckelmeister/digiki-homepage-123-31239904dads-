@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Mail, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const isNibis = useMemo(() => NIBIS_PATTERN.test(email.trim()), [email]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +93,7 @@ export default function ForgotPasswordForm() {
             className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
             placeholder="ihre.email@schule.de"
           />
-          {/\.nibis\.de\s*$/i.test(email.trim()) && (
+          {isNibis && (
             <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>

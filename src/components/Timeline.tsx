@@ -14,47 +14,57 @@ interface TimelineProps {
   phases: TimelinePhase[];
 }
 
+/**
+ * Scroll-revealed Phasen-Timeline. Ein einziger IntersectionObserver beobachtet
+ * den Wrapper – sobald er sichtbar wird, werden alle Phasen gestaffelt eingeblendet.
+ * Spart pro-Item-Observer und reduziert Hydration- + Interaktions-Kosten gegenüber
+ * der früheren per-Phase-State-Variante.
+ */
 export default function Timeline({ phases }: TimelineProps) {
-  const [visiblePhases, setVisiblePhases] = useState<Set<number>>(new Set());
-  const refs = useRef<(HTMLDivElement | null)[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setRevealed(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = Number(entry.target.getAttribute("data-index"));
-            setVisiblePhases((prev) => new Set(prev).add(index));
-          }
-        });
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRevealed(true);
+          observer.disconnect();
+        }
       },
-      { threshold: 0.2 }
+      { rootMargin: "0px 0px -10% 0px" }
     );
 
-    refs.current.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       {/* Vertikale Linie */}
       <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-border md:-translate-x-px" />
 
       <div className="space-y-12">
         {phases.map((phase, index) => {
           const isLeft = index % 2 === 0;
-          const isVisible = visiblePhases.has(index);
 
           return (
             <div
               key={phase.phase}
-              ref={(el) => { refs.current[index] = el; }}
-              data-index={index}
-              className={`relative flex items-start gap-6 md:gap-0 transition-all duration-700 ${
-                isVisible
+              style={{ transitionDelay: revealed ? `${index * 120}ms` : "0ms" }}
+              className={`relative flex items-start gap-6 md:gap-0 transition-all duration-700 ease-out ${
+                revealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-8"
               }`}

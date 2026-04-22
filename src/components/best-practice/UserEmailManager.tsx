@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, AlertTriangle } from "lucide-react";
+
+// Modul-Level: einmal kompiliert, spart Render-Overhead bei jedem Keystroke.
+const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
 
 interface Props {
   userId: string;
@@ -17,11 +20,17 @@ export default function UserEmailManager({ userId, currentEmail }: Props) {
     null
   );
 
-  const isNibis = /\.nibis\.de\s*$/i.test(newEmail.trim());
-  const canSubmit =
-    newEmail.trim().length > 0 &&
-    newEmail.trim().toLowerCase() !== currentEmail.toLowerCase() &&
-    !isNibis;
+  const trimmed = newEmail.trim();
+  const { isNibis, canSubmit } = useMemo(() => {
+    const nibis = NIBIS_PATTERN.test(trimmed);
+    return {
+      isNibis: nibis,
+      canSubmit:
+        trimmed.length > 0 &&
+        trimmed.toLowerCase() !== currentEmail.toLowerCase() &&
+        !nibis,
+    };
+  }, [trimmed, currentEmail]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

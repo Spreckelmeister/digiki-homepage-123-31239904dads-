@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Mail, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+// Modul-Level: einmal kompiliert, nicht pro Keystroke neu.
+const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Props {
   currentEmail: string;
@@ -16,11 +20,16 @@ export default function MyEmailChanger({ currentEmail }: Props) {
   );
 
   const trimmed = newEmail.trim();
-  const isNibis = /\.nibis\.de\s*$/i.test(trimmed);
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isValid = emailRegex.test(trimmed) && trimmed.length <= 200;
-  const isSameAsCurrent = trimmed.toLowerCase() === currentEmail.toLowerCase();
-  const canSubmit = isValid && !isSameAsCurrent && !isNibis;
+  const { isNibis, isSameAsCurrent, canSubmit } = useMemo(() => {
+    const nibis = NIBIS_PATTERN.test(trimmed);
+    const valid = EMAIL_PATTERN.test(trimmed) && trimmed.length <= 200;
+    const same = trimmed.toLowerCase() === currentEmail.toLowerCase();
+    return {
+      isNibis: nibis,
+      isSameAsCurrent: same,
+      canSubmit: valid && !same && !nibis,
+    };
+  }, [trimmed, currentEmail]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
