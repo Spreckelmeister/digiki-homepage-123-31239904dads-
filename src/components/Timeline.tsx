@@ -83,7 +83,7 @@ export default function Timeline({ phases }: TimelineProps) {
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold">
                       {phase.phase}
                     </span>
-                    <span className="text-sm font-medium text-accent-strong">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">
                       {phase.period}
                     </span>
                   </div>
