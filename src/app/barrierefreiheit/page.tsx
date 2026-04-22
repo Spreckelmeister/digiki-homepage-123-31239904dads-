@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Erklärung zur Barrierefreiheit",
   description:
     "Erklärung zur Barrierefreiheit der DigiKI-Projektwebsite gemäß § 12b Niedersächsischem Behindertengleichstellungsgesetz (NBGG) und BITV 2.0.",
+  alternates: { canonical: "/barrierefreiheit" },
 };
 
 export default function BarrierefreiheitPage() {

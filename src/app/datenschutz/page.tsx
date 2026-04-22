@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Datenschutz",
   description:
     "Datenschutzerklärung der DigiKI-Projektwebsite. Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO.",
+  alternates: { canonical: "/datenschutz" },
 };
 
 export default function DatenschutzPage() {

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Antrag: Studentische Hilfskräfte - DigiKI",
   description:
     "Beantragen Sie studentische Unterstützung bei der Einrichtung digitaler Tools an Ihrer Grundschule.",
+  alternates: { canonical: "/fuer-schulen/antrag-hilfskraefte" },
 };
 
 export default function AntragHilfskraeftePage() {

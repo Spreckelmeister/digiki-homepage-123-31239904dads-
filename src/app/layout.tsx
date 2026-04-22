@@ -17,6 +17,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // Default canonical = Wurzel. Einzelne Seiten überschreiben mit ihrem Pfad.
+  // Verhindert, dass Varianten wie https://digiki-os.de/ vs https://www.digiki-os.de/
+  // oder UTM-Parameter als Duplicate Content gewertet werden.
+  alternates: {
+    canonical: "/",
+  },
   verification: {
     google: "h9-cmaMDG5FFZLAVyGRxsfxREQtkL8Z4fZgd2XeCD-k",
   },

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Best Practice einreichen - DigiKI",
   description:
     "Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen Tools und KI und teilen Sie sie mit anderen Grundschulen.",
+  alternates: { canonical: "/best-practice/einreichen" },
 };
 
 export default function BestPracticeEinreichenPage() {

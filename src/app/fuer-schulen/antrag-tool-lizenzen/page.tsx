@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Antrag: Tool-Lizenzen - DigiKI",
   description:
     "Beantragen Sie kostenlose Tool-Lizenzen für Ihre Grundschule im Rahmen des DigiKI-Projekts.",
+  alternates: { canonical: "/fuer-schulen/antrag-tool-lizenzen" },
 };
 
 export default function AntragToolLizenzenPage() {

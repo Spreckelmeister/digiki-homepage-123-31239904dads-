@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Impressum",
   description:
     "Impressum der DigiKI-Projektwebsite. Angaben gemäß § 5 DDG: Stadt Osnabrück, Bildungskoordination.",
+  alternates: { canonical: "/impressum" },
 };
 
 export default function ImpressumPage() {

@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "Kostenlose Fortbildung Digitalisierung & KI für Grundschulen",
   description:
     "Machen Sie Ihre Grundschule fit für die digitale Zukunft. Kostenlose Schulungen, Tool-Lizenzen und Begleitung für alle Grundschulen in Stadt und Landkreis Osnabrück.",
+  alternates: { canonical: "/fuer-schulen" },
   openGraph: {
     title: "Kostenlose Fortbildung Digitalisierung & KI für Grundschulen | DigiKI Osnabrück",
     description:
