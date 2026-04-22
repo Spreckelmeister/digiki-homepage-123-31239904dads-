@@ -404,30 +404,38 @@ export default function HomePage() {
               Projektbeteiligte
             </h2>
             <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-              {partners.map((partner) => (
-                <a
-                  key={partner.name}
-                  href={partner.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={partner.name}
-                  className="relative w-[140px] h-[60px] transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
-                >
-                  {partner.logo ? (
-                    <Image
-                      src={partner.logo}
-                      alt={`Logo ${partner.name}`}
-                      fill
-                      className="object-contain"
-                      sizes="140px"
-                    />
-                  ) : (
-                    <span className="flex items-center justify-center w-full h-full text-sm font-semibold text-primary/60">
-                      {partner.name}
-                    </span>
-                  )}
-                </a>
-              ))}
+              {partners.map((partner) => {
+                // Partner mit tightSpacing rücken auf Desktop näher ans vorherige Logo
+                // (z.B. Stadt + Landkreis Osnabrück als thematische Einheit).
+                const tightShift =
+                  "tightSpacing" in partner && partner.tightSpacing
+                    ? "md:-ml-8"
+                    : "";
+                return (
+                  <a
+                    key={partner.name}
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={partner.name}
+                    className={`relative w-[140px] h-[60px] transition-all duration-200 hover:scale-105 hover:drop-shadow-md ${tightShift}`.trim()}
+                  >
+                    {partner.logo ? (
+                      <Image
+                        src={partner.logo}
+                        alt={`Logo ${partner.name}`}
+                        fill
+                        className="object-contain"
+                        sizes="140px"
+                      />
+                    ) : (
+                      <span className="flex items-center justify-center w-full h-full text-sm font-semibold text-primary/60">
+                        {partner.name}
+                      </span>
+                    )}
+                  </a>
+                );
+              })}
             </div>
           </div>
 
