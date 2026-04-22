@@ -286,21 +286,87 @@ export default function DatenschutzPage() {
                 7. E-Mail-Versand (transaktionale Nachrichten)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
-                Im Rahmen der Kontoregistrierung, Passwort-Wiederherstellung
-                und Formular-Einreichung versenden wir transaktionale E-Mails
-                (z.&thinsp;B. Bestätigungslinks, 8-stellige Verifizierungscodes,
-                Eingangsbestätigungen). Der Versand erfolgt über den SMTP-Server
-                unseres Hosting-Anbieters <strong>checkdomain GmbH</strong>{" "}
-                (An der Wiemelke 7, 41366 Schwalmtal, Deutschland) sowie über
-                den E-Mail-Dienst von Supabase Auth.
+                Im Rahmen der Kontoregistrierung, Passwort-Wiederherstellung,
+                E-Mail-Änderung und Formular-Einreichung versenden wir
+                transaktionale E-Mails (z.&thinsp;B. Bestätigungslinks,
+                8-stellige Verifizierungscodes, Eingangsbestätigungen,
+                System-Benachrichtigungen). Der Versand erfolgt über den
+                spezialisierten Transaktions-E-Mail-Dienst{" "}
+                <strong>Resend</strong> (Resend.com, Inc., 2261 Market Street
+                #4537, San Francisco, CA 94114, USA). Dies gilt sowohl für
+                E-Mails unserer Anwendung als auch für E-Mails, die durch
+                Supabase Auth (vgl. Ziffer 4) ausgelöst werden – Supabase
+                nutzt Resend als konfigurierten SMTP-Relay.
               </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Verarbeitete Daten
+              </h3>
+              <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
+                <li>E-Mail-Adresse der Empfängerin / des Empfängers</li>
+                <li>Name (sofern bekannt)</li>
+                <li>Betreff und Inhalt der Nachricht</li>
+                <li>
+                  Zustelldaten (Zeitstempel, Zustellstatus, Bounce- und
+                  Fehlermeldungen)
+                </li>
+              </ul>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zweck und Rechtsgrundlage
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Verarbeitung dient der technischen Zustellung der E-Mails,
+                der Erkennung von Zustellproblemen und dem Schutz vor
+                Missbrauch. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
+                (Vertragsanbahnung / Vertragserfüllung) für Registrierungs-
+                und Antragsbestätigungen sowie Art. 6 Abs. 1 lit. f DSGVO
+                (berechtigtes Interesse an einer zuverlässigen Kommunikation)
+                für System-Benachrichtigungen.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Auftragsverarbeitung und Serverstandort
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Mit Resend besteht ein Auftragsverarbeitungsvertrag gemäß
+                Art. 28 DSGVO. Der technische Versand erfolgt über eine
+                EU-Infrastruktur (Amazon Simple Email Service, Region
+                eu-west-1 / Irland). Resend als Muttergesellschaft hat ihren
+                Sitz in den USA; die Übermittlung personenbezogener Daten in
+                die USA erfolgt auf Grundlage des EU-US Data Privacy
+                Framework bzw. ergänzend auf Standardvertragsklauseln gemäß
+                Art. 46 DSGVO. Weitere Informationen:{" "}
+                <a
+                  href="https://resend.com/legal/privacy-policy"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Datenschutzerklärung von Resend
+                </a>
+                {" "}und{" "}
+                <a
+                  href="https://resend.com/legal/dpa"
+                  className="text-primary-light underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Auftragsverarbeitungsvertrag (DPA)
+                </a>
+                .
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Speicherdauer
+              </h3>
               <p className="text-text-light leading-relaxed">
-                Inhalt und Empfängeradresse werden ausschließlich zum Zweck des
-                jeweiligen Versands verarbeitet und nicht für andere Zwecke
-                verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
-                (Vertragsanbahnung / Vertragserfüllung). Mit der checkdomain GmbH
-                besteht ein Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO;
-                die Server stehen in Deutschland.
+                Inhalt und Empfängeradresse einer Nachricht werden
+                ausschließlich zum Zweck des jeweiligen Versands verarbeitet.
+                Zustell-Metadaten (Status, Bounces, Zeitstempel) werden bei
+                Resend gemäß deren Datenschutzerklärung typischerweise für
+                wenige Wochen zu Zustelldiagnose-Zwecken vorgehalten und
+                anschließend gelöscht.
               </p>
             </div>
 
