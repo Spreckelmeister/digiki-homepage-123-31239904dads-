@@ -27,7 +27,7 @@ export default function BestPracticePage() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Best-Practice-Datenbank
               </h1>
-              <p className="text-lg text-white/70 max-w-3xl mb-8">
+              <p className="text-lg text-white/90 max-w-3xl mb-8">
                 Entdecken Sie erfolgreiche Unterrichtsbeispiele mit digitalen Tools
                 und KI aus Grundschulen in Osnabrück. Lernen Sie von den Erfahrungen
                 anderer Lehrkräfte.
@@ -47,7 +47,7 @@ export default function BestPracticePage() {
                   >
                     Registrieren via Bestandsaufnahme
                   </Link>
-                  <p className="text-xs text-white/50 px-1">
+                  <p className="text-xs text-white/90 px-1">
                     Die Registrierung erfolgt im Rahmen der Online-Bestandsaufnahme.
                   </p>
                 </div>

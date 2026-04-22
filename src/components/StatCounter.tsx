@@ -75,6 +75,20 @@ export default function StatCounter({ value, label, description }: StatCounterPr
   }, [target, prefix, suffix, useThousandDots, value]);
 
   useEffect(() => {
+    // Nutzer mit "Bewegung reduzieren"-Präferenz bekommen den Endwert direkt,
+    // ohne 60fps-Count-Up. Spart auch ~96 React-Renders pro Counter und entlastet
+    // den Main Thread (Forced-Reflow-Vermeidung).
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReduced) {
+      setIsVisible(true);
+      hasAnimated.current = true;
+      setDisplayValue(value);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -91,7 +105,7 @@ export default function StatCounter({ value, label, description }: StatCounterPr
     }
 
     return () => observer.disconnect();
-  }, [animate]);
+  }, [animate, value]);
 
   return (
     <div
