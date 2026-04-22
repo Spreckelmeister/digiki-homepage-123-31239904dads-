@@ -61,6 +61,8 @@ export default function FuerSchulenPage() {
                 width={500}
                 height={300}
                 className="rounded-2xl shadow-2xl object-cover w-full h-full"
+                priority
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>

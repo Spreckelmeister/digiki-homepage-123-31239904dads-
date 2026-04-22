@@ -60,6 +60,8 @@ export default function BestPracticePage() {
                 width={500}
                 height={400}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[350px]"
+                priority
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>

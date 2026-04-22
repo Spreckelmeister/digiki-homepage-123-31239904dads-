@@ -28,7 +28,7 @@ export default function UeberDasProjektPage() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Über das Projekt
               </h1>
-              <p className="text-lg text-white/70 max-w-3xl mb-8">
+              <p className="text-lg text-white/90 max-w-3xl mb-8">
                 DigiKI ist ein 18-monatiges Projekt, das alle interessierten
                 Grundschulen in Stadt und Landkreis Osnabrück zu digitaler Kompetenz
                 und sachgerechtem Umgang mit KI befähigen soll.
@@ -41,6 +41,8 @@ export default function UeberDasProjektPage() {
                 width={500}
                 height={350}
                 className="rounded-2xl shadow-2xl object-cover w-full h-[300px]"
+                priority
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 0vw, 500px"
               />
             </div>
@@ -84,14 +86,14 @@ export default function UeberDasProjektPage() {
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl overflow-hidden shadow-lg">
+            <div className="rounded-2xl overflow-hidden shadow-lg max-w-sm mx-auto lg:max-w-none">
               <ProtectedImage
                 src={blobImages["istock-elearning-support"]}
                 alt="Unterstützung beim E-Learning in der Grundschule – DigiKI-Projekt"
                 width={500}
                 height={400}
                 className="w-full h-auto object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 640px) 384px, (max-width: 1024px) 50vw, 500px"
               />
             </div>
           </div>
@@ -191,7 +193,7 @@ export default function UeberDasProjektPage() {
                       >
                         Schwerpunkt: Sprachförderung &amp; Mehrsprachigkeit
                       </h2>
-                      <p className="text-accent-strong font-medium">
+                      <p className="text-sm font-semibold uppercase tracking-wider text-primary">
                         Ein besonderes Anliegen von DigiKI
                       </p>
                     </div>
@@ -225,14 +227,14 @@ export default function UeberDasProjektPage() {
                   </div>
                 </div>
                 <div className="lg:col-span-2">
-                  <div className="rounded-xl overflow-hidden shadow-md">
+                  <div className="rounded-xl overflow-hidden shadow-md max-w-xs mx-auto lg:max-w-none">
                     <ProtectedImage
                       src={blobImages["istock-teacher-tablet-explains"]}
                       alt="Junge Lehrerin erklärt Schülern Lerninhalte mit einem digitalen Tablet"
                       width={400}
                       height={280}
                       className="w-full h-auto object-cover"
-                      sizes="(max-width: 1024px) 100vw, 40vw"
+                      sizes="(max-width: 640px) 320px, (max-width: 1024px) 40vw, 400px"
                     />
                   </div>
                 </div>
