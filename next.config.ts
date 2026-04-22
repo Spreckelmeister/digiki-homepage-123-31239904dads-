@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Packages, die vorkompilierten ES5/ES2015-Code mit Polyfills ausliefern,
+  // re-transpilieren wir via SWC auf die Browserslist-Targets (package.json).
+  // Spart Array.prototype.at, Object.hasOwn, String.trimEnd/Start etc.
+  transpilePackages: [
+    "@supabase/ssr",
+    "@supabase/supabase-js",
+    "@supabase/auth-js",
+    "@supabase/postgrest-js",
+    "@supabase/realtime-js",
+    "@supabase/storage-js",
+    "@supabase/functions-js",
+    "react-markdown",
+  ],
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 31536000,

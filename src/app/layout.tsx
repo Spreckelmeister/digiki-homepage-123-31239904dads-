@@ -77,18 +77,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={inter.className}>
-      <head>
-        {/* Preconnect zu Vercel Blob Storage – beschleunigt LCP-Bild-Download */}
-        <link
-          rel="preconnect"
-          href="https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com"
-          crossOrigin=""
-        />
-        <link
-          rel="dns-prefetch"
-          href="https://9mhp8ifqyoeamlw7.public.blob.vercel-storage.com"
-        />
-      </head>
       <body className="min-h-screen flex flex-col">
         <OrganizationJsonLd />
         <Header />

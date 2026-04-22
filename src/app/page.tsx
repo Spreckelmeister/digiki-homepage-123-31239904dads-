@@ -66,6 +66,7 @@ export default function HomePage() {
                   height={400}
                   className="w-full h-auto object-cover"
                   priority
+                  fetchPriority="high"
                   sizes="(max-width: 1024px) 0vw, (max-width: 1280px) 50vw, 600px"
                 />
                 <div className="absolute inset-0 rounded-2xl ring-1 ring-white/20 ring-inset" />

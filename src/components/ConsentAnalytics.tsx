@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import dynamic from "next/dynamic";
+
+// Dynamisch nachladen: Analytics + SpeedInsights landen erst dann im Client-Bundle,
+// wenn der Nutzer Cookies akzeptiert hat. Ohne Consent kein Netzwerk-Call, kein JS.
+const Analytics = dynamic(
+  () => import("@vercel/analytics/next").then((m) => m.Analytics),
+  { ssr: false }
+);
+const SpeedInsights = dynamic(
+  () => import("@vercel/speed-insights/next").then((m) => m.SpeedInsights),
+  { ssr: false }
+);
 
 export default function ConsentAnalytics() {
   const [consented, setConsented] = useState(false);
@@ -15,7 +25,6 @@ export default function ConsentAnalytics() {
 
     check();
 
-    // Reagiert auf Änderungen (wenn Nutzer den Banner klickt)
     window.addEventListener("storage", check);
     window.addEventListener("cookie-consent-changed", check);
     return () => {

@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 interface AnimatedSectionProps {
   children: ReactNode;
@@ -9,20 +8,54 @@ interface AnimatedSectionProps {
   delay?: number;
 }
 
+/**
+ * Leichte Fade-in-Animation beim Scrollen – CSS-only via IntersectionObserver.
+ * Ersetzt eine frühere Framer-Motion-Variante und spart dadurch ~35 KiB JS-Bundle.
+ */
 export default function AnimatedSection({
   children,
   className,
   delay = 0,
 }: AnimatedSectionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Respektiere Nutzer-Präferenz "Bewegung reduzieren" – direkt anzeigen
+    const prefersReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (prefersReduced) {
+      setVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -80px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.5, ease: "easeOut", delay }}
-      className={className}
+    <div
+      ref={ref}
+      style={{ transitionDelay: delay ? `${delay}s` : undefined }}
+      className={`transition-opacity duration-500 ease-out ${
+        visible ? "opacity-100" : "opacity-0"
+      } ${className ?? ""}`.trim()}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
