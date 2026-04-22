@@ -868,7 +868,10 @@ export default function BestandsaufnahmeForm({
     setLoading(false);
   }
 
-  if (!editMode && isAdmin === null) return null;
+  // isAdmin kann null (loading), true oder false sein. Früher wurde bei null
+  // `null` returnt → CLS-Problem, weil Form-Inhalt erst nach Auth-Check aufpoppt.
+  // Jetzt: nur bei true (bestätigter Admin) den Blocker zeigen. Loading + Nicht-Admin
+  // rendern beide die Form → keine Layout-Verschiebung bei Hydration.
   if (!editMode && isAdmin === true) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können die Bestandsaufnahme nicht nutzen.

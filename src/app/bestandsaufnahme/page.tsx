@@ -18,7 +18,7 @@ export default function BestandsaufnahmePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/fuer-schulen"
-            className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1 text-sm text-white/90 hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Zurück zu Für Schulen
@@ -26,12 +26,12 @@ export default function BestandsaufnahmePage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white">
             Bestandsaufnahme Digitalisierung & KI
           </h1>
-          <p className="text-lg text-white/70 mt-2 max-w-2xl">
+          <p className="text-lg text-white/90 mt-2 max-w-2xl">
             Online-Fragebogen zur Erfassung des Ist-Zustands und der Bedarfe
             an Ihrer Grundschule – damit wir das Angebot optimal auf Ihre
             Schule zuschneiden können.
           </p>
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/60">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/90">
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-4 h-4" aria-hidden="true" />
               Ca. 10 Minuten

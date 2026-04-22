@@ -93,7 +93,8 @@ export default function BestPracticePage() {
                   alt="Lehrerin begleitet Kinder beim Arbeiten an Laptops im Klassenzimmer"
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  quality={65}
+                  sizes="(max-width: 768px) 50vw, 33vw"
                 />
               </div>
               <div className="p-6">
@@ -117,7 +118,8 @@ export default function BestPracticePage() {
                   alt="Kolleginnen und Kollegen freuen sich über erfolgreich erprobte Unterrichtsideen"
                   fill
                   className="object-cover object-top"
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  quality={65}
+                  sizes="(max-width: 768px) 50vw, 33vw"
                 />
               </div>
               <div className="p-6">
@@ -141,7 +143,8 @@ export default function BestPracticePage() {
                   alt="Wachsende Gemeinschaft von Lehrkräften, die Best-Practice-Beispiele teilen"
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  quality={65}
+                  sizes="(max-width: 768px) 50vw, 33vw"
                 />
               </div>
               <div className="p-6">
