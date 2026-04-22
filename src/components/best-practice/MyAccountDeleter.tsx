@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Trash2,
@@ -37,6 +37,10 @@ export default function MyAccountDeleter() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Speichert den Trigger, damit der Fokus nach Modal-Close zurückkehrt.
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const canOpenModal =
     password.length > 0 && confirmText.trim().toUpperCase() === CONFIRM_WORD;
@@ -134,6 +138,23 @@ export default function MyAccountDeleter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalOpen, loading]);
 
+  // Fokus-Management: beim Öffnen auf den Schließen-Button, beim Schließen
+  // zurück auf den Trigger – wichtig für Tastatur- und Screenreader-Nutzer.
+  // Startet bewusst mit `true`, damit der initiale Render (modalOpen=false)
+  // nicht den Trigger-Button ungewollt fokussiert.
+  const skipInitialFocus = useRef(true);
+  useEffect(() => {
+    if (skipInitialFocus.current) {
+      skipInitialFocus.current = false;
+      return;
+    }
+    if (modalOpen) {
+      closeButtonRef.current?.focus();
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [modalOpen]);
+
   const inputClass =
     "w-full rounded-lg border border-red-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition-colors";
 
@@ -205,6 +226,7 @@ export default function MyAccountDeleter() {
 
           <div className="pt-1">
             <button
+              ref={triggerRef}
               type="submit"
               disabled={!canOpenModal}
               className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -237,6 +259,7 @@ export default function MyAccountDeleter() {
                 Wirklich löschen?
               </h3>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={closeModal}
                 disabled={loading}

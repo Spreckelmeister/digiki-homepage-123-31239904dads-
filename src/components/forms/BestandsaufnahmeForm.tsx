@@ -271,9 +271,9 @@ function RatingRow({
 }
 
 function TextInput({
-  id, value, onChange, placeholder, type = "text", min, required, autoFocus,
+  id, value, onChange, placeholder, type = "text", min, required, autoFocus, autoComplete,
 }: {
-  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean; autoFocus?: boolean;
+  id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean; autoFocus?: boolean; autoComplete?: string;
 }) {
   return (
     <input
@@ -283,6 +283,7 @@ function TextInput({
       min={min}
       required={required}
       autoFocus={autoFocus}
+      autoComplete={autoComplete}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
@@ -904,7 +905,7 @@ export default function BestandsaufnahmeForm({
 
       {/* Error banner */}
       {stepError && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-start gap-2">
+        <div role="alert" className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-start gap-2">
           <span className="shrink-0 mt-0.5">⚠️</span>
           <span>{stepError}</span>
         </div>
@@ -1501,7 +1502,7 @@ export default function BestandsaufnahmeForm({
             <div>
               <FieldLabel required>Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
               <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
-                placeholder="z. B. Maria Mustermann" autoFocus />
+                placeholder="z. B. Maria Mustermann" autoFocus autoComplete="name" />
             </div>
 
             <div>
@@ -1513,7 +1514,7 @@ export default function BestandsaufnahmeForm({
             <div>
               <FieldLabel required>E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
-                placeholder="ihre.email@schule.de" />
+                placeholder="ihre.email@schule.de" autoComplete="email" />
               {NIBIS_PATTERN.test(contactEmail.trim()) && (
                 <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
@@ -1528,7 +1529,7 @@ export default function BestandsaufnahmeForm({
             <div>
               <FieldLabel required>Telefonnummer</FieldLabel>
               <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
-                placeholder="z. B. 0541 12345" required />
+                placeholder="z. B. 0541 12345" required autoComplete="tel" />
             </div>
 
             <div>
@@ -1540,6 +1541,7 @@ export default function BestandsaufnahmeForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Sicheres Passwort wählen"
+                  autoComplete="new-password"
                   className="w-full rounded-lg border border-border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
                 />
                 <button

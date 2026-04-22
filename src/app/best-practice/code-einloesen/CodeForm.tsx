@@ -130,7 +130,7 @@ export default function CodeForm() {
 
   if (success) {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center">
+      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center" role="status" aria-live="polite">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
           <CheckCircle2 className="h-7 w-7 text-green-600" aria-hidden="true" />
         </div>
@@ -176,7 +176,7 @@ export default function CodeForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {error}
           </div>
         )}

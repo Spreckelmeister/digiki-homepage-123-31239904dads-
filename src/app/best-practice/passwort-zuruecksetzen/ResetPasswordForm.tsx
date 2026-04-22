@@ -106,7 +106,7 @@ export default function ResetPasswordForm() {
     <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {error}
           </div>
         )}
@@ -123,6 +123,7 @@ export default function ResetPasswordForm() {
               id="password"
               type={showPassword ? "text" : "password"}
               required
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
@@ -156,6 +157,7 @@ export default function ResetPasswordForm() {
               type={showConfirm ? "text" : "password"}
               required
               minLength={8}
+              autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"

@@ -71,7 +71,7 @@ export default function RegisterForm() {
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
       {success ? (
-        <div className="text-center py-6">
+        <div className="text-center py-6" role="status" aria-live="polite">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <UserPlus
               className="h-6 w-6 text-green-600"
@@ -93,7 +93,7 @@ export default function RegisterForm() {
         <>
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
                 {error}
               </div>
             )}

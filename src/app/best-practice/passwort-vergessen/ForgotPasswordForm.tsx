@@ -33,7 +33,7 @@ export default function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center">
+      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center" role="status" aria-live="polite">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
           <Mail className="h-7 w-7 text-green-600" aria-hidden="true" />
         </div>
@@ -88,6 +88,7 @@ export default function ForgotPasswordForm() {
             id="email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"

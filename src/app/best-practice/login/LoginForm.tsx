@@ -69,7 +69,7 @@ export default function LoginForm() {
           </div>
         )}
         {(callbackErrorMsg || error) && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {callbackErrorMsg || error}
           </div>
         )}
@@ -85,6 +85,7 @@ export default function LoginForm() {
             id="email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
@@ -104,6 +105,7 @@ export default function LoginForm() {
               id="password"
               type={showPassword ? "text" : "password"}
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-border px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"

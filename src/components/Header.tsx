@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+
+function isActivePath(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 const navigation = [
   { name: "Startseite", href: "/" },
@@ -17,6 +23,7 @@ const navigation = [
 ];
 
 export default function Header() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -48,15 +55,23 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:gap-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-bg hover:text-primary transition-colors"
-              >
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const active = isActivePath(pathname, item.href);
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-text hover:bg-bg hover:text-primary"
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
             <Link
               href="/bestandsaufnahme"
               className="ml-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-text hover:bg-accent-hover transition-colors"
@@ -87,16 +102,24 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden pb-4">
             <div className="flex flex-col gap-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="rounded-lg px-3 py-2 text-base font-medium text-text hover:bg-bg hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {navigation.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-text hover:bg-bg hover:text-primary"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
               <Link
                 href="/bestandsaufnahme"
                 className="mt-2 inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-base font-semibold text-text hover:bg-accent-hover transition-colors"
