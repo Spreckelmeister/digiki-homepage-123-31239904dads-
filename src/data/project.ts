@@ -62,7 +62,14 @@ export const funders = [
   { name: "Friedel & Gisela Bohnenkamp-Stiftung", logo: "/images/logos/Logo_Bohnenkamstiftung2021_RGB_Web.png", url: "https://www.bohnenkamp-stiftung.de" },
   { name: "Fromm-Stiftung", logo: "/images/logos/Logo_Fromm_Stiftung.png", url: "https://www.facebook.com/FROMMStiftung/?locale=de_DE" },
   { name: "Stiftung Stahlwerk Georgsmarienhütte", logo: "/images/logos/stahlwerk.png", url: "https://www.stiftung-stahlwerk.de" },
-  { name: "Klaus Hellmann", logo: "/images/logos/Hellmann.jpeg", logoAlt: "Logo Hellmann Worldwide Logistics", url: "https://www.hellmann.com/de" },
+  {
+    name: "Klaus Hellmann",
+    logo: "/images/logos/Hellmann.svg",
+    logoAlt: "Logo Hellmann Worldwide Logistics",
+    caption: "Klaus Hellmann",
+    url: "https://www.hellmann.com/de",
+    tightSpacing: true, // privater Förderer – auf Desktop näher ans vorherige Logo rücken
+  },
 ];
 
 export const timelinePhases = [

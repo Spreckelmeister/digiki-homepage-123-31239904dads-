@@ -441,23 +441,34 @@ export default function HomePage() {
             </h2>
             <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
               {funders.map((funder) => {
+                const caption = "caption" in funder && funder.caption
+                  ? funder.caption
+                  : null;
+
                 const inner = funder.logo ? (
                   <div
                     key={funder.name}
-                    className="relative w-[140px] h-[60px]"
+                    className="flex flex-col items-center gap-1"
                     title={funder.name}
                   >
-                    <Image
-                      src={funder.logo}
-                      alt={
-                        "logoAlt" in funder && funder.logoAlt
-                          ? funder.logoAlt
-                          : `Logo ${funder.name}`
-                      }
-                      fill
-                      className="object-contain"
-                      sizes="140px"
-                    />
+                    <div className="relative w-[140px] h-[60px]">
+                      <Image
+                        src={funder.logo}
+                        alt={
+                          "logoAlt" in funder && funder.logoAlt
+                            ? funder.logoAlt
+                            : `Logo ${funder.name}`
+                        }
+                        fill
+                        className="object-contain"
+                        sizes="140px"
+                      />
+                    </div>
+                    {caption && (
+                      <span className="text-xs font-medium text-text-light">
+                        {caption}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div
@@ -471,18 +482,25 @@ export default function HomePage() {
                   </div>
                 );
 
+                // Privater Förderer: auf Desktop dichter ans vorherige Logo rücken,
+                // um visuell die Zugehörigkeit zur Privatperson-Kategorie zu signalisieren.
+                const tightShift =
+                  "tightSpacing" in funder && funder.tightSpacing
+                    ? "md:-ml-10"
+                    : "";
+
                 return funder.url !== "#" ? (
                   <a
                     key={funder.name}
                     href={funder.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition-all duration-200 hover:scale-105 hover:drop-shadow-md"
+                    className={`${tightShift} transition-all duration-200 hover:scale-105 hover:drop-shadow-md`.trim()}
                   >
                     {inner}
                   </a>
                 ) : (
-                  <div key={funder.name} className="md:-ml-6 transition-all duration-200 hover:scale-105 hover:drop-shadow-md">
+                  <div key={funder.name} className={`${tightShift} transition-all duration-200 hover:scale-105 hover:drop-shadow-md`.trim()}>
                     {inner}
                   </div>
                 );
