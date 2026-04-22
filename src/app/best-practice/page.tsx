@@ -35,7 +35,7 @@ export default function BestPracticePage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/best-practice/login"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
                 >
                   <LogIn className="w-5 h-5" aria-hidden="true" />
                   Anmelden
@@ -238,7 +238,7 @@ export default function BestPracticePage() {
           </p>
           <Link
             href="/best-practice/registrieren"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-white hover:bg-accent-hover transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
           >
             Registrieren via Bestandsaufnahme
           </Link>

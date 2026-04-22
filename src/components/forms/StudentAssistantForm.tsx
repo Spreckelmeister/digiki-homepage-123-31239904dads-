@@ -274,7 +274,7 @@ export default function StudentAssistantForm({
                 </button>
                 <a
                   href="/fuer-schulen#kontakt"
-                  className="px-4 py-2 text-sm rounded-lg bg-accent text-white font-semibold hover:bg-accent-hover transition-colors"
+                  className="px-4 py-2 text-sm rounded-lg bg-accent text-text font-semibold hover:bg-accent-hover transition-colors"
                 >
                   Zum Kontakt
                 </a>
@@ -598,7 +598,7 @@ export default function StudentAssistantForm({
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           <Send className="w-5 h-5" aria-hidden="true" />
           {loading

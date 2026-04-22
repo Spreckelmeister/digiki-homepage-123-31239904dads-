@@ -223,7 +223,7 @@ export default function MyBestandsaufnahme() {
           <p className="mb-3">Sie haben noch keine Bestandsaufnahme eingereicht.</p>
           <Link
             href="/bestandsaufnahme"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-text hover:bg-accent-hover transition-all"
           >
             Bestandsaufnahme ausfüllen
           </Link>

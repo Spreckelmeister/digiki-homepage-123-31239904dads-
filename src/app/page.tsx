@@ -220,7 +220,7 @@ export default function HomePage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -248,7 +248,7 @@ export default function HomePage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -276,7 +276,7 @@ export default function HomePage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 10 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />

@@ -16,7 +16,7 @@ export default function BestPracticeCard({ practice }: BestPracticeCardProps) {
         <h3 className="text-lg font-semibold text-primary mb-1">
           {practice.title}
         </h3>
-        <p className="text-sm font-medium text-accent mb-2">
+        <p className="text-sm font-medium text-accent-strong mb-2">
           {practice.school_name}
         </p>
         <div className="flex flex-wrap gap-2 text-xs text-text-light mb-3">

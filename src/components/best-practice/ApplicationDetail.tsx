@@ -141,7 +141,7 @@ export default function ApplicationDetail({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" aria-hidden="true" />
             {saving ? "Wird gespeichert..." : "Status speichern"}

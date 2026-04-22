@@ -78,7 +78,7 @@ function ProgressBar({
                 i < step
                   ? "bg-primary text-white"
                   : i === step
-                  ? "bg-accent text-white ring-4 ring-accent/20 scale-110"
+                  ? "bg-accent text-text ring-4 ring-accent/20 scale-110"
                   : "bg-border text-text-light"
               } ${onStepClick ? "cursor-pointer hover:opacity-80" : ""}`}
               title={s.label}
@@ -253,7 +253,7 @@ function RatingRow({
             onClick={() => onChange(n)}
             className={`flex-1 py-3 rounded-lg border-2 text-sm font-bold transition-all duration-150 ${
               value === n
-                ? "border-accent bg-accent text-white shadow-sm scale-105"
+                ? "border-accent bg-accent text-text shadow-sm scale-105"
                 : "border-border bg-white text-text-light hover:border-accent/50 hover:text-text"
             }`}
             aria-label={`${n} von 5`}
@@ -1142,7 +1142,7 @@ export default function BestandsaufnahmeForm({
             {kiAktivGenutzt && (
               <>
                 <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 space-y-6">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">Nur bei KI-Nutzung</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent-strong">Nur bei KI-Nutzung</p>
 
                   <div>
                     <FieldLabel>21. Falls KI genutzt wird – wofür? <span className="font-normal text-text-light">(Mehrfachauswahl)</span></FieldLabel>
@@ -1223,7 +1223,7 @@ export default function BestandsaufnahmeForm({
                 26. In welchen Bereichen besteht der größte Fortbildungsbedarf?{" "}
                 <span className="font-normal text-text-light">(max. 5 Auswahlen)</span>
                 {trainingNeeds.length > 0 && (
-                  <span className="ml-2 inline-block bg-accent text-white text-xs px-2 py-0.5 rounded-full font-normal">
+                  <span className="ml-2 inline-block bg-accent text-text text-xs px-2 py-0.5 rounded-full font-normal">
                     {trainingNeeds.length}/5
                   </span>
                 )}
@@ -1308,7 +1308,7 @@ export default function BestandsaufnahmeForm({
             {/* Q32 only visible when Q31 = "Ja" */}
             {hasBestPractice === "Ja" && (
               <div className="rounded-xl border border-accent/30 bg-accent/5 p-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent mb-4">Nur bei Ja</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-strong mb-4">Nur bei Ja</p>
                 <FieldLabel>32. Falls ja, beschreiben Sie bitte kurz (Fach, Tool, Ergebnis):</FieldLabel>
                 <TextArea
                   id="bestPracticeDescription"
@@ -1344,7 +1344,7 @@ export default function BestandsaufnahmeForm({
                 34. Welche Unterstützung würde Ihrer Schule am meisten helfen?{" "}
                 <span className="font-normal text-text-light">(max. 3 Auswahlen)</span>
                 {supportNeeds.length > 0 && (
-                  <span className="ml-2 inline-block bg-accent text-white text-xs px-2 py-0.5 rounded-full font-normal">
+                  <span className="ml-2 inline-block bg-accent text-text text-xs px-2 py-0.5 rounded-full font-normal">
                     {supportNeeds.length}/3
                   </span>
                 )}
@@ -1623,7 +1623,7 @@ export default function BestandsaufnahmeForm({
               type="submit"
               disabled={loading}
               onClick={() => { submitIntentRef.current = true; }}
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent-hover transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-text hover:bg-accent-hover transition-all disabled:opacity-50"
             >
               <Send className="w-4 h-4" aria-hidden="true" />
               {loading ? "Wird übermittelt…" : editMode ? "Änderungen speichern" : "Bestandsaufnahme einreichen"}

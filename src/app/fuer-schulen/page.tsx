@@ -41,7 +41,7 @@ export default function FuerSchulenPage() {
               <div className="flex flex-wrap gap-4">
                 <Link
                   href={projectData.surveyUrl}
-                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-text hover:bg-accent-hover transition-colors"
                 >
                   Jetzt Bestandsaufnahme starten
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -82,7 +82,7 @@ export default function FuerSchulenPage() {
             </div>
             <Link
               href={projectData.surveyUrl}
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-hover transition-colors shrink-0"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-text hover:bg-accent-hover transition-colors shrink-0"
             >
               Zur Bestandsaufnahme
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -122,7 +122,7 @@ export default function FuerSchulenPage() {
                 }`}
               >
                 {option.featured && (
-                  <div className="absolute -top-3 left-6 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-6 bg-accent text-text text-xs font-bold px-3 py-1 rounded-full">
                     Empfohlen
                   </div>
                 )}
@@ -130,7 +130,7 @@ export default function FuerSchulenPage() {
                   <h3 className="text-xl font-bold text-primary">
                     {option.title}
                   </h3>
-                  <p className="text-sm text-accent font-medium">
+                  <p className="text-sm text-accent-strong font-medium">
                     {option.subtitle}
                   </p>
                 </div>
@@ -141,7 +141,7 @@ export default function FuerSchulenPage() {
                   {option.highlights.map((highlight, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Check
-                        className="w-4 h-4 text-accent mt-0.5 shrink-0"
+                        className="w-4 h-4 text-accent-strong mt-0.5 shrink-0"
                         aria-hidden="true"
                       />
                       <span>{highlight}</span>
@@ -154,7 +154,7 @@ export default function FuerSchulenPage() {
                     option.disabled
                       ? "opacity-50 cursor-not-allowed pointer-events-none"
                       : option.featured
-                      ? "bg-accent text-white hover:bg-accent-hover"
+                      ? "bg-accent text-text hover:bg-accent-hover"
                       : "bg-primary/10 text-primary hover:bg-primary/20"
                   }`}
                 >
@@ -264,7 +264,7 @@ export default function FuerSchulenPage() {
                   key={item.step}
                   className="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-border"
                 >
-                  <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-bold shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-text font-bold shrink-0">
                     {item.step}
                   </div>
                   <div>
@@ -318,7 +318,7 @@ export default function FuerSchulenPage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -342,7 +342,7 @@ export default function FuerSchulenPage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 5 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -366,7 +366,7 @@ export default function FuerSchulenPage() {
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                 Bearbeitungszeit ca. 10 Min.
               </p>
-              <span className="flex items-center gap-1.5 text-sm font-medium text-accent">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-accent-strong">
                 <PenLine className="w-4 h-4" aria-hidden="true" />
                 Online ausfüllen
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />

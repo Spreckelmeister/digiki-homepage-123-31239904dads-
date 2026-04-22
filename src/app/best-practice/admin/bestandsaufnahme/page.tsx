@@ -187,7 +187,7 @@ export default async function BestandsaufnahmeAdminPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; class: string }> = {
-    neu: { label: "Neu", class: "bg-accent/10 text-accent" },
+    neu: { label: "Neu", class: "bg-accent/10 text-accent-strong" },
     gelesen: { label: "Gelesen", class: "bg-green-100 text-green-700" },
     archiviert: { label: "Archiviert", class: "bg-gray-100 text-gray-500" },
   };

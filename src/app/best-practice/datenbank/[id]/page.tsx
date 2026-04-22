@@ -134,7 +134,7 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
           {practice.tools_used && practice.tools_used.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mb-8">
               <Wrench
-                className="w-4 h-4 text-accent flex-shrink-0"
+                className="w-4 h-4 text-accent-strong flex-shrink-0"
                 aria-hidden="true"
               />
               <span className="text-sm font-medium text-text">
@@ -143,7 +143,7 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
               {practice.tools_used.map((tool: string) => (
                 <span
                   key={tool}
-                  className="inline-flex bg-accent/10 text-accent text-sm px-2.5 py-0.5 rounded-full"
+                  className="inline-flex bg-accent/10 text-accent-strong text-sm px-2.5 py-0.5 rounded-full"
                 >
                   {tool}
                 </span>

@@ -180,7 +180,7 @@ export default function UeberDasProjektPage() {
                   <div className="flex items-start gap-4 mb-6">
                     <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
                       <Heart
-                        className="w-6 h-6 text-accent"
+                        className="w-6 h-6 text-accent-strong"
                         aria-hidden="true"
                       />
                     </div>
@@ -191,7 +191,7 @@ export default function UeberDasProjektPage() {
                       >
                         Schwerpunkt: Sprachförderung &amp; Mehrsprachigkeit
                       </h2>
-                      <p className="text-accent font-medium">
+                      <p className="text-accent-strong font-medium">
                         Ein besonderes Anliegen von DigiKI
                       </p>
                     </div>

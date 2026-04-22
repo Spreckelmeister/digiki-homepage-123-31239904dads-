@@ -224,7 +224,7 @@ export default function CodeForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           <KeyRound className="w-5 h-5" aria-hidden="true" />
           {loading ? "Wird verifiziert..." : "Code bestätigen"}

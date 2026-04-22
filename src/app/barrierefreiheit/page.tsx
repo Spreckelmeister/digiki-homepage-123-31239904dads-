@@ -67,7 +67,7 @@ export default function BarrierefreiheitPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:krafft@osnabrueck.de"
-                    className="text-accent hover:underline"
+                    className="text-accent-strong hover:underline"
                   >
                     krafft@osnabrueck.de
                   </a>
@@ -98,7 +98,7 @@ export default function BarrierefreiheitPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:behindertenbeauftragte@ms.niedersachsen.de"
-                    className="text-accent hover:underline"
+                    className="text-accent-strong hover:underline"
                   >
                     behindertenbeauftragte@ms.niedersachsen.de
                   </a>

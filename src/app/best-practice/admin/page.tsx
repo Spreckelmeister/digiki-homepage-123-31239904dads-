@@ -76,7 +76,7 @@ export default async function AdminPage() {
             </div>
             <Link
               href="/best-practice/admin/neu"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-text hover:bg-accent-hover transition-colors"
             >
               <Plus className="w-4 h-4" aria-hidden="true" />
               Neuer Beitrag
