@@ -218,7 +218,7 @@ export default function HomePage() {
                   aria-hidden="true"
                 />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 Kostenlose Tool-Lizenzen
               </h3>
               <p className="text-sm text-text-light mb-3">
@@ -246,7 +246,7 @@ export default function HomePage() {
                   aria-hidden="true"
                 />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 Studentische Hilfskräfte
               </h3>
               <p className="text-sm text-text-light mb-3">
@@ -274,7 +274,7 @@ export default function HomePage() {
                   aria-hidden="true"
                 />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 <En>Best Practice</En> einreichen
               </h3>
               <p className="text-sm text-text-light mb-3">

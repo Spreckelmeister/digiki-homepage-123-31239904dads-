@@ -48,6 +48,16 @@ body {
   border-radius: 2px;
 }
 
+/* Formular-Felder setzen bereits einen eigenen Fokus-Ring via Tailwind
+   (focus:ring-2 focus:ring-accent-strong). Der globale Outline würde sich
+   darauf stapeln → doppelter Rahmen. Daher hier unterdrücken – der Ring
+   allein erfüllt die Sichtbarkeit. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 /* Skip-Link */
 .skip-link {
   position: absolute;

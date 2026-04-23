@@ -314,7 +314,7 @@ export default function FuerSchulenPage() {
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
                 <Laptop className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 Kostenlose Tool-Lizenzen
               </h3>
               <p className="text-sm text-text-light mb-3">
@@ -338,7 +338,7 @@ export default function FuerSchulenPage() {
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#00cabe]/10">
                 <Users2 className="h-8 w-8 text-[#00cabe]" aria-hidden="true" />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 Studentische Hilfskräfte
               </h3>
               <p className="text-sm text-text-light mb-3">
@@ -362,7 +362,7 @@ export default function FuerSchulenPage() {
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E8A838]/10">
                 <BookOpen className="h-8 w-8 text-[#E8A838]" aria-hidden="true" />
               </div>
-              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
+              <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent-strong transition-colors">
                 <En>Best Practice</En> einreichen
               </h3>
               <p className="text-sm text-text-light mb-3">
@@ -414,7 +414,7 @@ function FaqExpander({ items }: { items: typeof faqItems }) {
   return (
     <details className="mt-4 group">
       <summary className="cursor-pointer list-none text-center">
-        <span className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent transition-colors px-4 py-2 rounded-lg border border-border hover:border-accent/30">
+        <span className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-strong transition-colors px-4 py-2 rounded-lg border border-border hover:border-accent-strong/40">
           Weitere {items.length} Fragen anzeigen
           <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
