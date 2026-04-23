@@ -175,7 +175,7 @@ export const participationOptions = [
       "Peer-Mentoring für andere Schulen",
       "Dokumentation als Best Practice",
     ],
-    cta: "Mehr erfahren",
+    cta: "Mehr zum Early-Adopter-Programm",
     ctaHref: "#downloads",
     featured: false,
   },

@@ -51,6 +51,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/ueber-das-projekt"
+                  aria-label="Mehr über das DigiKI-Projekt erfahren"
                   className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-6 py-3 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
                 >
                   Mehr erfahren
@@ -563,6 +564,7 @@ export default function HomePage() {
               href={projectData.surveyUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Zur Bestandsaufnahme (öffnet in neuem Tab)"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
             >
               Zur Bestandsaufnahme

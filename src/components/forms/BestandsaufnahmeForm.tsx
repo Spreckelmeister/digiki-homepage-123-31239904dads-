@@ -138,7 +138,12 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   return (
     <p className="text-sm font-semibold text-text mb-3 leading-relaxed">
       {children}
-      {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
+      {required && (
+        <>
+          <span className="text-red-600 ml-1" aria-hidden="true">*</span>
+          <span className="sr-only"> (erforderlich)</span>
+        </>
+      )}
     </p>
   );
 }
@@ -1582,6 +1587,13 @@ export default function BestandsaufnahmeForm({
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
                   placeholder="Passwort wiederholen"
+                  autoComplete="new-password"
+                  aria-invalid={!!(passwordConfirm && password !== passwordConfirm)}
+                  aria-describedby={
+                    passwordConfirm && password !== passwordConfirm
+                      ? "passwordConfirm-error"
+                      : undefined
+                  }
                   className={`w-full rounded-lg border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
                     passwordConfirm && password !== passwordConfirm
                       ? "border-red-400"
@@ -1598,7 +1610,9 @@ export default function BestandsaufnahmeForm({
                 </button>
               </div>
               {passwordConfirm && password !== passwordConfirm && (
-                <p className="mt-1 text-xs text-red-500">Die Passwörter stimmen nicht überein.</p>
+                <p id="passwordConfirm-error" role="alert" className="mt-1 text-xs text-red-600">
+                  Die Passwörter stimmen nicht überein.
+                </p>
               )}
             </div>
           </div>

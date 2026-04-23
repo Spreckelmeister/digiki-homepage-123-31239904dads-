@@ -192,9 +192,21 @@ export default function MyPasswordChanger({ email }: Props) {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={inputClass}
             autoComplete="new-password"
+            aria-invalid={
+              confirmPassword.length > 0 && confirmPassword !== newPassword
+            }
+            aria-describedby={
+              confirmPassword.length > 0 && confirmPassword !== newPassword
+                ? "confirmPassword-error"
+                : undefined
+            }
           />
           {confirmPassword.length > 0 && confirmPassword !== newPassword && (
-            <p className="mt-2 text-sm text-red-700">
+            <p
+              id="confirmPassword-error"
+              role="alert"
+              className="mt-2 text-sm text-red-700"
+            >
               Die Passwörter stimmen nicht überein.
             </p>
           )}

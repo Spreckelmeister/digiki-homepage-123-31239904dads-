@@ -246,7 +246,7 @@ export default function BarrierefreiheitPage() {
                 barrierefreien Format? Wir freuen uns über Rückmeldungen und
                 nehmen Ihr Anliegen ernst. Bitte wenden Sie sich an:
               </p>
-              <address className="text-text-light not-italic leading-relaxed bg-bg rounded-lg border border-border p-5">
+              <address className="text-text-light not-italic leading-relaxed bg-bg rounded-lg border border-border p-5 break-words">
                 <p className="font-semibold text-primary">Kai Krafft</p>
                 <p>Bildungskoordinator im Fachbereich 40-3 Bildung</p>
                 <p>Stadt Osnabrück</p>
@@ -255,7 +255,7 @@ export default function BarrierefreiheitPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:krafft@osnabrueck.de"
-                    className="text-primary underline hover:text-primary/80"
+                    className="text-primary underline hover:text-primary/80 break-all"
                   >
                     krafft@osnabrueck.de
                   </a>
@@ -285,7 +285,7 @@ export default function BarrierefreiheitPage() {
                 öffentlichen Stellen des Landes eine gütliche Einigung
                 herbeizuführen. Das Schlichtungsverfahren ist kostenlos.
               </p>
-              <address className="text-text-light not-italic leading-relaxed bg-bg rounded-lg border border-border p-5">
+              <address className="text-text-light not-italic leading-relaxed bg-bg rounded-lg border border-border p-5 break-words">
                 <p className="font-semibold text-primary">
                   Landesbeauftragter für Menschen mit Behinderungen in
                   Niedersachsen – Schlichtungsstelle
@@ -299,7 +299,7 @@ export default function BarrierefreiheitPage() {
                   E-Mail:{" "}
                   <a
                     href="mailto:behindertenbeauftragte@ms.niedersachsen.de"
-                    className="text-primary underline hover:text-primary/80"
+                    className="text-primary underline hover:text-primary/80 break-all"
                   >
                     behindertenbeauftragte@ms.niedersachsen.de
                   </a>
@@ -308,7 +308,7 @@ export default function BarrierefreiheitPage() {
                   Web:{" "}
                   <a
                     href="https://www.behindertenbeauftragte.niedersachsen.de"
-                    className="text-primary underline hover:text-primary/80"
+                    className="text-primary underline hover:text-primary/80 break-all"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

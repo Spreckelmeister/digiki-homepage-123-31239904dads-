@@ -42,6 +42,7 @@ export default function BestPracticeCard({ practice }: BestPracticeCardProps) {
       </div>
       <Link
         href={`/best-practice/datenbank/${practice.id}`}
+        aria-label={`Mehr zu „${practice.title}" lesen`}
         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
       >
         Mehr lesen
