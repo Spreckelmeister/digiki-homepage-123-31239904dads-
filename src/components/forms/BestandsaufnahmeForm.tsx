@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, useMemo, useTransition, memo } from "react";
 import Link from "next/link";
 import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -420,7 +420,10 @@ export default function BestandsaufnahmeForm({
 }) {
   const { isSpam, HoneypotField } = useHoneypot();
 
-  // Navigation
+  // Navigation. `isPending` könnte man zur Zeit für eine Ladeanzeige nutzen;
+  // hier reicht der Transition-Wrapper, um den Klick sofort reagieren zu lassen,
+  // während React den nächsten Step asynchron rendert.
+  const [, startStepTransition] = useTransition();
   const [step, setStep] = useState(0);
 
   // ── Teil A ──────────────────────────────────────────────────────────────────
@@ -522,6 +525,21 @@ export default function BestandsaufnahmeForm({
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Passwort-Checkliste nur neu berechnen, wenn das Passwort sich ändert –
+  // nicht bei jedem Render anderer Felder im Formular.
+  const passwordChecks = useMemo(
+    () =>
+      password.length === 0
+        ? null
+        : [
+            { ok: password.length >= 8,          label: "Mindestens 8 Zeichen" },
+            { ok: /[A-Z]/.test(password),        label: "Großbuchstabe (A–Z)" },
+            { ok: /[0-9]/.test(password),        label: "Zahl (0–9)" },
+            { ok: /[^A-Za-z0-9]/.test(password), label: "Sonderzeichen (!@#…)" },
+          ],
+    [password]
+  );
 
   // ── Einwilligungen ──────────────────────────────────────────────────────────
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -711,13 +729,15 @@ export default function BestandsaufnahmeForm({
     setStepError("");
     setErrorFocusId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    setStep((s) => s + 1);
+    // Step-Wechsel als Transition → Click bleibt sofort responsiv,
+    // React rendert den (umfangreichen) nächsten Abschnitt im Hintergrund.
+    startStepTransition(() => setStep((s) => s + 1));
   }
 
   function handleBack() {
     setStepError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
-    setStep((s) => s - 1);
+    startStepTransition(() => setStep((s) => s - 1));
   }
 
   // ─── lastStep: in editMode skip step 8 (account creation) ─────────────────
@@ -978,7 +998,7 @@ export default function BestandsaufnahmeForm({
       <ProgressBar
         step={step}
         steps={visibleSteps}
-        onStepClick={editMode ? (i) => { setStepError(""); window.scrollTo({ top: 0, behavior: "smooth" }); setStep(i); } : undefined}
+        onStepClick={editMode ? (i) => { setStepError(""); window.scrollTo({ top: 0, behavior: "smooth" }); startStepTransition(() => setStep(i)); } : undefined}
       />
 
       {/* Error banner */}
@@ -1636,14 +1656,9 @@ export default function BestandsaufnahmeForm({
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {password.length > 0 && (
+              {passwordChecks && (
                 <ul className="mt-2 space-y-1">
-                  {[
-                    { ok: password.length >= 8,          label: "Mindestens 8 Zeichen" },
-                    { ok: /[A-Z]/.test(password),        label: "Großbuchstabe (A–Z)" },
-                    { ok: /[0-9]/.test(password),        label: "Zahl (0–9)" },
-                    { ok: /[^A-Za-z0-9]/.test(password), label: "Sonderzeichen (!@#…)" },
-                  ].map(({ ok, label }) => (
+                  {passwordChecks.map(({ ok, label }) => (
                     <li key={label} className={`flex items-center gap-1.5 text-xs ${ok ? "text-green-600" : "text-text-light"}`}>
                       <Check className={`w-3.5 h-3.5 shrink-0 ${ok ? "opacity-100" : "opacity-20"}`} strokeWidth={3} />
                       {label}

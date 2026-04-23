@@ -63,7 +63,7 @@ export default function Timeline({ phases }: TimelineProps) {
             <div
               key={phase.phase}
               style={{ transitionDelay: revealed ? `${index * 120}ms` : "0ms" }}
-              className={`relative flex items-start gap-6 md:gap-0 transition-all duration-700 ease-out ${
+              className={`relative flex items-start gap-6 md:gap-0 transition-[opacity,transform] duration-700 ease-out will-change-[opacity,transform] ${
                 revealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-8"
