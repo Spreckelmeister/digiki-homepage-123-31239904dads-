@@ -93,13 +93,6 @@ export default function BarrierefreiheitPage() {
                   Abbildungen ohne ausführliche Alternativtexte enthalten.
                   Auf Anfrage liefern wir barrierefreie Alternativen.
                 </li>
-                <li>
-                  Einzelne technische Fachbegriffe in anderen Sprachen
-                  (z.&thinsp;B. „Best Practice", „Tool", „KI") sind im
-                  Quelltext derzeit nicht mit{" "}
-                  <code className="font-mono text-sm">lang</code>-Attributen
-                  gekennzeichnet.
-                </li>
               </ul>
 
               <h3 className="text-lg font-semibold text-text mt-6 mb-2">
@@ -210,7 +203,12 @@ export default function BarrierefreiheitPage() {
                 </li>
                 <li>
                   Seitenweites{" "}
-                  <code className="font-mono text-sm">lang="de"</code>-Attribut
+                  <code className="font-mono text-sm">lang=&quot;de&quot;</code>-Attribut
+                  sowie gezielte <code className="font-mono text-sm">lang=&quot;en&quot;</code>-Auszeichnung
+                  englischer Mehrwort-Lehnwörter (z.&thinsp;B. „Best Practice")
+                  für korrekte Aussprache durch Screenreader. Einzelwort-Lehnwörter
+                  wie „Tool" oder „Login" gelten laut WCAG 3.1.2 Understanding
+                  als deutsches Vokabular und bleiben bewusst unmarkiert.
                 </li>
               </ul>
             </div>

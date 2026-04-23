@@ -5,6 +5,7 @@ import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
+import { En } from "@/components/Lang";
 import { EventsJsonLd } from "@/components/JsonLd";
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
@@ -34,7 +35,14 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                Digitale Kompetenz &amp; KI für{" "}
+                Digitale Kompetenz &amp;{" "}
+                <abbr
+                  title="Künstliche Intelligenz"
+                  className="no-underline"
+                >
+                  KI
+                </abbr>{" "}
+                für{" "}
                 <span className="text-teal">Grundschulen</span>
               </h1>
               <p className="text-lg text-white/85 max-w-3xl mb-8">
@@ -267,7 +275,7 @@ export default function HomePage() {
                 />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
-                Best Practice einreichen
+                <En>Best Practice</En> einreichen
               </h3>
               <p className="text-sm text-text-light mb-3">
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen

@@ -11,11 +11,11 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const navigation = [
+const navigation: { name: string; href: string; lang?: string }[] = [
   { name: "Startseite", href: "/" },
   { name: "Über das Projekt", href: "/ueber-das-projekt" },
   { name: "Für Schulen", href: "/fuer-schulen" },
-  { name: "Best Practice", href: "/best-practice" },
+  { name: "Best Practice", href: "/best-practice", lang: "en" },
   // Weitere Seiten können hier ergänzt werden:
   // { name: "Termine", href: "/termine" },
   // { name: "Netzwerk", href: "/netzwerk" },
@@ -61,6 +61,7 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  lang={item.lang}
                   aria-current={active ? "page" : undefined}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
@@ -108,6 +109,7 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    lang={item.lang}
                     aria-current={active ? "page" : undefined}
                     className={`rounded-lg px-3 py-2 text-base font-medium transition-colors ${
                       active

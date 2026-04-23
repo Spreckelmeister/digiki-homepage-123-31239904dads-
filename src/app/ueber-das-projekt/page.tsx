@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
+import { En } from "@/components/Lang";
 
 // Timeline ist unterhalb des Folds – lazy-loaded in eigenem Chunk,
 // damit der Above-the-fold-Pfad schneller interaktiv wird.
@@ -153,7 +154,7 @@ export default function UeberDasProjektPage() {
                 />
               </div>
               <h3 className="font-semibold text-primary mb-2">
-                Best Practices
+                <En>Best Practices</En>
               </h3>
               <p className="text-sm text-text-light">
                 Erfolgreiche Beispiele dokumentieren und zwischen Schulen teilen

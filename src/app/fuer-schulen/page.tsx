@@ -6,6 +6,7 @@ import StatCounter from "@/components/StatCounter";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
+import { En } from "@/components/Lang";
 import { projectData, participationOptions, faqItems } from "@/data/project";
 import { blobImages } from "@/data/images.generated";
 
@@ -362,7 +363,7 @@ export default function FuerSchulenPage() {
                 <BookOpen className="h-8 w-8 text-[#E8A838]" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-primary mb-2 group-hover:text-accent transition-colors">
-                Best Practice einreichen
+                <En>Best Practice</En> einreichen
               </h3>
               <p className="text-sm text-text-light mb-3">
                 Dokumentieren Sie Ihre Unterrichtserfahrungen mit digitalen Tools und teilen Sie sie mit anderen.

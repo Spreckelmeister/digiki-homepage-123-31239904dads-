@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Database, Search, BookOpen, LogIn, Clock, Sparkles } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import ProtectedImage from "@/components/ProtectedImage";
+import { En } from "@/components/Lang";
 import { blobImages } from "@/data/images.generated";
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default function BestPracticePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-                Best-Practice-Datenbank
+                <En>Best-Practice</En>-Datenbank
               </h1>
               <p className="text-lg text-white/90 max-w-3xl mb-8">
                 Entdecken Sie erfolgreiche Unterrichtsbeispiele mit digitalen Tools
@@ -81,7 +82,7 @@ export default function BestPracticePage() {
               Voneinander lernen
             </h2>
             <p className="text-lg text-text-light max-w-2xl mx-auto">
-              Die Best-Practice-Datenbank sammelt erprobte Unterrichtsbeispiele
+              Die <En>Best-Practice</En>-Datenbank sammelt erprobte Unterrichtsbeispiele
               aus dem DigiKI-Projekt.
             </p>
           </div>
