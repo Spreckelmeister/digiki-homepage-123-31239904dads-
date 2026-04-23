@@ -195,7 +195,7 @@ export default function CodeForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
-            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
             placeholder="ihre.email@schule.de"
           />
         </div>
@@ -216,7 +216,7 @@ export default function CodeForm() {
             autoComplete="one-time-code"
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            className="w-full rounded-lg border border-border px-4 py-3 text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+            className="w-full rounded-lg border border-border px-4 py-3 text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
             placeholder="12345678"
           />
         </div>

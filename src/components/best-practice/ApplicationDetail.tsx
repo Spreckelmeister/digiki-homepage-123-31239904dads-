@@ -86,7 +86,7 @@ export default function ApplicationDetail({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
+    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors";
 
   return (
     <div className="space-y-8">

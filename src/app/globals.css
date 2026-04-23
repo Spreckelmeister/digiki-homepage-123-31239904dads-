@@ -39,9 +39,11 @@ body {
   animation: countUp 0.6s ease-out forwards;
 }
 
-/* Focus-Styles für Barrierefreiheit */
+/* Focus-Styles für Barrierefreiheit – accent-strong (#AB7A0E) liefert
+   ~4:1 Kontrast auf Weiß und bleibt gegen bg-primary (dunkles Teal) sichtbar.
+   Erfüllt WCAG 1.4.11 Non-Text Contrast (3:1). */
 *:focus-visible {
-  outline: 3px solid var(--color-accent);
+  outline: 3px solid var(--color-accent-strong);
   outline-offset: 2px;
   border-radius: 2px;
 }

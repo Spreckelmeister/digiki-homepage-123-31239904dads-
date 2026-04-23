@@ -39,19 +39,19 @@ export default function AdminTable({ practices }: AdminTableProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+              <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                 Titel
               </th>
-              <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+              <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                 Schule
               </th>
-              <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+              <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                 Status
               </th>
-              <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+              <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                 Datum
               </th>
-              <th className="text-right text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+              <th scope="col" className="text-right text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                 Aktionen
               </th>
             </tr>

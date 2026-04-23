@@ -211,7 +211,7 @@ export default function BestPracticeVorlageForm() {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
+    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors";
 
   if (isAdmin === null) return null;
   if (isAdmin === true) return (
@@ -669,7 +669,7 @@ export default function BestPracticeVorlageForm() {
               value="ja_alles"
               checked={consent === "ja_alles"}
               onChange={() => setConsent("ja_alles")}
-              className="w-4 h-4 text-accent focus:ring-accent"
+              className="w-4 h-4 text-accent focus:ring-accent-strong"
             />
             <span className="text-sm text-text">
               Ja, diese Best Practice darf veröffentlicht werden.
@@ -682,7 +682,7 @@ export default function BestPracticeVorlageForm() {
               value="ja_anonym"
               checked={consent === "ja_anonym"}
               onChange={() => setConsent("ja_anonym")}
-              className="w-4 h-4 text-accent focus:ring-accent"
+              className="w-4 h-4 text-accent focus:ring-accent-strong"
             />
             <span className="text-sm text-text">
               Ja, aber nur anonymisiert (ohne Schulname / Kontaktperson).
@@ -695,7 +695,7 @@ export default function BestPracticeVorlageForm() {
               value="nein"
               checked={consent === "nein"}
               onChange={() => setConsent("nein")}
-              className="w-4 h-4 text-accent focus:ring-accent"
+              className="w-4 h-4 text-accent focus:ring-accent-strong"
             />
             <span className="text-sm text-text">
               Nein, nur zur internen Nutzung.
@@ -715,7 +715,7 @@ export default function BestPracticeVorlageForm() {
             required
             checked={privacyConsent}
             onChange={(e) => setPrivacyConsent(e.target.checked)}
-            className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+            className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
           />
           <span className="text-sm text-text">
             Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
@@ -735,7 +735,7 @@ export default function BestPracticeVorlageForm() {
             required
             checked={truthConsent}
             onChange={(e) => setTruthConsent(e.target.checked)}
-            className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+            className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
           />
           <span className="text-sm text-text">
             Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *

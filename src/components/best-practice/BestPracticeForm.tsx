@@ -145,7 +145,7 @@ export default function BestPracticeForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
+    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -289,7 +289,7 @@ export default function BestPracticeForm({
           type="checkbox"
           checked={published}
           onChange={(e) => setPublished(e.target.checked)}
-          className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+          className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
         />
         <label htmlFor="published" className="text-sm font-medium text-text">
           Veröffentlicht (sichtbar für Lehrkräfte)

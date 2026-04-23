@@ -273,11 +273,11 @@ export default function ToolLicenseForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors";
+    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors";
 
   const checkboxLabel = "flex items-center gap-3 cursor-pointer";
   const checkboxInput =
-    "w-4 h-4 rounded border-border text-accent focus:ring-accent";
+    "w-4 h-4 rounded border-border text-accent focus:ring-accent-strong";
 
   if (isAdmin === null) return null;
   if (isAdmin === true) return (

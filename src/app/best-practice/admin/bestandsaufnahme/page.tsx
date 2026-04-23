@@ -83,25 +83,27 @@ export default async function BestandsaufnahmeAdminPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-bg">
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Schule
                       </th>
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Standort
                       </th>
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Schüler/innen
                       </th>
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Ausfüllende Person
                       </th>
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Status
                       </th>
-                      <th className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
+                      <th scope="col" className="text-left text-xs font-semibold text-text-light uppercase tracking-wider py-3 px-4">
                         Datum
                       </th>
-                      <th className="py-3 px-4" />
+                      <th scope="col" className="py-3 px-4">
+                        <span className="sr-only">Aktionen</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">

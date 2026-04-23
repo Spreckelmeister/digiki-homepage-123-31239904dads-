@@ -47,13 +47,14 @@ function ProgressBar({
   onStepClick?: (i: number) => void;
 }) {
   return (
-    <div className="mb-8">
+    <nav aria-label="Formular-Fortschritt" className="mb-8">
       {/* Mobile: dropdown in edit mode, counter otherwise */}
       <div className="flex items-center justify-between mb-3 sm:hidden">
         {onStepClick ? (
           <select
             value={step}
             onChange={(e) => onStepClick(Number(e.target.value))}
+            aria-label="Zu Abschnitt springen"
             className="text-sm font-semibold text-primary bg-transparent border-none outline-none cursor-pointer"
           >
             {steps.map((s, i) => (
@@ -63,52 +64,70 @@ function ProgressBar({
             ))}
           </select>
         ) : (
-          <span className="text-sm font-semibold text-primary">
+          <span className="text-sm font-semibold text-primary" aria-current="step">
             {steps[step].icon} {steps[step].label}
           </span>
         )}
         <span className="text-xs text-text-light font-medium bg-border px-2 py-0.5 rounded-full">
-          {step + 1} / {steps.length}
+          <span className="sr-only">Abschnitt </span>
+          {step + 1} <span aria-hidden="true">/</span><span className="sr-only"> von </span> {steps.length}
         </span>
       </div>
 
       {/* Desktop: dots */}
-      <div className="hidden sm:flex items-center gap-1 mb-3">
+      <ol className="hidden sm:flex items-center gap-1 mb-3 list-none p-0">
         {steps.map((s, i) => {
+          const isCurrent = i === step;
+          const isDone = i < step;
+          const stateLabel = isCurrent
+            ? "aktueller Abschnitt"
+            : isDone
+            ? "abgeschlossen"
+            : "ausstehend";
           const dot = (
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-all duration-300 ${
-                i < step
+                isDone
                   ? "bg-primary text-white"
-                  : i === step
+                  : isCurrent
                   ? "bg-accent text-text ring-4 ring-accent/20 scale-110"
                   : "bg-border text-text-light"
               } ${onStepClick ? "cursor-pointer hover:opacity-80" : ""}`}
               title={s.label}
             >
-              {i < step ? <Check className="w-4 h-4" /> : s.short}
+              {isDone ? <Check className="w-4 h-4" aria-hidden="true" /> : <span aria-hidden="true">{s.short}</span>}
+              <span className="sr-only">{`Schritt ${i + 1}: ${s.label} – ${stateLabel}`}</span>
             </div>
           );
           return (
-            <div key={i} className="flex items-center flex-1 last:flex-none">
+            <li key={i} className="flex items-center flex-1 last:flex-none">
               {onStepClick ? (
-                <button type="button" onClick={() => onStepClick(i)} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onStepClick(i)}
+                  aria-current={isCurrent ? "step" : undefined}
+                  aria-label={`Zu Schritt ${i + 1} springen: ${s.label} (${stateLabel})`}
+                  className="shrink-0 rounded-full"
+                >
                   {dot}
                 </button>
               ) : (
-                dot
+                <div aria-current={isCurrent ? "step" : undefined} className="shrink-0">
+                  {dot}
+                </div>
               )}
               {i < steps.length - 1 && (
                 <div
+                  aria-hidden="true"
                   className={`h-0.5 flex-1 mx-1 rounded transition-all duration-500 ${
                     i < step ? "bg-primary" : "bg-border"
                   }`}
                 />
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {/* Bar */}
       <div className="w-full bg-border rounded-full h-1.5">
@@ -121,7 +140,7 @@ function ProgressBar({
       <p className="hidden sm:block mt-2 text-xs text-text-light text-right">
         Abschnitt {step + 1} von {steps.length}: {steps[step].label}
       </p>
-    </div>
+    </nav>
   );
 }
 
@@ -134,9 +153,21 @@ function SectionHeading({ icon, title }: { icon: string; title: string }) {
   );
 }
 
-function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
-  return (
-    <p className="text-sm font-semibold text-text mb-3 leading-relaxed">
+// `htmlFor` verbindet das Label mit einem einzelnen Input-Feld (BITV/WCAG 1.3.1).
+// Ohne htmlFor wird ein <p> gerendert – geeignet für Radio-/Checkbox-Gruppen,
+// bei denen jedes Option-Label sich selbst mit seinem Input verbindet.
+function FieldLabel({
+  children,
+  required,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+  htmlFor?: string;
+}) {
+  const className = "block text-sm font-semibold text-text mb-3 leading-relaxed";
+  const content = (
+    <>
       {children}
       {required && (
         <>
@@ -144,8 +175,16 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
           <span className="sr-only"> (erforderlich)</span>
         </>
       )}
-    </p>
+    </>
   );
+  if (htmlFor) {
+    return (
+      <label htmlFor={htmlFor} className={className}>
+        {content}
+      </label>
+    );
+  }
+  return <p className={className}>{content}</p>;
 }
 
 const RadioGroup = memo(function RadioGroup({
@@ -237,7 +276,7 @@ function OtherInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="mt-2 w-full rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+      className="mt-2 w-full rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
     />
   );
 }
@@ -291,7 +330,7 @@ function TextInput({
       autoComplete={autoComplete}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+      className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
     />
   );
 }
@@ -308,7 +347,7 @@ function TextArea({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white resize-y"
+      className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white resize-y"
     />
   );
 }
@@ -489,6 +528,8 @@ export default function BestandsaufnahmeForm({
   const [truthConsent, setTruthConsent] = useState(false);
 
   const [stepError, setStepError] = useState("");
+  const [errorFocusId, setErrorFocusId] = useState<string | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const isAdmin = useIsAdmin();
@@ -501,16 +542,30 @@ export default function BestandsaufnahmeForm({
   // sichtbar bleibt.
   useEffect(() => {
     setStepError("");
+    setErrorFocusId(null);
     submitIntentRef.current = false;
   }, [step]);
 
-  // Wenn eine Fehlermeldung erscheint, zum Seitenanfang scrollen, damit der
-  // Nutzer sie sofort sieht.
+  // Bei neuer Fehlermeldung: zum Seitenanfang scrollen UND Fokus setzen.
+  // Vorzugsweise auf das konkrete Feld (wenn eine ID bekannt ist), sonst auf
+  // das Alert-Element selbst – Screenreader lesen die Meldung dann vor und
+  // Tastatur-Nutzer landen direkt an der relevanten Stelle.
   useEffect(() => {
-    if (stepError && typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [stepError]);
+    if (!stepError || typeof window === "undefined") return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Im nächsten Frame fokussieren, damit der Alert-Block gerendert ist.
+    const id = window.setTimeout(() => {
+      if (errorFocusId) {
+        const el = document.getElementById(errorFocusId) as HTMLElement | null;
+        if (el) {
+          el.focus({ preventScroll: true });
+          return;
+        }
+      }
+      errorAlertRef.current?.focus({ preventScroll: true });
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [stepError, errorFocusId]);
 
   // Beim Erreichen des Account-Steps gezielt das Ansprechpartner-Feld fokussieren.
   // Der Browser versucht sonst per Autofill auf das Telefon-Feld zu springen –
@@ -534,119 +589,127 @@ export default function BestandsaufnahmeForm({
   const kiAktivGenutzt = aiUsage.startsWith("Ja");
 
   // ─── Step validation ────────────────────────────────────────────────────────
-  function validateStep(s: number): string {
+  // Gibt die Fehlermeldung und ggf. eine Feld-ID zurück, auf die fokussiert
+  // werden soll. Leerer Message bedeutet: alles ok.
+  function validateStep(s: number): { message: string; focusId?: string } {
+    const err = (message: string, focusId?: string) => ({ message, focusId });
     switch (s) {
       case 0: // Teil A
-        if (!schoolName.trim()) return "Bitte geben Sie den Namen der Schule an (Frage 1).";
-        if (!schoolLocation) return "Bitte wählen Sie den Schulstandort (Frage 2).";
-        if (!studentCount) return "Bitte wählen Sie die Schüleranzahl (Frage 3).";
-        if (!teacherCount) return "Bitte geben Sie die Anzahl der Lehrkräfte an (Frage 4).";
-        if (!isStartchancen) return "Bitte beantworten Sie die Startchancen-Frage (Frage 5).";
-        if (!dazShare) return "Bitte wählen Sie den DaZ-Anteil (Frage 6).";
-        if (!respondentRole) return "Bitte geben Sie an, wer die Umfrage ausfüllt (Frage 7).";
+        if (!schoolName.trim()) return err("Bitte geben Sie den Namen der Schule an (Frage 1).", "schoolName");
+        if (!schoolLocation) return err("Bitte wählen Sie den Schulstandort (Frage 2).");
+        if (!studentCount) return err("Bitte wählen Sie die Schüleranzahl (Frage 3).");
+        if (!teacherCount) return err("Bitte geben Sie die Anzahl der Lehrkräfte an (Frage 4).", "teacherCount");
+        if (!isStartchancen) return err("Bitte beantworten Sie die Startchancen-Frage (Frage 5).");
+        if (!dazShare) return err("Bitte wählen Sie den DaZ-Anteil (Frage 6).");
+        if (!respondentRole) return err("Bitte geben Sie an, wer die Umfrage ausfüllt (Frage 7).");
         if (respondentRole === "Sonstiges" && !respondentRoleOther.trim()) {
-          return "Bitte spezifizieren Sie die Rolle unter 'Sonstiges' (Frage 7).";
+          return err("Bitte spezifizieren Sie die Rolle unter 'Sonstiges' (Frage 7).");
         }
         break;
       case 1: // Teil B
-        if (devices.length === 0) return "Bitte wählen Sie mindestens ein Endgerät (Frage 8).";
+        if (devices.length === 0) return err("Bitte wählen Sie mindestens ein Endgerät (Frage 8).");
         if (devices.includes("Sonstiges") && !devicesOther.trim()) {
-          return "Bitte geben Sie an, welches sonstige Endgerät (Frage 8).";
+          return err("Bitte geben Sie an, welches sonstige Endgerät (Frage 8).");
         }
-        if (!tabletCount) return "Bitte geben Sie die Tablet-Anzahl an (Frage 9).";
-        if (!wlanRating) return "Bitte bewerten Sie die WLAN-Abdeckung (Frage 10).";
-        if (infrastructure.length === 0) return "Bitte wählen Sie die digitale Infrastruktur (Frage 11).";
+        if (!tabletCount) return err("Bitte geben Sie die Tablet-Anzahl an (Frage 9).");
+        if (!wlanRating) return err("Bitte bewerten Sie die WLAN-Abdeckung (Frage 10).");
+        if (infrastructure.length === 0) return err("Bitte wählen Sie die digitale Infrastruktur (Frage 11).");
         if (infrastructure.includes("Sonstiges") && !infrastructureOther.trim()) {
-          return "Bitte geben Sie an, welche sonstige Infrastruktur (Frage 11).";
+          return err("Bitte geben Sie an, welche sonstige Infrastruktur (Frage 11).");
         }
-        if (challenges.length === 0) return "Bitte wählen Sie mindestens eine Herausforderung (Frage 12).";
+        if (challenges.length === 0) return err("Bitte wählen Sie mindestens eine Herausforderung (Frage 12).");
         if (challenges.includes("Sonstiges") && !challengesOther.trim()) {
-          return "Bitte geben Sie die sonstige Herausforderung an (Frage 12).";
+          return err("Bitte geben Sie die sonstige Herausforderung an (Frage 12).");
         }
-        if (!supportSatisfaction) return "Bitte bewerten Sie den technischen Support (Frage 13).";
+        if (!supportSatisfaction) return err("Bitte bewerten Sie den technischen Support (Frage 13).");
         break;
       case 2: // Teil C
-        if (!digitizationLevel) return "Bitte schätzen Sie den Digitalisierungsgrad ein (Frage 14).";
-        if (toolsUsed.length === 0) return "Bitte wählen Sie mindestens ein digitales Tool (Frage 15).";
+        if (!digitizationLevel) return err("Bitte schätzen Sie den Digitalisierungsgrad ein (Frage 14).");
+        if (toolsUsed.length === 0) return err("Bitte wählen Sie mindestens ein digitales Tool (Frage 15).");
         if (toolsUsed.includes("Sonstiges") && !toolsUsedOther.trim()) {
-          return "Bitte geben Sie das sonstige Tool an (Frage 15).";
+          return err("Bitte geben Sie das sonstige Tool an (Frage 15).");
         }
-        if (!usageFrequency) return "Bitte geben Sie die Einsatzhäufigkeit an (Frage 16).";
-        if (diagnosticTools.length === 0) return "Bitte beantworten Sie Frage 17 (Diagnostik-Tools).";
+        if (!usageFrequency) return err("Bitte geben Sie die Einsatzhäufigkeit an (Frage 16).");
+        if (diagnosticTools.length === 0) return err("Bitte beantworten Sie Frage 17 (Diagnostik-Tools).");
         if (diagnosticTools.includes("Sonstiges") && !diagnosticToolsOther.trim()) {
-          return "Bitte geben Sie das sonstige Diagnostik-Tool an (Frage 17).";
+          return err("Bitte geben Sie das sonstige Diagnostik-Tool an (Frage 17).");
         }
-        if (!mediaConcept) return "Bitte beantworten Sie Frage 18 (Medienkonzept).";
-        if (!mediaResponsible) return "Bitte beantworten Sie Frage 19 (Medienbeauftragte Person).";
+        if (!mediaConcept) return err("Bitte beantworten Sie Frage 18 (Medienkonzept).");
+        if (!mediaResponsible) return err("Bitte beantworten Sie Frage 19 (Medienbeauftragte Person).");
         break;
       case 3: // Teil D
-        if (!aiUsage) return "Bitte beantworten Sie Frage 20 (KI-Nutzung).";
+        if (!aiUsage) return err("Bitte beantworten Sie Frage 20 (KI-Nutzung).");
         if (kiAktivGenutzt) {
-          if (aiPurposes.length === 0) return "Bitte wählen Sie mindestens einen KI-Zweck (Frage 21).";
+          if (aiPurposes.length === 0) return err("Bitte wählen Sie mindestens einen KI-Zweck (Frage 21).");
           if (aiPurposes.includes("Sonstiges") && !aiPurposesOther.trim()) {
-            return "Bitte geben Sie den sonstigen KI-Zweck an (Frage 21).";
+            return err("Bitte geben Sie den sonstigen KI-Zweck an (Frage 21).");
           }
-          if (aiToolsUsed.length === 0) return "Bitte wählen Sie mindestens ein KI-Tool (Frage 22).";
+          if (aiToolsUsed.length === 0) return err("Bitte wählen Sie mindestens ein KI-Tool (Frage 22).");
           if (aiToolsUsed.includes("Sonstiges") && !aiToolsOther.trim()) {
-            return "Bitte geben Sie das sonstige KI-Tool an (Frage 22).";
+            return err("Bitte geben Sie das sonstige KI-Tool an (Frage 22).");
           }
         }
-        if (!aiCompetence) return "Bitte schätzen Sie das KI-Kompetenzniveau ein (Frage 23).";
-        if (aiConcerns.length === 0) return "Bitte wählen Sie mindestens eine Bedenken-Option (Frage 24).";
+        if (!aiCompetence) return err("Bitte schätzen Sie das KI-Kompetenzniveau ein (Frage 23).");
+        if (aiConcerns.length === 0) return err("Bitte wählen Sie mindestens eine Bedenken-Option (Frage 24).");
         if (aiConcerns.includes("Sonstiges") && !aiConcernsOther.trim()) {
-          return "Bitte geben Sie die sonstige Bedenken-Option an (Frage 24).";
+          return err("Bitte geben Sie die sonstige Bedenken-Option an (Frage 24).");
         }
-        if (aiTrainings.length === 0) return "Bitte beantworten Sie Frage 25 (KI-Fortbildungen).";
+        if (aiTrainings.length === 0) return err("Bitte beantworten Sie Frage 25 (KI-Fortbildungen).");
         if (aiTrainings.includes("Sonstiges") && !aiTrainingsOther.trim()) {
-          return "Bitte geben Sie die sonstige KI-Fortbildung an (Frage 25).";
+          return err("Bitte geben Sie die sonstige KI-Fortbildung an (Frage 25).");
         }
         break;
       case 4: // Teil E
-        if (trainingNeeds.length === 0) return "Bitte wählen Sie mindestens einen Fortbildungsbedarf (Frage 26).";
+        if (trainingNeeds.length === 0) return err("Bitte wählen Sie mindestens einen Fortbildungsbedarf (Frage 26).");
         if (trainingNeeds.includes("Sonstiges") && !trainingNeedsOther.trim()) {
-          return "Bitte geben Sie den sonstigen Fortbildungsbedarf an (Frage 26).";
+          return err("Bitte geben Sie den sonstigen Fortbildungsbedarf an (Frage 26).");
         }
-        if (trainingFormat.length === 0) return "Bitte wählen Sie ein Schulungsformat (Frage 27).";
-        if (trainingTimes.length === 0) return "Bitte wählen Sie die Fortbildungszeiten (Frage 28).";
-        if (!participationCount) return "Bitte geben Sie die voraussichtliche Teilnehmerzahl an (Frage 29).";
-        if (!pioneerInterest) return "Bitte beantworten Sie Frage 30 (Vorreiter-Schule).";
+        if (trainingFormat.length === 0) return err("Bitte wählen Sie ein Schulungsformat (Frage 27).");
+        if (trainingTimes.length === 0) return err("Bitte wählen Sie die Fortbildungszeiten (Frage 28).");
+        if (!participationCount) return err("Bitte geben Sie die voraussichtliche Teilnehmerzahl an (Frage 29).");
+        if (!pioneerInterest) return err("Bitte beantworten Sie Frage 30 (Vorreiter-Schule).");
         break;
       case 5: // Teil F
-        if (!hasBestPractice) return "Bitte beantworten Sie Frage 31 (Best-Practice-Beispiele).";
+        if (!hasBestPractice) return err("Bitte beantworten Sie Frage 31 (Best-Practice-Beispiele).");
         if (hasBestPractice === "Ja" && !bestPracticeDescription.trim()) {
-          return "Bitte beschreiben Sie das Best-Practice-Beispiel (Frage 32).";
+          return err("Bitte beschreiben Sie das Best-Practice-Beispiel (Frage 32).", "bestPracticeDescription");
         }
-        if (!sharePractice) return "Bitte beantworten Sie Frage 33 (Erfahrungen teilen).";
+        if (!sharePractice) return err("Bitte beantworten Sie Frage 33 (Erfahrungen teilen).");
         break;
       case 6: // Teil G
-        if (supportNeeds.length === 0) return "Bitte wählen Sie mindestens eine Unterstützungsart (Frage 34).";
-        if (softwareLicenses.length === 0) return "Bitte wählen Sie die Software-Lizenzen (Frage 35).";
+        if (supportNeeds.length === 0) return err("Bitte wählen Sie mindestens eine Unterstützungsart (Frage 34).");
+        if (softwareLicenses.length === 0) return err("Bitte wählen Sie die Software-Lizenzen (Frage 35).");
         if (softwareLicenses.includes("Sonstiges") && !softwareLicensesOther.trim()) {
-          return "Bitte geben Sie die sonstige Software-Lizenz an (Frage 35).";
+          return err("Bitte geben Sie die sonstige Software-Lizenz an (Frage 35).");
         }
-        if (!studentSupport) return "Bitte beantworten Sie Frage 36 (studentische Unterstützung).";
-        if (!timeForTools) return "Bitte beantworten Sie Frage 37 (Zeit für Tools).";
+        if (!studentSupport) return err("Bitte beantworten Sie Frage 36 (studentische Unterstützung).");
+        if (!timeForTools) return err("Bitte beantworten Sie Frage 37 (Zeit für Tools).");
         break;
       case 7: // Teil H – Fragen 38 + 39 optional, aber Einwilligungen sind Pflicht
-        if (!privacyConsent) return "Bitte stimmen Sie der Datenschutzerklärung zu.";
-        if (!truthConsent) return "Bitte bestätigen Sie die Richtigkeit Ihrer Angaben.";
+        if (!privacyConsent) return err("Bitte stimmen Sie der Datenschutzerklärung zu.");
+        if (!truthConsent) return err("Bitte bestätigen Sie die Richtigkeit Ihrer Angaben.");
         break;
       case 8: // Account
-        if (!contactPerson.trim()) return "Bitte geben Sie den Namen des Ansprechpartners an.";
-        if (!principalName.trim()) return "Bitte geben Sie den Namen der Schulleitung an.";
-        if (!contactEmail.trim() || !contactEmail.includes("@")) return "Bitte geben Sie eine gültige E-Mail-Adresse an.";
-        if (!contactPhone.trim()) return "Bitte geben Sie eine Telefonnummer an.";
-        if (password.length < 8) return "Das Passwort muss mindestens 8 Zeichen lang sein.";
-        if (password !== passwordConfirm) return "Die Passwörter stimmen nicht überein.";
+        if (!contactPerson.trim()) return err("Bitte geben Sie den Namen des Ansprechpartners an.", "contactPerson");
+        if (!principalName.trim()) return err("Bitte geben Sie den Namen der Schulleitung an.", "principalName");
+        if (!contactEmail.trim() || !contactEmail.includes("@")) return err("Bitte geben Sie eine gültige E-Mail-Adresse an.", "contactEmail");
+        if (!contactPhone.trim()) return err("Bitte geben Sie eine Telefonnummer an.", "contactPhone");
+        if (password.length < 8) return err("Das Passwort muss mindestens 8 Zeichen lang sein.", "password");
+        if (password !== passwordConfirm) return err("Die Passwörter stimmen nicht überein.", "passwordConfirm");
         break;
     }
-    return "";
+    return { message: "" };
   }
 
   function handleNext() {
-    const err = validateStep(step);
-    if (err) { setStepError(err); return; }
+    const result = validateStep(step);
+    if (result.message) {
+      setErrorFocusId(result.focusId ?? null);
+      setStepError(result.message);
+      return;
+    }
     setStepError("");
+    setErrorFocusId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
     setStep((s) => s + 1);
   }
@@ -685,13 +748,15 @@ export default function BestandsaufnahmeForm({
     // und gibt dem Nutzer eine klare Meldung.
     if (!editMode) {
       const finalErr = validateStep(lastStep);
-      if (finalErr) {
-        setStepError(finalErr);
+      if (finalErr.message) {
+        setErrorFocusId(finalErr.focusId ?? null);
+        setStepError(finalErr.message);
         return;
       }
     }
 
     if (!privacyConsent || !truthConsent) {
+      setErrorFocusId(null);
       setStepError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       return;
     }
@@ -758,6 +823,7 @@ export default function BestandsaufnahmeForm({
       });
       setLoading(false);
       if (!res.ok) {
+        setErrorFocusId(null);
         setStepError("Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
         return;
       }
@@ -783,8 +849,10 @@ export default function BestandsaufnahmeForm({
       if (signUpError.message.toLowerCase().includes("already registered") ||
           signUpError.message.toLowerCase().includes("already been registered") ||
           signUpError.message.toLowerCase().includes("user already exists")) {
+        setErrorFocusId("contactEmail");
         setStepError("Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'.");
       } else {
+        setErrorFocusId(null);
         setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
       }
       setLoading(false);
@@ -793,6 +861,7 @@ export default function BestandsaufnahmeForm({
 
     const userId = authData.user?.id;
     if (!userId) {
+      setErrorFocusId(null);
       setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
       setLoading(false);
       return;
@@ -864,6 +933,7 @@ export default function BestandsaufnahmeForm({
 
     if (!res.ok) {
       console.error("Register error:", res.status);
+      setErrorFocusId(null);
       setStepError("Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
       setLoading(false);
       return;
@@ -913,8 +983,13 @@ export default function BestandsaufnahmeForm({
 
       {/* Error banner */}
       {stepError && (
-        <div role="alert" className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-start gap-2">
-          <span className="shrink-0 mt-0.5">⚠️</span>
+        <div
+          ref={errorAlertRef}
+          role="alert"
+          tabIndex={-1}
+          className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-start gap-2 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+        >
+          <span className="shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
           <span>{stepError}</span>
         </div>
       )}
@@ -928,7 +1003,7 @@ export default function BestandsaufnahmeForm({
             <SectionHeading icon="🏫" title="Teil A: Allgemeine Angaben" />
 
             <div className="relative">
-              <FieldLabel required>1. Name der Schule</FieldLabel>
+              <FieldLabel required htmlFor="schoolName">1. Name der Schule</FieldLabel>
               <input
                 id="schoolName"
                 type="text"
@@ -947,7 +1022,7 @@ export default function BestandsaufnahmeForm({
                   );
                 }}
                 placeholder="z. B. Grundschule Musterstadt"
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
               />
               {showSchoolSuggestions && schoolSuggestions.length > 0 && (
                 <ul className="absolute z-20 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
@@ -990,7 +1065,7 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required>4. Anzahl der Lehrkräfte (inkl. Teilzeit)</FieldLabel>
+              <FieldLabel required htmlFor="teacherCount">4. Anzahl der Lehrkräfte (inkl. Teilzeit)</FieldLabel>
               <TextInput id="teacherCount" type="number" value={teacherCount} onChange={setTeacherCount} min={1} placeholder="z. B. 18" />
             </div>
 
@@ -1288,7 +1363,7 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel>29. Wie viele Lehrkräfte würden voraussichtlich an den DigiKI-Schulungen teilnehmen?</FieldLabel>
+              <FieldLabel htmlFor="participationCount">29. Wie viele Lehrkräfte würden voraussichtlich an den DigiKI-Schulungen teilnehmen?</FieldLabel>
               <TextInput id="participationCount" type="number" value={participationCount} onChange={setParticipationCount} min={0} placeholder="z. B. 10" />
             </div>
 
@@ -1321,7 +1396,7 @@ export default function BestandsaufnahmeForm({
             {hasBestPractice === "Ja" && (
               <div className="rounded-xl border border-accent/30 bg-accent/5 p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-accent-strong mb-4">Nur bei Ja</p>
-                <FieldLabel>32. Falls ja, beschreiben Sie bitte kurz (Fach, Tool, Ergebnis):</FieldLabel>
+                <FieldLabel htmlFor="bestPracticeDescription">32. Falls ja, beschreiben Sie bitte kurz (Fach, Tool, Ergebnis):</FieldLabel>
                 <TextArea
                   id="bestPracticeDescription"
                   value={bestPracticeDescription}
@@ -1422,13 +1497,13 @@ export default function BestandsaufnahmeForm({
             <SectionHeading icon="💬" title="Teil H: Offene Rückmeldung" />
 
             <div>
-              <FieldLabel>38. Was wünschen Sie sich konkret vom Projekt DigiKI?</FieldLabel>
+              <FieldLabel htmlFor="projectWishes">38. Was wünschen Sie sich konkret vom Projekt DigiKI?</FieldLabel>
               <TextArea id="projectWishes" value={projectWishes} onChange={setProjectWishes}
                 placeholder="Ihre Wünsche und Erwartungen..." />
             </div>
 
             <div>
-              <FieldLabel>39. Gibt es weitere Anmerkungen, Wünsche oder Bedenken?</FieldLabel>
+              <FieldLabel htmlFor="additionalNotes">39. Gibt es weitere Anmerkungen, Wünsche oder Bedenken?</FieldLabel>
               <TextArea id="additionalNotes" value={additionalNotes} onChange={setAdditionalNotes}
                 placeholder="Sonstige Anmerkungen..." />
             </div>
@@ -1508,19 +1583,19 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required>Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
+              <FieldLabel required htmlFor="contactPerson">Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
               <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
                 placeholder="z. B. Maria Mustermann" autoFocus autoComplete="name" />
             </div>
 
             <div>
-              <FieldLabel required>Name der Schulleitung</FieldLabel>
+              <FieldLabel required htmlFor="principalName">Name der Schulleitung</FieldLabel>
               <TextInput id="principalName" value={principalName} onChange={setPrincipalName}
                 placeholder="z. B. Thomas Müller" />
             </div>
 
             <div>
-              <FieldLabel required>E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
+              <FieldLabel required htmlFor="contactEmail">E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
                 placeholder="ihre.email@schule.de" autoComplete="email" />
               {NIBIS_PATTERN.test(contactEmail.trim()) && (
@@ -1535,13 +1610,13 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required>Telefonnummer</FieldLabel>
+              <FieldLabel required htmlFor="contactPhone">Telefonnummer</FieldLabel>
               <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
                 placeholder="z. B. 0541 12345" required autoComplete="tel" />
             </div>
 
             <div>
-              <FieldLabel required>Passwort</FieldLabel>
+              <FieldLabel required htmlFor="password">Passwort</FieldLabel>
               <div className="relative">
                 <input
                   id="password"
@@ -1550,7 +1625,7 @@ export default function BestandsaufnahmeForm({
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Sicheres Passwort wählen"
                   autoComplete="new-password"
-                  className="w-full rounded-lg border border-border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+                  className="w-full rounded-lg border border-border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
                 />
                 <button
                   type="button"
@@ -1579,7 +1654,7 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required>Passwort bestätigen</FieldLabel>
+              <FieldLabel required htmlFor="passwordConfirm">Passwort bestätigen</FieldLabel>
               <div className="relative">
                 <input
                   id="passwordConfirm"
@@ -1594,7 +1669,7 @@ export default function BestandsaufnahmeForm({
                       ? "passwordConfirm-error"
                       : undefined
                   }
-                  className={`w-full rounded-lg border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white ${
+                  className={`w-full rounded-lg border px-4 py-3 pr-11 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white ${
                     passwordConfirm && password !== passwordConfirm
                       ? "border-red-400"
                       : "border-border"

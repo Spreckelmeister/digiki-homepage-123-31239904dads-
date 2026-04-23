@@ -34,13 +34,13 @@ export default function FilterBar({
           placeholder="Suchen..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg border border-border pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+          className="w-full rounded-lg border border-border pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
         />
       </div>
       <select
         value={selectedCategory}
         onChange={(e) => onCategoryChange(e.target.value)}
-        className="rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+        className="rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
       >
         <option value="">Alle Kategorien</option>
         {categories.map((cat) => (
@@ -52,7 +52,7 @@ export default function FilterBar({
       <select
         value={selectedGrade}
         onChange={(e) => onGradeChange(e.target.value)}
-        className="rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors bg-white"
+        className="rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
       >
         <option value="">Alle Klassenstufen</option>
         <option value="1-2">Klasse 1-2</option>

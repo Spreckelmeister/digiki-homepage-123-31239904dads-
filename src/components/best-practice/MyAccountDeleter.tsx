@@ -328,7 +328,7 @@ export default function MyAccountDeleter() {
                         name="bp-action"
                         checked={!deleteBestPractices}
                         onChange={() => setDeleteBestPractices(false)}
-                        className="mt-1 text-accent focus:ring-accent"
+                        className="mt-1 text-accent focus:ring-accent-strong"
                       />
                       <span className="text-sm text-text">
                         <strong>Erhalten (anonym)</strong> – Ihre Beiträge bleiben für andere

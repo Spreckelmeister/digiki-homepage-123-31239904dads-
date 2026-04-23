@@ -86,7 +86,7 @@ export default function UserEmailManager({ userId, currentEmail }: Props) {
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="neue.email@beispiel.de"
-            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+            className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
           />
           {isNibis && (
             <p

@@ -111,7 +111,7 @@ export default function RegisterForm() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
                 placeholder="Max Mustermann"
               />
             </div>
@@ -129,7 +129,7 @@ export default function RegisterForm() {
                 required
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
                 placeholder="Grundschule Beispielstadt"
               />
             </div>
@@ -147,7 +147,7 @@ export default function RegisterForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
                 placeholder="ihre.email@schule.de"
               />
             </div>
@@ -165,7 +165,7 @@ export default function RegisterForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+                className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
                 placeholder="Sicheres Passwort wählen"
               />
               {password.length > 0 && (
@@ -192,7 +192,7 @@ export default function RegisterForm() {
                   required
                   checked={privacyConsent}
                   onChange={(e) => setPrivacyConsent(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
                 />
                 <span className="text-sm text-text">
                   Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
@@ -212,7 +212,7 @@ export default function RegisterForm() {
                   required
                   checked={truthConsent}
                   onChange={(e) => setTruthConsent(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
                 />
                 <span className="text-sm text-text">
                   Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *

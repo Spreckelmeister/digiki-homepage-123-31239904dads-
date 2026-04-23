@@ -294,7 +294,7 @@ export default function MySubmissions() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="ihre@schule.de"
           required
-          className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-colors"
+          className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
           aria-label="E-Mail-Adresse für Statusabfrage"
         />
         <button
