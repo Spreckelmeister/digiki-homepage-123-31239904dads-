@@ -140,28 +140,38 @@ export default function DatenschutzPage() {
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Unter <strong>/werkzeuge</strong> bieten wir einfache, werbefreie
-                Hilfs-Tools für den Unterricht an (derzeit: QR-Code-Generator
-                und Vollbild-Timer). Diese Werkzeuge laufen{" "}
-                <strong>vollständig in Ihrem Browser</strong>. Die von Ihnen
-                eingegebenen Inhalte – zum Beispiel die zu codierende URL, eine
-                Beschriftung oder die gewählte Countdown-Dauer – werden{" "}
+                Hilfs-Tools für den Unterricht an. Gemeinsames Prinzip aller
+                Werkzeuge: Sie laufen{" "}
+                <strong>vollständig in Ihrem Browser</strong>. Eingegebene
+                Inhalte, hochgeladene Dateien, Mikrofon-Daten und erzeugte
+                Ausgaben werden{" "}
                 <strong>
                   zu keinem Zeitpunkt an unseren Server oder an Dritte
                   übermittelt
-                </strong>{" "}
-                und auch nicht gespeichert.
+                </strong>
+                . Beim Schließen des Browser-Tabs sind alle Daten verworfen –
+                mit einer Ausnahme, die weiter unten unter „Zufalls-Auswahl"
+                erläutert wird.
+              </p>
+
+              <p className="text-text-light leading-relaxed mb-4">
+                Aktuell verfügbare Werkzeuge: QR-Code-Generator, Vollbild-Timer,
+                Lärmampel, Zufalls-Auswahl, PDF-Werkzeuge (Zusammenfügen /
+                Seiten extrahieren), Suchsel-Generator, Lückentext-Generator,
+                Bilder komprimieren sowie Audio aufnehmen &amp; trimmen.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
-                QR-Code-Generator
+                QR-Code-Generator, Suchsel- und Lückentext-Generator
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
-                Der QR-Code wird clientseitig über die Open-Source-Bibliothek{" "}
-                <code className="font-mono text-sm">qrcode</code> berechnet. Die
-                erzeugte Grafik können Sie als PNG oder SVG direkt auf Ihr Gerät
-                herunterladen oder über den Druck-Dialog Ihres Browsers
-                ausdrucken. Es findet kein Abgleich mit einer Online-Datenbank
-                statt; die codierten Inhalte verlassen Ihr Gerät nicht.
+                Diese Werkzeuge erzeugen ihre Ausgabe clientseitig aus Ihren
+                Eingaben (Link, Wortliste, Text). Die QR-Code-Berechnung nutzt
+                die Open-Source-Bibliothek{" "}
+                <code className="font-mono text-sm">qrcode</code>. Ergebnisse
+                können als Grafik (PNG/SVG) heruntergeladen oder über den
+                Druck-Dialog Ihres Browsers ausgedruckt werden. Es findet kein
+                Abgleich mit einer Online-Datenbank statt.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -171,22 +181,105 @@ export default function DatenschutzPage() {
                 Der Timer läuft als reine JavaScript-Anwendung in Ihrem Browser.
                 Der End-Ton (dezenter Drei-Klang) wird lokal über die Web Audio
                 API erzeugt; es werden <strong>keine Audio-Dateien</strong> von
-                externen Servern geladen. Gewählte Dauer, verbleibende Zeit und
-                Einstellungen (Ton an/aus) werden ausschließlich im Arbeits­speicher
-                des aktuellen Browser-Tabs gehalten und beim Schließen verworfen.
+                externen Servern geladen.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
-                Zweck und Rechtsgrundlage
+                Lärmampel (Mikrofonzugriff)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Lärmampel greift über die{" "}
+                <code className="font-mono text-sm">getUserMedia</code>-
+                Schnittstelle Ihres Browsers auf das Mikrofon zu. Vor dem ersten
+                Start fragt Ihr Browser aktiv Ihre Einwilligung ab. Aus dem
+                Audiosignal wird <strong>ausschließlich der Lautstärkepegel</strong>{" "}
+                (RMS-Wert) berechnet und farblich visualisiert. Es findet{" "}
+                <strong>
+                  keine Aufzeichnung, keine Analyse des gesprochenen Inhalts und
+                  keine Übertragung
+                </strong>{" "}
+                der Audiodaten statt. Beim Beenden des Tools wird der
+                Mikrofon-Stream sofort geschlossen. Rechtsgrundlage: Art. 6 Abs. 1
+                lit. a DSGVO (Einwilligung durch aktive Mikrofon-Freigabe im
+                Browser).
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zufalls-Auswahl (lokale Klassenlisten)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die Zufalls-Auswahl kann optional Klassenlisten im{" "}
+                <strong>Local Storage</strong> Ihres Browsers ablegen. Diese
+                Speicherung findet{" "}
+                <strong>ausschließlich auf Ihrem eigenen Gerät</strong> statt –
+                es gibt keine Synchronisation mit unserem Server oder mit
+                anderen Geräten. Sie können gespeicherte Listen jederzeit über
+                die Oberfläche löschen oder komplett entfernen, indem Sie im
+                Browser die Website-Daten für diese Domain zurücksetzen. Bitte
+                speichern Sie in dieser Liste nur Vornamen bzw. interne Kürzel,
+                keine weiteren personenbezogenen Daten. Rechtsgrundlage: Art. 6
+                Abs. 1 lit. a DSGVO (Einwilligung durch aktives Sichern).
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                PDF-Werkzeuge (Zusammenfügen / Seiten extrahieren)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Zum Zusammenfügen oder Zuschneiden von PDF-Dokumenten nutzen wir
+                die clientseitige Open-Source-Bibliothek{" "}
+                <code className="font-mono text-sm">pdf-lib</code>. Die
+                ausgewählten PDFs verbleiben vollständig im Arbeitsspeicher
+                Ihres Browsers. Ein Upload auf unsere oder fremde Server findet{" "}
+                <strong>nicht</strong> statt. Das ist insbesondere bei sensiblen
+                Dokumenten (z.&thinsp;B. Klassenarbeiten, Gutachten, Zeugnissen)
+                relevant.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Bilder komprimieren
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Hochgeladene Bilder werden ausschließlich lokal über die{" "}
+                <code className="font-mono text-sm">Canvas</code>- und{" "}
+                <code className="font-mono text-sm">createImageBitmap</code>-
+                Schnittstellen Ihres Browsers skaliert und neu kodiert. Die
+                Originalbilder und die komprimierten Ergebnisse verlassen Ihr
+                Gerät nicht.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Audio aufnehmen &amp; trimmen (Mikrofonzugriff)
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Wenn Sie die Aufnahme-Funktion nutzen, greift das Werkzeug über{" "}
+                <code className="font-mono text-sm">getUserMedia</code> und den
+                Browser-<code className="font-mono text-sm">MediaRecorder</code>
+                {" "}auf Ihr Mikrofon zu; Ihr Browser fragt hierzu Ihre
+                Einwilligung ab. Sowohl Eigenaufnahmen als auch hochgeladene
+                Audiodateien werden vollständig im Arbeitsspeicher verarbeitet
+                und liegen nur in Ihrem Browser-Tab vor. Beim Speichern des
+                Zuschnitts erzeugt der Browser lokal eine WAV-Datei zum
+                Download. Es erfolgt{" "}
+                <strong>
+                  keine Übertragung der Audiodaten an uns oder Dritte
+                </strong>
+                . Rechtsgrundlage bei Mikrofonzugriff: Art. 6 Abs. 1 lit. a DSGVO
+                (Einwilligung durch aktive Mikrofon-Freigabe).
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zweck und Rechtsgrundlage (Gesamt)
               </h3>
               <p className="text-text-light leading-relaxed">
                 Die Bereitstellung der Werkzeuge dient der Entlastung von
                 Lehrkräften im digitalen Unterricht. Da bei der Nutzung der
                 Werkzeuge keine personenbezogenen Daten an uns übertragen
-                werden, findet insoweit keine Verarbeitung im Sinne der DSGVO
-                statt. Für den reinen Aufruf der Werkzeug-Seiten selbst gelten
-                die unter Ziffer 3 (Server-Log-Dateien) und Ziffer 6 (Hosting /
-                Vercel) beschriebenen Verarbeitungsvorgänge.
+                werden, findet insoweit keine Verarbeitung durch den
+                Verantwortlichen im Sinne der DSGVO statt. Für Mikrofonzugriff
+                und Local-Storage-Nutzung gilt Art. 6 Abs. 1 lit. a DSGVO
+                (Einwilligung). Für den reinen Aufruf der Werkzeug-Seiten
+                selbst gelten die unter Ziffer 3 (Server-Log-Dateien) und
+                Ziffer 6 (Hosting / Vercel) beschriebenen Verarbeitungsvorgänge.
               </p>
             </div>
 
