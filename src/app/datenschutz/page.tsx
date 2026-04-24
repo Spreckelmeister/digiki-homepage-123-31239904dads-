@@ -112,7 +112,7 @@ export default function DatenschutzPage() {
                 Server-Log-Dateien
               </h3>
               <p className="text-text-light leading-relaxed mb-2">
-                Der Hosting-Provider dieser Seiten (Vercel, siehe Ziffer 5)
+                Der Hosting-Provider dieser Seiten (Vercel, siehe Ziffer 6)
                 erhebt und speichert automatisch Informationen in sogenannten
                 Server-Log-Dateien, die Ihr Browser automatisch übermittelt.
                 Dies sind:
@@ -136,7 +136,63 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                4. Online-Formulare und Datenbank (Supabase)
+                4. Werkzeuge für Lehrkräfte (lokale Verarbeitung im Browser)
+              </h2>
+              <p className="text-text-light leading-relaxed mb-4">
+                Unter <strong>/werkzeuge</strong> bieten wir einfache, werbefreie
+                Hilfs-Tools für den Unterricht an (derzeit: QR-Code-Generator
+                und Vollbild-Timer). Diese Werkzeuge laufen{" "}
+                <strong>vollständig in Ihrem Browser</strong>. Die von Ihnen
+                eingegebenen Inhalte – zum Beispiel die zu codierende URL, eine
+                Beschriftung oder die gewählte Countdown-Dauer – werden{" "}
+                <strong>
+                  zu keinem Zeitpunkt an unseren Server oder an Dritte
+                  übermittelt
+                </strong>{" "}
+                und auch nicht gespeichert.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                QR-Code-Generator
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Der QR-Code wird clientseitig über die Open-Source-Bibliothek{" "}
+                <code className="font-mono text-sm">qrcode</code> berechnet. Die
+                erzeugte Grafik können Sie als PNG oder SVG direkt auf Ihr Gerät
+                herunterladen oder über den Druck-Dialog Ihres Browsers
+                ausdrucken. Es findet kein Abgleich mit einer Online-Datenbank
+                statt; die codierten Inhalte verlassen Ihr Gerät nicht.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Vollbild-Timer
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Der Timer läuft als reine JavaScript-Anwendung in Ihrem Browser.
+                Der End-Ton (dezenter Drei-Klang) wird lokal über die Web Audio
+                API erzeugt; es werden <strong>keine Audio-Dateien</strong> von
+                externen Servern geladen. Gewählte Dauer, verbleibende Zeit und
+                Einstellungen (Ton an/aus) werden ausschließlich im Arbeits­speicher
+                des aktuellen Browser-Tabs gehalten und beim Schließen verworfen.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zweck und Rechtsgrundlage
+              </h3>
+              <p className="text-text-light leading-relaxed">
+                Die Bereitstellung der Werkzeuge dient der Entlastung von
+                Lehrkräften im digitalen Unterricht. Da bei der Nutzung der
+                Werkzeuge keine personenbezogenen Daten an uns übertragen
+                werden, findet insoweit keine Verarbeitung im Sinne der DSGVO
+                statt. Für den reinen Aufruf der Werkzeug-Seiten selbst gelten
+                die unter Ziffer 3 (Server-Log-Dateien) und Ziffer 6 (Hosting /
+                Vercel) beschriebenen Verarbeitungsvorgänge.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                5. Online-Formulare und Datenbank (Supabase)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Diese Website bietet Online-Formulare an, über die Schulen
@@ -200,7 +256,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                5. Hosting, Bild-Speicher und Analyse (Vercel)
+                6. Hosting, Bild-Speicher und Analyse (Vercel)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Die Webseite wird bei <strong>Vercel Inc.</strong> (440 N Barranca
@@ -247,7 +303,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                6. Microsoft Teams (Informationsveranstaltungen)
+                7. Microsoft Teams (Informationsveranstaltungen)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Auf dieser Website werden Links zu offenen
@@ -284,7 +340,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                7. E-Mail-Versand (transaktionale Nachrichten)
+                8. E-Mail-Versand (transaktionale Nachrichten)
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Im Rahmen der Kontoregistrierung, Passwort-Wiederherstellung,
@@ -296,7 +352,7 @@ export default function DatenschutzPage() {
                 <strong>Resend</strong> (Resend.com, Inc., 2261 Market Street
                 #4537, San Francisco, CA 94114, USA). Dies gilt sowohl für
                 E-Mails unserer Anwendung als auch für E-Mails, die durch
-                Supabase Auth (vgl. Ziffer 4) ausgelöst werden – Supabase
+                Supabase Auth (vgl. Ziffer 5) ausgelöst werden – Supabase
                 nutzt Resend als konfigurierten SMTP-Relay.
               </p>
 
@@ -373,7 +429,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                8. Externe Dienste und Schriftarten
+                9. Externe Dienste und Schriftarten
               </h2>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -410,7 +466,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                9. Transparenz (Open Source)
+                10. Transparenz (Open Source)
               </h2>
               <p className="text-text-light leading-relaxed">
                 Der Quellcode dieser Website ist als Open-Source-Software
@@ -431,7 +487,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                10. Ihre Rechte
+                11. Ihre Rechte
               </h2>
               <p className="text-text-light leading-relaxed mb-4">
                 Sie haben im Rahmen der geltenden gesetzlichen Bestimmungen
@@ -476,7 +532,7 @@ export default function DatenschutzPage() {
 
             <div>
               <h2 className="text-xl font-bold text-primary mb-4">
-                11. Recht auf Beschwerde
+                12. Recht auf Beschwerde
               </h2>
               <p className="text-text-light leading-relaxed">
                 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde

@@ -307,9 +307,12 @@ export default function WerkzeugePage() {
                     <Link
                       key={tool.href}
                       href={tool.href}
-                      className="tool-card group relative bg-white rounded-xl border border-border shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                      className="tool-card group relative bg-white rounded-xl border border-border shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:-translate-y-1"
                       style={{
-                        animationDelay: `${catIndex * 60 + toolIndex * 40}ms`,
+                        // Gesamt-Stagger ≤ 240 ms, damit die Animation spätestens
+                        // ≤ 500 ms nach Load fertig ist – reduziert INP-Interferenz
+                        // mit frühen Klicks.
+                        animationDelay: `${Math.min(catIndex * 30 + toolIndex * 20, 240)}ms`,
                       }}
                     >
                       {/* Wachsende Akzent-Leiste oben */}
@@ -431,25 +434,18 @@ export default function WerkzeugePage() {
         </div>
       </section>
 
-      {/* Staggered Reveal Animation (CSS-only, respects reduced motion) */}
+      {/* Stagger-Reveal: kurz & billig (nur opacity + transform → GPU-only) */}
       <style>{`
         @keyframes tool-card-in {
-          from {
-            opacity: 0;
-            transform: translateY(12px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
         .tool-card {
-          animation: tool-card-in 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          animation: tool-card-in 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          will-change: opacity, transform;
         }
         @media (prefers-reduced-motion: reduce) {
-          .tool-card {
-            animation: none;
-          }
+          .tool-card { animation: none; }
         }
       `}</style>
 

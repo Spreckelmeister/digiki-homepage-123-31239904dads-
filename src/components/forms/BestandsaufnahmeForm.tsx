@@ -263,7 +263,11 @@ const CheckboxGroup = memo(function CheckboxGroup({
   );
 });
 
-function OtherInput({
+// Leaf-Inputs sind `memo`-isiert: useState-Setter sind referenziell stabil,
+// d. h. unveränderte Felder springen den Re-Render beim Tippen in anderen
+// Feldern über. Spart auf dem 1700-Zeilen-Formular deutlich Main-Thread-Zeit
+// und verbessert INP (Interaction to Next Paint).
+const OtherInput = memo(function OtherInput({
   value, onChange, placeholder = "Bitte angeben",
 }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
@@ -278,9 +282,9 @@ function OtherInput({
       className="mt-2 w-full rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
     />
   );
-}
+});
 
-function RatingRow({
+const RatingRow = memo(function RatingRow({
   name, value, onChange, labelLeft, labelRight,
 }: {
   name: string; value: number; onChange: (v: number) => void; labelLeft: string; labelRight: string;
@@ -311,9 +315,9 @@ function RatingRow({
       </div>
     </div>
   );
-}
+});
 
-function TextInput({
+const TextInput = memo(function TextInput({
   id, value, onChange, placeholder, type = "text", min, required, autoFocus, autoComplete,
 }: {
   id: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number; required?: boolean; autoFocus?: boolean; autoComplete?: string;
@@ -332,9 +336,9 @@ function TextInput({
       className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white"
     />
   );
-}
+});
 
-function TextArea({
+const TextArea = memo(function TextArea({
   id, value, onChange, placeholder, rows = 4,
 }: {
   id: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
@@ -349,7 +353,7 @@ function TextArea({
       className="w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors bg-white resize-y"
     />
   );
-}
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface BestandsaufnahmeData {

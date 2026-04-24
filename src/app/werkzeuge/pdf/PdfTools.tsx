@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { PDFDocument } from "pdf-lib";
+// pdf-lib wird nur beim ersten Dateizugriff dynamisch geladen (~180 kB).
+// Dadurch bleibt der initiale Bundle für die Seite klein; FCP und INP
+// profitieren spürbar.
+async function loadPdfLib() {
+  const mod = await import("pdf-lib");
+  return mod.PDFDocument;
+}
 import {
   Upload,
   FilePlus2,
@@ -76,6 +82,7 @@ export default function PdfTools() {
       (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
     );
     const entries: MergeFile[] = [];
+    const PDFDocument = await loadPdfLib();
     for (const f of pdfs) {
       try {
         const bytes = await f.arrayBuffer();
@@ -115,6 +122,7 @@ export default function PdfTools() {
     setMergeBusy(true);
     setError("");
     try {
+      const PDFDocument = await loadPdfLib();
       const merged = await PDFDocument.create();
       for (const entry of files) {
         const bytes = await entry.file.arrayBuffer();
@@ -146,6 +154,7 @@ export default function PdfTools() {
     );
     if (!f) return;
     try {
+      const PDFDocument = await loadPdfLib();
       const bytes = await f.arrayBuffer();
       const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
       setSplitFile({ file: f, pages: doc.getPageCount() });
@@ -166,6 +175,7 @@ export default function PdfTools() {
     setSplitBusy(true);
     setError("");
     try {
+      const PDFDocument = await loadPdfLib();
       const bytes = await splitFile.file.arrayBuffer();
       const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
       const out = await PDFDocument.create();
