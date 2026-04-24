@@ -234,14 +234,18 @@ export default function TimerApp() {
             {isFinished ? "Zeit abgelaufen" : running ? "läuft" : "bereit"}
           </div>
 
-          {/* Zifferblatt */}
+          {/* Zifferblatt – im Vollbild füllt es den ganzen Bildschirm, in
+              der eingebetteten Karte muss die Schrift kleiner bleiben, sonst
+              läuft sie seitlich über den Container hinaus. */}
           <div
             className={`font-bold tabular-nums tracking-tight leading-none select-none transition-colors ${
               urgent ? "text-accent" : "text-white"
             }`}
             style={{
               fontVariantNumeric: "tabular-nums",
-              fontSize: "clamp(6rem, 22vw, 22rem)",
+              fontSize: fullscreen
+                ? "clamp(6rem, 22vw, 22rem)"
+                : "clamp(3.5rem, 13vw, 13rem)",
             }}
             aria-live="off"
           >

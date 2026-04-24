@@ -185,91 +185,52 @@ const principles = [
 export default function WerkzeugePage() {
   return (
     <>
-      {/* ╭─────────── HERO ──────────────────────────────────────────────── */}
-      <section className="relative bg-primary pt-14 md:pt-20 pb-20 md:pb-28 overflow-hidden">
-        {/* Blueprint-Raster */}
+      {/* ── Hero mit Werkstatt-Blueprint ──────────────────────────────── */}
+      <section className="relative bg-primary py-16 md:py-24 overflow-hidden">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(0deg, #ffffff 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, #ffffff 0 1px, transparent 1px 40px)",
+              "repeating-linear-gradient(0deg, #ffffff 0 1px, transparent 1px 32px), repeating-linear-gradient(90deg, #ffffff 0 1px, transparent 1px 32px)",
           }}
         />
-        {/* Ruler-Detail am rechten Rand */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute top-0 bottom-0 right-6 hidden lg:flex flex-col justify-between py-6 opacity-30"
-        >
-          {Array.from({ length: 16 }).map((_, i) => (
-            <span
-              key={i}
-              className={`block bg-white ${i % 4 === 0 ? "h-px w-6" : "h-px w-3"}`}
-            />
-          ))}
-        </div>
-        {/* Farb-Glows */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-accent/15 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-primary-light/20 blur-3xl"
+          className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-primary-light/20 blur-3xl"
         />
 
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          {/* Eyebrow / Inventar-Zeile */}
-          <div className="flex items-center justify-between flex-wrap gap-3 mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-white">
-              <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
-              DigiKI · Werkzeuge
-            </div>
-            <div className="hidden md:flex items-center gap-3 text-[11px] font-mono uppercase tracking-[0.2em] text-white/60">
-              <span>Inventar</span>
-              <span className="text-white/20">/</span>
-              <span className="text-accent tabular-nums">
-                {String(totalTools).padStart(2, "0")} verfügbar
-              </span>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-6">
+            <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
+            DigiKI · Werkzeuge
           </div>
-
-          {/* Display-Headline mit Outline-Akzent */}
-          <h1 className="font-bold text-white leading-[0.95] tracking-tight mb-8">
-            <span className="block text-4xl md:text-6xl lg:text-7xl">
-              Kleine Helfer,
-            </span>
-            <span
-              className="block text-5xl md:text-7xl lg:text-[5.5rem] text-accent drop-shadow-[0_2px_20px_rgba(232,168,56,0.3)]"
-              style={{ WebkitTextStroke: "0" }}
-            >
-              sofort einsatzbereit.
-            </span>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-5 leading-[1.05] tracking-tight">
+            Kleine Helfer, die
+            <br />
+            <span className="text-accent">sofort funktionieren.</span>
           </h1>
-
           <p className="text-lg md:text-xl text-white/85 max-w-2xl leading-relaxed">
             Werbefreie Online-Werkzeuge für den Unterrichtsalltag. Keine
             Anmeldung, keine Cookies, keine versteckten Kosten – entstanden
             aus den Bedarfen der Lehrkräfte im Projekt.
           </p>
 
-          {/* Prinzipien als horizontale Streifen (nicht Card-Grid) */}
-          <div className="mt-12 border-t border-white/15">
-            {principles.map((p, i) => (
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {principles.map((p) => (
               <div
                 key={p.title}
-                className={`flex items-center gap-4 md:gap-6 py-4 md:py-5 ${
-                  i < principles.length - 1 ? "border-b border-white/15" : ""
-                }`}
+                className="flex items-start gap-3 rounded-lg bg-white/5 border border-white/10 p-4"
               >
-                <span className="font-mono text-[11px] text-white/50 tabular-nums w-8 shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="text-accent shrink-0">{p.icon}</span>
-                <p className="text-sm md:text-base text-white">
-                  <strong className="font-bold">{p.title}.</strong>
-                  <span className="ml-2 text-white/75">{p.body}</span>
-                </p>
+                <div className="shrink-0 text-accent mt-0.5">{p.icon}</div>
+                <div>
+                  <p className="text-sm font-bold text-white mb-0.5">{p.title}</p>
+                  <p className="text-xs text-white/75 leading-relaxed">{p.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -443,23 +404,11 @@ export default function WerkzeugePage() {
         </div>
       </section>
 
-      {/* ╭─────────── WHY-BLOCK ──────────────────────────────────────── */}
-      <section className="py-16 md:py-24" aria-labelledby="why-heading">
+      {/* ── Why-Block ──────────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20" aria-labelledby="why-heading">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-2xl bg-white border border-border p-8 md:p-12 shadow-sm overflow-hidden">
-            {/* Dekoratives Ruler-Element */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-6 right-6 flex gap-1 opacity-30"
-            >
-              {Array.from({ length: 8 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`block bg-accent-strong w-px ${i % 2 === 0 ? "h-4" : "h-2"}`}
-                />
-              ))}
-            </div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong mb-3">
+          <div className="relative rounded-2xl bg-white border border-border p-8 md:p-12 shadow-sm">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent-strong mb-3">
               Woher kommt das?
             </p>
             <h2
