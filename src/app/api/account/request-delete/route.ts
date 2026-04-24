@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import nodemailer from "nodemailer";
 import { createDeletionToken } from "@/lib/deletionToken";
 
 export const runtime = "nodejs";
+
+// Ambiguitäts-freies Alphabet: keine 0/O, 1/I/L – leichter abzutippen.
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 8;
+
+function generateShortCode(): string {
+  const bytes = randomBytes(CODE_LENGTH);
+  let out = "";
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  }
+  return out;
+}
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -94,6 +108,62 @@ export async function POST(request: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
   const confirmUrl = `${siteUrl}/api/account/confirm-delete?token=${encodeURIComponent(token)}`;
 
+  // 8-Zeichen-Fallback-Code anlegen – wird in account_deletion_codes
+  // gespeichert, damit der User den Code statt des Links einlösen kann,
+  // falls E-Mail-Scanner den Link unbrauchbar machen.
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  // Alte, evtl. noch ausstehende Codes desselben Users invalidieren – sonst
+  // könnten mehrere parallele Codes existieren, was verwirrt.
+  try {
+    await admin
+      .from("account_deletion_codes")
+      .delete()
+      .ilike("email", user.email);
+  } catch {
+    /* Cleanup ist nicht fatal */
+  }
+
+  // Code generieren + einfügen mit Kollisions-Retry (theoretisch möglich,
+  // praktisch extrem selten bei 31^8 ≈ 10^11 Kombinationen).
+  let shortCode = "";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateShortCode();
+    const { error: insertError } = await admin
+      .from("account_deletion_codes")
+      .insert({
+        code: candidate,
+        token,
+        email: user.email,
+        expires_at: expiresAt,
+      });
+    if (!insertError) {
+      shortCode = candidate;
+      break;
+    }
+    if (!insertError.message?.toLowerCase().includes("duplicate")) {
+      console.error(
+        "[account/request-delete] code insert error:",
+        insertError.message
+      );
+      return NextResponse.json(
+        { error: "Fallback-Code konnte nicht angelegt werden." },
+        { status: 500 }
+      );
+    }
+  }
+  if (!shortCode) {
+    return NextResponse.json(
+      { error: "Fallback-Code konnte nicht angelegt werden." },
+      { status: 500 }
+    );
+  }
+
   if (
     !process.env.SMTP_HOST ||
     !process.env.SMTP_USER ||
@@ -119,6 +189,9 @@ export async function POST(request: NextRequest) {
 
     const emailSafe = escapeHtml(user.email);
     const confirmUrlSafe = escapeHtml(confirmUrl);
+    const codeUrl = `${siteUrl}/best-practice/code-einloesen?type=account_deletion`;
+    const codeUrlSafe = escapeHtml(codeUrl);
+    const codeSafe = escapeHtml(shortCode);
     const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
     const html = `
@@ -127,19 +200,19 @@ export async function POST(request: NextRequest) {
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
 <body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-    style="background-color:#F5F9F9;padding:40px 16px;">
+    style="background-color:#F5F9F9;padding:32px 12px;">
     <tr>
       <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
           style="max-width:560px;width:100%;">
           <!-- Logo-Header -->
           <tr>
             <td align="center"
-              style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
+              style="background-color:#006363;padding:24px 24px 20px;border-radius:12px 12px 0 0;">
               <img src="https://digiki-os.de/images/logos/DigiKI_Logo_v5.png"
                 alt="DigiKI – Grundschulen Osnabrück"
                 width="160" height="73"
-                style="display:block;border:0;" />
+                style="display:block;border:0;max-width:160px;height:auto;" />
             </td>
           </tr>
           <!-- Farbbalken (rot = Warn-Kontext) -->
@@ -148,12 +221,12 @@ export async function POST(request: NextRequest) {
           </tr>
           <!-- Body -->
           <tr>
-            <td style="background-color:#ffffff;padding:36px 32px;
+            <td style="background-color:#ffffff;padding:28px 22px;
               border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
               <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
                 Bitte bestätigen Sie die Löschung Ihres Kontos
               </h1>
-              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
+              <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Sie haben soeben die Löschung Ihres DigiKI-Zugangs
                 (<strong>${emailSafe}</strong>) angefordert. Bevor wir Ihr Konto
                 endgültig entfernen, benötigen wir eine Bestätigung von dieser
@@ -161,19 +234,19 @@ export async function POST(request: NextRequest) {
               </p>
 
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #B91C1C;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #B91C1C;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
                 <tr>
-                  <td style="padding:16px 18px;">
-                    <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0 0 8px 0;font-weight:bold;color:#006363;font-size:15px;">
                       Konto endgültig löschen
                     </p>
-                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Nach einem Klick auf den folgenden Link werden Ihr Zugang,
-                      Ihr Profil, Ihre Bestandsaufnahmen und alle eingereichten
-                      Anträge unwiderruflich aus unserem System entfernt. Der
-                      Link ist <strong>24 Stunden</strong> gültig.
+                    <p style="margin:0 0 14px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Nach einem Klick auf den folgenden Link werden Ihr
+                      Zugang, Ihr Profil, Ihre Bestandsaufnahmen und alle
+                      eingereichten Anträge unwiderruflich aus unserem System
+                      entfernt. Der Link ist <strong>24 Stunden</strong> gültig.
                     </p>
-                    <p style="margin:0 0 10px 0;">
+                    <p style="margin:0;">
                       <a href="${confirmUrlSafe}"
                         style="display:inline-block;background-color:#B91C1C;color:#ffffff;
                           text-decoration:none;font-weight:bold;font-size:15px;
@@ -181,17 +254,45 @@ export async function POST(request: NextRequest) {
                         Löschung bestätigen
                       </a>
                     </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- 8-Zeichen-Code als Fallback, falls E-Mail-Scanner den Link unbrauchbar macht -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0 0 8px 0;font-weight:bold;color:#006363;font-size:14px;">
+                      Link funktioniert nicht?
+                    </p>
+                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Manche Schul- und Firmen-Netzwerke machen E-Mail-Links
+                      unbrauchbar. Geben Sie stattdessen auf der
+                      <a href="${codeUrlSafe}" style="color:#006363;">Code-Einlöse-Seite</a>
+                      Ihre E-Mail-Adresse und diesen 8-stelligen Code ein:
+                    </p>
+                    <p align="center" style="margin:0 0 12px 0;">
+                      <span style="display:inline-block;
+                        background-color:#ffffff;
+                        border:1px solid #DEE8E8;border-radius:8px;
+                        padding:12px 18px;
+                        font-family:'Courier New',Courier,monospace;
+                        font-size:22px;font-weight:bold;letter-spacing:4px;
+                        color:#006363;">
+                        ${codeSafe}
+                      </span>
+                    </p>
                     <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
-                      Der Link funktioniert nicht?
-                      <a href="${confirmUrlSafe}"
-                        style="color:#006363;word-break:break-all;">${confirmUrlSafe}</a>
+                      Der Code ist <strong>24 Stunden</strong> gültig und nur
+                      einmalig verwendbar.
                     </p>
                   </td>
                 </tr>
               </table>
 
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
                 <tr>
                   <td style="padding:14px 16px;">
                     <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
@@ -199,8 +300,9 @@ export async function POST(request: NextRequest) {
                     </p>
                     <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
                       Ignorieren Sie diese E-Mail einfach. Ohne Klick auf den
-                      Link geschieht nichts – Ihr Konto bleibt bestehen. Zur
-                      Sicherheit empfehlen wir, Ihr Passwort zu ändern.
+                      Link oder Eingabe des Codes geschieht nichts – Ihr Konto
+                      bleibt bestehen. Zur Sicherheit empfehlen wir, Ihr
+                      Passwort zu ändern.
                     </p>
                   </td>
                 </tr>
@@ -214,7 +316,7 @@ export async function POST(request: NextRequest) {
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="background-color:#F5F9F9;padding:20px 32px;
+            <td style="background-color:#F5F9F9;padding:18px 22px;
               border:1px solid #DEE8E8;border-top:none;
               border-radius:0 0 12px 12px;">
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">

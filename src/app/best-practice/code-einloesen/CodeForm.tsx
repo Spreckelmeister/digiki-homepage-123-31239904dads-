@@ -6,23 +6,32 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { KeyRound, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type Mode = "signup" | "recovery" | "email_change";
+type OtpMode = "signup" | "recovery" | "email_change";
+type Mode = OtpMode | "account_deletion";
 
 const MODE_LABELS: Record<Mode, string> = {
   signup: "E-Mail bestätigen",
   recovery: "Passwort zurücksetzen",
   email_change: "E-Mail ändern",
+  account_deletion: "Konto löschen",
 };
 
 const MODE_REDIRECTS: Record<Mode, string> = {
   signup: "/best-practice/datenbank",
   recovery: "/best-practice/passwort-zuruecksetzen",
   email_change: "/best-practice/konto",
+  account_deletion: "/konto-geloescht?status=ok",
 };
+
+// Account-Löschung läuft nicht über Supabase's verifyOtp, sondern über unsere
+// eigene API (stateless Token + DB-Lookup). Daher hier vom OTP-Fallback
+// ausgeschlossen.
+const OTP_MODES: OtpMode[] = ["signup", "recovery", "email_change"];
 
 function parseMode(value: string | null): Mode {
   if (value === "recovery") return "recovery";
   if (value === "email_change") return "email_change";
+  if (value === "account_deletion") return "account_deletion";
   return "signup";
 }
 
@@ -62,11 +71,43 @@ export default function CodeForm() {
     }
 
     setLoading(true);
+
+    // Account-Löschung läuft über unsere eigene Route (nicht Supabase OTP),
+    // weil der Token-Kontext ein anderer ist.
+    if (mode === "account_deletion") {
+      try {
+        const res = await fetch("/api/account/confirm-delete-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), code: cleanToken }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(
+            typeof json.error === "string"
+              ? json.error
+              : "Code konnte nicht eingelöst werden."
+          );
+          setLoading(false);
+          return;
+        }
+        setSuccess(true);
+        setLoading(false);
+        setTimeout(() => {
+          router.push(MODE_REDIRECTS.account_deletion);
+        }, 1200);
+      } catch {
+        setError("Netzwerkfehler. Bitte erneut versuchen.");
+        setLoading(false);
+      }
+      return;
+    }
+
     const supabase = createClient();
-    const primaryType: Mode = mode;
-    const fallbackTypes: Mode[] = (
-      ["signup", "recovery", "email_change"] as Mode[]
-    ).filter((t) => t !== primaryType);
+    // An diesem Punkt ist mode garantiert ein OtpMode (account_deletion hat
+    // bereits oben via return die Funktion verlassen).
+    const primaryType = mode as OtpMode;
+    const fallbackTypes: OtpMode[] = OTP_MODES.filter((t) => t !== primaryType);
 
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
@@ -129,17 +170,36 @@ export default function CodeForm() {
   }
 
   if (success) {
+    const isDeletion = mode === "account_deletion";
+    const title = isDeletion
+      ? "Konto wird gelöscht"
+      : mode === "recovery"
+        ? "Code bestätigt"
+        : mode === "email_change"
+          ? "Neue E-Mail-Adresse bestätigt"
+          : "E-Mail-Adresse bestätigt";
     return (
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center" role="status" aria-live="polite">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-          <CheckCircle2 className="h-7 w-7 text-green-600" aria-hidden="true" />
+      <div
+        className="bg-white rounded-xl p-8 shadow-sm border border-border text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${
+            isDeletion ? "bg-slate-100" : "bg-green-100"
+          }`}
+        >
+          <CheckCircle2
+            className={`h-7 w-7 ${isDeletion ? "text-slate-700" : "text-green-600"}`}
+            aria-hidden="true"
+          />
         </div>
-        <h2 className="text-lg font-semibold text-primary mb-2">
-          {mode === "recovery"
-            ? "Code bestätigt"
-            : mode === "email_change"
-              ? "Neue E-Mail-Adresse bestätigt"
-              : "E-Mail-Adresse bestätigt"}
+        <h2
+          className={`text-lg font-semibold mb-2 ${
+            isDeletion ? "text-slate-900" : "text-primary"
+          }`}
+        >
+          {title}
         </h2>
         <p className="text-sm text-text-light">
           Sie werden in einem Moment weitergeleitet.
@@ -157,21 +217,29 @@ export default function CodeForm() {
       </p>
 
       {/* Modus-Auswahl */}
-      <div className="flex flex-col sm:flex-row gap-1 mb-6 p-1 bg-bg rounded-lg">
-        {(["signup", "recovery", "email_change"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => selectMode(m)}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              mode === m
-                ? "bg-white text-primary shadow-sm"
-                : "text-text-light hover:text-primary"
-            }`}
-          >
-            {MODE_LABELS[m]}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-6 p-1 bg-bg rounded-lg">
+        {(
+          ["signup", "recovery", "email_change", "account_deletion"] as Mode[]
+        ).map((m) => {
+          const isActive = mode === m;
+          const isDestructive = m === "account_deletion";
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => selectMode(m)}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? isDestructive
+                    ? "bg-white text-red-700 shadow-sm"
+                    : "bg-white text-primary shadow-sm"
+                  : "text-text-light hover:text-primary"
+              }`}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          );
+        })}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
