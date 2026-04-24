@@ -15,6 +15,7 @@ const navigation: { name: string; href: string; lang?: string }[] = [
   { name: "Startseite", href: "/" },
   { name: "Über das Projekt", href: "/ueber-das-projekt" },
   { name: "Für Schulen", href: "/fuer-schulen" },
+  { name: "Werkzeuge", href: "/werkzeuge" },
   { name: "Best Practice", href: "/best-practice", lang: "en" },
   // Weitere Seiten können hier ergänzt werden:
   // { name: "Termine", href: "/termine" },
