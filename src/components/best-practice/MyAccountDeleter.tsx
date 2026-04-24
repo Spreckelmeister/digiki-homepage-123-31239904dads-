@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Trash2,
   AlertTriangle,
@@ -12,6 +11,8 @@ import {
   ClipboardList,
   Users,
   BarChart2,
+  MailCheck,
+  Clock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,13 +25,16 @@ interface Counts {
   bestPractices: number;
 }
 
+type ModalPhase = "confirm" | "sent";
+
 export default function MyAccountDeleter() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [phase, setPhase] = useState<ModalPhase>("confirm");
+  const [sentToEmail, setSentToEmail] = useState<string>("");
   const [countsLoading, setCountsLoading] = useState(false);
   const [counts, setCounts] = useState<Counts | null>(null);
   const [deleteBestPractices, setDeleteBestPractices] = useState(false);
@@ -49,6 +53,7 @@ export default function MyAccountDeleter() {
     e.preventDefault();
     if (!canOpenModal) return;
     setError(null);
+    setPhase("confirm");
     setModalOpen(true);
     setCountsLoading(true);
 
@@ -95,32 +100,39 @@ export default function MyAccountDeleter() {
   function closeModal() {
     if (loading) return;
     setModalOpen(false);
+    // Nach „sent" die Felder leeren, damit niemand die Löschung ein zweites
+    // Mal aus Versehen anstößt – die Anfrage hängt jetzt nur noch am Link.
+    if (phase === "sent") {
+      setPassword("");
+      setConfirmText("");
+      setSentToEmail("");
+    }
     setCounts(null);
     setDeleteBestPractices(false);
     setError(null);
+    setPhase("confirm");
   }
 
-  async function handleConfirmDelete() {
+  async function handleRequestDelete() {
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/account/delete", {
+      const res = await fetch("/api/account/request-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password, deleteBestPractices }),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "Löschen fehlgeschlagen.");
+        setError(json.error || "Anfrage fehlgeschlagen.");
         setLoading(false);
         return;
       }
 
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      router.push("/?konto-geloescht=1");
-      router.refresh();
+      setSentToEmail(typeof json.email === "string" ? json.email : "");
+      setPhase("sent");
+      setLoading(false);
     } catch {
       setError("Netzwerkfehler.");
       setLoading(false);
@@ -251,13 +263,23 @@ export default function MyAccountDeleter() {
         >
           <div className="w-full max-w-lg bg-white rounded-xl shadow-xl my-auto">
             <div className="flex items-start justify-between p-6 pb-4 border-b border-border">
-              <h3
-                id="delete-modal-title"
-                className="text-xl font-semibold text-red-900 flex items-center gap-2"
-              >
-                <AlertTriangle className="w-6 h-6" aria-hidden="true" />
-                Wirklich löschen?
-              </h3>
+              {phase === "confirm" ? (
+                <h3
+                  id="delete-modal-title"
+                  className="text-xl font-semibold text-red-900 flex items-center gap-2"
+                >
+                  <AlertTriangle className="w-6 h-6" aria-hidden="true" />
+                  Löschung einleiten?
+                </h3>
+              ) : (
+                <h3
+                  id="delete-modal-title"
+                  className="text-xl font-semibold text-slate-900 flex items-center gap-2"
+                >
+                  <MailCheck className="w-6 h-6 text-slate-700" aria-hidden="true" />
+                  Bestätigungsmail versendet
+                </h3>
+              )}
               <button
                 ref={closeButtonRef}
                 type="button"
@@ -270,122 +292,188 @@ export default function MyAccountDeleter() {
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
-              <p className="text-sm text-text leading-relaxed">
-                Die folgenden Daten werden <strong>dauerhaft</strong> aus unserem System
-                entfernt:
-              </p>
-
-              {countsLoading ? (
-                <div className="text-sm text-text-light text-center py-6">
-                  Daten werden geladen …
-                </div>
-              ) : counts ? (
-                <ul className="divide-y divide-border rounded-lg border border-border bg-bg/50">
-                  <SummaryRow
-                    icon={<BarChart2 className="w-4 h-4" aria-hidden="true" />}
-                    label="Bestandsaufnahmen"
-                    count={counts.bestandsaufnahmen}
-                    willBeDeleted={true}
-                  />
-                  <SummaryRow
-                    icon={<ClipboardList className="w-4 h-4" aria-hidden="true" />}
-                    label="Tool-Lizenz-Anträge"
-                    count={counts.toolApps}
-                    willBeDeleted={true}
-                  />
-                  <SummaryRow
-                    icon={<Users className="w-4 h-4" aria-hidden="true" />}
-                    label="Hilfskräfte-Anträge"
-                    count={counts.studentApps}
-                    willBeDeleted={true}
-                  />
-                  <SummaryRow
-                    icon={<FileText className="w-4 h-4" aria-hidden="true" />}
-                    label="Best-Practice-Beiträge"
-                    count={counts.bestPractices}
-                    willBeDeleted={deleteBestPractices}
-                    hint={
-                      counts.bestPractices === 0
-                        ? "keine vorhanden"
-                        : deleteBestPractices
-                          ? "werden gelöscht"
-                          : "bleiben anonym erhalten"
-                    }
-                  />
-                </ul>
-              ) : null}
-
-              {counts && counts.bestPractices > 0 && (
-                <div className="rounded-lg border border-border bg-bg p-4">
-                  <p className="text-sm font-medium text-text mb-3">
-                    Was soll mit Ihren Best-Practice-Beiträgen geschehen?
+            {phase === "confirm" ? (
+              <>
+                <div className="p-6 space-y-5">
+                  <p className="text-sm text-text leading-relaxed">
+                    Die folgenden Daten werden mit der Löschung <strong>dauerhaft</strong>
+                    {" "}aus unserem System entfernt:
                   </p>
-                  <div className="space-y-2">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="bp-action"
-                        checked={!deleteBestPractices}
-                        onChange={() => setDeleteBestPractices(false)}
-                        className="mt-1 text-accent focus:ring-accent-strong"
+
+                  {countsLoading ? (
+                    <div className="text-sm text-text-light text-center py-6">
+                      Daten werden geladen …
+                    </div>
+                  ) : counts ? (
+                    <ul className="divide-y divide-border rounded-lg border border-border bg-bg/50">
+                      <SummaryRow
+                        icon={<BarChart2 className="w-4 h-4" aria-hidden="true" />}
+                        label="Bestandsaufnahmen"
+                        count={counts.bestandsaufnahmen}
+                        willBeDeleted={true}
                       />
-                      <span className="text-sm text-text">
-                        <strong>Erhalten (anonym)</strong> – Ihre Beiträge bleiben für andere
-                        Lehrkräfte sichtbar, werden aber von Ihrem Konto entkoppelt.
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="bp-action"
-                        checked={deleteBestPractices}
-                        onChange={() => setDeleteBestPractices(true)}
-                        className="mt-1 text-red-600 focus:ring-red-400"
+                      <SummaryRow
+                        icon={<ClipboardList className="w-4 h-4" aria-hidden="true" />}
+                        label="Tool-Lizenz-Anträge"
+                        count={counts.toolApps}
+                        willBeDeleted={true}
                       />
-                      <span className="text-sm text-text">
-                        <strong className="text-red-700">Mit löschen</strong> – alle Ihre
-                        Best-Practice-Beiträge werden endgültig aus der Datenbank entfernt.
-                      </span>
-                    </label>
+                      <SummaryRow
+                        icon={<Users className="w-4 h-4" aria-hidden="true" />}
+                        label="Hilfskräfte-Anträge"
+                        count={counts.studentApps}
+                        willBeDeleted={true}
+                      />
+                      <SummaryRow
+                        icon={<FileText className="w-4 h-4" aria-hidden="true" />}
+                        label="Best-Practice-Beiträge"
+                        count={counts.bestPractices}
+                        willBeDeleted={deleteBestPractices}
+                        hint={
+                          counts.bestPractices === 0
+                            ? "keine vorhanden"
+                            : deleteBestPractices
+                              ? "werden gelöscht"
+                              : "bleiben anonym erhalten"
+                        }
+                      />
+                    </ul>
+                  ) : null}
+
+                  {counts && counts.bestPractices > 0 && (
+                    <div className="rounded-lg border border-border bg-bg p-4">
+                      <p className="text-sm font-medium text-text mb-3">
+                        Was soll mit Ihren Best-Practice-Beiträgen geschehen?
+                      </p>
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="bp-action"
+                            checked={!deleteBestPractices}
+                            onChange={() => setDeleteBestPractices(false)}
+                            className="mt-1 text-accent focus:ring-accent-strong"
+                          />
+                          <span className="text-sm text-text">
+                            <strong>Erhalten (anonym)</strong> – Ihre Beiträge bleiben für andere
+                            Lehrkräfte sichtbar, werden aber von Ihrem Konto entkoppelt.
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="bp-action"
+                            checked={deleteBestPractices}
+                            onChange={() => setDeleteBestPractices(true)}
+                            className="mt-1 text-red-600 focus:ring-red-400"
+                          />
+                          <span className="text-sm text-text">
+                            <strong className="text-red-700">Mit löschen</strong> – alle Ihre
+                            Best-Practice-Beiträge werden endgültig aus der Datenbank entfernt.
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 leading-relaxed">
+                    <p className="font-semibold mb-1">Zwei-Schritt-Bestätigung</p>
+                    <p>
+                      Nach Klick auf „Bestätigungsmail senden" erhalten Sie eine E-Mail mit
+                      einem Link. Erst durch Öffnen dieses Links wird Ihr Konto
+                      unwiderruflich gelöscht. Der Link ist 24 Stunden gültig.
+                    </p>
                   </div>
+
+                  {error && (
+                    <p className="text-sm text-red-800 bg-red-100 border border-red-300 rounded-lg p-3">
+                      {error}
+                    </p>
+                  )}
                 </div>
-              )}
 
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 leading-relaxed">
-                <p className="font-semibold mb-1">Keine Wiederherstellung möglich</p>
-                <p>
-                  Nach dem Klick auf „Endgültig löschen" sind alle oben aufgelisteten Daten
-                  unwiderruflich entfernt. Sie werden automatisch abgemeldet.
-                </p>
-              </div>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 p-6 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-text hover:bg-bg transition-colors disabled:opacity-50"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRequestDelete}
+                    disabled={loading || countsLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    {loading ? "Wird gesendet..." : "Bestätigungsmail senden"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-6 md:p-8 space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+                      aria-hidden="true"
+                    >
+                      <MailCheck className="h-6 w-6" strokeWidth={1.75} />
+                    </div>
+                    <div className="pt-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500 mb-1">
+                        Aktion erforderlich
+                      </p>
+                      <p className="text-base text-slate-900 font-medium leading-snug">
+                        Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf
+                        den Bestätigungslink, um die Löschung abzuschließen.
+                      </p>
+                    </div>
+                  </div>
 
-              {error && (
-                <p className="text-sm text-red-800 bg-red-100 border border-red-300 rounded-lg p-3">
-                  {error}
-                </p>
-              )}
-            </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500 mb-1.5">
+                      Versand an
+                    </p>
+                    <p className="text-sm text-slate-900 font-mono break-all">
+                      {sentToEmail || "Ihre hinterlegte Adresse"}
+                    </p>
+                  </div>
 
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 p-6 pt-4 border-t border-border">
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-text hover:bg-bg transition-colors disabled:opacity-50"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={loading || countsLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                {loading ? "Wird gelöscht..." : "Endgültig löschen"}
-              </button>
-            </div>
+                  <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
+                    <Clock className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+                    <p>
+                      Der Link ist <strong>24 Stunden</strong> gültig. Danach startet der
+                      Vorgang wieder von vorn. Solange Sie den Link nicht anklicken,
+                      bleibt Ihr Konto unverändert aktiv.
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-text-light leading-relaxed">
+                    Keine E-Mail erhalten? Prüfen Sie bitte auch Ihren Spam-Ordner.
+                    Sollte die Adresse nicht mehr erreichbar sein, melden Sie sich bei
+                    <a
+                      href="mailto:krafft@osnabrueck.de"
+                      className="text-primary underline underline-offset-4 ml-1"
+                    >
+                      krafft@osnabrueck.de
+                    </a>.
+                  </p>
+                </div>
+
+                <div className="flex justify-end p-6 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+                  >
+                    Verstanden, schließen
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
