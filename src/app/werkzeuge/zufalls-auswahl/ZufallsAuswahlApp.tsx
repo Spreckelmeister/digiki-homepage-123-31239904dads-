@@ -56,16 +56,30 @@ function loadLists(): StoredList[] {
   }
 }
 
+/**
+ * Nimmt jede String-Eingabe entgegen (auch leer, mit Leerzeichen etc.) und
+ * liefert eine garantiert gültige Zahl im Bereich [min, max] zurück. Falls
+ * der Input ungültig ist, wird `fallback` verwendet.
+ *
+ * So kann der User auf Mobile frei tippen (das Feld darf leer sein während
+ * er eine neue Zahl tippt) und die Validierung passiert erst bei der Aktion.
+ */
+function clampInt(raw: string, min: number, max: number, fallback: number): number {
+  const n = parseInt(raw.trim(), 10);
+  if (!Number.isFinite(n)) return Math.min(Math.max(fallback, min), max);
+  return Math.min(Math.max(n, min), max);
+}
+
 export default function ZufallsAuswahlApp() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<Mode>("pick");
 
-  // Pick-Mode
-  const [pickCount, setPickCount] = useState(1);
+  // Pick-Mode – als String, damit das Feld beim Tippen leer sein darf.
+  const [pickCountInput, setPickCountInput] = useState("1");
   const [pickResult, setPickResult] = useState<string[]>([]);
 
-  // Groups-Mode
-  const [groupCount, setGroupCount] = useState(4);
+  // Groups-Mode – ebenfalls als String.
+  const [groupCountInput, setGroupCountInput] = useState("4");
   const [groups, setGroups] = useState<string[][]>([]);
 
   // Gespeicherte Listen
@@ -89,21 +103,35 @@ export default function ZufallsAuswahlApp() {
   const names = useMemo(() => parseNames(input), [input]);
   const hasNames = names.length > 0;
 
+  // Effektive (validierte) Werte für die Vorschau-Texte – werden aus dem
+  // aktuellen Input-String abgeleitet und auf sinnvolle Grenzen geclampt.
+  const effectivePickCount = clampInt(pickCountInput, 1, Math.max(1, names.length), 1);
+  const effectiveGroupCount = clampInt(groupCountInput, 2, Math.max(2, names.length || 2), 2);
+
   const draw = useCallback(() => {
     if (!hasNames) return;
-    const count = Math.min(pickCount, names.length);
+    const count = clampInt(pickCountInput, 1, names.length, 1);
+    // Bei ungültiger Eingabe den Wert sichtbar korrigieren, damit klar ist,
+    // was gezogen wurde.
+    if (String(count) !== pickCountInput.trim()) {
+      setPickCountInput(String(count));
+    }
     setPickResult(shuffle(names).slice(0, count));
-  }, [hasNames, pickCount, names]);
+  }, [hasNames, pickCountInput, names]);
 
   const makeGroups = useCallback(() => {
     if (!hasNames) return;
+    const count = clampInt(groupCountInput, 2, Math.max(2, names.length), 2);
+    if (String(count) !== groupCountInput.trim()) {
+      setGroupCountInput(String(count));
+    }
     const shuffled = shuffle(names);
-    const g: string[][] = Array.from({ length: groupCount }, () => []);
+    const g: string[][] = Array.from({ length: count }, () => []);
     shuffled.forEach((n, i) => {
-      g[i % groupCount].push(n);
+      g[i % count].push(n);
     });
     setGroups(g);
-  }, [hasNames, names, groupCount]);
+  }, [hasNames, names, groupCountInput]);
 
   const saveList = useCallback(() => {
     if (!hasNames || !listName.trim()) return;
@@ -259,15 +287,20 @@ export default function ZufallsAuswahlApp() {
         {mode === "pick" ? (
           <div className="rounded-xl bg-white border border-border shadow-sm">
             <div className="p-6 border-b border-border flex flex-wrap items-center gap-4">
-              <label className="text-sm font-bold text-text">
+              <label htmlFor="pick-count" className="text-sm font-bold text-text">
                 Wie viele aufrufen?
               </label>
               <input
-                type="number"
-                min={1}
-                max={names.length || 1}
-                value={pickCount}
-                onChange={(e) => setPickCount(Math.max(1, Number(e.target.value) || 1))}
+                id="pick-count"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={pickCountInput}
+                onChange={(e) => {
+                  // Nur Ziffern zulassen, sonst alles akzeptieren (auch leer).
+                  const cleaned = e.target.value.replace(/[^0-9]/g, "");
+                  setPickCountInput(cleaned);
+                }}
                 className="w-20 rounded-lg border border-border bg-white px-3 py-2 text-sm font-mono tabular-nums text-center focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
               />
               <button
@@ -284,7 +317,10 @@ export default function ZufallsAuswahlApp() {
               {pickResult.length === 0 ? (
                 <p className="text-center py-14 text-sm text-text-light">
                   Klicken Sie auf <strong className="text-text">„Ziehen"</strong>, um
-                  zufällig {pickCount === 1 ? "einen Namen" : `${pickCount} Namen`}{" "}
+                  zufällig{" "}
+                  {effectivePickCount === 1
+                    ? "einen Namen"
+                    : `${effectivePickCount} Namen`}{" "}
                   auszuwählen.
                 </p>
               ) : (
@@ -312,13 +348,19 @@ export default function ZufallsAuswahlApp() {
         ) : (
           <div className="rounded-xl bg-white border border-border shadow-sm">
             <div className="p-6 border-b border-border flex flex-wrap items-center gap-4">
-              <label className="text-sm font-bold text-text">Anzahl Gruppen</label>
+              <label htmlFor="group-count" className="text-sm font-bold text-text">
+                Anzahl Gruppen
+              </label>
               <input
-                type="number"
-                min={2}
-                max={Math.max(2, names.length || 2)}
-                value={groupCount}
-                onChange={(e) => setGroupCount(Math.max(2, Number(e.target.value) || 2))}
+                id="group-count"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={groupCountInput}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/[^0-9]/g, "");
+                  setGroupCountInput(cleaned);
+                }}
                 className="w-20 rounded-lg border border-border bg-white px-3 py-2 text-sm font-mono tabular-nums text-center focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
               />
               <button
@@ -335,7 +377,8 @@ export default function ZufallsAuswahlApp() {
               {groups.length === 0 ? (
                 <p className="text-center py-14 text-sm text-text-light">
                   Klicken Sie auf <strong className="text-text">„Neu einteilen"</strong>, um
-                  die Namen zufällig in <strong>{groupCount} Gruppen</strong> aufzuteilen.
+                  die Namen zufällig in{" "}
+                  <strong>{effectiveGroupCount} Gruppen</strong> aufzuteilen.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

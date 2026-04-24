@@ -13,11 +13,6 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
-import {
-  diagnoseMicrophone,
-  humanizeDiagnostics,
-  type MicDiagnostics,
-} from "../microphoneDiagnostics";
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -118,7 +113,6 @@ export default function AudioTrimmerApp() {
   const [end, setEnd] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [diagnostics, setDiagnostics] = useState<MicDiagnostics | null>(null);
 
   const [playing, setPlaying] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -305,7 +299,10 @@ export default function AudioTrimmerApp() {
       const pos = playStartOffsetRef.current + elapsed;
       if (pos >= end) {
         setPlaying(false);
-        setPlayheadSec(end);
+        // Playhead zurück auf den Start-Marker setzen, damit ein erneuter
+        // Play-Klick wieder vom gewählten Anfang spielt (nicht vom Ende,
+        // wo danach nichts mehr zu hören wäre).
+        setPlayheadSec(start);
         return;
       }
       setPlayheadSec(pos);
@@ -315,7 +312,7 @@ export default function AudioTrimmerApp() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [playing, end]);
+  }, [playing, end, start]);
 
   const play = useCallback(async () => {
     if (!buffer || !audioCtxRef.current) return;
@@ -334,8 +331,13 @@ export default function AudioTrimmerApp() {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    const offset = Math.max(start, Math.min(playheadSec, end - 0.05));
-    source.start(0, offset, end - offset);
+    // Immer am gewählten Start-Marker beginnen – wie die Preview es zeigt.
+    // Der Bereich zwischen den Slidern ist das Endergebnis des Zuschnitts,
+    // genau dieser Bereich soll beim Vorhören zu hören sein.
+    const offset = start;
+    const duration = Math.max(0.05, end - start);
+    source.start(0, offset, duration);
+    setPlayheadSec(offset);
     source.onended = () => {
       if (playSourceRef.current === source) {
         setPlaying(false);
@@ -346,7 +348,7 @@ export default function AudioTrimmerApp() {
     playStartWallRef.current = ctx.currentTime;
     playStartOffsetRef.current = offset;
     setPlaying(true);
-  }, [buffer, start, end, playheadSec, playing]);
+  }, [buffer, start, end, playing]);
 
   const pause = useCallback(() => {
     playSourceRef.current?.stop();

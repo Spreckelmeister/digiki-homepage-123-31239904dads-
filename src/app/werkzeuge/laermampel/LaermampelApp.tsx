@@ -10,12 +10,6 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import {
-  diagnoseMicrophone,
-  humanizeDiagnostics,
-  type MicDiagnostics,
-} from "../microphoneDiagnostics";
-
 type Status = "idle" | "requesting" | "running" | "denied" | "error";
 type Level = "green" | "yellow" | "red";
 
@@ -31,7 +25,6 @@ export default function LaermampelApp() {
   const [yellowMax, setYellowMax] = useState(65);
 
   const [errorMsg, setErrorMsg] = useState("");
-  const [diagnostics, setDiagnostics] = useState<MicDiagnostics | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -84,45 +77,9 @@ export default function LaermampelApp() {
     }
 
     // ==========================================
-    // 2. ASYNCHRONE DIAGNOSE & HARDWARE-ZUGRIFF
+    // 2. HARDWARE-ZUGRIFF
     // ==========================================
     try {
-      const diag = await diagnoseMicrophone();
-      setDiagnostics(diag);
-
-      if (!diag.mediaDevicesAvailable) {
-        setStatus("error");
-        if (diag.inAppBrowser) {
-          setErrorMsg(
-            "Diese Ansicht (In-App-Browser) erlaubt keinen Mikrofon-Zugriff. Bitte öffnen Sie die Seite in Chrome oder Safari direkt."
-          );
-        } else {
-          setErrorMsg(
-            "Ihr Browser unterstützt den Mikrofon-Zugriff nicht. Auf dem iPhone/iPad: bitte Safari verwenden, auf Android: Chrome oder Firefox."
-          );
-        }
-        if (ctxRef.current) ctxRef.current.close().catch(() => {});
-        return;
-      }
-
-      if (!diag.secureContext) {
-        setStatus("error");
-        setErrorMsg(
-          "Mikrofon-Zugriff ist nur über HTTPS möglich. Bitte öffnen Sie die Seite über https://digiki-os.de."
-        );
-        if (ctxRef.current) ctxRef.current.close().catch(() => {});
-        return;
-      }
-
-      if (diag.permissionState === "denied") {
-        setStatus("denied");
-        setErrorMsg(
-          "Der Browser hat den Mikrofon-Zugriff für diese Seite dauerhaft blockiert. Bitte zurücksetzen: Schloss-Symbol links in der Adressleiste → „Berechtigungen zurücksetzen“ (oder Chrome-Einstellungen → Website-Einstellungen → Mikrofon → digiki-os.de entfernen) → Seite neu laden."
-        );
-        if (ctxRef.current) ctxRef.current.close().catch(() => {});
-        return;
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: false,
@@ -350,16 +307,9 @@ export default function LaermampelApp() {
           )}
 
           {(status === "denied" || status === "error") && (
-            <div className="mt-6 max-w-md">
-              <p className="text-center text-sm text-red-300 leading-relaxed">
-                {errorMsg}
-              </p>
-              {diagnostics && (
-                <p className="mt-3 text-center text-[10px] font-mono text-white/40 tracking-wider">
-                  DIAG · {humanizeDiagnostics(diagnostics)}
-                </p>
-              )}
-            </div>
+            <p className="mt-6 max-w-md text-center text-sm text-red-300 leading-relaxed">
+              {errorMsg}
+            </p>
           )}
 
           {/* Aktionen */}
