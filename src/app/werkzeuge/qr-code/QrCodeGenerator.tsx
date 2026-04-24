@@ -280,6 +280,15 @@ export default function QrCodeGenerator() {
                 <ErrorState message={error} />
               ) : (
                 <div className="mx-auto max-w-md flex flex-col items-center">
+                  {/* DigiKI-Logo: ausschließlich auf dem Ausdruck sichtbar,
+                     damit die Bildschirm-Vorschau nicht doppelt brandet. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/logos/DigiKI_Logo_v5.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="qr-print-logo hidden"
+                  />
                   {label && (
                     <h2 className="qr-label text-center text-lg md:text-xl font-bold text-primary mb-6 break-words">
                       {label}
@@ -365,6 +374,7 @@ export default function QrCodeGenerator() {
         /* ── Print-Layout ─────────────────────────────────────────────── */
         @media print {
           @page {
+            size: A4;
             margin: 15mm;
           }
           html,
@@ -372,14 +382,17 @@ export default function QrCodeGenerator() {
             background: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
           }
-          /* Alles Seiten-Chrome ausblenden, damit der QR-Code allein auf
-             einer einzelnen A4-Seite landet. */
+          /* Seiten-Chrome konsequent ausblenden — inkl. fixer Overlays
+             (Cookie-Banner o. ä.), die sonst eine zweite Seite verursachen. */
           body > header,
           body > footer,
           header[class*="sticky"],
           footer,
-          .skip-link {
+          .skip-link,
+          body > div[class*="fixed"] {
             display: none !important;
           }
           .print\\:hidden {
@@ -396,21 +409,48 @@ export default function QrCodeGenerator() {
           }
           .qr-tool .print-area {
             border: none !important;
+            border-radius: 0 !important;
             box-shadow: none !important;
             margin: 0 !important;
+            padding: 0 !important;
+            /* Harte Begrenzung: A4 (297 mm) − 2× @page-margin (15 mm). Falls
+               doch mal etwas überläuft, wird es geschnitten statt auf eine
+               zweite Seite umgebrochen. */
+            max-height: 267mm !important;
+            overflow: hidden !important;
             page-break-inside: avoid;
             break-inside: avoid;
+            break-after: avoid;
+          }
+          .qr-tool .print-area > div {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .qr-tool .print-area .mx-auto {
+            max-width: 100% !important;
+          }
+          /* Logo nur beim Drucken einblenden */
+          .qr-tool .qr-print-logo {
+            display: block !important;
+            height: 18mm !important;
+            width: auto !important;
+            margin: 0 auto 8mm !important;
+          }
+          .qr-tool .qr-label {
+            font-size: 18pt !important;
+            margin: 0 auto 8mm !important;
           }
           .qr-tool .qr-svg-wrap {
             border: none !important;
             padding: 0 !important;
-          }
-          .qr-tool .qr-label {
-            font-size: 22pt !important;
-            margin-bottom: 12mm !important;
+            width: 140mm !important;
+            height: 140mm !important;
+            max-width: 140mm !important;
+            margin: 0 auto !important;
           }
           .qr-tool .qr-caption {
-            margin-top: 8mm !important;
+            margin-top: 6mm !important;
+            font-size: 10pt !important;
           }
         }
       `}</style>
