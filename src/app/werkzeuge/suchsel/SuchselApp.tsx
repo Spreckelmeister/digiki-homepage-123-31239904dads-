@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Printer, RotateCw, Wand2, Eye, EyeOff } from "lucide-react";
+import { Printer, RotateCw, Wand2, Eye, EyeOff, Key } from "lucide-react";
 
 type Direction = { dx: number; dy: number; name: string };
 
@@ -168,6 +168,33 @@ export default function SuchselApp() {
     [result]
   );
 
+  /**
+   * Druckt in einem bestimmten Lösungs-Modus und stellt danach den vorherigen
+   * UI-Zustand wieder her. `afterprint` feuert sowohl nach tatsächlichem
+   * Druck als auch nach Abbruch – in beiden Fällen die Preview zurücksetzen.
+   */
+  const printWithMode = useCallback(
+    (withSolution: boolean) => {
+      const previous = showSolution;
+      setShowSolution(withSolution);
+
+      const restore = () => {
+        setShowSolution(previous);
+        window.removeEventListener("afterprint", restore);
+      };
+      window.addEventListener("afterprint", restore);
+
+      // Zwei RAF-Ticks warten, damit React das Re-Render garantiert gerendert
+      // hat, bevor der Druckdialog den DOM-Snapshot nimmt.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.print();
+        });
+      });
+    },
+    [showSolution]
+  );
+
   const hasWords = words.length > 0;
 
   return (
@@ -281,15 +308,26 @@ export default function SuchselApp() {
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={() => window.print()}
-          disabled={!hasWords}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
-        >
-          <Printer className="h-4 w-4" aria-hidden="true" />
-          Drucken
-        </button>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => printWithMode(false)}
+            disabled={!hasWords}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
+          >
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Rätsel drucken
+          </button>
+          <button
+            type="button"
+            onClick={() => printWithMode(true)}
+            disabled={!hasWords}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-accent-strong bg-accent/10 px-5 py-2.5 text-sm font-bold text-accent-strong hover:bg-accent/20 transition-colors disabled:opacity-40"
+          >
+            <Key className="h-4 w-4" aria-hidden="true" />
+            Lösung drucken
+          </button>
+        </div>
 
         {result.unplaced.length > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -303,14 +341,29 @@ export default function SuchselApp() {
       {/* Ausgabe */}
       <div className="print-area">
         <article className="bg-white rounded-xl border border-border shadow-sm p-6 md:p-10 print:border-0 print:shadow-none print:p-0">
-          <header className="mb-6 pb-3 border-b border-border">
-            <h2 className="text-2xl md:text-3xl font-bold text-primary tracking-tight">
-              {title || "Suchsel"}
-            </h2>
-            <p className="mt-2 text-sm text-text-light">
-              Name: ____________________ &nbsp;&nbsp; Klasse: ______ &nbsp;&nbsp;
-              Datum: __________
-            </p>
+          <header className="mb-6 pb-3 border-b border-border flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-2xl md:text-3xl font-bold text-primary tracking-tight">
+                  {title || "Suchsel"}
+                </h2>
+                {showSolution && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent-strong/10 border border-accent-strong/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-strong">
+                    Lösung
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm text-text-light">
+                Name: ____________________ &nbsp;&nbsp; Klasse: ______ &nbsp;&nbsp;
+                Datum: __________
+              </p>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logos/DigiKI_Logo_v5.svg"
+              alt="DigiKI – Grundschulen Osnabrück"
+              className="h-10 md:h-12 w-auto shrink-0 opacity-80"
+            />
           </header>
 
           {hasWords ? (
@@ -356,6 +409,11 @@ export default function SuchselApp() {
                   ))}
                 </div>
               </div>
+
+              {/* Footer nur beim Drucken sichtbar – dezentes Branding */}
+              <footer className="hidden print:block print:mt-4 text-[9pt] text-text-light text-right">
+                Erstellt mit DigiKI · digiki-os.de/werkzeuge/suchsel
+              </footer>
             </>
           ) : (
             <p className="text-center py-14 text-text-light">
@@ -367,9 +425,43 @@ export default function SuchselApp() {
 
       <style>{`
         @media print {
-          @page { margin: 14mm; }
-          html, body { background: #fff !important; }
-          body > header, body > footer, .skip-link { display: none !important; }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          html, body {
+            background: #fff !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* Site-Chrome weg */
+          body > header,
+          body > footer,
+          header[class*="sticky"],
+          .skip-link {
+            display: none !important;
+          }
+          main {
+            overflow: visible !important;
+            display: block !important;
+          }
+          /* Grid-Wrapper im Suchsel: kein Flex/Grid, kein Padding, kein Gap */
+          .print-area,
+          .print-area * {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .print-area article {
+            max-width: none !important;
+            margin: 0 !important;
+          }
+          /* Raster auf eine robuste, druck-feste Breite begrenzen (min. 140 mm,
+             damit Zellen lesbar bleiben, max. 160 mm für Seitenrand-Sicherheit) */
+          .print-area [role="presentation"].grid {
+            max-width: 160mm !important;
+          }
         }
       `}</style>
     </div>

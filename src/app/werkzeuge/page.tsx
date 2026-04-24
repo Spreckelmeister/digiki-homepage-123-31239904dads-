@@ -418,7 +418,7 @@ export default function WerkzeugePage() {
               id="why-heading"
               className="text-2xl md:text-3xl font-bold text-primary mb-4 leading-tight"
             >
-              Entstanden aus echten Bedarfen.
+              Entstanden aus echtem Bedarf.
             </h2>
             <p className="text-base md:text-lg text-text/90 leading-relaxed">
               Die Werkzeuge hier basieren auf konkreten Anfragen von Lehrkräften
