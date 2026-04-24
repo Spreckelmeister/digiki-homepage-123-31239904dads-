@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Trash2,
   AlertTriangle,
@@ -13,6 +14,8 @@ import {
   BarChart2,
   MailCheck,
   Clock,
+  KeyRound,
+  ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -449,6 +452,29 @@ export default function MyAccountDeleter() {
                       Vorgang wieder von vorn. Solange Sie den Link nicht anklicken,
                       bleibt Ihr Konto unverändert aktiv.
                     </p>
+                  </div>
+
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <KeyRound
+                        className="h-4 w-4 mt-0.5 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-text leading-relaxed mb-2">
+                          <strong>Link funktioniert nicht?</strong> In der E-Mail
+                          finden Sie zusätzlich einen 8-stelligen Code, den Sie
+                          alternativ einlösen können.
+                        </p>
+                        <Link
+                          href="/best-practice/code-einloesen?type=account_deletion"
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
+                        >
+                          Code einlösen
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        </Link>
+                      </div>
+                    </div>
                   </div>
 
                   <p className="text-xs text-text-light leading-relaxed">
