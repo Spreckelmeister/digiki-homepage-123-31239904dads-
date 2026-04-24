@@ -13,6 +13,11 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import {
+  diagnoseMicrophone,
+  humanizeDiagnostics,
+  type MicDiagnostics,
+} from "../microphoneDiagnostics";
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -113,6 +118,7 @@ export default function AudioTrimmerApp() {
   const [end, setEnd] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [diagnostics, setDiagnostics] = useState<MicDiagnostics | null>(null);
 
   const [playing, setPlaying] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -126,9 +132,44 @@ export default function AudioTrimmerApp() {
   const waveformRef = useRef<HTMLDivElement>(null);
   const [peaks, setPeaks] = useState<Array<[number, number]>>([]);
 
+  // MIME-Type finden, den der MediaRecorder des aktuellen Browsers beherrscht.
+  // iOS Safari unterstützt kein audio/webm – dort ist audio/mp4 der richtige
+  // Weg. Chrome/Firefox bevorzugen opus-in-webm.
+  const pickSupportedMime = useCallback((): { mime: string; ext: string } => {
+    if (typeof MediaRecorder === "undefined") {
+      return { mime: "", ext: "webm" };
+    }
+    const candidates: Array<{ mime: string; ext: string }> = [
+      { mime: "audio/webm;codecs=opus", ext: "webm" },
+      { mime: "audio/webm", ext: "webm" },
+      { mime: "audio/mp4;codecs=mp4a.40.2", ext: "m4a" },
+      { mime: "audio/mp4", ext: "m4a" },
+      { mime: "audio/ogg;codecs=opus", ext: "ogg" },
+      { mime: "audio/ogg", ext: "ogg" },
+    ];
+    for (const c of candidates) {
+      if (MediaRecorder.isTypeSupported(c.mime)) return c;
+    }
+    return { mime: "", ext: "webm" }; // Browser wählt Default
+  }, []);
+
   // Aufnahme starten
   const startRecording = useCallback(async () => {
     setError("");
+
+    // Feature-Detection für iOS-WebViews und alte Browser.
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      typeof navigator.mediaDevices.getUserMedia !== "function" ||
+      typeof MediaRecorder === "undefined"
+    ) {
+      setError(
+        "Ihr Browser unterstützt die Aufnahme nicht. Auf dem iPhone/iPad: bitte Safari statt einer In-App-Ansicht verwenden. Auf Android: bitte Chrome oder Firefox."
+      );
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -136,7 +177,9 @@ export default function AudioTrimmerApp() {
       });
       streamRef.current = stream;
       chunksRef.current = [];
-      const rec = new MediaRecorder(stream);
+
+      const { mime, ext } = pickSupportedMime();
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
@@ -148,8 +191,11 @@ export default function AudioTrimmerApp() {
           tickRef.current = null;
         }
         setRecording(false);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        await loadAudioFromBlob(blob, "aufnahme.webm");
+        // MIME-Type aus dem Recorder übernehmen – manche Browser liefern
+        // am Blob trotz expliziter Angabe einen anderen Wert zurück.
+        const effectiveMime = rec.mimeType || mime || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: effectiveMime });
+        await loadAudioFromBlob(blob, `aufnahme.${ext}`);
       };
       rec.start();
       recorderRef.current = rec;
@@ -163,13 +209,31 @@ export default function AudioTrimmerApp() {
       tickRef.current = requestAnimationFrame(tick);
     } catch (e) {
       const err = e as Error;
-      if (err.name === "NotAllowedError") {
-        setError("Mikrofon-Zugriff verweigert. Bitte in den Browser-Einstellungen erlauben.");
+      const technicalHint = ` (${err.name || "Error"}${err.message ? ": " + err.message : ""})`;
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        setError(
+          "Mikrofon-Zugriff verweigert. In Chrome auf Android: Tippen Sie auf das Schloss-Symbol links in der Adressleiste → „Website-Einstellungen“ → Mikrofon „Zulassen“ und laden Sie die Seite neu." +
+            technicalHint
+        );
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        setError("Es wurde kein Mikrofon gefunden." + technicalHint);
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        setError(
+          "Das Mikrofon wird gerade von einer anderen App genutzt. Bitte andere Anwendungen schließen." +
+            technicalHint
+        );
+      } else if (err.name === "SecurityError") {
+        setError(
+          "Aus Sicherheitsgründen blockiert. Die Seite muss über HTTPS geöffnet sein." +
+            technicalHint
+        );
       } else {
-        setError(err.message || "Aufnahme konnte nicht gestartet werden.");
+        setError(
+          (err.message || "Aufnahme konnte nicht gestartet werden.") + technicalHint
+        );
       }
     }
-  }, []);
+  }, [pickSupportedMime]);
 
   const stopRecording = useCallback(() => {
     recorderRef.current?.stop();
@@ -184,7 +248,20 @@ export default function AudioTrimmerApp() {
         const AudioCtx =
           window.AudioContext ||
           (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) {
+          throw new Error("Web Audio API wird von diesem Browser nicht unterstützt.");
+        }
         audioCtxRef.current = new AudioCtx();
+      }
+      // iOS Safari: AudioContext startet „suspended". Ohne explizites resume()
+      // schlägt decodeAudioData in manchen Browser-Versionen fehl und das
+      // spätere Abspielen liefert keine Samples.
+      if (audioCtxRef.current.state === "suspended") {
+        try {
+          await audioCtxRef.current.resume();
+        } catch {
+          /* in manchen Browsern harmlos – weiter versuchen */
+        }
       }
       const arr = await blob.arrayBuffer();
       const decoded = await audioCtxRef.current.decodeAudioData(arr.slice(0));
@@ -240,10 +317,20 @@ export default function AudioTrimmerApp() {
     };
   }, [playing, end]);
 
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     if (!buffer || !audioCtxRef.current) return;
     if (playing) return;
     const ctx = audioCtxRef.current;
+    // iOS: Der Context wird nach Inaktivität auto-suspended. Vor dem Play
+    // muss er innerhalb der User-Gesture wieder gestartet werden, sonst
+    // bleibt es stumm.
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        /* weiter versuchen */
+      }
+    }
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);

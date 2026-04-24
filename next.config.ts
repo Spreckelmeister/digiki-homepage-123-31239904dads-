@@ -59,8 +59,13 @@ const nextConfig: NextConfig = {
             value: "strict-origin-when-cross-origin",
           },
           {
+            // `microphone=(self)` erlaubt unseren eigenen Werkzeugen
+            // (Lärmampel, Audio-Trimmer) den Mikrofon-Zugriff und blockt
+            // zugleich jeden Drittanbieter oder eingebetteten iframe.
+            // Ohne `self` würde Chrome die Anfrage präemptiv abweisen,
+            // ohne dem User überhaupt einen Permission-Dialog zu zeigen.
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(self), geolocation=()",
           },
           {
             key: "X-DNS-Prefetch-Control",

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,6 +10,11 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
+import {
+  diagnoseMicrophone,
+  humanizeDiagnostics,
+  type MicDiagnostics,
+} from "../microphoneDiagnostics";
 
 type Status = "idle" | "requesting" | "running" | "denied" | "error";
 type Level = "green" | "yellow" | "red";
@@ -25,6 +31,7 @@ export default function LaermampelApp() {
   const [yellowMax, setYellowMax] = useState(65);
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [diagnostics, setDiagnostics] = useState<MicDiagnostics | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -50,22 +57,77 @@ export default function LaermampelApp() {
   const start = useCallback(async () => {
     setErrorMsg("");
     setStatus("requesting");
+
+    // ==========================================
+    // 1. SYNCHRONER AUDIO-CONTEXT
+    // Muss sofort beim Klick passieren für iOS & Chrome Autoplay
+    // ==========================================
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    
+    if (!AudioCtx) {
+      setStatus("error");
+      setErrorMsg("Web Audio API wird von diesem Browser nicht unterstützt.");
+      return;
+    }
+
+    const ctx = new AudioCtx();
+    ctxRef.current = ctx;
+
+    if (ctx.state === "suspended") {
+      try {
+        ctx.resume(); // Explizit ohne await!
+      } catch (e) {
+        console.warn("AudioContext resume failed", e);
+      }
+    }
+
+    // ==========================================
+    // 2. ASYNCHRONE DIAGNOSE & HARDWARE-ZUGRIFF
+    // ==========================================
     try {
+      const diag = await diagnoseMicrophone();
+      setDiagnostics(diag);
+
+      if (!diag.mediaDevicesAvailable) {
+        setStatus("error");
+        if (diag.inAppBrowser) {
+          setErrorMsg(
+            "Diese Ansicht (In-App-Browser) erlaubt keinen Mikrofon-Zugriff. Bitte öffnen Sie die Seite in Chrome oder Safari direkt."
+          );
+        } else {
+          setErrorMsg(
+            "Ihr Browser unterstützt den Mikrofon-Zugriff nicht. Auf dem iPhone/iPad: bitte Safari verwenden, auf Android: Chrome oder Firefox."
+          );
+        }
+        if (ctxRef.current) ctxRef.current.close().catch(() => {});
+        return;
+      }
+
+      if (!diag.secureContext) {
+        setStatus("error");
+        setErrorMsg(
+          "Mikrofon-Zugriff ist nur über HTTPS möglich. Bitte öffnen Sie die Seite über https://digiki-os.de."
+        );
+        if (ctxRef.current) ctxRef.current.close().catch(() => {});
+        return;
+      }
+
+      if (diag.permissionState === "denied") {
+        setStatus("denied");
+        setErrorMsg(
+          "Der Browser hat den Mikrofon-Zugriff für diese Seite dauerhaft blockiert. Bitte zurücksetzen: Schloss-Symbol links in der Adressleiste → „Berechtigungen zurücksetzen“ (oder Chrome-Einstellungen → Website-Einstellungen → Mikrofon → digiki-os.de entfernen) → Seite neu laden."
+        );
+        if (ctxRef.current) ctxRef.current.close().catch(() => {});
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
+        audio: true,
         video: false,
       });
       streamRef.current = stream;
-
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioCtx();
-      ctxRef.current = ctx;
 
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -80,14 +142,13 @@ export default function LaermampelApp() {
       const loop = () => {
         if (!analyserRef.current) return;
         analyserRef.current.getByteTimeDomainData(data);
-        // RMS-Berechnung
+        
         let sum = 0;
         for (let i = 0; i < data.length; i++) {
           const v = (data[i] - 128) / 128;
           sum += v * v;
         }
         const rms = Math.sqrt(sum / data.length);
-        // In 0–100 skalieren (empirisch an Klassenraum-Lautstärken angepasst)
         const scaled = Math.min(100, Math.max(0, rms * 220));
 
         setVolume(scaled);
@@ -104,18 +165,46 @@ export default function LaermampelApp() {
 
         rafRef.current = requestAnimationFrame(loop);
       };
+      
       loop();
       setStatus("running");
+
     } catch (e) {
       const err = e as Error;
+      const technicalHint = ` (${err.name || "Error"}${err.message ? ": " + err.message : ""})`;
+      
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         setStatus("denied");
         setErrorMsg(
-          "Mikrofon-Zugriff wurde verweigert. Bitte erlauben Sie den Zugriff in den Browser-Einstellungen und versuchen Sie es erneut."
+          "Mikrofon-Zugriff wurde verweigert. In Chrome auf Android: Tippen Sie auf das Schloss-Symbol links in der Adressleiste → „Website-Einstellungen“ → Mikrofon „Zulassen“ und laden Sie die Seite neu." +
+            technicalHint
+        );
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        setStatus("error");
+        setErrorMsg("Es wurde kein Mikrofon gefunden." + technicalHint);
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        setStatus("error");
+        setErrorMsg(
+          "Das Mikrofon wird gerade von einer anderen App genutzt. Bitte andere Anwendungen schließen und erneut versuchen." +
+            technicalHint
+        );
+      } else if (err.name === "SecurityError") {
+        setStatus("error");
+        setErrorMsg(
+          "Aus Sicherheitsgründen blockiert. Die Seite muss über HTTPS geöffnet sein." +
+            technicalHint
         );
       } else {
         setStatus("error");
-        setErrorMsg(err.message || "Unbekannter Fehler.");
+        setErrorMsg(
+          (err.message || "Unbekannter Fehler beim Mikrofon-Zugriff.") + technicalHint
+        );
+      }
+
+      // Cleanup bei Fehler
+      if (ctxRef.current) {
+        ctxRef.current.close().catch(() => {});
+        ctxRef.current = null;
       }
     }
   }, [greenMax, yellowMax]);
@@ -260,15 +349,17 @@ export default function LaermampelApp() {
             </div>
           )}
 
-          {status === "denied" && (
-            <p className="mt-6 max-w-md text-center text-sm text-red-300 leading-relaxed">
-              {errorMsg}
-            </p>
-          )}
-          {status === "error" && (
-            <p className="mt-6 max-w-md text-center text-sm text-red-300 leading-relaxed">
-              {errorMsg}
-            </p>
+          {(status === "denied" || status === "error") && (
+            <div className="mt-6 max-w-md">
+              <p className="text-center text-sm text-red-300 leading-relaxed">
+                {errorMsg}
+              </p>
+              {diagnostics && (
+                <p className="mt-3 text-center text-[10px] font-mono text-white/40 tracking-wider">
+                  DIAG · {humanizeDiagnostics(diagnostics)}
+                </p>
+              )}
+            </div>
           )}
 
           {/* Aktionen */}
