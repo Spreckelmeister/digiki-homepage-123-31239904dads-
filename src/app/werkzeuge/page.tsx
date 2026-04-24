@@ -240,19 +240,15 @@ export default function WerkzeugePage() {
             >
               Entstanden aus echten Bedarfen.
             </h2>
-            <blockquote className="relative pl-5 border-l-4 border-accent-strong text-base md:text-lg text-text/90 leading-relaxed italic">
-              „Einige Lehrkräfte haben digitale Diagnosen getestet, sind aber
-              immer wieder an technischen Hürden gescheitert – wie sollen 22
-              Erstklässler sich auf eine Internetseite bewegen, wenn dem Lehrer
-              nur unzuverlässige Freeware-Software zur QR-Code-Erstellung zur
-              Verfügung steht?"
-              <cite className="block not-italic text-sm text-text-light mt-4 font-sans">
-                — Stimme einer Schulleitung aus dem DigiKI-Projekt
-              </cite>
-            </blockquote>
-            <p className="mt-6 text-base text-text-light leading-relaxed">
-              Genau solche wiederkehrenden Reibungspunkte landen hier als
-              kleines Werkzeug – schnörkellos, werbefrei, sofort einsatzbereit.
+            <p className="text-base md:text-lg text-text/90 leading-relaxed">
+              Die Werkzeuge hier basieren auf konkreten Anfragen von Lehrkräften
+              und Schulleitungen aus dem DigiKI-Projekt – typischerweise
+              wiederkehrende technische Reibungspunkte im Unterrichtsalltag,
+              für die es keine schlichte, werbefreie Lösung gab.
+            </p>
+            <p className="mt-4 text-base text-text-light leading-relaxed">
+              Genau solche Bedarfe landen hier als kleines Werkzeug –
+              schnörkellos, datensparsam, sofort einsatzbereit.
             </p>
           </div>
         </div>

@@ -365,28 +365,52 @@ export default function QrCodeGenerator() {
         /* ── Print-Layout ─────────────────────────────────────────────── */
         @media print {
           @page {
-            margin: 18mm;
+            margin: 15mm;
           }
+          html,
           body {
             background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* Alles Seiten-Chrome ausblenden, damit der QR-Code allein auf
+             einer einzelnen A4-Seite landet. */
+          body > header,
+          body > footer,
+          header[class*="sticky"],
+          footer,
+          .skip-link {
+            display: none !important;
           }
           .print\\:hidden {
             display: none !important;
           }
+          /* Wrapper-Paddings und Hintergrund-Grid weg, damit kein leerer
+             Raum vor dem QR-Code entsteht. */
+          .qr-tool {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .qr-tool > div {
+            display: block !important;
+          }
           .qr-tool .print-area {
             border: none !important;
             box-shadow: none !important;
+            margin: 0 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .qr-tool .qr-svg-wrap {
             border: none !important;
             padding: 0 !important;
           }
           .qr-tool .qr-label {
-            font-size: 24pt !important;
-            margin-bottom: 16mm !important;
+            font-size: 22pt !important;
+            margin-bottom: 12mm !important;
           }
           .qr-tool .qr-caption {
-            margin-top: 10mm !important;
+            margin-top: 8mm !important;
           }
         }
       `}</style>
