@@ -50,7 +50,7 @@ export async function diagnoseMicrophone(): Promise<MicDiagnostics> {
     typeof navigator.permissions.query === "function"
   ) {
     try {
-      // @ts-expect-error – "microphone" ist in älteren TS-libs kein PermissionName
+      
       const status = await navigator.permissions.query({ name: "microphone" });
       if (
         status.state === "granted" ||
