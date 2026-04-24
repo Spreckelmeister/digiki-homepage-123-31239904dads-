@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useTransition, memo } from "react";
 import Link from "next/link";
 import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
@@ -851,48 +850,15 @@ export default function BestandsaufnahmeForm({
       return;
     }
 
-    // 1. Supabase-Account anlegen (sendet automatisch Bestätigungs-E-Mail)
-    const supabase = createClient();
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: contactEmail,
-      password,
-      options: {
-        data: {
-          full_name: contactPerson,
-          school: schoolName,
-        },
-      },
-    });
-
-    if (signUpError) {
-      console.error("SignUp error:", signUpError.message);
-      if (signUpError.message.toLowerCase().includes("already registered") ||
-          signUpError.message.toLowerCase().includes("already been registered") ||
-          signUpError.message.toLowerCase().includes("user already exists")) {
-        setErrorFocusId("contactEmail");
-        setStepError("Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'.");
-      } else {
-        setErrorFocusId(null);
-        setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
-      }
-      setLoading(false);
-      return;
-    }
-
-    const userId = authData.user?.id;
-    if (!userId) {
-      setErrorFocusId(null);
-      setStepError("Beim Anlegen des Accounts ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
-      setLoading(false);
-      return;
-    }
-
-    // 2. Bestandsaufnahme-Daten + Profil serverseitig speichern und Bestätigungsmail senden
+    // Account-Anlage + Bestandsaufnahme + Bestätigungsmail laufen jetzt
+    // vollständig serverseitig. Client ruft nie mehr supabase.auth.signUp() –
+    // so können Accounts nur noch über den Bestandsaufnahme-Flow entstehen.
     const res = await fetch("/api/register-bestandsaufnahme", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId,
+        email: contactEmail,
+        password,
         contactEmail,
         contactPerson,
         principalName,
@@ -952,9 +918,40 @@ export default function BestandsaufnahmeForm({
     });
 
     if (!res.ok) {
-      console.error("Register error:", res.status);
-      setErrorFocusId(null);
-      setStepError("Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+      const payload = await res.json().catch(() => ({}) as Record<string, unknown>);
+      const errorCode = typeof payload.error === "string" ? payload.error : "";
+      const serverFocusId = typeof payload.focusId === "string" ? payload.focusId : null;
+
+      if (res.status === 409 && errorCode === "email_already_registered") {
+        setErrorFocusId(serverFocusId ?? "contactEmail");
+        setStepError(
+          "Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'."
+        );
+      } else if (errorCode === "weak_password") {
+        setErrorFocusId(serverFocusId ?? "password");
+        setStepError(
+          "Das Passwort erfüllt nicht alle Anforderungen (mind. 8 Zeichen, Großbuchstabe, Zahl, Sonderzeichen)."
+        );
+      } else if (errorCode === "invalid_email") {
+        setErrorFocusId(serverFocusId ?? "contactEmail");
+        setStepError("Bitte geben Sie eine gültige E-Mail-Adresse an.");
+      } else if (errorCode === "missing_field") {
+        setErrorFocusId(serverFocusId ?? null);
+        setStepError(
+          "Einige Pflichtfelder fehlen noch. Bitte prüfen Sie die vorherigen Abschnitte."
+        );
+      } else if (res.status === 429) {
+        setErrorFocusId(null);
+        setStepError(
+          "Zu viele Anfragen. Bitte warten Sie eine Minute und versuchen Sie es erneut."
+        );
+      } else {
+        console.error("Register error:", res.status, errorCode);
+        setErrorFocusId(null);
+        setStepError(
+          "Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+        );
+      }
       setLoading(false);
       return;
     }

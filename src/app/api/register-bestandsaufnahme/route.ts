@@ -20,6 +20,25 @@ const ALLOWED_ORIGINS = [
 // Simple in-memory rate limiting
 const rateMap = new Map<string, number>();
 
+// Passwort-Mindestanforderungen (spiegeln die Client-Validierung in BestandsaufnahmeForm)
+function isPasswordStrong(p: string): boolean {
+  return (
+    typeof p === "string" &&
+    p.length >= 8 &&
+    /[A-Z]/.test(p) &&
+    /[0-9]/.test(p) &&
+    /[^A-Za-z0-9]/.test(p)
+  );
+}
+
+function isEmailValid(email: string): boolean {
+  return (
+    typeof email === "string" &&
+    email.length <= 200 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  );
+}
+
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
@@ -56,7 +75,8 @@ export async function POST(request: NextRequest) {
   }
 
   const {
-    userId,
+    email,
+    password,
     contactEmail,
     contactPerson,
     principalName,
@@ -114,15 +134,75 @@ export async function POST(request: NextRequest) {
     additionalNotes,
   } = body;
 
-  // Basic validation
-  if (
-    typeof userId !== "string" ||
-    typeof contactEmail !== "string" ||
-    typeof contactPerson !== "string" ||
-    typeof principalName !== "string" ||
-    typeof schoolName !== "string"
-  ) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  // ── Account-Pflichtfelder ──────────────────────────────────────────────────
+  if (typeof email !== "string" || !isEmailValid(email)) {
+    return NextResponse.json(
+      { error: "invalid_email", focusId: "contactEmail" },
+      { status: 400 }
+    );
+  }
+  if (typeof password !== "string" || !isPasswordStrong(password)) {
+    return NextResponse.json(
+      { error: "weak_password", focusId: "password" },
+      { status: 400 }
+    );
+  }
+  // Login-Email und Kontakt-Email müssen identisch sein (Client schickt nur eine)
+  const loginEmail = email.trim().toLowerCase();
+
+  // ── Bestandsaufnahme-Pflichtfelder ─────────────────────────────────────────
+  // Spiegelt die Client-Validierung in validateStep(); alles andere darf optional sein.
+  const requiredStrings: Array<[string, unknown, string | undefined]> = [
+    ["contactPerson", contactPerson, "contactPerson"],
+    ["principalName", principalName, "principalName"],
+    ["contactPhone", contactPhone, "contactPhone"],
+    ["schoolName", schoolName, "schoolName"],
+    ["schoolLocation", schoolLocation, undefined],
+    ["studentCount", studentCount, undefined],
+    ["teacherCount", teacherCount, "teacherCount"],
+    ["isStartchancen", isStartchancen, undefined],
+    ["dazShare", dazShare, undefined],
+    ["respondentRole", respondentRole, undefined],
+    ["usageFrequency", usageFrequency, undefined],
+    ["mediaConcept", mediaConcept, undefined],
+    ["mediaResponsible", mediaResponsible, undefined],
+    ["aiUsage", aiUsage, undefined],
+    ["pioneerInterest", pioneerInterest, undefined],
+    ["hasBestPractice", hasBestPractice, undefined],
+    ["sharePractice", sharePractice, undefined],
+    ["studentSupport", studentSupport, undefined],
+    ["timeForTools", timeForTools, undefined],
+  ];
+  for (const [name, value, focusId] of requiredStrings) {
+    if (typeof value !== "string" || value.trim() === "") {
+      return NextResponse.json(
+        { error: "missing_field", field: name, focusId },
+        { status: 400 }
+      );
+    }
+  }
+
+  const requiredArrays: Array<[string, unknown]> = [
+    ["devices", devices],
+    ["infrastructure", infrastructure],
+    ["challenges", challenges],
+    ["toolsUsed", toolsUsed],
+    ["diagnosticTools", diagnosticTools],
+    ["aiConcerns", aiConcerns],
+    ["aiTrainings", aiTrainings],
+    ["trainingNeeds", trainingNeeds],
+    ["trainingFormat", trainingFormat],
+    ["trainingTimes", trainingTimes],
+    ["supportNeeds", supportNeeds],
+    ["softwareLicenses", softwareLicenses],
+  ];
+  for (const [name, value] of requiredArrays) {
+    if (!Array.isArray(value) || value.length === 0) {
+      return NextResponse.json(
+        { error: "missing_field", field: name },
+        { status: 400 }
+      );
+    }
   }
 
   const adminSupabase = createClient(
@@ -131,7 +211,78 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Upsert profile (trigger may have already created it from signUp metadata)
+  // ── Account serverseitig anlegen ───────────────────────────────────────────
+  // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
+  // und versenden ihn in unserer Custom-Mail (Supabase verschickt dann keine).
+  const { data: userData, error: createError } =
+    await adminSupabase.auth.admin.createUser({
+      email: loginEmail,
+      password,
+      email_confirm: false,
+      user_metadata: {
+        full_name: String(contactPerson).slice(0, 200),
+        school: String(schoolName).slice(0, 200),
+      },
+    });
+
+  if (createError || !userData?.user?.id) {
+    const msg = createError?.message?.toLowerCase() ?? "";
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already been registered") ||
+      msg.includes("user already exists") ||
+      msg.includes("email address has already been used") ||
+      msg.includes("duplicate key")
+    ) {
+      return NextResponse.json(
+        { error: "email_already_registered", focusId: "contactEmail" },
+        { status: 409 }
+      );
+    }
+    console.error(
+      "[register-bestandsaufnahme] createUser error:",
+      createError?.message
+    );
+    return NextResponse.json(
+      { error: "account_creation_failed" },
+      { status: 500 }
+    );
+  }
+
+  const userId = userData.user.id;
+
+  // ── Bestätigungs-Link generieren ───────────────────────────────────────────
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
+  const { data: linkData, error: linkError } =
+    await adminSupabase.auth.admin.generateLink({
+      type: "signup",
+      email: loginEmail,
+      password,
+      options: {
+        redirectTo: `${siteUrl}/auth/callback?next=/best-practice/datenbank`,
+      },
+    });
+
+  if (linkError || !linkData?.properties?.action_link) {
+    console.error(
+      "[register-bestandsaufnahme] generateLink error:",
+      linkError?.message
+    );
+    // Account wurde angelegt, aber kein Link – rollback, sonst blockiert die
+    // Email für eine spätere echte Registrierung.
+    try {
+      await adminSupabase.auth.admin.deleteUser(userId);
+    } catch {
+      /* Rollback-Fehler sind tolerierbar */
+    }
+    return NextResponse.json(
+      { error: "confirmation_link_failed" },
+      { status: 500 }
+    );
+  }
+  const confirmationUrl = linkData.properties.action_link;
+
+  // ── Profil schreiben ───────────────────────────────────────────────────────
   const { error: profileError } = await adminSupabase.from("profiles").upsert(
     {
       id: userId,
@@ -145,26 +296,40 @@ export async function POST(request: NextRequest) {
   );
 
   if (profileError) {
-    console.error("[register-bestandsaufnahme] Profile upsert error:", profileError.message);
-    return NextResponse.json({ error: "Profile creation failed" }, { status: 500 });
+    console.error(
+      "[register-bestandsaufnahme] Profile upsert error:",
+      profileError.message
+    );
+    try {
+      await adminSupabase.auth.admin.deleteUser(userId);
+    } catch {
+      /* Rollback-Fehler sind tolerierbar */
+    }
+    return NextResponse.json(
+      { error: "profile_creation_failed" },
+      { status: 500 }
+    );
   }
 
-  // Insert bestandsaufnahme response
+  // ── Bestandsaufnahme schreiben ─────────────────────────────────────────────
   const { error: insertError } = await adminSupabase
     .from("bestandsaufnahme_responses")
     .insert({
       user_id: userId,
       contact_person: String(contactPerson).slice(0, 200),
       principal_name: String(principalName).slice(0, 200),
-      contact_email: String(contactEmail).slice(0, 200),
+      contact_email:
+        typeof contactEmail === "string"
+          ? String(contactEmail).slice(0, 200)
+          : loginEmail,
       contact_phone: contactPhone ? String(contactPhone).slice(0, 50) : null,
       school_name: String(schoolName).slice(0, 200),
-      school_location: schoolLocation ?? null,
-      student_count: studentCount ?? null,
-      teacher_count: teacherCount ?? null,
-      is_startchancen_school: isStartchancen ?? null,
-      daz_share: dazShare ?? null,
-      respondent_role: respondentRole ?? null,
+      school_location: schoolLocation,
+      student_count: studentCount,
+      teacher_count: teacherCount,
+      is_startchancen_school: isStartchancen,
+      daz_share: dazShare,
+      respondent_role: respondentRole,
       respondent_role_other: respondentRoleOther ?? null,
       devices: devices ?? [],
       devices_other: devicesOther ?? null,
@@ -213,11 +378,26 @@ export async function POST(request: NextRequest) {
     });
 
   if (insertError) {
-    console.error("[register-bestandsaufnahme] Insert error:", insertError.message);
-    return NextResponse.json({ error: "Insert failed" }, { status: 500 });
+    console.error(
+      "[register-bestandsaufnahme] Insert error:",
+      insertError.message
+    );
+    // Profil + Auth-User zurückrollen, damit die Email wieder frei ist.
+    try {
+      await adminSupabase.from("profiles").delete().eq("id", userId);
+    } catch {
+      /* Rollback-Fehler sind tolerierbar */
+    }
+    try {
+      await adminSupabase.auth.admin.deleteUser(userId);
+    } catch {
+      /* Rollback-Fehler sind tolerierbar */
+    }
+    return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
-  // Send confirmation email via nodemailer
+  // ── Bestätigungs-Mail versenden ────────────────────────────────────────────
+  let emailSent = false;
   if (
     process.env.SMTP_HOST &&
     process.env.SMTP_USER &&
@@ -234,11 +414,10 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
       const greeting = `Guten Tag ${escapeHtml(String(contactPerson).slice(0, 100))},`;
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
-      const emailSafe = escapeHtml(String(contactEmail).slice(0, 200));
+      const emailSafe = escapeHtml(loginEmail);
+      const confirmationUrlSafe = escapeHtml(confirmationUrl);
       const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
       const html = `
@@ -271,7 +450,7 @@ export async function POST(request: NextRequest) {
             <td style="background-color:#ffffff;padding:36px 32px;
               border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
               <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
-                Bestandsaufnahme erfolgreich eingereicht
+                Bestandsaufnahme eingereicht – bitte E-Mail bestätigen
               </h1>
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
               <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
@@ -280,15 +459,30 @@ export async function POST(request: NextRequest) {
               </p>
 
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #00cabe;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">Ihr DigiKI-Account wurde erstellt</p>
-                    <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
-                      Wir haben einen Zugang für die Best-Practice-Datenbank für Sie angelegt.
-                      Bitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den Link in der
-                      separaten Bestätigungs-E-Mail von uns.<br /><br />
-                      Ihre Login-E-Mail: <strong>${emailSafe}</strong>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
+                      E-Mail-Adresse bestätigen
+                    </p>
+                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Damit wir sicher sind, dass diese Adresse Ihnen gehört,
+                      bestätigen Sie bitte Ihren Zugang mit einem Klick auf den
+                      folgenden Link. Erst danach können Sie sich in der
+                      Best-Practice-Datenbank anmelden.
+                    </p>
+                    <p style="margin:0 0 10px 0;">
+                      <a href="${confirmationUrlSafe}"
+                        style="display:inline-block;background-color:#006363;color:#ffffff;
+                          text-decoration:none;font-weight:bold;font-size:15px;
+                          padding:12px 22px;border-radius:8px;">
+                        Zugang bestätigen
+                      </a>
+                    </p>
+                    <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
+                      Der Link funktioniert nicht?
+                      <a href="${confirmationUrlSafe}"
+                        style="color:#006363;word-break:break-all;">${confirmationUrlSafe}</a>
                     </p>
                   </td>
                 </tr>
@@ -298,11 +492,11 @@ export async function POST(request: NextRequest) {
                 style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
                   <td style="padding:14px 16px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">Wie geht es weiter?</p>
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
+                      Ihre Login-E-Mail
+                    </p>
                     <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
-                      Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen.
-                      Nach der E-Mail-Bestätigung können Sie sich jederzeit in der
-                      Best-Practice-Datenbank anmelden.
+                      <strong>${emailSafe}</strong>
                     </p>
                   </td>
                 </tr>
@@ -336,15 +530,17 @@ export async function POST(request: NextRequest) {
 
       await transporter.sendMail({
         from: `DigiKI <${from}>`,
-        to: String(contactEmail),
-        subject: "Ihre Bestandsaufnahme wurde eingereicht – DigiKI",
+        to: loginEmail,
+        subject: "Bitte E-Mail bestätigen – DigiKI",
         html,
       });
+      emailSent = true;
     } catch (emailErr) {
-      // Email failure is non-fatal – data is already saved
+      // Email-Fehler nicht fatal – Daten sind gespeichert, User kann den Link
+      // bei Bedarf über "Passwort vergessen" oder den Code-Einlöser neu anfordern.
       console.error("[register-bestandsaufnahme] Email error:", emailErr);
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, emailSent });
 }
