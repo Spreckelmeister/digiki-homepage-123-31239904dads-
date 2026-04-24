@@ -129,35 +129,17 @@ export async function GET(request: NextRequest) {
       }).format(now);
       const transactionId = `DEL-${now.getTime().toString(36).toUpperCase()}-${userId.slice(0, 8).toUpperCase()}`;
 
-      const item = (label: string, count: number, kept = false) => {
+      const line = (label: string, count: number, kept = false) => {
         if (count === 0) return "";
-        const status = kept
-          ? `<span style="color:#475569;font-size:12px;">anonymisiert erhalten</span>`
-          : `<span style="color:#334155;font-size:12px;">entfernt</span>`;
-        return `
-          <tr>
-            <td style="padding:10px 0;border-bottom:1px solid #E2E8F0;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                <tr>
-                  <td style="font-size:14px;color:#1A1A1A;">
-                    <span style="display:inline-block;width:18px;height:18px;line-height:18px;
-                      text-align:center;background-color:#475569;color:#fff;border-radius:50%;
-                      font-size:11px;margin-right:8px;">✓</span>
-                    ${escapeHtml(label)}
-                    <span style="color:#64748B;font-weight:normal;"> (${count})</span>
-                  </td>
-                  <td style="text-align:right;">${status}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>`;
+        const suffix = kept ? " – anonymisiert erhalten" : "";
+        return `<li style="margin:0 0 4px 0;">${escapeHtml(label)} (${count})${suffix}</li>`;
       };
 
-      const rows =
-        item("Bestandsaufnahmen", counts.bestandsaufnahmen) +
-        item("Tool-Lizenz-Anträge", counts.toolApps) +
-        item("Hilfskräfte-Anträge", counts.studentApps) +
-        item(
+      const listItems =
+        line("Bestandsaufnahmen", counts.bestandsaufnahmen) +
+        line("Tool-Lizenz-Anträge", counts.toolApps) +
+        line("Hilfskräfte-Anträge", counts.studentApps) +
+        line(
           "Best-Practice-Beiträge",
           counts.bestPractices,
           !deleteBestPractices
@@ -168,6 +150,15 @@ export async function GET(request: NextRequest) {
         counts.toolApps === 0 &&
         counts.studentApps === 0 &&
         counts.bestPractices === 0;
+
+      const dataBlock = allZero
+        ? `<p style="margin:0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+             Zum Zeitpunkt der Löschung lagen keine verknüpften Einreichungen
+             oder Beiträge vor.
+           </p>`
+        : `<ul style="margin:0;padding-left:20px;color:#1A1A1A;font-size:14px;line-height:1.6;">
+             ${listItems}
+           </ul>`;
 
       const html = `
 <!DOCTYPE html>
@@ -190,70 +181,55 @@ export async function GET(request: NextRequest) {
                 style="display:block;border:0;" />
             </td>
           </tr>
-          <!-- Neutraler Farbbalken: Slate → Lighter Slate -->
+          <!-- Farbbalken -->
           <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#475569 0%,#64748B 100%);"></td>
+            <td style="height:4px;background:linear-gradient(90deg,#006363 0%,#00cabe 100%);"></td>
           </tr>
           <!-- Body -->
           <tr>
             <td style="background-color:#ffffff;padding:36px 32px;
               border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
-
-              <p style="margin:0 0 10px 0;font-size:11px;font-weight:bold;text-transform:uppercase;
-                letter-spacing:1.5px;color:#475569;">
-                Löschbestätigung
-              </p>
-              <h1 style="margin:0 0 18px 0;font-size:22px;font-weight:bold;color:#1A1A1A;line-height:1.3;">
-                Ihr Konto wurde gelöscht
+              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
+                Ihr DigiKI-Konto wurde gelöscht
               </h1>
-
-              <p style="margin:0 0 22px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
+              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Die Löschung des Zugangs zu <strong>${emailSafe}</strong> ist
                 abgeschlossen. Nachfolgend finden Sie den Nachweis der entfernten
                 Daten.
               </p>
 
-              ${
-                allZero
-                  ? `<p style="margin:0 0 22px 0;color:#475569;font-size:14px;
-                      padding:14px 16px;background-color:#F1F5F9;border-radius:6px;">
-                      Zum Zeitpunkt der Löschung lagen keine verknüpften
-                      Einreichungen oder Beiträge vor.
-                    </p>`
-                  : `<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                      style="background-color:#F8FAFC;border:1px solid #E2E8F0;
-                        border-radius:8px;padding:4px 18px;margin:0 0 22px 0;">
-                      ${rows}
-                    </table>`
-              }
-
-              <!-- Protokoll-Metadaten -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F1F5F9;border-radius:8px;margin:0 0 22px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
-                  <td style="padding:14px 18px;">
-                    <p style="margin:0 0 6px 0;font-size:11px;font-weight:bold;
-                      text-transform:uppercase;letter-spacing:1px;color:#64748B;">
-                      Zeitstempel
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
+                      Entfernte Daten
                     </p>
-                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;">
-                      ${escapeHtml(formattedDate)} (Europe/Berlin)
+                    ${dataBlock}
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
+                      Protokoll
                     </p>
-                    <p style="margin:0 0 6px 0;font-size:11px;font-weight:bold;
-                      text-transform:uppercase;letter-spacing:1px;color:#64748B;">
-                      Vorgangs-ID
+                    <p style="margin:0 0 4px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Zeitpunkt: <strong>${escapeHtml(formattedDate)}</strong> (Europe/Berlin)
                     </p>
-                    <p style="margin:0;color:#1A1A1A;font-size:13px;
-                      font-family:'Courier New',Courier,monospace;">
-                      ${escapeHtml(transactionId)}
+                    <p style="margin:0;color:#555555;font-size:13px;line-height:1.5;">
+                      Vorgangs-ID: <span style="font-family:'Courier New',Courier,monospace;">${escapeHtml(transactionId)}</span>
                     </p>
                   </td>
                 </tr>
               </table>
 
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                Sollten Sie die Löschung nicht selbst ausgelöst haben oder Fragen zum Vorgang
-                haben, melden Sie sich bitte zeitnah bei Kai Krafft
+                Sollten Sie die Löschung nicht selbst ausgelöst haben oder Fragen
+                zum Vorgang haben, melden Sie sich bitte zeitnah bei Kai Krafft
                 (<a href="mailto:krafft@osnabrueck.de" style="color:#006363;">krafft@osnabrueck.de</a>).
               </p>
 

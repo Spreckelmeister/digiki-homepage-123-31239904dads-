@@ -142,90 +142,65 @@ export async function POST(request: NextRequest) {
                 style="display:block;border:0;" />
             </td>
           </tr>
-          <!-- Warn-Farbbalken: Burgundy → Amber -->
+          <!-- Farbbalken (rot = Warn-Kontext) -->
           <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#991B1B 0%,#B45309 100%);"></td>
+            <td style="height:4px;background-color:#B91C1C;"></td>
           </tr>
           <!-- Body -->
           <tr>
             <td style="background-color:#ffffff;padding:36px 32px;
               border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
-
-              <p style="margin:0 0 10px 0;font-size:11px;font-weight:bold;text-transform:uppercase;
-                letter-spacing:1.5px;color:#991B1B;">
-                Sicherheitsbestätigung erforderlich
-              </p>
-              <h1 style="margin:0 0 18px 0;font-size:22px;font-weight:bold;color:#1A1A1A;line-height:1.3;">
-                Möchten Sie Ihr DigiKI-Konto wirklich löschen?
+              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
+                Bitte bestätigen Sie die Löschung Ihres Kontos
               </h1>
-
-              <p style="margin:0 0 22px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                Sie haben soeben die Löschung Ihres Zugangs
+              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
+                Sie haben soeben die Löschung Ihres DigiKI-Zugangs
                 (<strong>${emailSafe}</strong>) angefordert. Bevor wir Ihr Konto
                 endgültig entfernen, benötigen wir eine Bestätigung von dieser
                 E-Mail-Adresse.
               </p>
 
-              <!-- Primärer Bestätigungs-Button -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="margin:0 0 14px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #B91C1C;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
-                  <td align="center" style="padding:8px 0;">
-                    <a href="${confirmUrlSafe}"
-                      style="display:inline-block;background-color:#B91C1C;color:#ffffff;
-                        text-decoration:none;font-weight:bold;font-size:16px;
-                        padding:14px 28px;border-radius:8px;
-                        box-shadow:0 2px 6px rgba(153,27,27,0.25);">
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
                       Konto endgültig löschen
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:0 0 26px 0;text-align:center;color:#555555;font-size:13px;">
-                Dieser Link ist <strong>24 Stunden</strong> gültig.
-              </p>
-
-              <!-- Kleiner Fallback-Link -->
-              <p style="margin:0 0 26px 0;color:#555555;font-size:12px;line-height:1.5;
-                border-top:1px solid #EEEEEE;padding-top:16px;">
-                Falls der Button nicht funktioniert, öffnen Sie folgenden Link
-                in Ihrem Browser:<br />
-                <a href="${confirmUrlSafe}"
-                  style="color:#006363;word-break:break-all;">${confirmUrlSafe}</a>
-              </p>
-
-              <!-- Warnbox: was passiert -->
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#FEF2F2;border-left:4px solid #B91C1C;
-                  border-radius:0 6px 6px 0;margin:0 0 18px 0;">
-                <tr>
-                  <td style="padding:14px 18px;">
-                    <p style="margin:0 0 8px 0;font-weight:bold;color:#991B1B;font-size:14px;">
-                      Was mit dem Klick passiert
                     </p>
-                    <p style="margin:0;color:#7F1D1D;font-size:13px;line-height:1.6;">
-                      Ihr Zugang, Ihr Profil, Ihre Bestandsaufnahmen und alle
-                      eingereichten Anträge werden unwiderruflich aus unserem System
-                      entfernt. Eine Wiederherstellung ist nicht möglich.
+                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Nach einem Klick auf den folgenden Link werden Ihr Zugang,
+                      Ihr Profil, Ihre Bestandsaufnahmen und alle eingereichten
+                      Anträge unwiderruflich aus unserem System entfernt. Der
+                      Link ist <strong>24 Stunden</strong> gültig.
+                    </p>
+                    <p style="margin:0 0 10px 0;">
+                      <a href="${confirmUrlSafe}"
+                        style="display:inline-block;background-color:#B91C1C;color:#ffffff;
+                          text-decoration:none;font-weight:bold;font-size:15px;
+                          padding:12px 22px;border-radius:8px;">
+                        Löschung bestätigen
+                      </a>
+                    </p>
+                    <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
+                      Der Link funktioniert nicht?
+                      <a href="${confirmUrlSafe}"
+                        style="color:#006363;word-break:break-all;">${confirmUrlSafe}</a>
                     </p>
                   </td>
                 </tr>
               </table>
 
-              <!-- Ignorier-Hinweis -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #475569;
-                  border-radius:0 6px 6px 0;margin:0 0 22px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
-                  <td style="padding:14px 18px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#334155;font-size:14px;">
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
                       Sie haben das nicht angefordert?
                     </p>
-                    <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
-                      Ignorieren Sie diese E-Mail einfach. Ohne Klick auf den Link
-                      geschieht nichts – Ihr Konto bleibt bestehen. Wir empfehlen
-                      zur Sicherheit, Ihr Passwort zu ändern.
+                    <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
+                      Ignorieren Sie diese E-Mail einfach. Ohne Klick auf den
+                      Link geschieht nichts – Ihr Konto bleibt bestehen. Zur
+                      Sicherheit empfehlen wir, Ihr Passwort zu ändern.
                     </p>
                   </td>
                 </tr>
