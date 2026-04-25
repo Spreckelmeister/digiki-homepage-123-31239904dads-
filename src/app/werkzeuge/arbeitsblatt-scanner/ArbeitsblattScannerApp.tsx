@@ -185,22 +185,94 @@ export default function ArbeitsblattScannerApp() {
       if (!workerRef.current) {
         setPhase("loading-engine");
         setStatusLabel("OCR-Engine wird geladen");
-        const mod = (await import("tesseract.js")) as unknown as TesseractModule;
-        workerRef.current = await mod.createWorker("deu", 1, {
-          logger: (m) => {
-            const next = statusToPhase(m.status);
-            if (next) setPhase(next);
-            setStatusLabel(statusToLabel(m.status));
-            if (typeof m.progress === "number") {
-              setProgress(Math.min(100, Math.round(m.progress * 100)));
-            }
-          },
-        });
+        try {
+          const mod = (await import("tesseract.js")) as unknown as TesseractModule;
+          console.log("[ArbeitsblattScanner] Initialisiere Tesseract Worker mit Diagnose...");
+          console.log("[ArbeitsblattScanner] Tesseract.js Version:", (mod as any).version || "unbekannt");
+          
+          // Interceptiere fetch um zu sehen, welche URLs geladen werden
+          const originalFetch = window.fetch;
+          (window as any).fetch = function(input: any, init?: any) {
+            console.log("[ArbeitsblattScanner/Fetch]", input);
+            return originalFetch(input, init);
+          };
+          
+          // Versuche Worker mit defaultem CDN zu initialisieren
+          const initPromise = mod.createWorker("deu", 1, {
+            logger: (m) => {
+              console.log("[ArbeitsblattScanner/Logger]", m.status, `${m.progress ? Math.round(m.progress * 100) : 0}%`);
+              const next = statusToPhase(m.status);
+              if (next) setPhase(next);
+              setStatusLabel(statusToLabel(m.status));
+              if (typeof m.progress === "number") {
+                setProgress(Math.min(100, Math.round(m.progress * 100)));
+              }
+            },
+            errorHandler: (e: unknown) => {
+              const err = e as Error;
+              const msg = err?.message || String(e);
+              console.error("[ArbeitsblattScanner/WorkerError]", msg, e);
+            },
+          });
+
+          // 30 Sekunden Timeout für Worker-Initialisierung (Sprachpaket-Download)
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Sprachpaket-Download hat zu lange gedauert (> 30s). Netzwerk könnte zu langsam sein.")),
+              30000
+            )
+          );
+
+          workerRef.current = await Promise.race([initPromise, timeoutPromise]);
+          console.log("[ArbeitsblattScanner] Worker erfolgreich initialisiert");
+          
+          // Stelle originalem fetch wieder her
+          (window as any).fetch = originalFetch;
+        } catch (initErr) {
+          // Stelle originalem fetch wieder her
+          (window as any).fetch = window.fetch;
+          
+          const err = initErr as Error;
+          const errMsg = (err?.message || String(initErr)).toLowerCase();
+          console.error("[ArbeitsblattScanner/Init] Full Error:", err);
+          console.error("[ArbeitsblattScanner/Init] Error name:", (err as any)?.name);
+          console.error("[ArbeitsblattScanner/Init] Error cause:", (err as any)?.cause);
+          
+          // Bessere Fehlerdiagnose mit mehreren Patterns (case-insensitive)
+          if (
+            errMsg.includes("networkerror") ||
+            errMsg.includes("network error") ||
+            errMsg.includes("fetch") ||
+            errMsg.includes("network") ||
+            errMsg.includes("cors") ||
+            errMsg.includes("failed to fetch") ||
+            (err as any)?.name === "NetworkError"
+          ) {
+            throw new Error(
+              "Das deutsche Sprachpaket konnte nicht heruntergeladen werden (Netzwerkfehler). Überprüfen Sie die Internetverbindung oder versuchen Sie es später erneut."
+            );
+          }
+          if (errMsg.includes("timeout") || errMsg.includes("zu lange")) {
+            throw new Error(
+              "Sprachpaket-Download hat zu lange gedauert. Ihre Internetverbindung könnte langsam sein – versuchen Sie es später erneut."
+            );
+          }
+          if (errMsg.includes("securityerror")) {
+            throw new Error(
+              "Sicherheitsfehler: Tesseract konnte nicht initialisiert werden."
+            );
+          }
+          // Fallback: show the actual error message we got
+          throw new Error(
+            (err?.message || String(initErr)) || "Tesseract konnte nicht initialisiert werden."
+          );
+        }
       }
 
       setPhase("recognizing");
       setStatusLabel("Text wird erkannt");
       setProgress(0);
+      console.log("[ArbeitsblattScanner] Starte Texterkennung...");
 
       const result = await workerRef.current.recognize(file);
       setText((result.data.text || "").trim());
@@ -209,14 +281,13 @@ export default function ArbeitsblattScannerApp() {
       }
       setProgress(100);
       setPhase("done");
+      console.log("[ArbeitsblattScanner] Texterkennung erfolgreich abgeschlossen");
     } catch (e) {
       const err = e as Error;
-      console.error("[ArbeitsblattScanner]", err);
-      const technical = err?.message ? ` (${err.message})` : "";
-      setErrorMsg(
+      console.error("[ArbeitsblattScanner/Error]", err?.message || String(e));
+      setErrorMsg(err?.message || 
         "Bei der Texterkennung ist ein Fehler aufgetreten. Versuchen Sie ein " +
-          "anderes Bild oder laden Sie die Seite neu." +
-          technical
+        "anderes Bild oder laden Sie die Seite neu."
       );
       setPhase("error");
     }

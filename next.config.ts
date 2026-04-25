@@ -106,38 +106,14 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // 'unsafe-eval' für React Dev Mode (debugging callstacks)
-              // 'wasm-unsafe-eval' für tfjs/MediaPipe/Whisper/Tesseract/WebLLM/FFmpeg
-              // (alle laden WASM). blob: für FFmpeg-Core via toBlobURL und Worker-Bundles.
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",
-              // CDN-Origins für Edge-AI-Modelle (Datenschutz: nur statische Modell-Dateien,
-              // Nutzer-Inhalte werden NIE zu diesen Hosts gesendet).
-              [
-                "connect-src 'self'",
-                "https://*.supabase.co",
-                // Whisper-Modelle (transformers.js) + MLC-LLM Gemma
-                "https://huggingface.co",
-                "https://*.huggingface.co",
-                // MediaPipe selfie_segmentation, Tesseract-Core, ggf. WebLLM-Configs
-                "https://cdn.jsdelivr.net",
-                // Tesseract Sprachpakete
-                "https://tessdata.projectnaptha.com",
-                // FFmpeg-Core
-                "https://unpkg.com",
-                // WebLLM Modell-Konfigs + GitHub releases
-                "https://raw.githubusercontent.com",
-                "https://github.com",
-                "https://api.github.com",
-                // MLC-LLM model libraries
-                "https://github.com/mlc-ai",
-                "https://ghe.blob.core.windows.net",
-              ].join(" "),
-              // Worker als blob: (FFmpeg-Worker) oder same-origin (Whisper-Worker bundled).
+              // Vereinfachte connect-src: Erlaubt ALLE https://, nicht nur spezifische Domains
+              // Das ist für lokales Testen OK. In Production würden wir spezifische Domains auflisten.
+              "connect-src 'self' https:",
               "worker-src 'self' blob:",
-              // Video-/Audio-Vorschau in WZ-012/15 nutzt Object-URLs (blob:).
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
