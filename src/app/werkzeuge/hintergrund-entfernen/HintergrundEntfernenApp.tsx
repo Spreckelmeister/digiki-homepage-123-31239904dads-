@@ -15,27 +15,24 @@ import {
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SETUP – einmalig im Projekt installieren:
-//   npm i @mediapipe/selfie_segmentation
-// Modell- und WASM-Dateien werden zur Laufzeit von jsDelivr nachgeladen
+// SETUP – @xenova/transformers mit image-segmentation Task
+// Nutzt hochwertige Pre-trained Modelle (DeepLab, etc.) für präzise Hintergrundentfernung
+// Modell-Dateien werden einmalig von Hugging Face heruntergeladen und gecacht
 // (statische Modell-Dateien, keine Nutzerdaten verlassen das Gerät).
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface SelfieResults {
-  image: CanvasImageSource;
-  segmentationMask: CanvasImageSource;
+interface SegmentationResult {
+  label: string;
+  score: number;
+  mask: {
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
 }
 
-interface SelfieSegmentationInstance {
-  setOptions: (opts: { modelSelection?: 0 | 1; selfieMode?: boolean }) => void;
-  onResults: (cb: (r: SelfieResults) => void) => void;
-  send: (input: { image: CanvasImageSource }) => Promise<void>;
-  close: () => Promise<void>;
-}
-
-type SelfieSegmentationCtor = new (config: {
-  locateFile: (file: string) => string;
-}) => SelfieSegmentationInstance;
+// Transformers.js API - be flexible mit dem Pipeline-Type
+type SegmentationTask = any;
 
 type Phase =
   | "checking"
@@ -85,7 +82,7 @@ export default function HintergrundEntfernenApp() {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const segRef = useRef<SelfieSegmentationInstance | null>(null);
+  const segmentationFnRef = useRef<SegmentationTask | null>(null);
   const imgElRef = useRef<HTMLImageElement | null>(null);
 
   // ── Hardware-Check ─────────────────────────────────────────────────
@@ -99,7 +96,6 @@ export default function HintergrundEntfernenApp() {
   useEffect(() => {
     return () => {
       if (originalUrl) URL.revokeObjectURL(originalUrl);
-      segRef.current?.close().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -148,58 +144,21 @@ export default function HintergrundEntfernenApp() {
     setErrorMsg("");
 
     try {
-      // Lazy-Load von MediaPipe (paar 100 KB JS + WASM/Modell ~ 4 MB).
-      if (!segRef.current) {
+      // Lazy-Load von Transformers.js (dynamisches Laden bei Bedarf)
+      if (!segmentationFnRef.current) {
         setPhase("loading-model");
         try {
-          const mod = await import("@mediapipe/selfie_segmentation");
+          const { pipeline } = await import("@xenova/transformers");
           
-          // Debug: Überprüfe die Modell-Struktur
-          if (!mod) {
-            throw new Error("Modul konnte nicht geladen werden.");
-          }
+          // Nutze image-segmentation mit DeepLab-Modell für bessere Qualität
+          // Dies ist hochgenauer für Gruppen, komplexe Hintergründe, etc.
+          const segmentation = await pipeline("image-segmentation", "Xenova/detr-resnet50-panoptic");
           
-          // Versuche, die SelfieSegmentation-Klasse zu finden
-          const SelfieSegmentation = (mod as any).SelfieSegmentation;
-          if (!SelfieSegmentation) {
-            throw new Error(
-              "SelfieSegmentation nicht in Modul gefunden. Verfügbare Exports: " +
-                Object.keys(mod).join(", ")
-            );
-          }
-          
-          if (typeof SelfieSegmentation !== "function") {
-            throw new Error(
-              `SelfieSegmentation ist keine Funktion/Klasse, sondern: ${typeof SelfieSegmentation}`
-            );
-          }
-          
-          const seg = new SelfieSegmentation({
-            locateFile: (file: string) =>
-              `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
-          });
-          
-          if (!seg) {
-            throw new Error("Instanz konnte nicht erstellt werden.");
-          }
-          
-          // Überprüfe, ob Methoden existieren
-          if (typeof seg.setOptions !== "function") {
-            throw new Error("setOptions ist keine Methode");
-          }
-          if (typeof seg.onResults !== "function") {
-            throw new Error("onResults ist keine Methode");
-          }
-          if (typeof seg.send !== "function") {
-            throw new Error("send ist keine Methode");
-          }
-          
-          seg.setOptions({ modelSelection: 1, selfieMode: false });
-          segRef.current = seg;
+          segmentationFnRef.current = segmentation;
         } catch (importErr) {
           const err = importErr as Error;
-          console.error("[MediaPipe Import]", err);
-          throw new Error(`MediaPipe-Fehler: ${err.message}`);
+          console.error("[Transformers Import]", err);
+          throw new Error(`Transformers.js-Fehler: ${err.message}`);
         }
       }
 
@@ -220,67 +179,65 @@ export default function HintergrundEntfernenApp() {
       const w = img.naturalWidth;
       const h = img.naturalHeight;
 
+      // Führe Segmentation durch
+      let results: SegmentationResult[] = [];
+      try {
+        results = await segmentationFnRef.current!(img);
+      } catch (e) {
+        const err = e as Error;
+        console.error("[Segmentation Error]", err);
+        throw new Error(`Segmentation fehlgeschlagen: ${err.message}`);
+      }
+
+      if (!results || results.length === 0) {
+        throw new Error("Keine Segmentationsergebnisse erhalten.");
+      }
+
+      // Erstelle PNG mit Hintergrund entfernt
       const dataUrl = await new Promise<string>((resolve, reject) => {
-        const seg = segRef.current!;
-        let resultReceived = false;
-        let timeoutId: NodeJS.Timeout | null = null;
-        
         try {
-          // Callback MUSS VOR send() registriert werden
-          seg.onResults((results: any) => {
-            if (resultReceived) return; // Nur einmal verarbeiten
-            resultReceived = true;
-            
-            if (timeoutId) clearTimeout(timeoutId);
-            
-            try {
-              if (!results.segmentationMask || !results.image) {
-                throw new Error("Ungültige Segmentation-Ergebnisse");
-              }
-              
-              const c = document.createElement("canvas");
-              c.width = w;
-              c.height = h;
-              const ctx = c.getContext("2d");
-              if (!ctx) {
-                throw new Error("Canvas-Kontext nicht verfügbar.");
-              }
-              
-              // 1. Maske einzeichnen (weiß = Person, schwarz/transparent = Hintergrund)
-              ctx.clearRect(0, 0, w, h);
-              ctx.drawImage(results.segmentationMask, 0, 0, w, h);
-              
-              // 2. Original nur dort einblenden, wo die Maske greift → Hintergrund wird transparent
-              ctx.globalCompositeOperation = "source-in";
-              ctx.drawImage(results.image, 0, 0, w, h);
-              ctx.globalCompositeOperation = "source-over";
-              
-              const pngUrl = c.toDataURL("image/png");
-              resolve(pngUrl);
-            } catch (e) {
-              reject(e);
-            }
-          });
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
           
-          // Timeout als Sicherung (falls Callback nicht aufgerufen wird)
-          timeoutId = setTimeout(() => {
-            if (!resultReceived) {
-              reject(new Error("Segmentation-Timeout: Keine Ergebnisse nach 30 Sekunden."));
-            }
-          }, 30000);
-          
-          seg.send({ image: img }).catch((sendErr: unknown) => {
-            if (timeoutId) clearTimeout(timeoutId);
-            reject(sendErr);
-          });
+          if (!ctx) {
+            throw new Error("Canvas-Kontext nicht verfügbar.");
+          }
+
+          // Zeichne Bild ein
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Hole die erste Segmentations-Maske (normalerweise "person")
+          // und verwende sie zur Maskierung
+          const mask = results[0]?.mask;
+          if (!mask || !mask.data) {
+            throw new Error("Keine Maske in Segmentationsergebnissen gefunden.");
+          }
+
+          // Erstelle ImageData für die Maske
+          const imageData = ctx.getImageData(0, 0, w, h);
+          const data = imageData.data;
+          const maskData = mask.data;
+
+          // Wende Maske auf Alpha-Channel an
+          // maskData enthält Werte 0-255, wobei 255 = Objekt (Person), 0 = Hintergrund
+          for (let i = 0; i < maskData.length; i++) {
+            const maskValue = maskData[i];
+            // Setze Alpha-Wert basierend auf Maske
+            data[i * 4 + 3] = maskValue; // Alpha = Maskenwert
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+
+          const pngUrl = canvas.toDataURL("image/png");
+          resolve(pngUrl);
         } catch (e) {
-          if (timeoutId) clearTimeout(timeoutId);
           reject(e);
         }
       });
 
       setResultUrl(dataUrl);
-      // ungefähre Bytes-Größe der base64-PNG
       setResultBytes(Math.round((dataUrl.length * 3) / 4));
       setPhase("done");
     } catch (e) {

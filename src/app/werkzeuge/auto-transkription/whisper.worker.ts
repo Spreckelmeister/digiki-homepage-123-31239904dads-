@@ -85,26 +85,55 @@ self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
       return;
     }
     if (msg.type === "transcribe") {
+      if (!msg.audio || msg.audio.length === 0) {
+        throw new Error("Keine Audio-Daten erhalten.");
+      }
+      
       const transcriber = await ensurePipeline();
       ctx.postMessage({ type: "ready" });
       ctx.postMessage({ type: "transcribing" });
-      const result = await transcriber(msg.audio, {
-        language: "german",
-        task: "transcribe",
-        chunk_length_s: 30,
-        stride_length_s: 5,
-        return_timestamps: false,
-      });
+      
+      let result;
+      try {
+        result = await transcriber(msg.audio, {
+          language: "de",
+          task: "transcribe",
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          return_timestamps: false,
+        });
+      } catch (transErr) {
+        // Fallback ohne language-spezifische Parameter
+        console.warn("Retry ohne language-Parameter", transErr);
+        result = await transcriber(msg.audio, {
+          task: "transcribe",
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          return_timestamps: false,
+        });
+      }
+      
+      if (!result) {
+        throw new Error("Transkription hat kein Ergebnis zurückgegeben.");
+      }
+      
+      const transcript = typeof result.text === "string" 
+        ? result.text.trim() 
+        : typeof result === "string"
+        ? (result as string).trim()
+        : JSON.stringify(result);
+        
       ctx.postMessage({
         type: "result",
-        text: (result?.text ?? "").trim(),
+        text: transcript,
       });
     }
   } catch (err) {
     const e = err as Error;
+    console.error("[Worker Error]", e);
     ctx.postMessage({
       type: "error",
-      message: e?.message || "Worker-Fehler",
+      message: e?.message || "Worker-Fehler bei der Transkription",
     });
   }
 });

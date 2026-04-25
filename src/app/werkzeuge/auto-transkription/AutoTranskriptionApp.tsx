@@ -209,12 +209,17 @@ export default function AutoTranskriptionApp() {
         setPhase("error");
       }
     };
+    w.onerror = (err) => {
+      console.error("[Worker Error Event]", err);
+      setErrorMsg(`Worker-Fehler: ${err.message}`);
+      setPhase("error");
+    };
     workerRef.current = w;
     return () => {
       w.terminate();
       workerRef.current = null;
     };
-  }, [phase === "blocked" || phase === "checking"]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Cleanup ────────────────────────────────────────────────────────
   useEffect(() => {
