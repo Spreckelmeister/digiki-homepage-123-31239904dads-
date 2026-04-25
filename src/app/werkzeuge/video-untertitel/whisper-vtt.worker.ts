@@ -38,7 +38,11 @@ type TransformersModule = {
   pipeline: (
     task: string,
     model: string,
-    opts: { progress_callback?: (p: ProgressEntry) => void }
+    opts: {
+      progress_callback?: (p: ProgressEntry) => void;
+      dtype?: "fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "q4f16";
+      device?: "cpu" | "wasm" | "webgpu";
+    }
   ) => Promise<Transcriber>;
   env: {
     allowLocalModels: boolean;
@@ -62,10 +66,15 @@ async function ensurePipeline(): Promise<Transcriber> {
     if (mod.env.backends?.onnx?.wasm) {
       mod.env.backends.onnx.wasm.numThreads = 1;
     }
+    // dtype:"q8" erzwingt die 8-Bit-Variante. Default in v4 ist "q4" für
+    // Whisper-Tiny – die hat kaputte MatMulNBits-Skalen im Xenova-Repo
+    // ("Missing required scale: model.decoder.embed_tokens.weight_merged_0_scale").
     const t = await mod.pipeline(
       "automatic-speech-recognition",
       "Xenova/whisper-tiny",
       {
+        dtype: "q8",
+        device: "wasm",
         progress_callback: (p) => {
           (self as unknown as DedicatedWorkerGlobalScope).postMessage({
             type: "load-progress",
@@ -91,10 +100,9 @@ self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
     if (msg.type === "transcribe") {
       const transcriber = await ensurePipeline();
       ctx.postMessage({ type: "transcribing" });
-      // chunk_length_s/stride_length_s nur einsetzen, wenn das Audio länger
-      // als chunk_length_s ist – sonst wird der Long-Form-Pfad in
-      // transformers.js v2 aktiviert und scheitert teils mit "can't convert
-      // undefined to object" beim Zusammenfügen leerer Chunks.
+      // chunk_length_s/stride_length_s nur ab > 30 s setzen – kürzeres Audio
+      // braucht den Long-Form-Pfad nicht und der hat in der Vergangenheit
+      // beim Zusammenfügen einzelner Chunks Probleme gemacht.
       const audioSeconds = msg.audio.length / 16000;
       const opts: Record<string, unknown> = {
         language: "german",
