@@ -164,7 +164,10 @@ async function probeHardware(): Promise<HardwareReport> {
     limits: { maxBufferSize: number; maxStorageBufferBindingSize: number };
     info?: { vendor?: string; architecture?: string };
   };
-  const navWithGpu = navigator as Navigator & {
+  // `as unknown as` weil eine reine Intersection mit `Navigator` die globalen
+  // WebGPU-Typen aus lib.dom.d.ts nicht überschreibt – `adapter` würde dann als
+  // standard `GPUAdapter` typisiert, der in TS 5.9 noch kein `info` kennt.
+  const navWithGpu = navigator as unknown as {
     gpu?: { requestAdapter: () => Promise<GPUAdapterLite | null> };
   };
 
