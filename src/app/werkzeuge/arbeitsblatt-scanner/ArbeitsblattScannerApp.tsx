@@ -117,9 +117,13 @@ export default function ArbeitsblattScannerApp() {
 
   const [isDragOver, setIsDragOver] = useState(false);
   // Touch-Primär-Geräte (Smartphone, Tablet) bekommen zusätzlich einen
-  // direkten Kamera-Knopf. `pointer: coarse` matcht zuverlässig auf Mobil-
-  // und Tablet-Browsern; Laptops mit Touchscreen melden weiter `pointer:
-  // fine` und sehen das Desktop-Drop-Layout.
+  // direkten Kamera-Knopf. Erkennung über die Kombination aus
+  //   `(any-pointer: fine)` = false  → keine Maus / kein Trackpad anwesend
+  //   `maxTouchPoints > 0`            → mindestens ein Touch-Sensor
+  // sowie einem Mobile-User-Agent-Match. Damit fallen Yoga-/2-in-1-Laptops
+  // NICHT mehr in den Mobil-Pfad, selbst wenn sie zeitweise `pointer: coarse`
+  // melden (Tablet-Modus, Windows-Tablet-Modus, manche Edge-Versionen) –
+  // weil sie weiter über das Trackpad einen Fine-Pointer anbieten.
   const [isTouchPrimary, setIsTouchPrimary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -135,11 +139,33 @@ export default function ArbeitsblattScannerApp() {
   // ── Touch-Primary-Erkennung ────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(pointer: coarse)");
-    const update = () => setIsTouchPrimary(mq.matches);
+
+    // 1. UA-Check: echte Mobilgeräte sicher erkennen (auch wenn jemand
+    //    eine Maus angeschlossen hat, was `any-pointer: fine` triggern
+    //    würde).
+    const ua =
+      typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const uaMobile =
+      /Android|iPhone|iPad|iPod|HarmonyOS|webOS|Opera Mini|IEMobile|BB10/i.test(
+        ua
+      );
+
+    // 2. Hardware-Check: kein Fine-Pointer (Maus/Trackpad) + Touch-Punkte.
+    //    Das schließt Yoga-/2-in-1-Laptops aus, weil deren Trackpad einen
+    //    Fine-Pointer mitbringt.
+    const hasTouchPoints =
+      typeof navigator !== "undefined" &&
+      typeof navigator.maxTouchPoints === "number" &&
+      navigator.maxTouchPoints > 0;
+    const fineMq = window.matchMedia("(any-pointer: fine)");
+
+    const update = () => {
+      const noFinePointer = !fineMq.matches;
+      setIsTouchPrimary(uaMobile || (noFinePointer && hasTouchPoints));
+    };
     update();
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
+    fineMq.addEventListener?.("change", update);
+    return () => fineMq.removeEventListener?.("change", update);
   }, []);
 
   // ── Cleanup ────────────────────────────────────────────────────────

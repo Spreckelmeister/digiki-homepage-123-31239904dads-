@@ -77,10 +77,12 @@ const nextConfig: NextConfig = {
           },
           {
             // `microphone=(self)` erlaubt unseren eigenen Werkzeugen
-            // (Lärmampel, Audio-Trimmer) den Mikrofon-Zugriff und blockt
-            // zugleich jeden Drittanbieter oder eingebetteten iframe.
-            // Ohne `self` würde Chrome die Anfrage präemptiv abweisen,
-            // ohne dem User überhaupt einen Permission-Dialog zu zeigen.
+            // (Lärmampel, Audio-Trimmer, Diktiergerät) den Mikrofon-
+            // Zugriff und blockt zugleich jeden Drittanbieter oder
+            // eingebetteten iframe. Ohne `self` würde Chrome die Anfrage
+            // präemptiv abweisen, ohne dem User überhaupt einen
+            // Permission-Dialog zu zeigen.
+            // Kamera bleibt blockiert: kein Werkzeug nutzt die Webcam.
             key: "Permissions-Policy",
             value: "camera=(), microphone=(self), geolocation=()",
           },
@@ -119,16 +121,17 @@ const nextConfig: NextConfig = {
               // FFmpeg.wasm intern `fetch(blobURL)` für den WASM-Core nutzt.
               [
                 "connect-src 'self'",
-                "https://huggingface.co",            // Whisper- & Gemma-Modelle (Manifeste)
-                "https://cdn-lfs.huggingface.co",    // HF-LFS-CDN für die Modell-Binaries
-                "https://cdn.jsdelivr.net",          // mlc-ai/web-llm WASM-Runtime, Tesseract-Fallback
-                "https://raw.githubusercontent.com", // mlc-ai/web-llm Tokenizer/Konfig-Dateien
-                "https://staticimgly.com",           // @imgly/background-removal Modell + WASM
-                "https://tessdata.projectnaptha.com",// Tesseract.js Sprachpakete (deu.traineddata)
+                "https://huggingface.co",                // HF-Apex (Manifeste, resolve-Endpunkt)
+                "https://*.huggingface.co",              // HF-LFS-CDN (cdn-lfs, cdn-lfs-us-1, …)
+                "https://*.hf.co",                       // HF-Kurzdomain für LFS-Redirects
+                "https://cdn.jsdelivr.net",              // mlc-ai/web-llm WASM-Runtime, Tesseract-Fallback
+                "https://raw.githubusercontent.com",     // mlc-ai/binary-mlc-llm-libs (WebLLM-WASM-Bibliotheken)
+                "https://staticimgly.com",               // @imgly/background-removal Modell + WASM
+                "https://tessdata.projectnaptha.com",    // Tesseract.js Sprachpakete (deu.traineddata)
                 "https://*.public.blob.vercel-storage.com", // Eigene gespeicherte Bilder
-                "https://*.supabase.co",             // Supabase Auth + REST-API
-                "https://vitals.vercel-insights.com",// Vercel Speed Insights (nur nach Consent)
-                "blob:",                             // FFmpeg-WASM lädt seinen Core via fetch(blob:)
+                "https://*.supabase.co",                 // Supabase Auth + REST-API
+                "https://vitals.vercel-insights.com",    // Vercel Speed Insights (nur nach Consent)
+                "blob:",                                 // FFmpeg-WASM lädt seinen Core via fetch(blob:)
               ].join(" "),
               "worker-src 'self' blob:",
               "media-src 'self' blob:",
