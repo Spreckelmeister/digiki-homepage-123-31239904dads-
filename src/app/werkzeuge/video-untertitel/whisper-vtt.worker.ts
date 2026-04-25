@@ -2,7 +2,9 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Whisper-Tiny Worker mit Timestamps für VTT-Untertitel
-// SETUP: npm i @xenova/transformers
+// SETUP: npm i @huggingface/transformers
+// (Nachfolger von @xenova/transformers; v2.17 hatte Whisper-Timestamp-Bugs,
+// die zu "can't convert undefined to object" geführt haben.)
 // Liefert pro Segment Start- und Endzeit zurück.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -54,7 +56,7 @@ async function ensurePipeline(): Promise<Transcriber> {
   if (transcriberPromise) return transcriberPromise;
   transcriberPromise = (async () => {
     const mod = (await import(
-      "@xenova/transformers"
+      "@huggingface/transformers"
     )) as unknown as TransformersModule;
     mod.env.allowLocalModels = false;
     if (mod.env.backends?.onnx?.wasm) {

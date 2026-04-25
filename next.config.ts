@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     "@upscalerjs/default-model",
     "@mediapipe/selfie_segmentation",
     "@xenova/transformers",
+    "@huggingface/transformers",
     "@imgly/background-removal",
     "tesseract.js",
     "@mlc-ai/web-llm",

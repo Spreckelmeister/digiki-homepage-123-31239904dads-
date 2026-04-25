@@ -21,7 +21,7 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP – einmalig im Projekt installieren:
-//   npm i @ffmpeg/ffmpeg @ffmpeg/util @ffmpeg/core @xenova/transformers
+//   npm i @ffmpeg/ffmpeg @ffmpeg/util @ffmpeg/core @huggingface/transformers
 //
 // FFmpeg.wasm wird hier als Single-Thread-Build (@ffmpeg/core, NICHT core-mt)
 // von der eigenen Domain (public/ffmpeg-core/) ausgeliefert → keine CDN-Risiken
