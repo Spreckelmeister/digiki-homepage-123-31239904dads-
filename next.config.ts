@@ -113,11 +113,23 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",
-              // connect-src: Erlaubt ALLE https:// URLs für Modell-Downloads.
-              // `blob:` ist nötig, weil FFmpeg.wasm intern `fetch(blobURL)` für
-              // den WASM-Core nutzt (sonst Firefox: "NetworkError when attempting
-              // to fetch resource").
-              "connect-src 'self' https: blob:",
+              // connect-src: explizite Allowlist statt `https:`-Wildcard.
+              // Begründung pro Host als Inline-Kommentar; jede Erweiterung
+              // muss bewusst dokumentiert werden. `blob:` ist nötig, weil
+              // FFmpeg.wasm intern `fetch(blobURL)` für den WASM-Core nutzt.
+              [
+                "connect-src 'self'",
+                "https://huggingface.co",            // Whisper- & Gemma-Modelle (Manifeste)
+                "https://cdn-lfs.huggingface.co",    // HF-LFS-CDN für die Modell-Binaries
+                "https://cdn.jsdelivr.net",          // mlc-ai/web-llm WASM-Runtime, Tesseract-Fallback
+                "https://raw.githubusercontent.com", // mlc-ai/web-llm Tokenizer/Konfig-Dateien
+                "https://staticimgly.com",           // @imgly/background-removal Modell + WASM
+                "https://tessdata.projectnaptha.com",// Tesseract.js Sprachpakete (deu.traineddata)
+                "https://*.public.blob.vercel-storage.com", // Eigene gespeicherte Bilder
+                "https://*.supabase.co",             // Supabase Auth + REST-API
+                "https://vitals.vercel-insights.com",// Vercel Speed Insights (nur nach Consent)
+                "blob:",                             // FFmpeg-WASM lädt seinen Core via fetch(blob:)
+              ].join(" "),
               "worker-src 'self' blob:",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
