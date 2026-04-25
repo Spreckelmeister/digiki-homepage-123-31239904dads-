@@ -86,31 +86,227 @@ type Phase =
   | "stopped"
   | "error";
 
+// ─── Hardware-Anforderungen ──────────────────────────────────────────────────
+// Bewusst konservativ gewählt: Wer diese Werte erfüllt, sollte das 2B-Q4-Modell
+// flüssig laden und ausführen können. Knapp drüber liegende Geräte (z.B. mobile
+// GPUs mit < 1 GB maxBufferSize) werden gezielt ausgeschlossen, weil das
+// Gemma-2-2B-Q4-Modell sonst beim Laden abbricht oder unter Last crasht.
+const HW_MIN_GPU_BUFFER_BYTES = 1 << 30; // 1 GB
+const HW_MIN_GPU_STORAGE_BINDING_BYTES = 1 << 30; // 1 GB
+const HW_MIN_DEVICE_MEMORY_GB = 8; // navigator.deviceMemory cappt bei 8
+const HW_MIN_CPU_CORES = 4;
+
 interface HardwareReport {
   webgpu: boolean;
+  gpuMaxBufferSize: number; // 0 falls kein Adapter
+  gpuMaxStorageBindingSize: number; // 0 falls kein Adapter
+  gpuVendor: string | null;
+  gpuArchitecture: string | null;
   deviceMemoryGB: number | null;
-  storage: boolean;
+  cpuCores: number | null;
+  // Mobile/Tablet-Erkennung: selbst wenn GPU-Limits formell reichen, kollabieren
+  // mobile GPUs (Mali, Adreno) unter LLM-Last regelmäßig (Thermal-Throttling,
+  // Driver-Resets, "device lost") – deshalb hier separater Hard-Block.
+  isMobileClass: boolean;
+}
+
+interface HardwareCheck {
+  id: "deviceClass" | "webgpu" | "gpuBuffer" | "gpuStorage" | "memory" | "cpu";
+  label: string;
+  ok: boolean;
+  detail: string;
+  required: string;
+}
+
+function detectMobileClass(): boolean {
+  if (typeof navigator === "undefined") return false;
+
+  // 1. Modern: User-Agent Client Hints (Chromium 90+, kein Spoofing-Risiko)
+  type UADataLike = { mobile?: boolean; platform?: string };
+  const navUaData = (navigator as Navigator & { userAgentData?: UADataLike })
+    .userAgentData;
+  if (navUaData) {
+    if (navUaData.mobile === true) return true;
+    if (typeof navUaData.platform === "string") {
+      const p = navUaData.platform.toLowerCase();
+      if (p.includes("android") || p.includes("ios") || p === "harmonyos") {
+        return true;
+      }
+    }
+  }
+
+  // 2. Fallback: User-Agent String (Firefox, Safari, ältere Browser)
+  const ua = navigator.userAgent || "";
+  if (
+    /Android|iPhone|iPad|iPod|HarmonyOS|webOS|Opera Mini|IEMobile|BB10/i.test(
+      ua
+    )
+  ) {
+    return true;
+  }
+
+  // 3. Tablet-Heuristik: Touch-only + kleiner Viewport
+  const noFinePointer =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    !window.matchMedia("(any-pointer: fine)").matches;
+  const touchOnly =
+    noFinePointer &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 0;
+  if (touchOnly) return true;
+
+  return false;
 }
 
 async function probeHardware(): Promise<HardwareReport> {
-  const navWithGpu = navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } };
+  type GPUAdapterLite = {
+    limits: { maxBufferSize: number; maxStorageBufferBindingSize: number };
+    info?: { vendor?: string; architecture?: string };
+  };
+  const navWithGpu = navigator as Navigator & {
+    gpu?: { requestAdapter: () => Promise<GPUAdapterLite | null> };
+  };
+
+  const isMobileClass = detectMobileClass();
+
   let webgpu = false;
-  if (navWithGpu.gpu) {
+  let gpuMaxBufferSize = 0;
+  let gpuMaxStorageBindingSize = 0;
+  let gpuVendor: string | null = null;
+  let gpuArchitecture: string | null = null;
+
+  // Auf Mobilgeräten überspringen wir den `requestAdapter()`-Aufruf komplett –
+  // er kann auf manchen Treibern (Mali, Adreno) selbst schon einen Driver-Reset
+  // auslösen ("device lost", "external instance reference no longer exists"),
+  // bevor das Modell überhaupt geladen wird.
+  if (!isMobileClass && navWithGpu.gpu) {
     try {
-      // Adapter aktiv anfordern – Flag könnte gesetzt sein, aber GPU dennoch
-      // nicht erreichbar (z.B. headless / Sandbox).
       const adapter = await navWithGpu.gpu.requestAdapter();
-      webgpu = adapter !== null;
+      if (adapter) {
+        webgpu = true;
+        try {
+          gpuMaxBufferSize = adapter.limits.maxBufferSize ?? 0;
+          gpuMaxStorageBindingSize =
+            adapter.limits.maxStorageBufferBindingSize ?? 0;
+          gpuVendor = adapter.info?.vendor ?? null;
+          gpuArchitecture = adapter.info?.architecture ?? null;
+        } catch {
+          /* limits not readable on this driver */
+        }
+      }
     } catch {
       webgpu = false;
     }
   }
+
   const navWithMem = navigator as Navigator & { deviceMemory?: number };
   const deviceMemoryGB =
-    typeof navWithMem.deviceMemory === "number" ? navWithMem.deviceMemory : null;
-  const storage =
-    typeof navigator !== "undefined" && "storage" in navigator;
-  return { webgpu, deviceMemoryGB, storage };
+    typeof navWithMem.deviceMemory === "number"
+      ? navWithMem.deviceMemory
+      : null;
+
+  const cpuCores =
+    typeof navigator.hardwareConcurrency === "number"
+      ? navigator.hardwareConcurrency
+      : null;
+
+  return {
+    webgpu,
+    gpuMaxBufferSize,
+    gpuMaxStorageBindingSize,
+    gpuVendor,
+    gpuArchitecture,
+    deviceMemoryGB,
+    cpuCores,
+    isMobileClass,
+  };
+}
+
+function fmtGB(bytes: number): string {
+  if (bytes <= 0) return "—";
+  return `${(bytes / (1 << 30)).toFixed(2)} GB`;
+}
+
+function evaluateHardware(hw: HardwareReport): {
+  ok: boolean;
+  checks: HardwareCheck[];
+} {
+  const checks: HardwareCheck[] = [
+    {
+      id: "deviceClass",
+      label: "Geräteklasse",
+      ok: !hw.isMobileClass,
+      detail: hw.isMobileClass
+        ? "Smartphone oder Tablet erkannt – mobile GPUs (Mali, Adreno, Apple A-Series) brechen unter LLM-Last regelmäßig ab (Driver-Reset, Thermal-Throttling)"
+        : "Desktop / Laptop",
+      required: "PC oder Laptop",
+    },
+    {
+      id: "webgpu",
+      label: "WebGPU",
+      ok: hw.webgpu,
+      detail: hw.isMobileClass
+        ? "nicht geprüft – Mobilgerät erkannt"
+        : hw.webgpu
+        ? `aktiv${hw.gpuVendor ? ` · ${hw.gpuVendor}` : ""}${
+            hw.gpuArchitecture ? ` · ${hw.gpuArchitecture}` : ""
+          }`
+        : "Kein WebGPU-Adapter erreichbar",
+      required: "Browser mit aktivem WebGPU-Adapter",
+    },
+    {
+      id: "gpuBuffer",
+      label: "GPU-Buffer",
+      ok: hw.gpuMaxBufferSize >= HW_MIN_GPU_BUFFER_BYTES,
+      detail: hw.isMobileClass
+        ? "nicht geprüft – Mobilgerät erkannt"
+        : hw.gpuMaxBufferSize
+        ? `max. ${fmtGB(hw.gpuMaxBufferSize)} pro Buffer`
+        : "Unbekannt – kein GPU-Adapter",
+      required: `≥ ${fmtGB(HW_MIN_GPU_BUFFER_BYTES)}`,
+    },
+    {
+      id: "gpuStorage",
+      label: "GPU-Storage",
+      ok: hw.gpuMaxStorageBindingSize >= HW_MIN_GPU_STORAGE_BINDING_BYTES,
+      detail: hw.isMobileClass
+        ? "nicht geprüft – Mobilgerät erkannt"
+        : hw.gpuMaxStorageBindingSize
+        ? `max. ${fmtGB(hw.gpuMaxStorageBindingSize)} pro Storage-Binding`
+        : "Unbekannt – kein GPU-Adapter",
+      required: `≥ ${fmtGB(HW_MIN_GPU_STORAGE_BINDING_BYTES)}`,
+    },
+    {
+      id: "memory",
+      label: "Arbeitsspeicher",
+      // null behandeln wir tolerant: ältere/restriktive Browser melden nichts.
+      // GPU-Limits oben filtern in der Regel schon zuverlässig schwache Geräte.
+      ok:
+        hw.deviceMemoryGB === null ||
+        hw.deviceMemoryGB >= HW_MIN_DEVICE_MEMORY_GB,
+      detail:
+        hw.deviceMemoryGB === null
+          ? "vom Browser nicht gemeldet"
+          : `${hw.deviceMemoryGB} GB${
+              hw.deviceMemoryGB >= HW_MIN_DEVICE_MEMORY_GB
+                ? ""
+                : " (zu wenig für 1,4 GB Modell + Browser + System)"
+            }`,
+      required: `≥ ${HW_MIN_DEVICE_MEMORY_GB} GB`,
+    },
+    {
+      id: "cpu",
+      label: "CPU-Kerne",
+      ok: hw.cpuCores === null || hw.cpuCores >= HW_MIN_CPU_CORES,
+      detail:
+        hw.cpuCores === null
+          ? "vom Browser nicht gemeldet"
+          : `${hw.cpuCores} logische Kerne`,
+      required: `≥ ${HW_MIN_CPU_CORES}`,
+    },
+  ];
+  return { ok: checks.every((c) => c.ok), checks };
 }
 
 interface Action {
@@ -197,7 +393,8 @@ export default function TextDifferenziererApp() {
       const report = await probeHardware();
       if (cancelled) return;
       setHw(report);
-      setPhase(report.webgpu ? "idle" : "blocked");
+      const { ok } = evaluateHardware(report);
+      setPhase(ok ? "idle" : "blocked");
     })();
     return () => {
       cancelled = true;
@@ -751,6 +948,9 @@ function phaseLabel(p: Phase): string {
 }
 
 function HardwareBlocked({ hw }: { hw: HardwareReport }) {
+  const { checks } = evaluateHardware(hw);
+  const failingCount = checks.filter((c) => !c.ok).length;
+
   return (
     <div className="relative rounded-2xl bg-slate-950 text-white shadow-xl overflow-hidden">
       <div
@@ -778,51 +978,76 @@ function HardwareBlocked({ hw }: { hw: HardwareReport }) {
           />
         </div>
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300 mb-2 font-mono">
-          WebGPU nicht verfügbar
+          Hardware-Anforderungen nicht erfüllt
         </p>
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-          Dieses Gerät unterstützt das KI-Sprachmodell nicht.
+          Dieses Gerät reicht für das lokale KI-Sprachmodell leider nicht aus.
         </h2>
-        <p className="max-w-md text-sm text-white/70 leading-relaxed mb-8">
-          Der Text-Differenzierer benötigt zwingend{" "}
-          <strong className="text-white">WebGPU</strong>, weil das Sprachmodell
-          (~ 1,4 GB) auf Ihrer Grafikkarte ausgeführt wird. WebGPU ist
-          aktuell verfügbar in Chrome / Edge ab Version 113 und in Firefox
-          113+ (mit Flag) auf Geräten mit halbwegs aktueller GPU. Bitte
-          aktualisieren Sie Ihren Browser oder versuchen Sie es auf einem
-          neueren Gerät.
+        <p className="max-w-xl text-sm text-white/70 leading-relaxed mb-8">
+          Der Text-Differenzierer lädt ein <strong className="text-white">1,4&nbsp;GB
+          großes Sprachmodell</strong> direkt in Ihren Browser und führt es auf
+          Ihrer GPU aus. Das funktioniert zuverlässig auf <strong className="text-white">PCs
+          und Laptops mit dedizierter Grafikkarte</strong> oder modernen
+          integrierten GPUs. <strong className="text-white">Smartphones, Tablets
+          und ältere PCs</strong> erfüllen die Anforderungen meist nicht – das
+          Modell würde während der Antwort einfrieren oder den Browser zum
+          Absturz bringen.
         </p>
-        <ul className="w-full max-w-sm space-y-2 text-left">
-          <li className="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm border-red-500/30 bg-red-500/10">
-            <span
-              aria-hidden="true"
-              className="mt-1.5 h-2 w-2 rounded-full shrink-0 bg-red-400"
-            />
-            <div className="min-w-0">
-              <div className="font-bold text-white">WebGPU (navigator.gpu)</div>
-              <div className="text-xs text-white/60 font-mono">
-                Nicht verfügbar – Sprachmodell kann nicht ausgeführt werden
-              </div>
-            </div>
-          </li>
-          {hw.deviceMemoryGB !== null && (
-            <li className="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm border-white/15 bg-white/5">
-              <span
-                aria-hidden="true"
-                className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-                  hw.deviceMemoryGB >= 4 ? "bg-emerald-400" : "bg-amber-400"
+
+        <div className="w-full max-w-xl">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/50 font-mono">
+              Hardware-Check
+            </span>
+            <span className="text-[10px] font-mono text-white/50 tabular-nums">
+              {checks.length - failingCount} / {checks.length} ok
+            </span>
+          </div>
+          <ul className="space-y-2 text-left">
+            {checks.map((c) => (
+              <li
+                key={c.id}
+                className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm ${
+                  c.ok
+                    ? "border-emerald-500/25 bg-emerald-500/5"
+                    : "border-red-500/30 bg-red-500/10"
                 }`}
-              />
-              <div className="min-w-0">
-                <div className="font-bold text-white">Arbeitsspeicher</div>
-                <div className="text-xs text-white/60 font-mono">
-                  {hw.deviceMemoryGB} GB ·{" "}
-                  {hw.deviceMemoryGB >= 4 ? "ausreichend" : "knapp für ein 2B-Modell"}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
+                    c.ok ? "bg-emerald-400" : "bg-red-400"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="font-bold text-white">{c.label}</span>
+                    <span
+                      className={`text-[10px] font-mono uppercase tracking-[0.18em] ${
+                        c.ok ? "text-emerald-300" : "text-red-300"
+                      }`}
+                    >
+                      {c.ok ? "ok" : "zu schwach"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-white/70 font-mono mt-0.5">
+                    {c.detail}
+                  </div>
+                  <div className="text-[11px] text-white/40 font-mono mt-0.5">
+                    Benötigt: {c.required}
+                  </div>
                 </div>
-              </div>
-            </li>
-          )}
-        </ul>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-5 text-[11px] text-white/50 leading-relaxed">
+            Tipp: Nutzen Sie einen aktuellen <strong className="text-white">Chrome,
+            Edge oder Firefox 141+</strong> auf einem PC oder Laptop. Andere
+            KI-Werkzeuge (z.B. Hintergrund-Entferner, Auto-Transkription,
+            Arbeitsblatt-Scanner) laufen mit deutlich geringerer Hardware und
+            funktionieren auch auf Tablets und Smartphones.
+          </p>
+        </div>
       </div>
     </div>
   );
