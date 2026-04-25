@@ -28,7 +28,8 @@ import {
 // Whisper läuft im Worker; max. Datei-Größe: 100 MB.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FFMPEG_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+const FFMPEG_BASE =
+  "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
 const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 // ─── Typen für lazy-importierte Module ───────────────────────────────────────

@@ -13,11 +13,11 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
-      {/* DNS + TLS vorab für FFmpeg-Core (unpkg) und Whisper-Modell (HF). */}
-      <link rel="preconnect" href="https://unpkg.com" crossOrigin="anonymous" />
+      {/* DNS + TLS vorab für FFmpeg-Core (jsDelivr) und Whisper-Modell (HF). */}
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
       <link rel="preconnect" href="https://huggingface.co" crossOrigin="anonymous" />
       <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossOrigin="anonymous" />
-      <link rel="dns-prefetch" href="https://unpkg.com" />
+      <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
       <link rel="dns-prefetch" href="https://huggingface.co" />
       <link rel="dns-prefetch" href="https://cdn-lfs.huggingface.co" />
       <ToolHeader
