@@ -158,7 +158,9 @@ export default function DatenschutzPage() {
                 Aktuell verfügbare Werkzeuge: QR-Code-Generator, Vollbild-Timer,
                 Lärmampel, Zufalls-Auswahl, PDF-Werkzeuge (Zusammenfügen /
                 Seiten extrahieren), Suchsel-Generator, Lückentext-Generator,
-                Bilder komprimieren sowie Audio aufnehmen &amp; trimmen.
+                Bilder komprimieren, Audio aufnehmen &amp; trimmen, sowie <strong>KI-gestützte
+                Werkzeuge für Texterkennung, Textdifferenzierung, Video-Untertitel
+                und Audio-Transkription</strong>.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -268,19 +270,143 @@ export default function DatenschutzPage() {
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
+                KI-gestützte Werkzeuge: Texterkennung, Textverarbeitung, Video-Untertitel und Audio-Transkription
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Folgende Werkzeuge nutzen moderne <strong>Machine-Learning-Modelle</strong>,
+                um Ihre Inhalte zu verarbeiten. Der zentrale Datenschutz-Grundsatz bleibt bestehen:
+                <strong> Alle Verarbeitung erfolgt ausschließlich in Ihrem Browser</strong>.
+                Ihre Inhalte werden weder an unsere Server noch an externe KI-Dienste übertragen.
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Arbeitsblatt-Scanner (OCR – Texterkennung)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug erkennt gedruckten und handschriftlichen Text aus
+                PDF-Dateien und Bildern. Die Texterkennung basiert auf der
+                Open-Source-Bibliothek <code className="font-mono text-sm">Tesseract.js</code>.
+                Der Prozess:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie laden eine PDF oder ein Bild hoch → verbleibt im Arbeitsspeicher</li>
+                <li>Das Sprachpaket für Deutsch (~14 MB) wird <strong>einmalig</strong> von{" "}
+                  <code className="font-mono text-sm">tessdata.projectnaptha.com</code> heruntergeladen und lokal gecacht</li>
+                <li>Die Texterkennung läuft in einem Web Worker (separate JavaScript-Thread) ab</li>
+                <li>Der erkannte Text wird angezeigt und kann heruntergeladen werden</li>
+                <li>Originalfoto und Erkennungsergebnis verlassen Ihr Gerät nicht</li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+                Entlastung von Lehrkräften durch automatisierte Texterkennung).
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Text-Differenzierer (KI-gestützte Vereinfachung)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug vereinfacht komplexe Texte in leichtere Sprache.
+                Hierfür nutzen wir ein Sprachmodell (<strong>Gemma-2</strong>), das
+                über WebGPU (Grafikkarten-beschleunigte Berechnung) oder JavaScript
+                direkt in Ihrem Browser läuft:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie geben oder laden einen Text ein</li>
+                <li>Das KI-Modell (~3 GB, komprimiert) wird <strong>einmalig</strong> von{" "}
+                  <code className="font-mono text-sm">huggingface.co</code> oder{" "}
+                  <code className="font-mono text-sm">cdn.jsdelivr.net</code> heruntergeladen</li>
+                <li>Die Verarbeitung erfolgt lokal in Ihrem Browser (keine externe API)</li>
+                <li>Der vereinfachte Text wird angezeigt</li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+                Barriereabbau und Unterstützung von Schülern mit Lese-Schwierigkeiten).
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Video-Untertitel Generator (FFmpeg + Speech Recognition)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug erstellt automatisch Untertitel aus Video- oder Audiodateien:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie laden eine Video- oder Audiodatei hoch</li>
+                <li><code className="font-mono text-sm">FFmpeg WASM</code> (vom Server{" "}
+                  <code className="font-mono text-sm">unpkg.com</code>) wird einmalig heruntergeladen
+                  und lädt die Audio-Spur aus dem Video</li>
+                <li>Das Whisper-Spracherkennungsmodell wird von{" "}
+                  <code className="font-mono text-sm">cdn.jsdelivr.net</code> / <code className="font-mono text-sm">huggingface.co</code> heruntergeladen</li>
+                <li>Die Spracherkennung erfolgt lokal im Browser (kein Upload an externe Services)</li>
+                <li>Untertiteldatei (SRT/VTT) wird generiert und kann heruntergeladen werden</li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+                Barrierefreiem Zugang zu Videomaterialien).
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Auto-Transkription (Whisper Speech-to-Text)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug transkribiert Sprache aus Audiodateien zu Text:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie laden eine Audiodatei hoch oder nehmen direkt auf</li>
+                <li>Das Whisper-Modell wird von<code className="font-mono text-sm">
+                  huggingface.co</code> oder <code className="font-mono text-sm">cdn.jsdelivr.net</code> heruntergeladen</li>
+                <li>Die Spracherkennung läuft in Ihrem Browser ab – nicht auf unseren Servern</li>
+                <li>Das Transkript wird angezeigt und kann heruntergeladen werden</li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+                Vereinfachung der Inhaltserfassung im Unterricht).
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Externe CDN-Quellen für KI-Modelle
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Die KI-Modelle und Sprachpakete werden von folgenden vertrauenswürdigen
+                Quellen heruntergeladen (dies geschieht <strong>nur einmalig</strong>, danach wird
+                lokal gecacht):
+              </p>
+              <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
+                <li><code className="font-mono text-sm">tessdata.projectnaptha.com</code> – Tesseract Sprachpakete (OCR)</li>
+                <li><code className="font-mono text-sm">huggingface.co</code> – Hugging Face Model Hub (Gemma-2, Whisper)</li>
+                <li><code className="font-mono text-sm">cdn.jsdelivr.net</code> – jsDelivr CDN (Modelle, Bibliotheken)</li>
+                <li><code className="font-mono text-sm">unpkg.com</code> – UNPKG CDN (FFmpeg WASM)</li>
+              </ul>
+              <p className="text-text-light leading-relaxed mb-4">
+                <strong>Wichtig:</strong> Die Download ist nur von <strong>Modellen und Bibliotheken</strong>,
+                nie von Ihren persönlichen Inhalten (Bilder, Videos, Texte, Audio). Beim Download
+                der Modell-Dateien wird Ihre IP-Adresse an die jeweiligen CDN-Anbieter übertragen
+                (übliche CDN-Praxis). Eine Speicherung personenbezogener Daten findet nicht statt.
+              </p>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
                 Zweck und Rechtsgrundlage (Gesamt)
               </h3>
               <p className="text-text-light leading-relaxed">
                 Die Bereitstellung der Werkzeuge dient der Entlastung von
-                Lehrkräften im digitalen Unterricht. Da bei der Nutzung der
-                Werkzeuge keine personenbezogenen Daten an uns übertragen
-                werden, findet insoweit keine Verarbeitung durch den
-                Verantwortlichen im Sinne der DSGVO statt. Für Mikrofonzugriff
-                und Local-Storage-Nutzung gilt Art. 6 Abs. 1 lit. a DSGVO
-                (Einwilligung). Für den reinen Aufruf der Werkzeug-Seiten
-                selbst gelten die unter Ziffer 3 (Server-Log-Dateien) und
-                Ziffer 6 (Hosting / Vercel) beschriebenen Verarbeitungsvorgänge.
+                Lehrkräften im digitalen Unterricht und der Verbesserung von
+                Barrierefreiheit. <strong>Bei allen Werkzeugen erfolgt die
+                Verarbeitung ausschließlich in Ihrem Browser</strong>; keine
+                personenbezogenen Daten werden an uns übertragen. Für die
+                KI-gestützten Werkzeuge wird – zur Initialisierung – die
+                IP-Adresse beim Download der Modelle von den o.&thinsp;g. CDNs
+                übermittelt (standardmäßige CDN-Praxis); die Modelle selbst
+                enthalten keine personenbezogenen Daten und Ihre Inhalte
+                werden nicht an die CDN-Anbieter übertragen.
               </p>
+              <p className="text-text-light leading-relaxed mt-4">
+                <strong>Rechtsgrundlagen:</strong>
+              </p>
+              <ul className="list-disc ml-6 text-text-light space-y-2">
+                <li>Für Mikrofonzugriff und Local-Storage-Nutzung: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
+                <li>Für KI-Werkzeuge (Texterkennung, Textdifferenzierung, Video-Untertitel, Audio-Transkription):
+                  Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Entlastung, Barriereabbau, Digitalisierungsunterstützung)</li>
+                <li>Für den Aufruf der Werkzeug-Seiten selbst: Ziffer 3 (Server-Log-Dateien) und Ziffer 6 (Hosting / Vercel)</li>
+              </ul>
             </div>
 
             <div>

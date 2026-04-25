@@ -106,12 +106,12 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
+              // script-src: Erlaubt lokale Scripts + WASM + externe CDN-Scripts (für Tesseract, etc)
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://raw.githubusercontent.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",
-              // Vereinfachte connect-src: Erlaubt ALLE https://, nicht nur spezifische Domains
-              // Das ist für lokales Testen OK. In Production würden wir spezifische Domains auflisten.
+              // connect-src: Erlaubt ALLE https:// URLs für Modell-Downloads
               "connect-src 'self' https:",
               "worker-src 'self' blob:",
               "media-src 'self' blob:",
