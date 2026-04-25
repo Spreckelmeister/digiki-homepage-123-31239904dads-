@@ -331,8 +331,8 @@ export default function DatenschutzPage() {
               </p>
               <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
                 <li>Sie laden eine Video- oder Audiodatei hoch</li>
-                <li><code className="font-mono text-sm">FFmpeg WASM</code> (vom Server{" "}
-                  <code className="font-mono text-sm">cdn.jsdelivr.net</code>) wird einmalig heruntergeladen
+                <li><code className="font-mono text-sm">FFmpeg WASM</code> (von unserer eigenen
+                  Domain unter <code className="font-mono text-sm">/ffmpeg-core/</code>) wird einmalig heruntergeladen
                   und lädt die Audio-Spur aus dem Video</li>
                 <li>Das Whisper-Spracherkennungsmodell wird von{" "}
                   <code className="font-mono text-sm">cdn.jsdelivr.net</code> / <code className="font-mono text-sm">huggingface.co</code> heruntergeladen</li>
@@ -355,7 +355,7 @@ export default function DatenschutzPage() {
               <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
                 <li><code className="font-mono text-sm">tessdata.projectnaptha.com</code> – Tesseract Sprachpakete (OCR)</li>
                 <li><code className="font-mono text-sm">huggingface.co</code> – Hugging Face Model Hub (Gemma-2, Whisper)</li>
-                <li><code className="font-mono text-sm">cdn.jsdelivr.net</code> – jsDelivr CDN (Modelle, Bibliotheken, FFmpeg WASM)</li>
+                <li><code className="font-mono text-sm">cdn.jsdelivr.net</code> – jsDelivr CDN (Modelle, Bibliotheken)</li>
               </ul>
               <p className="text-text-light leading-relaxed mb-4">
                 <strong>Wichtig:</strong> Die Download ist nur von <strong>Modellen und Bibliotheken</strong>,

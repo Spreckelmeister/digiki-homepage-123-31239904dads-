@@ -107,7 +107,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // script-src: Erlaubt lokale Scripts + WASM + externe CDN-Scripts (für Tesseract, etc)
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://raw.githubusercontent.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://raw.githubusercontent.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",

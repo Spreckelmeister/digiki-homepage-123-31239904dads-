@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-ffmpeg-core.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-ffmpeg-core.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "upload-images": "tsx scripts/upload-images.ts"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@mediapipe/selfie_segmentation": "^0.1.1675465747",

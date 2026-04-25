@@ -21,15 +21,16 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP – einmalig im Projekt installieren:
-//   npm i @ffmpeg/ffmpeg @ffmpeg/util @xenova/transformers
+//   npm i @ffmpeg/ffmpeg @ffmpeg/util @ffmpeg/core @xenova/transformers
 //
 // FFmpeg.wasm wird hier als Single-Thread-Build (@ffmpeg/core, NICHT core-mt)
-// vom CDN nachgeladen → läuft ohne SharedArrayBuffer und ohne COOP/COEP-Header.
+// von der eigenen Domain (public/ffmpeg-core/) ausgeliefert → keine CDN-Risiken
+// (CORS, Tracking-Blocker, Rate-Limits) und läuft ohne SharedArrayBuffer/COEP.
+// Die Dateien werden via scripts/copy-ffmpeg-core.mjs aus node_modules kopiert.
 // Whisper läuft im Worker; max. Datei-Größe: 100 MB.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FFMPEG_BASE =
-  "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+const FFMPEG_BASE = "/ffmpeg-core";
 const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 // ─── Typen für lazy-importierte Module ───────────────────────────────────────
