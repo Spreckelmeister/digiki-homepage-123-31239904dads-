@@ -1,10 +1,14 @@
 /// <reference lib="webworker" />
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Whisper-Tiny Web Worker
-// SETUP: npm i @xenova/transformers
-// Modell wird beim ersten Lauf von Hugging Face geladen und im Browser-Cache
-// (IndexedDB) abgelegt – ab dem zweiten Lauf nahezu instant.
+// Whisper-Tiny Web Worker (Diktiergerät)
+// SETUP: npm i @huggingface/transformers
+// (v4 statt @xenova/transformers v2.17 – dort hatte Whisper bekannte
+// Timestamp-Bugs.)
+// Modell: onnx-community/whisper-tiny @ fp32 (Xenova-Repo hat kaputte
+// MatMulNBits-Skalen; q4/q8 schlagen mit "Missing required scale: ..."
+// fehl.) Modell wird beim ersten Lauf vom HF-CDN geladen und im
+// CacheStorage des Browsers abgelegt – ab dem zweiten Lauf instant.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ProgressEntry = {
@@ -14,8 +18,6 @@ type ProgressEntry = {
   loaded?: number;
   total?: number;
   progress?: number;
-  task?: string;
-  model?: string;
 };
 
 type TranscribeRequest = {
@@ -26,13 +28,35 @@ type TranscribeRequest = {
 type InitRequest = { type: "init" };
 type WorkerRequest = TranscribeRequest | InitRequest;
 
-type Transcriber = any;
+interface TranscriberResult {
+  text: string;
+}
+
+interface Transcriber {
+  (
+    audio: Float32Array,
+    opts: Record<string, unknown>
+  ): Promise<TranscriberResult | TranscriberResult[]>;
+}
+
+type DType =
+  | "fp32"
+  | "fp16"
+  | "q8"
+  | "int8"
+  | "uint8"
+  | "q4"
+  | "q4f16";
 
 type TransformersModule = {
   pipeline: (
     task: string,
     model: string,
-    opts: { progress_callback?: (p: ProgressEntry) => void }
+    opts: {
+      progress_callback?: (p: ProgressEntry) => void;
+      dtype?: DType | Record<string, DType>;
+      device?: "cpu" | "wasm" | "webgpu";
+    }
   ) => Promise<Transcriber>;
   env: {
     allowLocalModels: boolean;
@@ -44,53 +68,28 @@ let transcriberPromise: Promise<Transcriber> | null = null;
 
 async function ensurePipeline(): Promise<Transcriber> {
   if (transcriberPromise) return transcriberPromise;
-  
+
   transcriberPromise = (async () => {
     try {
-      console.log("[Worker] Importing transformers...");
-      // Direkter Import mit destructuring
-      const transformers = await import("@xenova/transformers");
-      
-      console.log("[Worker] Raw import type:", typeof transformers);
-      console.log("[Worker] Keys:", Object.keys(transformers).slice(0, 15));
-      
-      // Verschiedene mögliche Export-Wege
-      let pipeline = transformers.pipeline || (transformers as any).default?.pipeline;
-      let env = transformers.env || (transformers as any).default?.env;
-      
-      if (!pipeline) {
-        // Fallback: Versuche auf default zuzugreifen
-        const defaultExport = (transformers as any).default;
-        if (defaultExport && typeof defaultExport === "object") {
-          pipeline = defaultExport.pipeline;
-          env = defaultExport.env;
-        }
+      const mod = (await import(
+        "@huggingface/transformers"
+      )) as unknown as TransformersModule;
+
+      mod.env.allowLocalModels = false;
+      if (mod.env.backends?.onnx?.wasm) {
+        mod.env.backends.onnx.wasm.numThreads = 1;
       }
-      
-      if (typeof pipeline !== "function") {
-        throw new Error(
-          `pipeline is not a function. Type: ${typeof pipeline}, ` +
-          `Available: ${Object.keys(transformers).join(", ")}`
-        );
-      }
-      
-      console.log("[Worker] Setting environment...");
-      if (env && typeof env === "object") {
-        env.allowLocalModels = false;
-        
-        // Single-Thread WASM
-        if (env.backends?.onnx?.wasm) {
-          env.backends.onnx.wasm.numThreads = 1;
-        }
-      }
-      
-      console.log("[Worker] Loading Whisper model...");
-      const transcriber = await pipeline(
+
+      const transcriber = await mod.pipeline(
         "automatic-speech-recognition",
-        "Xenova/whisper-tiny",
+        "onnx-community/whisper-tiny",
         {
+          dtype: {
+            encoder_model: "fp32",
+            decoder_model_merged: "fp32",
+          },
+          device: "wasm",
           progress_callback: (p: ProgressEntry) => {
-            console.log("[Worker] Progress:", p.status, p.file || "");
             (self as unknown as DedicatedWorkerGlobalScope).postMessage({
               type: "load-progress",
               data: p,
@@ -98,87 +97,63 @@ async function ensurePipeline(): Promise<Transcriber> {
           },
         }
       );
-      
+
       if (!transcriber || typeof transcriber !== "function") {
         throw new Error(
           `Pipeline returned invalid result: ${typeof transcriber}`
         );
       }
-      
-      console.log("[Worker] Pipeline ready!");
+
       return transcriber;
     } catch (err) {
-      console.error("[Worker] Pipeline error:", err);
       transcriberPromise = null; // Reset für nächsten Retry
       throw err;
     }
   })();
-  
+
   return transcriberPromise;
 }
 
 self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
   const ctx = self as unknown as DedicatedWorkerGlobalScope;
   const msg = e.data;
-  
+
   try {
-    console.log("[Worker] Message received:", msg.type);
-    
     if (msg.type === "init") {
-      console.log("[Worker] Init requested");
       await ensurePipeline();
       ctx.postMessage({ type: "ready" });
       return;
     }
-    
+
     if (msg.type === "transcribe") {
-      console.log("[Worker] Transcribe requested, audio length:", msg.audio?.length);
-      
       if (!msg.audio || msg.audio.length === 0) {
         throw new Error("Keine Audio-Daten erhalten.");
       }
-      
+
       const transcriber = await ensurePipeline();
-      console.log("[Worker] Transcriber ready");
-      
+
       ctx.postMessage({ type: "ready" });
       ctx.postMessage({ type: "transcribing" });
-      
-      console.log("[Worker] Starting transcription...");
-      let result;
-      
-      try {
-        result = await transcriber(msg.audio, {
-          language: "de",
-          task: "transcribe",
-          chunk_length_s: 30,
-          stride_length_s: 5,
-          return_timestamps: false,
-        });
-      } catch (transErr) {
-        console.warn("[Worker] Transcription error, retrying without language:", transErr);
-        // Fallback ohne language-spezifische Parameter
-        result = await transcriber(msg.audio, {
-          task: "transcribe",
-          chunk_length_s: 30,
-          stride_length_s: 5,
-          return_timestamps: false,
-        });
+
+      // chunk_length_s/stride_length_s nur ab > 30 s setzen – kürzeres Audio
+      // braucht den Long-Form-Pfad nicht.
+      const audioSeconds = msg.audio.length / 16000;
+      const opts: Record<string, unknown> = {
+        language: "german",
+        task: "transcribe",
+        return_timestamps: false,
+      };
+      if (audioSeconds > 30) {
+        opts.chunk_length_s = 30;
+        opts.stride_length_s = 5;
       }
-      
-      console.log("[Worker] Transcription result:", result);
-      
-      if (!result) {
-        throw new Error("Transkription hat kein Ergebnis zurückgegeben.");
-      }
-      
-      const transcript = typeof result.text === "string" 
-        ? result.text.trim() 
-        : typeof result === "string"
-        ? (result as string).trim()
-        : JSON.stringify(result);
-      
-      console.log("[Worker] Sending transcript:", transcript.slice(0, 50));
+
+      const result = await transcriber(msg.audio, opts);
+
+      const single = Array.isArray(result) ? result[0] : result;
+      const transcript =
+        typeof single?.text === "string" ? single.text.trim() : "";
+
       ctx.postMessage({
         type: "result",
         text: transcript,
@@ -186,10 +161,11 @@ self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
     }
   } catch (err) {
     const e = err as Error;
-    console.error("[Worker Error]", e);
     ctx.postMessage({
       type: "error",
-      message: e?.message || "Worker-Fehler bei der Transkription",
+      message: `${e?.message || "Worker-Fehler bei der Transkription"}${
+        e?.stack ? `\n${e.stack.split("\n").slice(0, 4).join("\n")}` : ""
+      }`,
     });
   }
 });

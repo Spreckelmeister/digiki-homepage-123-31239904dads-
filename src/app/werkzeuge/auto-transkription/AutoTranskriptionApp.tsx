@@ -20,9 +20,12 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP – einmalig im Projekt installieren:
-//   npm i @xenova/transformers
-// Modell „Xenova/whisper-tiny" (~ 40 MB) wird beim ersten Klick einmalig vom
-// Hugging-Face-CDN geladen und im Browser-Cache gehalten.
+//   npm i @huggingface/transformers
+// Modell „onnx-community/whisper-tiny" (~ 150 MB, fp32) wird beim ersten
+// Klick einmalig vom HF-CDN geladen und im Browser-CacheStorage gehalten.
+// fp32 statt q4/q8, weil die quantisierten Whisper-Tiny-Varianten in den
+// HF-Repos kaputte MatMulNBits-Skalen haben (ONNX-Runtime kann sie in v4
+// nicht laden).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Phase =
@@ -52,9 +55,21 @@ interface ModelFile {
   done: boolean;
 }
 
-type WorkerProgressData = any;
+interface WorkerProgressData {
+  status: "initiate" | "download" | "progress" | "done" | "ready";
+  name?: string;
+  file?: string;
+  loaded?: number;
+  total?: number;
+  progress?: number;
+}
 
-type WorkerMessage = any;
+type WorkerMessage =
+  | { type: "load-progress"; data: WorkerProgressData }
+  | { type: "ready" }
+  | { type: "transcribing" }
+  | { type: "result"; text: string }
+  | { type: "error"; message: string };
 
 function probeHardware(): HardwareReport {
   return {
@@ -137,6 +152,7 @@ export default function AutoTranskriptionApp() {
   const rafRef = useRef<number | null>(null);
   const recStartRef = useRef<number>(0);
   const recTimerRef = useRef<number | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   // ── Hardware-Check ─────────────────────────────────────────────────
   useEffect(() => {
@@ -148,6 +164,56 @@ export default function AutoTranskriptionApp() {
       report.audioContext;
     setPhase(ok ? "idle" : "blocked");
   }, []);
+
+  // ── Whisper-Worker initialisieren ─────────────────────────────────
+  useEffect(() => {
+    if (phase === "blocked" || phase === "checking") return;
+    const w = new Worker(new URL("./whisper.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    w.onmessage = (e: MessageEvent<WorkerMessage>) => {
+      const msg = e.data;
+      if (msg.type === "load-progress") {
+        const p = msg.data;
+        if (!p.file) return;
+        setModelFiles((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(p.file!) || {
+            name: p.file!,
+            loaded: 0,
+            total: 0,
+            done: false,
+          };
+          if (p.status === "progress") {
+            existing.loaded = p.loaded ?? existing.loaded;
+            existing.total = p.total ?? existing.total;
+          } else if (p.status === "done") {
+            existing.done = true;
+            existing.loaded = existing.total || existing.loaded;
+          } else if (p.status === "initiate" || p.status === "download") {
+            existing.loaded = 0;
+            existing.total = p.total ?? existing.total;
+          }
+          next.set(p.file!, existing);
+          return next;
+        });
+      } else if (msg.type === "transcribing") {
+        setPhase("transcribing");
+      } else if (msg.type === "result") {
+        setTranscript(msg.text);
+        setPhase("done");
+      } else if (msg.type === "error") {
+        setErrorMsg(msg.message);
+        setPhase("error");
+      }
+    };
+    workerRef.current = w;
+    return () => {
+      w.terminate();
+      workerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase === "blocked" || phase === "checking"]);
 
   // ── Cleanup ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -174,6 +240,35 @@ export default function AutoTranskriptionApp() {
   // ── Aufnahme starten ───────────────────────────────────────────────
   const startRecording = useCallback(async () => {
     setErrorMsg("");
+
+    // ── 1. AudioContext SYNCHRON im User-Gesture-Callback erzeugen.
+    // Auf iOS und unter strengen Autoplay-Policies muss der Context im
+    // selben Tick wie der Klick angelegt werden, sonst startet er
+    // suspended und der Mic-Pegel bleibt tot. `resume()` bewusst ohne
+    // `await`, damit die Promise-Microtask die Gesture-Bindung nicht
+    // verliert.
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) {
+      setErrorMsg(
+        "Web Audio API wird von diesem Browser nicht unterstützt."
+      );
+      setPhase("error");
+      return;
+    }
+    const ctx = new Ctx();
+    audioCtxRef.current = ctx;
+    if (ctx.state === "suspended") {
+      try {
+        ctx.resume();
+      } catch {
+        /* iOS schluckt das gelegentlich, ist aber nicht fatal */
+      }
+    }
+
+    // ── 2. Mikrofon anfragen (async ist hier OK, Context steht schon)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -181,12 +276,6 @@ export default function AutoTranskriptionApp() {
       });
       streamRef.current = stream;
 
-      const Ctx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      const ctx = new Ctx();
-      audioCtxRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 1024;
@@ -235,13 +324,45 @@ export default function AutoTranskriptionApp() {
       setPhase("recording");
     } catch (e) {
       const err = e as Error;
-      setErrorMsg(
-        err.name === "NotAllowedError"
-          ? "Mikrofon-Zugriff wurde verweigert. Bitte in den Browser-Einstellungen erlauben."
-          : err.message || "Mikrofon konnte nicht gestartet werden."
-      );
+      const technicalHint = ` (${err.name || "Error"}${
+        err.message ? ": " + err.message : ""
+      })`;
+      let userMsg: string;
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        userMsg =
+          "Mikrofon-Zugriff wurde verweigert. In Chrome auf Android: Schloss-Symbol links in der Adressleiste antippen → „Website-Einstellungen“ → Mikrofon „Zulassen“ und Seite neu laden." +
+          technicalHint;
+      } else if (
+        err.name === "NotFoundError" ||
+        err.name === "DevicesNotFoundError"
+      ) {
+        userMsg = "Es wurde kein Mikrofon gefunden." + technicalHint;
+      } else if (
+        err.name === "NotReadableError" ||
+        err.name === "TrackStartError"
+      ) {
+        userMsg =
+          "Das Mikrofon wird gerade von einer anderen App genutzt. Bitte andere Anwendungen schließen und erneut versuchen." +
+          technicalHint;
+      } else if (err.name === "SecurityError") {
+        userMsg =
+          "Aus Sicherheitsgründen blockiert. Die Seite muss über HTTPS geöffnet sein." +
+          technicalHint;
+      } else {
+        userMsg =
+          (err.message || "Mikrofon konnte nicht gestartet werden.") +
+          technicalHint;
+      }
+      setErrorMsg(userMsg);
       setPhase("error");
       stopMicGraph();
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current = null;
+      }
     }
   }, []);
 
@@ -290,110 +411,42 @@ export default function AutoTranskriptionApp() {
       setErrorMsg("Keine Audio-Datei vorhanden.");
       return;
     }
-    
+    if (!workerRef.current) {
+      setErrorMsg("Whisper-Worker ist noch nicht bereit.");
+      return;
+    }
+
     setErrorMsg("");
     setTranscript("");
     setPhase("decoding");
-    
+
     try {
-      console.log("[Transcribe] Starting audio decode...");
       const pcm = await audioBlobToFloat32(audioBlob, 16000);
-      console.log("[Transcribe] Audio decoded:", pcm.length, "samples");
-      
       if (!pcm || pcm.length === 0) {
         throw new Error("Audio-Dekodierung hat leeres Array ergeben.");
       }
-      
-      setPhase("loading-model");
-      console.log("[Transcribe] Loading Whisper model...");
-      
-      // Direkter Import und Nutzung im Component
-      let pipeline: any;
-      try {
-        const mod = await import("@xenova/transformers");
-        pipeline = mod.pipeline;
-        
-        if (typeof pipeline !== "function") {
-          throw new Error("pipeline nicht gefunden in Modul");
-        }
-      } catch (importErr) {
-        console.error("[Transcribe] Import error:", importErr);
-        throw new Error(
-          "Transformers.js-Bibliothek konnte nicht geladen werden. Das Sprachmodell ist nicht verfügbar."
-        );
-      }
-      
-      const transcriber = await pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
-        progress_callback: (p: any) => {
-          console.log("[Transcribe Progress]", p.status, p.file || "");
-          if (p.status === "progress" && p.file) {
-            const existing = modelFiles.get(p.file) || {
-              name: p.file,
-              loaded: 0,
-              total: 0,
-              done: false,
-            };
-            existing.loaded = p.loaded || existing.loaded;
-            existing.total = p.total || existing.total;
-            setModelFiles((prev) => {
-              const next = new Map(prev);
-              next.set(p.file, existing);
-              return next;
-            });
-          } else if (p.status === "done" && p.file) {
-            setModelFiles((prev) => {
-              const next = new Map(prev);
-              const existing = next.get(p.file) || {
-                name: p.file,
-                loaded: 0,
-                total: 0,
-                done: false,
-              };
-              existing.done = true;
-              next.set(p.file, existing);
-              return next;
-            });
-          }
-        },
-      });
-      
-      console.log("[Transcribe] Starting transcription...");
-      setPhase("transcribing");
-      
-      const result = await transcriber(pcm, {
-        task: "transcribe",
-        language: "de",
-        chunk_length_s: 30,
-        stride_length_s: 5,
-        return_timestamps: false,
-      });
-      
-      console.log("[Transcribe] Result:", result);
-      
-      let transcript = "";
-      
-      // Whisper kann Array oder Object zurückgeben
-      if (Array.isArray(result)) {
-        transcript = ((result[0] as any)?.text || "").toString().trim();
-      } else if (typeof result === "object" && result !== null) {
-        transcript = ((result as any).text || "").toString().trim();
-      } else if (typeof result === "string") {
-        transcript = (result as any).trim();
-      }
-      
-      console.log("[Transcribe] Transcript:", transcript.slice(0, 50));
-      setTranscript(transcript);
-      setPhase("done");
+
+      // `getChannelData` liefert einen View auf den AudioBuffer-internen
+      // Puffer; den direkt zu transferieren detached den AudioBuffer.
+      // Daher erst kopieren, dann transferieren.
+      const pcmCopy = new Float32Array(pcm);
+
+      const allDone =
+        modelFiles.size > 0 &&
+        Array.from(modelFiles.values()).every((m) => m.done);
+      setPhase(allDone ? "transcribing" : "loading-model");
+
+      workerRef.current.postMessage(
+        { type: "transcribe", audio: pcmCopy },
+        [pcmCopy.buffer]
+      );
     } catch (e) {
       const err = e as Error;
-      console.error("[Transcribe Error]", err);
-      
-      const errorMsg =
-        err?.message?.includes("undefined to object")
-          ? "Sprachmodell-Fehler: Die KI-Bibliothek konnte nicht richtig initialisiert werden. Versuchen Sie, die Seite neu zu laden."
-          : err?.message || "Transkription fehlgeschlagen";
-      
-      setErrorMsg(errorMsg);
+      setErrorMsg(
+        err?.message
+          ? `Audio konnte nicht dekodiert werden: ${err.message}`
+          : "Audio konnte nicht dekodiert werden."
+      );
       setPhase("error");
     }
   }, [audioBlob, modelFiles]);
@@ -739,8 +792,8 @@ export default function AutoTranskriptionApp() {
                     ))}
                   </ul>
                   <p className="text-[10px] text-white/40 leading-relaxed">
-                    Einmaliger Download · ca. 40 MB · wird im Browser gespeichert
-                    und ist beim nächsten Mal sofort da.
+                    Einmaliger Download · ca. 150 MB · wird im Browser
+                    gespeichert und ist beim nächsten Mal sofort da.
                   </p>
                 </>
               )}

@@ -337,7 +337,9 @@ export default function WerkzeugePage() {
                 <span>AKTIV</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="tabular-nums">[ 03 × ]</span>
+                <span className="tabular-nums">
+                  [ {String(categories.length).padStart(2, "0")} × ]
+                </span>
                 <span>KATEGORIEN</span>
               </div>
             </div>
