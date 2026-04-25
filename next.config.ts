@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     "@upscalerjs/default-model",
     "@mediapipe/selfie_segmentation",
     "@xenova/transformers",
+    "@imgly/background-removal",
     "tesseract.js",
     "@mlc-ai/web-llm",
     "@ffmpeg/ffmpeg",
@@ -111,8 +112,11 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",
-              // connect-src: Erlaubt ALLE https:// URLs für Modell-Downloads
-              "connect-src 'self' https:",
+              // connect-src: Erlaubt ALLE https:// URLs für Modell-Downloads.
+              // `blob:` ist nötig, weil FFmpeg.wasm intern `fetch(blobURL)` für
+              // den WASM-Core nutzt (sonst Firefox: "NetworkError when attempting
+              // to fetch resource").
+              "connect-src 'self' https: blob:",
               "worker-src 'self' blob:",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",

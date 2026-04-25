@@ -6,7 +6,7 @@ import HintergrundEntfernenApp from "./HintergrundEntfernenApp";
 export const metadata: Metadata = {
   title: "Hintergrund-Entferner",
   description:
-    "Stellt Personen aus Fotos automatisch frei – mit transparentem Hintergrund. Komplett lokal im Browser, kein Upload.",
+    "Stellt Personen, Logos, Produkte oder Tiere automatisch frei – mit transparentem Hintergrund. Komplett lokal im Browser, kein Upload.",
   alternates: { canonical: "/werkzeuge/hintergrund-entfernen" },
 };
 
@@ -14,14 +14,14 @@ export default function Page() {
   return (
     <>
       {/* DNS + TLS vorab aufbauen, damit der erste Modell-Fetch schneller ist. */}
-      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
-      <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+      <link rel="preconnect" href="https://staticimgly.com" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://staticimgly.com" />
       <ToolHeader
         code="WZ-011"
         title="Hintergrund-Entferner"
         description={
           <>
-            Stellt Personen automatisch frei – per <strong>neuronalem Netz</strong>{" "}
+            Stellt beliebige Motive automatisch frei – per <strong>neuronalem Netz</strong>{" "}
             direkt im Browser. Ergebnis als <strong>transparentes PNG</strong>{" "}
             für Arbeitsblätter, Steckbriefe oder Klassenfotos. Nichts wird
             hochgeladen.

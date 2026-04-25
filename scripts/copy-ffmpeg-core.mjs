@@ -4,7 +4,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const src = join(root, "node_modules", "@ffmpeg", "core", "dist", "umd");
+// ESM-Build: @ffmpeg/ffmpeg läuft als Module-Worker; in einem Module-Worker
+// gibt es kein `importScripts`, deshalb lädt der Worker den Core via
+// `await import(coreURL)` und braucht ein `export default` – das hat nur der
+// ESM-Build, der UMD-Build setzt nur `module.exports`.
+const src = join(root, "node_modules", "@ffmpeg", "core", "dist", "esm");
 const dest = join(root, "public", "ffmpeg-core");
 
 await mkdir(dest, { recursive: true });

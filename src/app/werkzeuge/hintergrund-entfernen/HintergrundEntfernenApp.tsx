@@ -15,27 +15,13 @@ import {
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SETUP – einmalig im Projekt installieren:
-//   npm i @mediapipe/selfie_segmentation
-// Modell- und WASM-Dateien werden zur Laufzeit von jsDelivr nachgeladen
-// (statische Modell-Dateien, keine Nutzerdaten verlassen das Gerät).
+// SETUP – @imgly/background-removal (ISNet / U²-Net Variante)
+// Funktioniert für beliebige Motive (Personen, Logos, Produkte, Tiere …),
+// läuft komplett lokal im Browser via ONNX-Runtime/WebAssembly.
+// Modell- und WASM-Dateien werden beim ersten Aufruf einmalig vom imgly-CDN
+// (staticimgly.com) geladen und vom Browser gecacht. Keine Bilddaten verlassen
+// das Gerät.
 // ─────────────────────────────────────────────────────────────────────────────
-
-interface SelfieResults {
-  image: CanvasImageSource;
-  segmentationMask: CanvasImageSource;
-}
-
-interface SelfieSegmentationInstance {
-  setOptions: (opts: { modelSelection?: 0 | 1; selfieMode?: boolean }) => void;
-  onResults: (cb: (r: SelfieResults) => void) => void;
-  send: (input: { image: CanvasImageSource }) => Promise<void>;
-  close: () => Promise<void>;
-}
-
-type SelfieSegmentationCtor = new (config: {
-  locateFile: (file: string) => string;
-}) => SelfieSegmentationInstance;
 
 type Phase =
   | "checking"
@@ -82,11 +68,14 @@ export default function HintergrundEntfernenApp() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultBytes, setResultBytes] = useState<number | null>(null);
 
+  // Modell-Download-Fortschritt (0..100). null = noch keine Werte.
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
+  // Inferenz-Schritt (z.B. "Maske wird berechnet …")
+  const [stageHint, setStageHint] = useState<string>("");
+
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const segRef = useRef<SelfieSegmentationInstance | null>(null);
-  const imgElRef = useRef<HTMLImageElement | null>(null);
+  const resultUrlRef = useRef<string | null>(null);
 
   // ── Hardware-Check ─────────────────────────────────────────────────
   useEffect(() => {
@@ -99,7 +88,7 @@ export default function HintergrundEntfernenApp() {
   useEffect(() => {
     return () => {
       if (originalUrl) URL.revokeObjectURL(originalUrl);
-      segRef.current?.close().catch(() => {});
+      if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -112,6 +101,10 @@ export default function HintergrundEntfernenApp() {
         return;
       }
       setErrorMsg("");
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current);
+        resultUrlRef.current = null;
+      }
       setResultUrl(null);
       setResultBytes(null);
 
@@ -144,144 +137,44 @@ export default function HintergrundEntfernenApp() {
 
   // ── Hintergrund entfernen ─────────────────────────────────────────
   const runSegmentation = useCallback(async () => {
-    if (!file || !hw || !imgElRef.current) return;
+    if (!file || !hw) return;
     setErrorMsg("");
+    setDownloadPct(null);
+    setStageHint("");
+    setPhase("loading-model");
 
     try {
-      // Lazy-Load von MediaPipe (paar 100 KB JS + WASM/Modell ~ 4 MB).
-      if (!segRef.current) {
-        setPhase("loading-model");
-        try {
-          const mod = await import("@mediapipe/selfie_segmentation");
-          
-          // Debug: Überprüfe die Modell-Struktur
-          if (!mod) {
-            throw new Error("Modul konnte nicht geladen werden.");
-          }
-          
-          // Versuche, die SelfieSegmentation-Klasse zu finden
-          const SelfieSegmentation = (mod as any).SelfieSegmentation;
-          if (!SelfieSegmentation) {
-            throw new Error(
-              "SelfieSegmentation nicht in Modul gefunden. Verfügbare Exports: " +
-                Object.keys(mod).join(", ")
-            );
-          }
-          
-          if (typeof SelfieSegmentation !== "function") {
-            throw new Error(
-              `SelfieSegmentation ist keine Funktion/Klasse, sondern: ${typeof SelfieSegmentation}`
-            );
-          }
-          
-          const seg = new SelfieSegmentation({
-            locateFile: (file: string) =>
-              `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
-          });
-          
-          if (!seg) {
-            throw new Error("Instanz konnte nicht erstellt werden.");
-          }
-          
-          // Überprüfe, ob Methoden existieren
-          if (typeof seg.setOptions !== "function") {
-            throw new Error("setOptions ist keine Methode");
-          }
-          if (typeof seg.onResults !== "function") {
-            throw new Error("onResults ist keine Methode");
-          }
-          if (typeof seg.send !== "function") {
-            throw new Error("send ist keine Methode");
-          }
-          
-          seg.setOptions({ modelSelection: 1, selfieMode: false });
-          segRef.current = seg;
-        } catch (importErr) {
-          const err = importErr as Error;
-          console.error("[MediaPipe Import]", err);
-          throw new Error(`MediaPipe-Fehler: ${err.message}`);
-        }
-      }
+      const { removeBackground } = await import("@imgly/background-removal");
 
-      setPhase("processing");
-
-      const img = imgElRef.current;
-      if (!img.complete || img.naturalWidth === 0) {
-        await new Promise<void>((resolve, reject) => {
-          img.addEventListener("load", () => resolve(), { once: true });
-          img.addEventListener(
-            "error",
-            () => reject(new Error("Bild konnte nicht geladen werden.")),
-            { once: true }
-          );
-        });
-      }
-
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const seg = segRef.current!;
-        let resultReceived = false;
-        let timeoutId: NodeJS.Timeout | null = null;
-        
-        try {
-          // Callback MUSS VOR send() registriert werden
-          seg.onResults((results: any) => {
-            if (resultReceived) return; // Nur einmal verarbeiten
-            resultReceived = true;
-            
-            if (timeoutId) clearTimeout(timeoutId);
-            
-            try {
-              if (!results.segmentationMask || !results.image) {
-                throw new Error("Ungültige Segmentation-Ergebnisse");
-              }
-              
-              const c = document.createElement("canvas");
-              c.width = w;
-              c.height = h;
-              const ctx = c.getContext("2d");
-              if (!ctx) {
-                throw new Error("Canvas-Kontext nicht verfügbar.");
-              }
-              
-              // 1. Maske einzeichnen (weiß = Person, schwarz/transparent = Hintergrund)
-              ctx.clearRect(0, 0, w, h);
-              ctx.drawImage(results.segmentationMask, 0, 0, w, h);
-              
-              // 2. Original nur dort einblenden, wo die Maske greift → Hintergrund wird transparent
-              ctx.globalCompositeOperation = "source-in";
-              ctx.drawImage(results.image, 0, 0, w, h);
-              ctx.globalCompositeOperation = "source-over";
-              
-              const pngUrl = c.toDataURL("image/png");
-              resolve(pngUrl);
-            } catch (e) {
-              reject(e);
-            }
-          });
-          
-          // Timeout als Sicherung (falls Callback nicht aufgerufen wird)
-          timeoutId = setTimeout(() => {
-            if (!resultReceived) {
-              reject(new Error("Segmentation-Timeout: Keine Ergebnisse nach 30 Sekunden."));
-            }
-          }, 30000);
-          
-          seg.send({ image: img }).catch((sendErr: unknown) => {
-            if (timeoutId) clearTimeout(timeoutId);
-            reject(sendErr);
-          });
-        } catch (e) {
-          if (timeoutId) clearTimeout(timeoutId);
-          reject(e);
-        }
+      const blob = await removeBackground(file, {
+        // GPU benötigt cross-origin-isolated (COOP+COEP) — haben wir nicht.
+        // CPU/WASM ist robust und genauso gut für Einzelbilder.
+        device: "cpu",
+        output: { format: "image/png", quality: 0.92 },
+        progress: (key, current, total) => {
+          // Beispiele für key: "fetch:onnx-runtime/ort.wasm", "compute:inference"
+          if (key.startsWith("fetch:")) {
+            // Modell-/Asset-Download → Prozent + Phase
+            const pct =
+              total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            setDownloadPct(pct);
+            setStageHint("Modell wird geladen");
+            setPhase("loading-model");
+          } else if (key.startsWith("compute:")) {
+            setDownloadPct(null);
+            setStageHint("Maske wird berechnet");
+            setPhase("processing");
+          }
+        },
       });
 
-      setResultUrl(dataUrl);
-      // ungefähre Bytes-Größe der base64-PNG
-      setResultBytes(Math.round((dataUrl.length * 3) / 4));
+      const url = URL.createObjectURL(blob);
+      if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = url;
+      setResultUrl(url);
+      setResultBytes(blob.size);
+      setStageHint("");
+      setDownloadPct(null);
       setPhase("done");
     } catch (e) {
       const err = e as Error;
@@ -298,11 +191,17 @@ export default function HintergrundEntfernenApp() {
 
   const reset = useCallback(() => {
     if (originalUrl) URL.revokeObjectURL(originalUrl);
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
+    }
     setFile(null);
     setOriginalUrl(null);
     setOriginalDims(null);
     setResultUrl(null);
     setResultBytes(null);
+    setDownloadPct(null);
+    setStageHint("");
     setPhase("idle");
     setErrorMsg("");
   }, [originalUrl]);
@@ -388,8 +287,8 @@ export default function HintergrundEntfernenApp() {
             Bild hierher ziehen oder klicken
           </p>
           <p className="text-sm text-text-light">
-            Funktioniert am besten mit <strong>Personen-Fotos</strong> · JPG,
-            PNG oder WEBP
+            Funktioniert für <strong>Personen, Logos, Produkte, Tiere</strong> ·
+            JPG, PNG oder WEBP
           </p>
           {errorMsg && (
             <p className="mt-3 text-sm text-red-700">{errorMsg}</p>
@@ -440,9 +339,9 @@ export default function HintergrundEntfernenApp() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono text-white/60">
                 <span className="inline-flex items-center gap-1.5">
                   <Cpu className="h-3 w-3" aria-hidden="true" />
-                  WASM · MediaPipe
+                  WASM · ONNX-Runtime
                 </span>
-                <span>Modell: Selfie Seg. (Landscape)</span>
+                <span>Modell: ISNet (general)</span>
               </div>
             </div>
 
@@ -460,7 +359,6 @@ export default function HintergrundEntfernenApp() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  ref={imgElRef}
                   src={originalUrl}
                   alt="Originalbild"
                   className="block max-w-full max-h-full object-contain"
@@ -475,7 +373,9 @@ export default function HintergrundEntfernenApp() {
                     : phase === "processing"
                     ? "Maske wird berechnet …"
                     : phase === "loading-model"
-                    ? "Modell wird geladen …"
+                    ? downloadPct != null
+                      ? `Modell wird geladen · ${downloadPct} %`
+                      : "Modell wird geladen …"
                     : "bereit"
                 }
                 accent="green"
@@ -486,7 +386,7 @@ export default function HintergrundEntfernenApp() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={resultUrl}
-                    alt="Freigestellte Person mit transparentem Hintergrund"
+                    alt="Freigestelltes Bild mit transparentem Hintergrund"
                     className="block max-w-full max-h-full object-contain"
                   />
                 ) : (
@@ -520,16 +420,25 @@ export default function HintergrundEntfernenApp() {
               </ImagePanel>
             </div>
 
-            {/* Indeterminate Bar während des Ladens */}
+            {/* Fortschritts-/Statusleiste */}
             {busy && (
               <div className="mt-6">
                 <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden relative">
-                  <div className="h-full w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-300 absolute animate-[bgrm-slide_1.4s_ease-in-out_infinite]" />
+                  {downloadPct != null ? (
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-400 to-emerald-300 transition-[width] duration-200"
+                      style={{ width: `${Math.max(2, downloadPct)}%` }}
+                    />
+                  ) : (
+                    <div className="h-full w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-300 absolute animate-[bgrm-slide_1.4s_ease-in-out_infinite]" />
+                  )}
                 </div>
                 <div className="mt-1.5 text-[10px] font-mono text-white/50">
-                  {phase === "loading-model"
-                    ? "Lade Selfie-Segmentation-Modell von jsDelivr (~ 4 MB) …"
-                    : "Berechne Personen-Maske …"}
+                  {stageHint
+                    ? stageHint
+                    : phase === "loading-model"
+                    ? "Lade Segmentations-Modell (~ 40 MB, einmalig & gecacht) …"
+                    : "Berechne Maske …"}
                 </div>
               </div>
             )}
@@ -613,11 +522,11 @@ export default function HintergrundEntfernenApp() {
           aria-hidden="true"
         />
         <p>
-          <strong>Datenschutz:</strong> Die Personen-Erkennung läuft komplett{" "}
-          <strong>lokal in Ihrem Browser</strong> (MediaPipe / WebAssembly).
-          Das Bild verlässt Ihr Gerät nicht. Lediglich die Modell-Datei wird
-          beim ersten Mal von einem öffentlichen CDN geladen – ohne dass Ihr
-          Foto irgendwo hingesendet wird.
+          <strong>Datenschutz:</strong> Die Hintergrund-Erkennung läuft komplett{" "}
+          <strong>lokal in Ihrem Browser</strong> (ONNX-Runtime / WebAssembly).
+          Das Bild verlässt Ihr Gerät nicht. Lediglich das Modell wird beim
+          ersten Aufruf einmalig vom imgly-CDN geladen – ohne dass Ihr Foto
+          irgendwo hingesendet wird.
         </p>
       </div>
     </div>
