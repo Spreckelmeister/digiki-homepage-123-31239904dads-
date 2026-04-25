@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 // Dynamisch nachladen: Analytics + SpeedInsights landen erst dann im Client-Bundle,
 // wenn der Nutzer Cookies akzeptiert hat. Ohne Consent kein Netzwerk-Call, kein JS.
 const Analytics = dynamic(
-  () => import("@vercel/analytics/next").then((m) => m.Analytics),
+  () => import("@vercel/analytics/react").then((m) => m.Analytics),
   { ssr: false }
 );
 const SpeedInsights = dynamic(

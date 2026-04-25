@@ -82,7 +82,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={inter.className}>
+    <html lang="de" className={inter.className} data-scroll-behavior="smooth">
       <body className="min-h-screen flex flex-col">
         <OrganizationJsonLd />
         <Header />

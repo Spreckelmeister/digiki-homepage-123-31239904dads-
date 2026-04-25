@@ -8,6 +8,21 @@ const nextConfig: NextConfig = {
     // Tree-shaking für Lucide-Icons: nur die tatsächlich verwendeten Icons landen im Bundle.
     optimizePackageImports: ["lucide-react"],
   },
+  // Edge-AI-Pakete sind Browser-only (laden WASM/WebGPU/Worker) und werden in den
+  // Werkzeug-Komponenten ausschließlich per dynamischem `await import()` gezogen.
+  // Server-externalisieren stoppt Turbopack/SWC davor, hunderte MB tfjs-/web-llm-/
+  // transformers-Source während des SSR-Passes zu durchsuchen → Build geht durch.
+  serverExternalPackages: [
+    "@tensorflow/tfjs",
+    "upscaler",
+    "@upscalerjs/default-model",
+    "@mediapipe/selfie_segmentation",
+    "@xenova/transformers",
+    "tesseract.js",
+    "@mlc-ai/web-llm",
+    "@ffmpeg/ffmpeg",
+    "@ffmpeg/util",
+  ],
   // Packages, die vorkompilierten ES5/ES2015-Code mit Polyfills ausliefern,
   // re-transpilieren wir via SWC auf die Browserslist-Targets (package.json).
   // Spart Array.prototype.at, Object.hasOwn, String.trimEnd/Start etc.
@@ -91,11 +106,39 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              // 'unsafe-eval' für React Dev Mode (debugging callstacks)
+              // 'wasm-unsafe-eval' für tfjs/MediaPipe/Whisper/Tesseract/WebLLM/FFmpeg
+              // (alle laden WASM). blob: für FFmpeg-Core via toBlobURL und Worker-Bundles.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
               "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co",
+              // CDN-Origins für Edge-AI-Modelle (Datenschutz: nur statische Modell-Dateien,
+              // Nutzer-Inhalte werden NIE zu diesen Hosts gesendet).
+              [
+                "connect-src 'self'",
+                "https://*.supabase.co",
+                // Whisper-Modelle (transformers.js) + MLC-LLM Gemma
+                "https://huggingface.co",
+                "https://*.huggingface.co",
+                // MediaPipe selfie_segmentation, Tesseract-Core, ggf. WebLLM-Configs
+                "https://cdn.jsdelivr.net",
+                // Tesseract Sprachpakete
+                "https://tessdata.projectnaptha.com",
+                // FFmpeg-Core
+                "https://unpkg.com",
+                // WebLLM Modell-Konfigs + GitHub releases
+                "https://raw.githubusercontent.com",
+                "https://github.com",
+                "https://api.github.com",
+                // MLC-LLM model libraries
+                "https://github.com/mlc-ai",
+                "https://ghe.blob.core.windows.net",
+              ].join(" "),
+              // Worker als blob: (FFmpeg-Worker) oder same-origin (Whisper-Worker bundled).
+              "worker-src 'self' blob:",
+              // Video-/Audio-Vorschau in WZ-012/15 nutzt Object-URLs (blob:).
+              "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

@@ -361,30 +361,47 @@ export default function VideoUntertitelApp() {
     try {
       if (!ffmpegRef.current) {
         setPhase("loading-ffmpeg");
-        const [ffmpegMod, utilMod] = (await Promise.all([
-          import("@ffmpeg/ffmpeg"),
-          import("@ffmpeg/util"),
-        ])) as unknown as [FFmpegModule, FFmpegUtilModule];
-        const ff = new ffmpegMod.FFmpeg();
-        ff.on("progress", (data: unknown) => {
-          const d = data as FFmpegProgressData;
-          if (typeof d?.progress === "number") {
-            setFfmpegProgress(
-              Math.min(100, Math.max(0, Math.round(d.progress * 100)))
-            );
+        try {
+          const [ffmpegMod, utilMod] = (await Promise.all([
+            import("@ffmpeg/ffmpeg"),
+            import("@ffmpeg/util"),
+          ])) as unknown as [FFmpegModule, FFmpegUtilModule];
+          const ff = new ffmpegMod.FFmpeg();
+          ff.on("progress", (data: unknown) => {
+            const d = data as FFmpegProgressData;
+            if (typeof d?.progress === "number") {
+              setFfmpegProgress(
+                Math.min(100, Math.max(0, Math.round(d.progress * 100)))
+              );
+            }
+          });
+          
+          try {
+            await ff.load({
+              coreURL: await utilMod.toBlobURL(
+                `${FFMPEG_BASE}/ffmpeg-core.js`,
+                "text/javascript"
+              ),
+              wasmURL: await utilMod.toBlobURL(
+                `${FFMPEG_BASE}/ffmpeg-core.wasm`,
+                "application/wasm"
+              ),
+            });
+          } catch (loadErr) {
+            const err = loadErr as Error;
+            if (err?.message?.includes("NetworkError") || err?.message?.includes("fetch")) {
+              throw new Error(
+                "FFmpeg-Dateien konnten nicht heruntergeladen werden. Überprüfen Sie Ihre Internetverbindung."
+              );
+            }
+            throw err;
           }
-        });
-        await ff.load({
-          coreURL: await utilMod.toBlobURL(
-            `${FFMPEG_BASE}/ffmpeg-core.js`,
-            "text/javascript"
-          ),
-          wasmURL: await utilMod.toBlobURL(
-            `${FFMPEG_BASE}/ffmpeg-core.wasm`,
-            "application/wasm"
-          ),
-        });
-        ffmpegRef.current = ff;
+          
+          ffmpegRef.current = ff;
+        } catch (importErr) {
+          const err = importErr as Error;
+          throw new Error(`FFmpeg-Fehler: ${err?.message || "Unbekannter Fehler"}`);
+        }
       }
 
       setPhase("extracting");
@@ -415,10 +432,7 @@ export default function VideoUntertitelApp() {
       const err = e as Error;
       console.error("[VideoUntertitel/FFmpeg]", err);
       setErroredStep("ffmpeg");
-      setErrorMsg(
-        "Audio konnte nicht extrahiert werden. " +
-          (err?.message ? `(${err.message})` : "")
-      );
+      setErrorMsg(err?.message || "Audio konnte nicht extrahiert werden.");
       setPhase("error");
       return;
     }

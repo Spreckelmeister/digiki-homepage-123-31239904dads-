@@ -231,16 +231,34 @@ export default function TextDifferenziererApp() {
     setLoadStatus("Initialisiere WebGPU …");
 
     enginePromiseRef.current = (async () => {
-      const mod = (await import("@mlc-ai/web-llm")) as unknown as WebLLMModule;
-      const engine = await mod.CreateMLCEngine(MODEL_ID, {
-        initProgressCallback: (r) => {
-          setLoadProgress(Math.min(100, Math.round((r.progress || 0) * 100)));
-          setLoadStatus(r.text || "Modell wird geladen …");
-        },
-      });
-      engineRef.current = engine;
-      setModelReady(true);
-      return engine;
+      try {
+        const mod = (await import("@mlc-ai/web-llm")) as unknown as WebLLMModule;
+        const engine = await mod.CreateMLCEngine(MODEL_ID, {
+          initProgressCallback: (r) => {
+            setLoadProgress(Math.min(100, Math.round((r.progress || 0) * 100)));
+            setLoadStatus(r.text || "Modell wird geladen …");
+          },
+        });
+        engineRef.current = engine;
+        setModelReady(true);
+        return engine;
+      } catch (e) {
+        const err = e as Error;
+        console.error("[WebLLM Init Error]", err);
+        
+        let userMsg = "Modell konnte nicht geladen werden. ";
+        if (err?.message?.includes("NetworkError") || err?.message?.includes("fetch")) {
+          userMsg += "Netzwerkfehler – überprüfen Sie Ihre Internetverbindung.";
+        } else if (err?.message?.includes("WebGPU")) {
+          userMsg += "WebGPU wird nicht unterstützt.";
+        } else if (err?.message?.includes("memory") || err?.message?.includes("Memory")) {
+          userMsg += "Nicht genug Arbeitsspeicher verfügbar.";
+        } else if (err?.message) {
+          userMsg += `(${err.message})`;
+        }
+        
+        throw new Error(userMsg);
+      }
     })();
     try {
       const engine = await enginePromiseRef.current;
@@ -294,10 +312,8 @@ export default function TextDifferenziererApp() {
           setPhase("stopped");
           return;
         }
-        setErrorMsg(
-          "Beim Generieren ist ein Fehler aufgetreten. " +
-            (err?.message ? `(${err.message})` : "")
-        );
+        const errMsg = err?.message || "Unbekannter Fehler";
+        setErrorMsg(errMsg);
         setPhase("error");
       }
     },
