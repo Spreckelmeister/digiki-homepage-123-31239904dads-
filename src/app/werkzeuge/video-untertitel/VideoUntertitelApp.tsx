@@ -457,13 +457,18 @@ export default function VideoUntertitelApp() {
     try {
       setPhase("decoding");
       const pcm = await audioBlobToFloat32(audioData, 16000);
+      // `getChannelData` gibt einen Float32Array-View auf den internen Puffer
+      // des AudioBuffers zurück. Den direkt zu transferieren detached den
+      // AudioBuffer und kann in manchen Engines zu Folgefehlern führen –
+      // deshalb erst kopieren, dann transferieren.
+      const pcmCopy = new Float32Array(pcm);
       const allDone =
         modelFiles.size > 0 &&
         Array.from(modelFiles.values()).every((m) => m.done);
       setPhase(allDone ? "transcribing" : "loading-model");
       workerRef.current.postMessage(
-        { type: "transcribe", audio: pcm },
-        [pcm.buffer]
+        { type: "transcribe", audio: pcmCopy },
+        [pcmCopy.buffer]
       );
     } catch (e) {
       const err = e as Error;

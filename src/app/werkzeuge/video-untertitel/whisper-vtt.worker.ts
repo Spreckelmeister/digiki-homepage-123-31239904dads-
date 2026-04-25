@@ -89,13 +89,21 @@ self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
     if (msg.type === "transcribe") {
       const transcriber = await ensurePipeline();
       ctx.postMessage({ type: "transcribing" });
-      const result = await transcriber(msg.audio, {
+      // chunk_length_s/stride_length_s nur einsetzen, wenn das Audio länger
+      // als chunk_length_s ist – sonst wird der Long-Form-Pfad in
+      // transformers.js v2 aktiviert und scheitert teils mit "can't convert
+      // undefined to object" beim Zusammenfügen leerer Chunks.
+      const audioSeconds = msg.audio.length / 16000;
+      const opts: Record<string, unknown> = {
         language: "german",
         task: "transcribe",
-        chunk_length_s: 30,
-        stride_length_s: 5,
         return_timestamps: true,
-      });
+      };
+      if (audioSeconds > 30) {
+        opts.chunk_length_s = 30;
+        opts.stride_length_s = 5;
+      }
+      const result = await transcriber(msg.audio, opts);
       ctx.postMessage({
         type: "result",
         text: (result?.text ?? "").trim(),
@@ -106,7 +114,9 @@ self.addEventListener("message", async (e: MessageEvent<WorkerRequest>) => {
     const e = err as Error;
     ctx.postMessage({
       type: "error",
-      message: e?.message || "Worker-Fehler",
+      message: `${e?.message || "Worker-Fehler"}${
+        e?.stack ? `\n${e.stack.split("\n").slice(0, 4).join("\n")}` : ""
+      }`,
     });
   }
 });
