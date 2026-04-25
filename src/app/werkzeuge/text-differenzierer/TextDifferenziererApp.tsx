@@ -87,12 +87,16 @@ type Phase =
   | "error";
 
 // ─── Hardware-Anforderungen ──────────────────────────────────────────────────
-// Bewusst konservativ gewählt: Wer diese Werte erfüllt, sollte das 2B-Q4-Modell
-// flüssig laden und ausführen können. Knapp drüber liegende Geräte (z.B. mobile
-// GPUs mit < 1 GB maxBufferSize) werden gezielt ausgeschlossen, weil das
-// Gemma-2-2B-Q4-Modell sonst beim Laden abbricht oder unter Last crasht.
-const HW_MIN_GPU_BUFFER_BYTES = 1 << 30; // 1 GB
-const HW_MIN_GPU_STORAGE_BINDING_BYTES = 1 << 30; // 1 GB
+// Schwellen auf realistisches Minimum für integrierte Intel-GPUs (Iris Xe,
+// Iris Plus, Arc-integrated) sowie Apple M-Series und AMD-iGPUs. Gemma-2-2B-Q4
+// ist in viele kleine Tensoren zerlegt; der größte einzelne Tensor liegt bei
+// ~80–150 MB, daher reicht 512 MB pro Buffer/Binding mit deutlicher Reserve.
+// Höhere Schwellen (z. B. 1 GB) schließen sonst auch Hardware aus, die das
+// Modell problemlos lädt (insbesondere ältere Iris Xe melden ihren Buffer-
+// Maximum als 512 MB statt 2 GB). Mobile GPUs werden bereits separat über
+// `isMobileClass` gefiltert.
+const HW_MIN_GPU_BUFFER_BYTES = 1 << 29; // 512 MB
+const HW_MIN_GPU_STORAGE_BINDING_BYTES = 1 << 29; // 512 MB
 const HW_MIN_DEVICE_MEMORY_GB = 8; // navigator.deviceMemory cappt bei 8
 const HW_MIN_CPU_CORES = 4;
 
@@ -584,7 +588,12 @@ export default function TextDifferenziererApp() {
   }
 
   if (phase === "blocked" && hw) {
-    return <HardwareBlocked hw={hw} />;
+    return (
+      <HardwareBlocked
+        hw={hw}
+        onOverride={hw.isMobileClass ? undefined : () => setPhase("idle")}
+      />
+    );
   }
 
   const generating = phase === "generating";
@@ -950,7 +959,13 @@ function phaseLabel(p: Phase): string {
   }
 }
 
-function HardwareBlocked({ hw }: { hw: HardwareReport }) {
+function HardwareBlocked({
+  hw,
+  onOverride,
+}: {
+  hw: HardwareReport;
+  onOverride?: () => void;
+}) {
   const { checks } = evaluateHardware(hw);
   const failingCount = checks.filter((c) => !c.ok).length;
 
@@ -1050,6 +1065,26 @@ function HardwareBlocked({ hw }: { hw: HardwareReport }) {
             Arbeitsblatt-Scanner) laufen mit deutlich geringerer Hardware und
             funktionieren auch auf Tablets und Smartphones.
           </p>
+
+          {onOverride && (
+            <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-left">
+              <p className="text-[11px] text-white/60 leading-relaxed mb-3">
+                <strong className="text-white">Trotzdem versuchen:</strong>{" "}
+                Manche Browser melden GPU-Limits konservativ, obwohl die
+                Hardware mehr kann. Wenn Sie ein modernes Notebook mit
+                ausreichend RAM haben, können Sie das Laden des Modells
+                erzwingen. Bei zu schwacher GPU bricht der Browser oder Tab
+                anschließend ggf. ab – Ihre Eingaben gehen dann verloren.
+              </p>
+              <button
+                type="button"
+                onClick={onOverride}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-white/20 bg-white/5 px-4 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+              >
+                Hardware-Check ignorieren und trotzdem laden
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
