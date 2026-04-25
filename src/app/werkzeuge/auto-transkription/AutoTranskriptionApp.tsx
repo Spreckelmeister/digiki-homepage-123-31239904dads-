@@ -40,7 +40,6 @@ type Phase =
 type Mode = "mic" | "file";
 
 interface HardwareReport {
-  worker: boolean;
   wasm: boolean;
   mediaDevices: boolean;
   audioContext: boolean;
@@ -53,25 +52,12 @@ interface ModelFile {
   done: boolean;
 }
 
-interface WorkerProgressData {
-  status: "initiate" | "download" | "progress" | "done" | "ready";
-  name?: string;
-  file?: string;
-  loaded?: number;
-  total?: number;
-  progress?: number;
-}
+type WorkerProgressData = any;
 
-type WorkerMessage =
-  | { type: "load-progress"; data: WorkerProgressData }
-  | { type: "ready" }
-  | { type: "transcribing" }
-  | { type: "result"; text: string }
-  | { type: "error"; message: string };
+type WorkerMessage = any;
 
 function probeHardware(): HardwareReport {
   return {
-    worker: typeof Worker !== "undefined",
     wasm: typeof WebAssembly !== "undefined",
     mediaDevices:
       typeof navigator !== "undefined" &&
@@ -142,7 +128,6 @@ export default function AutoTranskriptionApp() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const workerRef = useRef<Worker | null>(null);
 
   const recRef = useRef<MediaRecorder | null>(null);
   const recChunksRef = useRef<Blob[]>([]);
@@ -158,67 +143,10 @@ export default function AutoTranskriptionApp() {
     const report = probeHardware();
     setHw(report);
     const ok =
-      report.worker &&
       report.wasm &&
       report.mediaDevices &&
       report.audioContext;
     setPhase(ok ? "idle" : "blocked");
-  }, []);
-
-  // ── Worker initialisieren ─────────────────────────────────────────
-  useEffect(() => {
-    if (phase === "blocked" || phase === "checking") return;
-    const w = new Worker(new URL("./whisper.worker.ts", import.meta.url), {
-      type: "module",
-    });
-    w.onmessage = (e: MessageEvent<WorkerMessage>) => {
-      const msg = e.data;
-      if (msg.type === "load-progress") {
-        const p = msg.data;
-        if (!p.file) return;
-        setModelFiles((prev) => {
-          const next = new Map(prev);
-          const existing = next.get(p.file!) || {
-            name: p.file!,
-            loaded: 0,
-            total: 0,
-            done: false,
-          };
-          if (p.status === "progress") {
-            existing.loaded = p.loaded ?? existing.loaded;
-            existing.total = p.total ?? existing.total;
-          } else if (p.status === "done") {
-            existing.done = true;
-            existing.loaded = existing.total || existing.loaded;
-          } else if (p.status === "initiate" || p.status === "download") {
-            existing.loaded = 0;
-            existing.total = p.total ?? existing.total;
-          }
-          next.set(p.file!, existing);
-          return next;
-        });
-      } else if (msg.type === "transcribing") {
-        setPhase("transcribing");
-      } else if (msg.type === "ready") {
-        // Wechsel zu transcribing erst, wenn Audio gesendet wurde
-      } else if (msg.type === "result") {
-        setTranscript(msg.text);
-        setPhase("done");
-      } else if (msg.type === "error") {
-        setErrorMsg(msg.message);
-        setPhase("error");
-      }
-    };
-    w.onerror = (err) => {
-      console.error("[Worker Error Event]", err);
-      setErrorMsg(`Worker-Fehler: ${err.message}`);
-      setPhase("error");
-    };
-    workerRef.current = w;
-    return () => {
-      w.terminate();
-      workerRef.current = null;
-    };
   }, []);
 
   // ── Cleanup ────────────────────────────────────────────────────────
@@ -358,25 +286,92 @@ export default function AutoTranskriptionApp() {
 
   // ── Transkription starten ─────────────────────────────────────────
   const transcribe = useCallback(async () => {
-    if (!audioBlob || !workerRef.current) return;
+    if (!audioBlob) {
+      setErrorMsg("Keine Audio-Datei vorhanden.");
+      return;
+    }
+    
     setErrorMsg("");
     setTranscript("");
     setPhase("decoding");
+    
     try {
+      console.log("[Transcribe] Starting audio decode...");
       const pcm = await audioBlobToFloat32(audioBlob, 16000);
-      // Modell-Status: noch nicht alle "done"? → loading-model, sonst transcribing
-      const allDone =
-        modelFiles.size > 0 &&
-        Array.from(modelFiles.values()).every((m) => m.done);
-      setPhase(allDone ? "transcribing" : "loading-model");
-      workerRef.current.postMessage(
-        { type: "transcribe", audio: pcm },
-        [pcm.buffer]
-      );
+      console.log("[Transcribe] Audio decoded:", pcm.length, "samples");
+      
+      if (!pcm || pcm.length === 0) {
+        throw new Error("Audio-Dekodierung hat leeres Array ergeben.");
+      }
+      
+      setPhase("loading-model");
+      console.log("[Transcribe] Loading Whisper model...");
+      
+      // Direkter Import und Nutzung im Component
+      const { pipeline } = await import("@xenova/transformers");
+      
+      const transcriber = await pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
+        progress_callback: (p: any) => {
+          console.log("[Transcribe Progress]", p.status, p.file || "");
+          if (p.status === "progress" && p.file) {
+            const existing = modelFiles.get(p.file) || {
+              name: p.file,
+              loaded: 0,
+              total: 0,
+              done: false,
+            };
+            existing.loaded = p.loaded || existing.loaded;
+            existing.total = p.total || existing.total;
+            setModelFiles((prev) => {
+              const next = new Map(prev);
+              next.set(p.file, existing);
+              return next;
+            });
+          } else if (p.status === "done" && p.file) {
+            setModelFiles((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(p.file) || {
+                name: p.file,
+                loaded: 0,
+                total: 0,
+                done: false,
+              };
+              existing.done = true;
+              next.set(p.file, existing);
+              return next;
+            });
+          }
+        },
+      });
+      
+      console.log("[Transcribe] Starting transcription...");
+      setPhase("transcribing");
+      
+      const result = await transcriber(pcm, {
+        task: "transcribe",
+        language: "de",
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        return_timestamps: false,
+      });
+      
+      console.log("[Transcribe] Result:", result);
+      
+      const transcript =
+        typeof result.text === "string"
+          ? result.text.trim()
+          : typeof result === "string"
+          ? (result as string).trim()
+          : JSON.stringify(result);
+      
+      console.log("[Transcribe] Transcript:", transcript.slice(0, 50));
+      setTranscript(transcript);
+      setPhase("done");
     } catch (e) {
       const err = e as Error;
+      console.error("[Transcribe Error]", err);
       setErrorMsg(
-        "Audio konnte nicht dekodiert werden. " +
+        "Transkription fehlgeschlagen. " +
           (err?.message ? `(${err.message})` : "")
       );
       setPhase("error");
