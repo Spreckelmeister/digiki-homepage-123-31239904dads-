@@ -40,6 +40,7 @@ interface FFmpegInstance {
     coreURL?: string;
     wasmURL?: string;
     workerURL?: string;
+    classWorkerURL?: string;
   }) => Promise<boolean>;
   on: (event: "log" | "progress", cb: (data: unknown) => void) => void;
   writeFile: (path: string, data: Uint8Array) => Promise<boolean>;
@@ -380,6 +381,10 @@ export default function VideoUntertitelApp() {
           
           try {
             await ff.load({
+              // classWorkerURL lädt den FFmpeg-Worker direkt aus public/,
+              // umgeht damit den Bundler (Turbopack/Webpack scheitert sonst
+              // an `await import(_coreURL)` mit dynamischer Blob-URL).
+              classWorkerURL: "/ffmpeg-worker/worker.js",
               coreURL: await utilMod.toBlobURL(
                 `${FFMPEG_BASE}/ffmpeg-core.js`,
                 "text/javascript"

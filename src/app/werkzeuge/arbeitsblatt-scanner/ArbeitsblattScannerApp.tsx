@@ -15,6 +15,7 @@ import {
   Check,
   Sparkles,
   ArrowRight,
+  Camera,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,7 +116,13 @@ export default function ArbeitsblattScannerApp() {
   const [copied, setCopied] = useState(false);
 
   const [isDragOver, setIsDragOver] = useState(false);
+  // Touch-Primär-Geräte (Smartphone, Tablet) bekommen zusätzlich einen
+  // direkten Kamera-Knopf. `pointer: coarse` matcht zuverlässig auf Mobil-
+  // und Tablet-Browsern; Laptops mit Touchscreen melden weiter `pointer:
+  // fine` und sehen das Desktop-Drop-Layout.
+  const [isTouchPrimary, setIsTouchPrimary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const workerRef = useRef<TesseractWorker | null>(null);
 
   // ── Hardware-Check ─────────────────────────────────────────────────
@@ -123,6 +130,16 @@ export default function ArbeitsblattScannerApp() {
     const report = probeHardware();
     setHw(report);
     setPhase(report.worker && report.wasm ? "idle" : "blocked");
+  }, []);
+
+  // ── Touch-Primary-Erkennung ────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(pointer: coarse)");
+    const update = () => setIsTouchPrimary(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
   }, []);
 
   // ── Cleanup ────────────────────────────────────────────────────────
@@ -357,31 +374,10 @@ export default function ArbeitsblattScannerApp() {
 
   return (
     <div className="space-y-8">
-      {/* ── Drop-Zone ─────────────────────────────────────────────── */}
+      {/* ── Drop-Zone / Mobile-CTAs ───────────────────────────────── */}
       {!file && (
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragOver(true);
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-          className={`relative rounded-2xl border-2 border-dashed p-8 md:p-14 text-center cursor-pointer transition-all ${
-            isDragOver
-              ? "border-primary bg-primary/5 scale-[1.01]"
-              : "border-border bg-white hover:border-primary/40 hover:bg-primary/[0.02]"
-          }`}
-          aria-label="Bild zum Scannen auswählen"
-        >
+        <div className="space-y-3">
+          {/* Hidden inputs – beide Pfade triggern denselben acceptFile-Flow */}
           <input
             ref={fileInputRef}
             type="file"
@@ -393,22 +389,132 @@ export default function ArbeitsblattScannerApp() {
               e.target.value = "";
             }}
           />
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Upload
-              className="h-8 w-8 text-primary"
-              aria-hidden="true"
-              strokeWidth={1.5}
-            />
-          </div>
-          <p className="text-lg md:text-xl font-bold text-text mb-1">
-            Foto vom Arbeitsblatt hierher ziehen oder klicken
-          </p>
-          <p className="text-sm text-text-light">
-            Funktioniert am besten mit <strong>guter Beleuchtung</strong> und
-            geradem Foto · JPG, PNG oder WEBP
-          </p>
-          {errorMsg && (
-            <p className="mt-3 text-sm text-red-700">{errorMsg}</p>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            // capture="environment" öffnet auf Smartphones direkt die
+            // Rück-Kamera. Auf Desktops ignoriert der Browser das Attribut
+            // und zeigt den normalen Datei-Dialog.
+            capture="environment"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) acceptFile(f);
+              e.target.value = "";
+            }}
+          />
+
+          {isTouchPrimary ? (
+            <>
+              {/* Primär: Kamera */}
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="group relative w-full rounded-2xl border-2 border-primary bg-primary text-white p-6 md:p-7 text-left shadow-sm hover:bg-primary/95 active:scale-[0.99] transition-all"
+                aria-label="Arbeitsblatt mit der Kamera fotografieren"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 border border-white/25">
+                    <Camera
+                      className="h-7 w-7 text-white"
+                      aria-hidden="true"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base md:text-lg font-bold leading-snug">
+                      Mit Kamera fotografieren
+                    </p>
+                    <p className="text-xs md:text-sm text-white/85 leading-relaxed mt-0.5">
+                      Direkt scannen · Empfohlen für unterwegs
+                    </p>
+                  </div>
+                  <ArrowRight
+                    className="h-5 w-5 text-white/80 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                    aria-hidden="true"
+                  />
+                </div>
+              </button>
+
+              {/* Sekundär: Galerie */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative w-full rounded-2xl border-2 border-border bg-white p-5 md:p-6 text-left hover:border-primary/40 hover:bg-primary/[0.02] active:scale-[0.99] transition-all"
+                aria-label="Foto aus der Galerie auswählen"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <ImageIcon
+                      className="h-6 w-6 text-primary"
+                      aria-hidden="true"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold text-text leading-snug">
+                      Aus Galerie wählen
+                    </p>
+                    <p className="text-xs text-text-light leading-relaxed mt-0.5">
+                      Bereits aufgenommenes Foto · JPG, PNG, WEBP
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <p className="text-xs text-text-light text-center pt-2 leading-relaxed">
+                Tipp: <strong>gute Beleuchtung</strong>, gerades Foto und das
+                Blatt formatfüllend ablichten – damit erkennt die Texterkennung
+                am zuverlässigsten.
+              </p>
+
+              {errorMsg && (
+                <p className="text-sm text-red-700 text-center">{errorMsg}</p>
+              )}
+            </>
+          ) : (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={`relative rounded-2xl border-2 border-dashed p-8 md:p-14 text-center cursor-pointer transition-all ${
+                isDragOver
+                  ? "border-primary bg-primary/5 scale-[1.01]"
+                  : "border-border bg-white hover:border-primary/40 hover:bg-primary/[0.02]"
+              }`}
+              aria-label="Bild zum Scannen auswählen"
+            >
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                <Upload
+                  className="h-8 w-8 text-primary"
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <p className="text-lg md:text-xl font-bold text-text mb-1">
+                Foto vom Arbeitsblatt hierher ziehen oder klicken
+              </p>
+              <p className="text-sm text-text-light">
+                Funktioniert am besten mit <strong>guter Beleuchtung</strong>{" "}
+                und geradem Foto · JPG, PNG oder WEBP
+              </p>
+              {errorMsg && (
+                <p className="mt-3 text-sm text-red-700">{errorMsg}</p>
+              )}
+            </div>
           )}
         </div>
       )}
