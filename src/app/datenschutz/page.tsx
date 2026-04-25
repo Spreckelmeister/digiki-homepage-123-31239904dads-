@@ -94,18 +94,41 @@ export default function DatenschutzPage() {
                 3. Datenerfassung auf dieser Website
               </h2>
 
-              <h3 className="text-lg font-semibold text-text mb-2">Cookies</h3>
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Cookies und vergleichbare Speicher
+              </h3>
+              <p className="text-text-light leading-relaxed mb-2">
+                Diese Website verwendet drei Kategorien von Browser-Speicher:
+              </p>
+              <ul className="list-disc ml-6 text-text-light space-y-2 mb-4">
+                <li>
+                  <strong>Technisch notwendige Cookies</strong>:
+                  Session-Cookies zur sicheren Anmeldung in der
+                  Best-Practice-Datenbank (gesetzt durch Supabase Auth).
+                  Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2
+                  Nr. 2 TDDDG (unbedingt erforderlich).
+                </li>
+                <li>
+                  <strong>Consent-Eintrag</strong> (LocalStorage):{" "}
+                  <code className="font-mono text-sm">digiki-cookie-consent</code>{" "}
+                  – speichert Ihre Auswahl aus dem Cookie-Banner („accepted" /
+                  „declined"), damit der Banner nicht bei jedem Aufruf erneut
+                  erscheint. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO bzw.
+                  § 25 Abs. 2 Nr. 2 TDDDG (Speicherung des Wunsches selbst ist
+                  unbedingt erforderlich).
+                </li>
+                <li>
+                  <strong>Optionaler LocalStorage</strong> in einzelnen
+                  Werkzeugen (z.&thinsp;B. Klassenliste in der
+                  Zufalls-Auswahl) – wird nur bei aktivem Speichern angelegt.
+                  Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO.
+                </li>
+              </ul>
               <p className="text-text-light leading-relaxed mb-4">
-                Diese Website verwendet <strong>technisch notwendige Cookies</strong>,
-                um die Funktionalität zu gewährleisten. Dazu gehören insbesondere
-                Session-Cookies zur sicheren Anmeldung in der
-                Best-Practice-Datenbank (gesetzt durch Supabase Auth). Technisch
-                notwendige Cookies werden auf Grundlage von Art. 6 Abs. 1 lit. f
-                DSGVO (berechtigtes Interesse) gespeichert. Sie können Ihren
-                Browser so einstellen, dass Sie über das Setzen von Cookies
-                informiert werden und Cookies nur im Einzelfall erlauben. Bei
-                der Deaktivierung von Cookies kann die Funktionalität dieser
-                Website eingeschränkt sein.
+                Sie können Browser-Speicher jederzeit löschen, indem Sie die
+                Website-Daten für diese Domain zurücksetzen. Eine Deaktivierung
+                technisch notwendiger Cookies kann die Funktionalität (z.&thinsp;B.
+                Login) einschränken.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -158,9 +181,13 @@ export default function DatenschutzPage() {
                 Aktuell verfügbare Werkzeuge: QR-Code-Generator, Vollbild-Timer,
                 Lärmampel, Zufalls-Auswahl, PDF-Werkzeuge (Zusammenfügen /
                 Seiten extrahieren), Suchsel-Generator, Lückentext-Generator,
-                Bilder komprimieren, Audio aufnehmen &amp; trimmen, sowie <strong>KI-gestützte
-                Werkzeuge für Texterkennung, Textdifferenzierung, Video-Untertitel
-                und Audio-Transkription</strong>.
+                Bilder komprimieren, Audio aufnehmen &amp; trimmen, sowie{" "}
+                <strong>
+                  KI-gestützte Werkzeuge für Texterkennung (Arbeitsblatt-Scanner),
+                  Textdifferenzierung, Video-Untertitel, Diktiergerät &amp;
+                  Audio-Transkription, Hintergrund entfernen und KI-Bild-Verbesserer
+                </strong>
+                .
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -270,7 +297,9 @@ export default function DatenschutzPage() {
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
-                KI-gestützte Werkzeuge: Texterkennung, Textverarbeitung und Video-Untertitel
+                KI-gestützte Werkzeuge: Texterkennung, Textdifferenzierung,
+                Video-Untertitel, Audio-Transkription, Hintergrund-Entfernen
+                und Bild-Verbesserer
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
                 Folgende Werkzeuge nutzen moderne <strong>Machine-Learning-Modelle</strong>,
@@ -312,9 +341,15 @@ export default function DatenschutzPage() {
               </p>
               <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
                 <li>Sie geben oder laden einen Text ein</li>
-                <li>Das KI-Modell (~3 GB, komprimiert) wird <strong>einmalig</strong> von{" "}
-                  <code className="font-mono text-sm">huggingface.co</code> oder{" "}
-                  <code className="font-mono text-sm">cdn.jsdelivr.net</code> heruntergeladen</li>
+                <li>
+                  Das KI-Modell (Gemma-2-2B, 4-Bit-quantisiert, ~1,4 GB) wird{" "}
+                  <strong>einmalig</strong> von{" "}
+                  <code className="font-mono text-sm">huggingface.co</code>,{" "}
+                  <code className="font-mono text-sm">cdn-lfs.huggingface.co</code>{" "}
+                  und{" "}
+                  <code className="font-mono text-sm">raw.githubusercontent.com</code>{" "}
+                  (MLC-AI-Bibliothek) heruntergeladen und im Browser-Cache abgelegt
+                </li>
                 <li>Die Verarbeitung erfolgt lokal in Ihrem Browser (keine externe API)</li>
                 <li>Der vereinfachte Text wird angezeigt</li>
               </ol>
@@ -324,24 +359,152 @@ export default function DatenschutzPage() {
               </p>
 
               <h4 className="text-base font-semibold text-text mb-2">
-                Video-Untertitel Generator (FFmpeg + Speech Recognition)
+                Video-Untertitel-Generator (FFmpeg + Whisper)
               </h4>
               <p className="text-text-light leading-relaxed mb-4">
-                Das Werkzeug erstellt automatisch Untertitel aus Video- oder Audiodateien:
+                Das Werkzeug erstellt automatisch Untertitel aus Video- oder
+                Audiodateien:
               </p>
               <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
                 <li>Sie laden eine Video- oder Audiodatei hoch</li>
-                <li><code className="font-mono text-sm">FFmpeg WASM</code> (von unserer eigenen
-                  Domain unter <code className="font-mono text-sm">/ffmpeg-core/</code>) wird einmalig heruntergeladen
-                  und lädt die Audio-Spur aus dem Video</li>
-                <li>Das Whisper-Spracherkennungsmodell wird von{" "}
-                  <code className="font-mono text-sm">cdn.jsdelivr.net</code> / <code className="font-mono text-sm">huggingface.co</code> heruntergeladen</li>
-                <li>Die Spracherkennung erfolgt lokal im Browser (kein Upload an externe Services)</li>
-                <li>Untertiteldatei (SRT/VTT) wird generiert und kann heruntergeladen werden</li>
+                <li>
+                  <code className="font-mono text-sm">FFmpeg WASM</code> wird
+                  von unserer eigenen Domain (Pfad{" "}
+                  <code className="font-mono text-sm">/ffmpeg-core/</code>)
+                  ausgeliefert – kein externes CDN – und extrahiert lokal die
+                  Audiospur
+                </li>
+                <li>
+                  Das Whisper-Spracherkennungsmodell{" "}
+                  <code className="font-mono text-sm">
+                    onnx-community/whisper-tiny
+                  </code>{" "}
+                  (~150 MB, fp32) wird einmalig von{" "}
+                  <code className="font-mono text-sm">huggingface.co</code> /{" "}
+                  <code className="font-mono text-sm">cdn-lfs.huggingface.co</code>{" "}
+                  geladen und im Browser-Cache abgelegt
+                </li>
+                <li>
+                  Die Spracherkennung erfolgt lokal in einem Web Worker (kein
+                  Upload an externe Services)
+                </li>
+                <li>
+                  Untertiteldatei (.vtt) wird generiert und kann heruntergeladen
+                  werden
+                </li>
               </ol>
               <p className="text-text-light leading-relaxed mb-4">
-                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
-                Barrierefreiem Zugang zu Videomaterialien).
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+                Interesse an barrierefreiem Zugang zu Videomaterialien).
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Diktiergerät &amp; Audio-Transkription (Mikrofon + Whisper)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug nimmt Sprachnotizen über das Mikrofon auf oder
+                akzeptiert eine bestehende Audio-Datei und erzeugt daraus einen
+                Text auf Deutsch:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>
+                  Bei Mikrofon-Nutzung: Zugriff über{" "}
+                  <code className="font-mono text-sm">getUserMedia</code> nach
+                  expliziter Einwilligung im Browser-Dialog
+                </li>
+                <li>
+                  Audio-Daten werden ausschließlich im Arbeitsspeicher des
+                  Browser-Tabs gehalten – keine Server-Übermittlung
+                </li>
+                <li>
+                  Das Whisper-Modell{" "}
+                  <code className="font-mono text-sm">
+                    onnx-community/whisper-tiny
+                  </code>{" "}
+                  (~150 MB, fp32) wird einmalig von{" "}
+                  <code className="font-mono text-sm">huggingface.co</code> /{" "}
+                  <code className="font-mono text-sm">cdn-lfs.huggingface.co</code>{" "}
+                  geladen und im Browser-Cache abgelegt
+                </li>
+                <li>
+                  Transkription läuft in einem Web Worker; das Transkript kann
+                  bearbeitet, kopiert oder als .txt heruntergeladen werden
+                </li>
+                <li>
+                  Beim Schließen des Tabs werden Aufnahme und Transkript
+                  verworfen
+                </li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch
+                aktive Mikrofon-Freigabe) bzw. Art. 6 Abs. 1 lit. f DSGVO
+                (berechtigtes Interesse an Entlastung von Lehrkräften durch
+                automatisierte Spracherkennung) bei Datei-Uploads.
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                Hintergrund entfernen (Foto-Freistellung)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug entfernt automatisch den Hintergrund aus
+                hochgeladenen Bildern. Es nutzt die Open-Source-Bibliothek{" "}
+                <code className="font-mono text-sm">
+                  @imgly/background-removal
+                </code>{" "}
+                (basierend auf einem ISNet-/U²-Net-Segmentierungsmodell):
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie laden ein Bild hoch – verbleibt im Arbeitsspeicher</li>
+                <li>
+                  Modell- und WASM-Dateien werden einmalig vom imgly-CDN{" "}
+                  <code className="font-mono text-sm">staticimgly.com</code>{" "}
+                  geladen und im Browser-Cache abgelegt
+                </li>
+                <li>
+                  Die Segmentierung läuft lokal über WebAssembly im Browser –
+                  kein Bild-Upload an Dritte
+                </li>
+                <li>
+                  Das freigestellte PNG kann heruntergeladen werden;
+                  Originalbild und Ergebnis verlassen Ihr Gerät nicht
+                </li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+                Interesse an effizienter Erstellung von Unterrichtsmaterial).
+              </p>
+
+              <h4 className="text-base font-semibold text-text mb-2">
+                KI-Bild-Verbesserer (Upscaling)
+              </h4>
+              <p className="text-text-light leading-relaxed mb-4">
+                Das Werkzeug verdoppelt die Auflösung von Bildern per neuronalem
+                Netz. Es nutzt die Open-Source-Bibliotheken{" "}
+                <code className="font-mono text-sm">upscaler</code> /{" "}
+                <code className="font-mono text-sm">@upscalerjs/default-model</code>{" "}
+                und <code className="font-mono text-sm">@tensorflow/tfjs</code>:
+              </p>
+              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
+                <li>Sie laden ein Bild hoch – verbleibt im Arbeitsspeicher</li>
+                <li>
+                  Das Upscaling-Modell ist als npm-Paket{" "}
+                  <strong>direkt im JavaScript-Bundle enthalten</strong> und
+                  wird mit der Seite ausgeliefert – es findet{" "}
+                  <strong>kein Modell-Download von einem externen CDN</strong>{" "}
+                  statt
+                </li>
+                <li>
+                  Die Berechnung erfolgt lokal über TensorFlow.js (WebGL- oder
+                  WASM-Backend Ihres Browsers)
+                </li>
+                <li>
+                  Das hochskalierte Bild kann heruntergeladen werden;
+                  Originalbild und Ergebnis verlassen Ihr Gerät nicht
+                </li>
+              </ol>
+              <p className="text-text-light leading-relaxed mb-4">
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+                Interesse an besserer Lesbarkeit von Unterrichtsmaterial).
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -353,15 +516,40 @@ export default function DatenschutzPage() {
                 lokal gecacht):
               </p>
               <ul className="list-disc ml-6 text-text-light space-y-1 mb-4">
-                <li><code className="font-mono text-sm">tessdata.projectnaptha.com</code> – Tesseract Sprachpakete (OCR)</li>
-                <li><code className="font-mono text-sm">huggingface.co</code> – Hugging Face Model Hub (Gemma-2, Whisper)</li>
-                <li><code className="font-mono text-sm">cdn.jsdelivr.net</code> – jsDelivr CDN (Modelle, Bibliotheken)</li>
+                <li>
+                  <code className="font-mono text-sm">tessdata.projectnaptha.com</code> –
+                  Tesseract-Sprachpakete (Arbeitsblatt-Scanner / OCR)
+                </li>
+                <li>
+                  <code className="font-mono text-sm">huggingface.co</code> /{" "}
+                  <code className="font-mono text-sm">cdn-lfs.huggingface.co</code> –
+                  Hugging-Face-Modellhub (Gemma-2 für Text-Differenzierer,
+                  Whisper für Video-Untertitel und Diktiergerät)
+                </li>
+                <li>
+                  <code className="font-mono text-sm">raw.githubusercontent.com</code> –
+                  MLC-AI-Hilfsdateien (Tokenizer / Konfiguration) für den
+                  Text-Differenzierer
+                </li>
+                <li>
+                  <code className="font-mono text-sm">staticimgly.com</code> –
+                  imgly-CDN für das Hintergrund-Entfernen-Modell
+                </li>
               </ul>
               <p className="text-text-light leading-relaxed mb-4">
-                <strong>Wichtig:</strong> Die Download ist nur von <strong>Modellen und Bibliotheken</strong>,
-                nie von Ihren persönlichen Inhalten (Bilder, Videos, Texte, Audio). Beim Download
-                der Modell-Dateien wird Ihre IP-Adresse an die jeweiligen CDN-Anbieter übertragen
-                (übliche CDN-Praxis). Eine Speicherung personenbezogener Daten findet nicht statt.
+                FFmpeg WASM (Video-Untertitel) wird ausschließlich von unserer
+                eigenen Domain ausgeliefert; das Bild-Verbesserer-Modell wird
+                als npm-Paket im Bundle mitgegeben und kommt von keiner externen
+                Quelle.
+              </p>
+              <p className="text-text-light leading-relaxed mb-4">
+                <strong>Wichtig:</strong> Übertragen werden nur{" "}
+                <strong>Modelle und Bibliotheken</strong>, nie Ihre persönlichen
+                Inhalte (Bilder, Videos, Texte, Audio). Beim Download der
+                Modell-Dateien wird Ihre IP-Adresse an die jeweiligen
+                CDN-Anbieter übertragen (übliche CDN-Praxis). Eine Speicherung
+                personenbezogener Daten beim Anbieter findet nach unserem
+                Kenntnisstand nicht statt.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -486,18 +674,37 @@ export default function DatenschutzPage() {
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
-                Vercel Analytics und Speed Insights
+                Vercel Analytics und Speed Insights (nur mit Einwilligung)
               </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Zur Reichweitenmessung und Performance-Analyse können wir{" "}
+                <strong>Vercel Analytics</strong> und{" "}
+                <strong>Vercel Speed Insights</strong> einsetzen. Beide Dienste
+                werden ausschließlich geladen, <strong>nachdem</strong> Sie im
+                Cookie-Banner aktiv auf{" "}
+                <em>„Alle akzeptieren"</em> geklickt haben. Wenn Sie{" "}
+                <em>„Nur notwendige"</em> wählen, werden weder das
+                Analytics-Skript noch SpeedInsights nachgeladen und es findet
+                keinerlei Datenübertragung an Vercel zu Analyse-Zwecken statt.
+              </p>
+              <p className="text-text-light leading-relaxed mb-4">
+                Wenn Sie zugestimmt haben, erfassen die Dienste anonymisierte,
+                aggregierte Kennzahlen (Seitenaufrufe, Gerätetyp, ungefähre
+                geografische Region, Web-Vitals). Vercel selbst arbeitet dabei
+                nach eigenen Angaben cookielos; es werden keine Profile gebildet
+                und keine IP-Adressen dauerhaft gespeichert.
+              </p>
+              <p className="text-text-light leading-relaxed mb-4">
+                Ihre Einwilligung können Sie jederzeit widerrufen, indem Sie im
+                Browser den LocalStorage-Eintrag{" "}
+                <code className="font-mono text-sm">digiki-cookie-consent</code>{" "}
+                für diese Website löschen oder die Website-Daten zurücksetzen.
+                Beim nächsten Aufruf erscheint der Cookie-Banner erneut.
+              </p>
               <p className="text-text-light leading-relaxed">
-                Zur Reichweitenmessung und Performance-Analyse nutzen wir
-                Vercel Analytics sowie Vercel Speed Insights. Beide Dienste
-                arbeiten <strong>cookielos</strong> und erfassen ausschließlich
-                anonymisierte, aggregierte Kennzahlen (z.&thinsp;B.
-                Seitenaufrufe, Gerätetyp, ungefähre geografische Region, Web
-                Vitals). Es werden keine Profile gebildet und keine IP-Adressen
-                dauerhaft gespeichert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f
-                DSGVO (berechtigtes Interesse an einer fehlerfreien und
-                performanten Bereitstellung der Website).
+                Rechtsgrundlage ist <strong>Art. 6 Abs. 1 lit. a DSGVO</strong>{" "}
+                (Einwilligung) bzw. § 25 Abs. 1 TDDDG für das Speichern und
+                Auslesen des Zustimmungs-Status auf Ihrem Endgerät.
               </p>
             </div>
 
