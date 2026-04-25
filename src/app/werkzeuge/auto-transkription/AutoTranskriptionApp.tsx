@@ -308,7 +308,20 @@ export default function AutoTranskriptionApp() {
       console.log("[Transcribe] Loading Whisper model...");
       
       // Direkter Import und Nutzung im Component
-      const { pipeline } = await import("@xenova/transformers");
+      let pipeline: any;
+      try {
+        const mod = await import("@xenova/transformers");
+        pipeline = mod.pipeline;
+        
+        if (typeof pipeline !== "function") {
+          throw new Error("pipeline nicht gefunden in Modul");
+        }
+      } catch (importErr) {
+        console.error("[Transcribe] Import error:", importErr);
+        throw new Error(
+          "Transformers.js-Bibliothek konnte nicht geladen werden. Das Sprachmodell ist nicht verfügbar."
+        );
+      }
       
       const transcriber = await pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
         progress_callback: (p: any) => {
@@ -357,12 +370,16 @@ export default function AutoTranskriptionApp() {
       
       console.log("[Transcribe] Result:", result);
       
-      const transcript =
-        typeof result.text === "string"
-          ? result.text.trim()
-          : typeof result === "string"
-          ? (result as string).trim()
-          : JSON.stringify(result);
+      let transcript = "";
+      
+      // Whisper kann Array oder Object zurückgeben
+      if (Array.isArray(result)) {
+        transcript = ((result[0] as any)?.text || "").toString().trim();
+      } else if (typeof result === "object" && result !== null) {
+        transcript = ((result as any).text || "").toString().trim();
+      } else if (typeof result === "string") {
+        transcript = (result as any).trim();
+      }
       
       console.log("[Transcribe] Transcript:", transcript.slice(0, 50));
       setTranscript(transcript);
@@ -370,10 +387,13 @@ export default function AutoTranskriptionApp() {
     } catch (e) {
       const err = e as Error;
       console.error("[Transcribe Error]", err);
-      setErrorMsg(
-        "Transkription fehlgeschlagen. " +
-          (err?.message ? `(${err.message})` : "")
-      );
+      
+      const errorMsg =
+        err?.message?.includes("undefined to object")
+          ? "Sprachmodell-Fehler: Die KI-Bibliothek konnte nicht richtig initialisiert werden. Versuchen Sie, die Seite neu zu laden."
+          : err?.message || "Transkription fehlgeschlagen";
+      
+      setErrorMsg(errorMsg);
       setPhase("error");
     }
   }, [audioBlob, modelFiles]);
@@ -888,11 +908,6 @@ function TabButton({
 
 function HardwareBlocked({ hw }: { hw: HardwareReport }) {
   const checks: { ok: boolean; label: string; detail: string }[] = [
-    {
-      ok: hw.worker,
-      label: "Web Worker",
-      detail: hw.worker ? "Verfügbar" : "Nicht verfügbar",
-    },
     {
       ok: hw.wasm,
       label: "WebAssembly",

@@ -26,12 +26,7 @@ type TranscribeRequest = {
 type InitRequest = { type: "init" };
 type WorkerRequest = TranscribeRequest | InitRequest;
 
-interface Transcriber {
-  (
-    audio: Float32Array,
-    opts: Record<string, unknown>
-  ): Promise<{ text: string }>;
-}
+type Transcriber = any;
 
 type TransformersModule = {
   pipeline: (

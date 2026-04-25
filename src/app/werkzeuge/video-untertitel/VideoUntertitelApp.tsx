@@ -389,18 +389,20 @@ export default function VideoUntertitelApp() {
             });
           } catch (loadErr) {
             const err = loadErr as Error;
+            console.error("[FFmpeg Load]", err);
             if (err?.message?.includes("NetworkError") || err?.message?.includes("fetch")) {
               throw new Error(
                 "FFmpeg-Dateien konnten nicht heruntergeladen werden. Überprüfen Sie Ihre Internetverbindung."
               );
             }
-            throw err;
+            throw new Error(`FFmpeg konnte nicht initialisiert werden: ${err?.message || JSON.stringify(err)}`);
           }
           
           ffmpegRef.current = ff;
         } catch (importErr) {
           const err = importErr as Error;
-          throw new Error(`FFmpeg-Fehler: ${err?.message || "Unbekannter Fehler"}`);
+          console.error("[FFmpeg Import]", err);
+          throw new Error(`FFmpeg-Fehler: ${err?.message || JSON.stringify(err) || "Unbekannter Fehler"}`);
         }
       }
 

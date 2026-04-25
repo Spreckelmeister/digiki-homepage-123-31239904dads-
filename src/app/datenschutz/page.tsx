@@ -270,7 +270,7 @@ export default function DatenschutzPage() {
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
-                KI-gestützte Werkzeuge: Texterkennung, Textverarbeitung, Video-Untertitel und Audio-Transkription
+                KI-gestützte Werkzeuge: Texterkennung, Textverarbeitung und Video-Untertitel
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
                 Folgende Werkzeuge nutzen moderne <strong>Machine-Learning-Modelle</strong>,
@@ -342,24 +342,6 @@ export default function DatenschutzPage() {
               <p className="text-text-light leading-relaxed mb-4">
                 Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
                 Barrierefreiem Zugang zu Videomaterialien).
-              </p>
-
-              <h4 className="text-base font-semibold text-text mb-2">
-                Auto-Transkription (Whisper Speech-to-Text)
-              </h4>
-              <p className="text-text-light leading-relaxed mb-4">
-                Das Werkzeug transkribiert Sprache aus Audiodateien zu Text:
-              </p>
-              <ol className="list-decimal ml-6 text-text-light space-y-2 mb-4">
-                <li>Sie laden eine Audiodatei hoch oder nehmen direkt auf</li>
-                <li>Das Whisper-Modell wird von<code className="font-mono text-sm">
-                  huggingface.co</code> oder <code className="font-mono text-sm">cdn.jsdelivr.net</code> heruntergeladen</li>
-                <li>Die Spracherkennung läuft in Ihrem Browser ab – nicht auf unseren Servern</li>
-                <li>Das Transkript wird angezeigt und kann heruntergeladen werden</li>
-              </ol>
-              <p className="text-text-light leading-relaxed mb-4">
-                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
-                Vereinfachung der Inhaltserfassung im Unterricht).
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
