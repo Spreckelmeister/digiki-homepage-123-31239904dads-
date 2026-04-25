@@ -13,6 +13,11 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
+      {/* DNS + TLS vorab für Tesseract-Core (jsDelivr) und Sprachpaket. */}
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://tessdata.projectnaptha.com" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+      <link rel="dns-prefetch" href="https://tessdata.projectnaptha.com" />
       <ToolHeader
         code="WZ-013"
         title="Arbeitsblatt-Scanner"

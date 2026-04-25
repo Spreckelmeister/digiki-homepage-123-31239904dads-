@@ -10,24 +10,35 @@
     "upload-images": "tsx scripts/upload-images.ts"
   },
   "dependencies": {
+    "@mediapipe/selfie_segmentation": "^0.1.1675465747",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
+    "@tensorflow/tfjs": "^4.11.0",
     "@types/nodemailer": "^7.0.11",
-    "@vercel/analytics": "^2.0.1",
+    "@upscalerjs/default-model": "^1.0.0-beta.17",
+    "@vercel/analytics": "^1.1.4",
     "@vercel/blob": "^2.3.3",
-    "@vercel/speed-insights": "^2.0.0",
+    "@vercel/speed-insights": "^1.0.4",
     "lucide-react": "^0.468.0",
-    "next": "^15.5.14",
+    "next": "^16.2.4",
     "nodemailer": "^8.0.1",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "tesseract.js": "^7.0.0",
+    "upscaler": "^1.0.0-beta.19"
   },
   "browserslist": [
     ">0.3% and supports es6-module and not dead"
   ],
+  "overrides": {
+    "postcss": "^8.5.10",
+    "wireit": {
+      "brace-expansion": "^5.0.5"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",

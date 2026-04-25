@@ -16,6 +16,11 @@ import {
   TextCursorInput,
   Image as ImageIcon,
   AudioLines,
+  Scissors,
+  Mic,
+  ScanText,
+  Wand2,
+  Captions,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 
@@ -156,6 +161,69 @@ const categories: Category[] = [
         title: "Audio aufnehmen & trimmen",
         description:
           "Sprachnachricht aufnehmen oder MP3 zuschneiden – komplett im Browser, ohne Upload.",
+        available: true,
+      },
+    ],
+  },
+  {
+    id: "lokale-ki",
+    index: "04",
+    eyebrow: "Edge-AI",
+    title: "Lokale KI",
+    body: "Sprachmodelle, Bild-KI und Whisper – alles läuft direkt in Ihrem Browser auf CPU oder GPU. Kein Server, kein Login, keine Daten verlassen das Gerät.",
+    tools: [
+      {
+        href: "/werkzeuge/bild-verbesserer",
+        eyebrow: "WZ-010",
+        icon: <Sparkles className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "KI-Bild-Verbesserer",
+        description:
+          "Verdoppelt die Auflösung verpixelter Schul-Scans oder Fotos – ein neuronales Netz auf Ihrer Grafikkarte.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/hintergrund-entfernen",
+        eyebrow: "WZ-011",
+        icon: <Scissors className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Hintergrund-Entferner",
+        description:
+          "Stellt Personen automatisch frei (transparenter Hintergrund) – ideal für Steckbriefe oder Klassenfotos.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/auto-transkription",
+        eyebrow: "WZ-012",
+        icon: <Mic className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Diktiergerät & Transkription",
+        description:
+          "Sprachnotiz aufnehmen oder Audio-Datei laden – Whisper tippt auf Deutsch ab. Komplett offline-fähig.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/arbeitsblatt-scanner",
+        eyebrow: "WZ-013",
+        icon: <ScanText className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Arbeitsblatt-Scanner",
+        description:
+          "Foto vom Arbeitsblatt oder Tafelbild – die KI erkennt deutschen Text und macht ihn bearbeitbar.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/text-differenzierer",
+        eyebrow: "WZ-014",
+        icon: <Wand2 className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "KI-Text-Differenzierer",
+        description:
+          "Texte vereinfachen, zusammenfassen oder Verständnisfragen erstellen – Sprachmodell läuft auf Ihrer GPU.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/video-untertitel",
+        eyebrow: "WZ-015",
+        icon: <Captions className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Video-Untertitel",
+        description:
+          "Generiert .vtt-Untertitel für Schul-Videos automatisch – FFmpeg + Whisper, beides im Browser.",
         available: true,
       },
     ],

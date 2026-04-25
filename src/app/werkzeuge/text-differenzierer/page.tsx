@@ -13,6 +13,13 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
+      {/* DNS + TLS vorab für WebLLM-Modell (HF + GitHub Raw für Konfig-Shards). */}
+      <link rel="preconnect" href="https://huggingface.co" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://raw.githubusercontent.com" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://huggingface.co" />
+      <link rel="dns-prefetch" href="https://cdn-lfs.huggingface.co" />
+      <link rel="dns-prefetch" href="https://raw.githubusercontent.com" />
       <ToolHeader
         code="WZ-014"
         title="KI-Text-Differenzierer"

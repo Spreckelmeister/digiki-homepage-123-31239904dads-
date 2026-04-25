@@ -13,6 +13,11 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
+      {/* DNS + TLS vorab für Hugging Face (Whisper-Tiny). */}
+      <link rel="preconnect" href="https://huggingface.co" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://huggingface.co" />
+      <link rel="dns-prefetch" href="https://cdn-lfs.huggingface.co" />
       <ToolHeader
         code="WZ-012"
         title="Diktiergerät & Transkription"

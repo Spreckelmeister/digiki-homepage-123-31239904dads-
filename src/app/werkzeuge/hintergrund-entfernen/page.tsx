@@ -13,6 +13,9 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
+      {/* DNS + TLS vorab aufbauen, damit der erste Modell-Fetch schneller ist. */}
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
       <ToolHeader
         code="WZ-011"
         title="Hintergrund-Entferner"
