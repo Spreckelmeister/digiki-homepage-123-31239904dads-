@@ -384,7 +384,14 @@ export default function VideoUntertitelApp() {
               // classWorkerURL lädt den FFmpeg-Worker direkt aus public/,
               // umgeht damit den Bundler (Turbopack/Webpack scheitert sonst
               // an `await import(_coreURL)` mit dynamischer Blob-URL).
-              classWorkerURL: "/ffmpeg-worker/worker.js",
+              // Vollqualifizierte URL nötig, weil der UMD-Build von
+              // @ffmpeg/ffmpeg `import.meta.url` als `file:///Users/focus/...`
+              // hardcoded hat – ein relativer Pfad würde gegen diese Basis
+              // aufgelöst und ergäbe `file:///ffmpeg-worker/worker.js`.
+              classWorkerURL: new URL(
+                "/ffmpeg-worker/worker.js",
+                window.location.origin
+              ).href,
               coreURL: await utilMod.toBlobURL(
                 `${FFMPEG_BASE}/ffmpeg-core.js`,
                 "text/javascript"

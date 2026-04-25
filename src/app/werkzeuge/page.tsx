@@ -502,7 +502,10 @@ export default function WerkzeugePage() {
         </div>
       </section>
 
-      {/* Stagger-Reveal: kurz & billig (nur opacity + transform → GPU-only) */}
+      {/* Stagger-Reveal: kurz & billig (nur opacity + transform → GPU-only).
+          Kein dauerhaftes `will-change` – das ließ alle 15 Karten als
+          dedizierte Compositor-Layer leben und verschlechterte INP für den
+          ersten Klick. Nach `forwards` ist die Karte ohnehin im Endzustand. */}
       <style>{`
         @keyframes tool-card-in {
           from { opacity: 0; transform: translateY(8px); }
@@ -510,7 +513,6 @@ export default function WerkzeugePage() {
         }
         .tool-card {
           animation: tool-card-in 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-          will-change: opacity, transform;
         }
         @media (prefers-reduced-motion: reduce) {
           .tool-card { animation: none; }

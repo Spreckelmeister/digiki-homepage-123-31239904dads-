@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { Printer, RotateCw, Wand2, Eye, EyeOff, Key } from "lucide-react";
 
 type Direction = { dx: number; dy: number; name: string };
@@ -135,38 +135,43 @@ export default function SuchselApp() {
   const [seed, setSeed] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
 
+  // Eingabe und Raster-Größe werden „deferred" gerendert: Tippen im Wörter-
+  // Feld bzw. Schieben des Größen-Sliders aktualisiert die Inputs sofort,
+  // die teure Generierung (bis zu 80 Zufalls-Versuche × N Wörter und ein
+  // Re-Render von bis zu 400 Zellen) läuft mit niedrigerer Priorität – das
+  // hält die Input-Latenz unter dem nächsten Frame.
+  const deferredRawWords = useDeferredValue(rawWords);
+  const deferredSize = useDeferredValue(size);
+
   const words = useMemo(
     () =>
-      rawWords
+      deferredRawWords
         .split(/[\n,;]+/)
         .map((w) => normalizeWord(w))
         .filter((w) => w.length >= 2),
-    [rawWords]
+    [deferredRawWords]
   );
 
   const result = useMemo(
-    () => generateSuchsel(words, size, allowDiagonal, allowReverse),
+    () => generateSuchsel(words, deferredSize, allowDiagonal, allowReverse),
     // seed ist bewusst Teil der dependencies, damit „Neu generieren" neu rollt
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [words, size, allowDiagonal, allowReverse, seed]
+    [words, deferredSize, allowDiagonal, allowReverse, seed]
   );
 
-  const isSolutionCell = useCallback(
-    (r: number, c: number): boolean => {
-      return result.placedWords.some((p) => {
-        for (let i = 0; i < p.word.length; i++) {
-          if (
-            p.row + p.direction.dy * i === r &&
-            p.col + p.direction.dx * i === c
-          ) {
-            return true;
-          }
-        }
-        return false;
-      });
-    },
-    [result]
-  );
+  // Lösungs-Zellen als Set<r*size+c> — O(1)-Lookup statt O(words × len) pro
+  // Zelle. Bei einem 20×20-Raster sparen wir so ~16k Iterationen pro Render.
+  const solutionCells = useMemo(() => {
+    const set = new Set<number>();
+    for (const p of result.placedWords) {
+      for (let i = 0; i < p.word.length; i++) {
+        const r = p.row + p.direction.dy * i;
+        const c = p.col + p.direction.dx * i;
+        set.add(r * deferredSize + c);
+      }
+    }
+    return set;
+  }, [result, deferredSize]);
 
   /**
    * Druckt in einem bestimmten Lösungs-Modus und stellt danach den vorherigen
@@ -371,7 +376,7 @@ export default function SuchselApp() {
               <div
                 className="mx-auto grid gap-0 font-mono font-bold bg-white border-2 border-text"
                 style={{
-                  gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
+                  gridTemplateColumns: `repeat(${deferredSize}, minmax(0, 1fr))`,
                   maxWidth: "min(100%, 560px)",
                   aspectRatio: "1 / 1",
                 }}
@@ -379,7 +384,8 @@ export default function SuchselApp() {
               >
                 {result.grid.map((row, r) =>
                   row.map((cell, c) => {
-                    const highlight = showSolution && isSolutionCell(r, c);
+                    const highlight =
+                      showSolution && solutionCells.has(r * deferredSize + c);
                     return (
                       <div
                         key={`${r}-${c}`}
