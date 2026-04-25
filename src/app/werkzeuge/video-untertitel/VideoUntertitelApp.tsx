@@ -791,7 +791,7 @@ export default function VideoUntertitelApp() {
                   ))}
                 </ul>
                 <p className="mt-2 text-[10px] text-white/40 leading-relaxed">
-                  Einmaliger Download · ca. 40 MB · wird im Browser gespeichert.
+                  Einmaliger Download · ca. 150 MB · wird im Browser gespeichert.
                 </p>
               </div>
             )}
