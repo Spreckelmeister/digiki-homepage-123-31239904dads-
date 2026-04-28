@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Bestandsaufnahme Digitalisierung & KI – Grundschulen Stadt & Landkreis Osnabrück</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --stadt: #2563eb;       /* Blau für Stadt */
+    --stadt-bg: #dbeafe;
+    --land: #16a34a;        /* Grün für Landkreis */
+    --land-bg: #dcfce7;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #f59e0b;
+    --warn: #dc2626;
+    --good: #059669;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #14532d 100%);
+    color: white; padding: 40px 50px;
+  }
+  header h1 { margin: 0 0 8px; font-size: 32px; font-weight: 700; }
+  header p { margin: 0; opacity: 0.9; font-size: 16px; }
+  nav {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 12px 50px; position: sticky; top: 0; z-index: 100;
+    overflow-x: auto; white-space: nowrap;
+  }
+  nav a {
+    color: var(--muted); text-decoration: none; margin-right: 24px;
+    font-size: 14px; font-weight: 500; padding: 6px 0;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  nav a:hover { color: var(--text); border-color: var(--accent); }
+  main { padding: 30px 50px 60px; max-width: 1400px; margin: 0 auto; }
+  section { margin-bottom: 50px; scroll-margin-top: 70px; }
+  h2 {
+    font-size: 24px; margin: 0 0 8px; padding-bottom: 8px;
+    border-bottom: 3px solid var(--accent); display: inline-block;
+  }
+  h3 { font-size: 18px; margin: 24px 0 12px; color: var(--text); }
+  .lead { color: var(--muted); margin: 0 0 24px; font-size: 15px; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi .val { font-size: 32px; font-weight: 700; margin: 4px 0; }
+  .kpi .sub { font-size: 13px; color: var(--muted); }
+  .kpi.stadt { border-left: 4px solid var(--stadt); }
+  .kpi.land { border-left: 4px solid var(--land); }
+  .kpi.warn { border-left: 4px solid var(--warn); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h3 { margin-top: 0; }
+  .chart-wrap { position: relative; height: 320px; }
+  .chart-wrap.tall { height: 420px; }
+  .chart-wrap.short { height: 220px; }
+  .legend {
+    display: flex; gap: 20px; margin-bottom: 12px; font-size: 13px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  .swatch-stadt { background: var(--stadt); }
+  .swatch-land { background: var(--land); }
+  .insight {
+    border-left: 4px solid var(--accent); background: #fffbeb;
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin-top: 16px;
+    font-size: 14px;
+  }
+  .insight strong { color: var(--text); }
+  .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pillar {
+    background: var(--card); border-radius: 12px; padding: 24px;
+    border: 1px solid var(--border);
+  }
+  .pillar.stadt { border-top: 4px solid var(--stadt); }
+  .pillar.land { border-top: 4px solid var(--land); }
+  .pillar h4 { margin: 0 0 12px; font-size: 17px; }
+  .pillar ul { padding-left: 20px; margin: 0; }
+  .pillar li { margin-bottom: 6px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { background: #f1f5f9; font-weight: 600; font-size: 13px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .b-claude { background: #ecfeff; color: #0e7490; }
+  .b-other { background: #fef3c7; color: #92400e; }
+  .b-infra { background: #fee2e2; color: #991b1b; }
+  .conclusion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .conclusion-grid { grid-template-columns: 1fr; } }
+  .concl-card {
+    background: var(--card); border-radius: 12px; padding: 22px;
+    border: 1px solid var(--border);
+  }
+  .concl-card h4 { margin-top: 0; }
+  .concl-card.urgent { border-left: 5px solid var(--warn); }
+  .concl-card.opp { border-left: 5px solid var(--good); }
+  .concl-card.med { border-left: 5px solid var(--accent); }
+  .footer-note { color: var(--muted); font-size: 13px; margin-top: 30px; text-align: center; }
+  .matrix-cell { padding: 8px 10px; border-radius: 6px; }
+  .heat-1 { background: #fee2e2; }
+  .heat-2 { background: #fef3c7; }
+  .heat-3 { background: #d1fae5; }
+  .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bestandsaufnahme Digitalisierung & KI</h1>
+  <p>Grundschulen Stadt &amp; Landkreis Osnabrück · 20 Schulen · Stand April 2026</p>
+</header>
+
+<nav>
+  <a href="#ueberblick">Überblick</a>
+  <a href="#infrastruktur">Infrastruktur</a>
+  <a href="#tools">Tools im Einsatz</a>
+  <a href="#ki">KI-Nutzung</a>
+  <a href="#fortbildung">Fortbildungsbedarf</a>
+  <a href="#schlussfolgerungen">Schlussfolgerungen</a>
+  <a href="#claude">Was Claude abdecken kann</a>
+  <a href="#luecken">Verbleibende Lücken</a>
+</nav>
+
+<main>
+
+<!-- ========================= ÜBERBLICK ========================= -->
+<section id="ueberblick">
+  <h2>1 · Überblick</h2>
+  <p class="lead">20 valide Antworten – 5 Schulen aus der Stadt Osnabrück, 15 aus dem Landkreis Osnabrück. Die Stichprobe ist klein, zeigt aber sehr klare Tendenzen.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Schulen gesamt</div><div class="val">20</div><div class="sub">5 Stadt · 15 Landkreis</div></div>
+    <div class="kpi stadt"><div class="label">Ø WLAN-Bewertung</div><div class="val" style="color:var(--stadt)">4,2 / 5</div><div class="sub">Stadt – sehr gut</div></div>
+    <div class="kpi land"><div class="label">Ø WLAN-Bewertung</div><div class="val" style="color:var(--land)">3,9 / 5</div><div class="sub">Landkreis – gut</div></div>
+    <div class="kpi warn"><div class="label">Ø KI-Kompetenz</div><div class="val" style="color:var(--warn)">2,0 / 5</div><div class="sub">über alle Schulen</div></div>
+    <div class="kpi"><div class="label">Schulen ohne KI-Fortbildung</div><div class="val">17 / 20</div><div class="sub">85 % – Interesse vorhanden</div></div>
+    <div class="kpi"><div class="label">Schulen ohne digitale Diagnostik</div><div class="val">14 / 20</div><div class="sub">70 %</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Selbsteinschätzung Digitalisierungsgrad (1–5)</h3>
+      <div class="legend"><div class="legend-item"><span class="legend-swatch swatch-stadt"></span>Stadt</div><div class="legend-item"><span class="legend-swatch swatch-land"></span>Landkreis</div></div>
+      <div class="chart-wrap"><canvas id="chartSelbst"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Wahrnehmung des technischen Supports (1–5)</h3>
+      <div class="legend"><div class="legend-item"><span class="legend-swatch swatch-stadt"></span>Stadt</div><div class="legend-item"><span class="legend-swatch swatch-land"></span>Landkreis</div></div>
+      <div class="chart-wrap"><canvas id="chartSupport"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Auffällig:</strong> Stadt-Schulen schätzen ihren Digitalisierungsgrad <em>niedriger</em> ein (Ø 2,5) als Landkreis-Schulen (Ø 3,0), obwohl WLAN und Support in der Stadt deutlich besser bewertet werden. Mögliche Erklärung: Stadt-Schulen haben höhere Erwartungen und/oder mehr DaZ-Bedarf (4 von 5 Stadt-Schulen mit 25–50&nbsp;% DaZ-Anteil).
+  </div>
+</section>
+
+<!-- ========================= INFRASTRUKTUR ========================= -->
+<section id="infrastruktur">
+  <h2>2 · Infrastruktur &amp; Geräteausstattung</h2>
+  <p class="lead">Was steht in den Schulen tatsächlich? Wie ist der technische Unterbau?</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Verfügbare Endgeräte (Anteil der Schulen)</h3>
+      <div class="chart-wrap"><canvas id="chartDevices"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Genutzte Plattformen / Infrastruktur</h3>
+      <div class="chart-wrap"><canvas id="chartInfra"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:24px">
+    <div class="card">
+      <h3>Größte Herausforderungen (Top-10)</h3>
+      <div class="chart-wrap tall"><canvas id="chartChallenges"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Stand des Medienkonzepts</h3>
+      <div class="chart-wrap"><canvas id="chartMedia"></canvas></div>
+      <h3 style="margin-top:24px">Medienverantwortliche/r vorhanden?</h3>
+      <div class="chart-wrap short"><canvas id="chartMediaResp"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Kernbefund Infrastruktur:</strong>
+    iPads/Tablets und IServ sind in beiden Räumen flächendeckend vorhanden (100&nbsp;%). Im Landkreis taucht zusätzlich Microsoft 365 (4 Schulen) und Schul-Cloud Niedersachsen (2 Schulen) auf – das erschwert einheitliche Schulungen. <br>
+    <strong>Engpass Nr. 1 ist Zeit, nicht Hardware:</strong> "Zeitmangel im Kollegium" wird in 18 von 20 Schulen genannt. Im Landkreis kommt "zu wenig verfügbare Geräte" (10/15) und "Wartung bindet zu viel Zeit" (8/15) deutlich häufiger vor als in der Stadt.
+  </div>
+</section>
+
+<!-- ========================= TOOLS ========================= -->
+<section id="tools">
+  <h2>3 · Bereits eingesetzte Tools im Unterricht</h2>
+  <p class="lead">Welche Software wird tatsächlich genutzt – und wie oft?</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Top-Tools nach Anteil der Schulen</h3>
+      <div class="chart-wrap tall"><canvas id="chartTools"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Nutzungsfrequenz digitaler Tools</h3>
+      <div class="chart-wrap"><canvas id="chartFreq"></canvas></div>
+      <h3 style="margin-top:24px">Digitale Förderdiagnostik im Einsatz?</h3>
+      <div class="chart-wrap short"><canvas id="chartDiag"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Tool-Landschaft ist homogen:</strong> Anton, Antolin und Worksheet Crafter sind quasi Standard. Im Landkreis nutzen 60&nbsp;% der Schulen täglich digitale Tools – in der Stadt nur 40&nbsp;%. <br>
+    <strong>Diagnostik ist eine echte Lücke:</strong> 70&nbsp;% nutzen <em>keine</em> digitale Förderdiagnostik – obwohl der Bedarf in den Trainingswünschen ganz oben steht (Stadt sogar #1).
+  </div>
+</section>
+
+<!-- ========================= KI-NUTZUNG ========================= -->
+<section id="ki">
+  <h2>4 · KI-Nutzung &amp; eingesetzte KI-Tools</h2>
+  <p class="lead">Wer nutzt KI? Welche Tools? Wofür? Und wo sind die Bedenken?</p>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Schulen mit KI-Nutzung</div><div class="val">16 / 20</div><div class="sub">80 % – aber nur einzelne Lehrkräfte</div></div>
+    <div class="kpi land"><div class="label">Landkreis: regelmäßige KI-Nutzung</div><div class="val" style="color:var(--land)">4 / 15</div><div class="sub">"mehrere Lehrkräfte regelmäßig"</div></div>
+    <div class="kpi stadt"><div class="label">Stadt: regelmäßige KI-Nutzung</div><div class="val" style="color:var(--stadt)">0 / 5</div><div class="sub">nur "einzelne gelegentlich"</div></div>
+    <div class="kpi warn"><div class="label">Ø selbst eingeschätzte KI-Kompetenz</div><div class="val" style="color:var(--warn)">2,0 / 5</div><div class="sub">Stadt 1,5 · Landkreis 2,3</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Genutzte KI-Tools (Anzahl Schulen)</h3>
+      <div class="chart-wrap tall"><canvas id="chartAITools"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Wofür wird KI eingesetzt?</h3>
+      <div class="chart-wrap tall"><canvas id="chartAIPurposes"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:24px">
+    <div class="card">
+      <h3>Bedenken &amp; Hürden beim KI-Einsatz</h3>
+      <div class="chart-wrap tall"><canvas id="chartAIConcerns"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Bisherige KI-Fortbildungen</h3>
+      <div class="chart-wrap"><canvas id="chartAITrain"></canvas></div>
+      <div class="insight" style="margin-top:16px">
+        <strong>17 von 20 Schulen</strong> haben noch <em>keine</em> KI-Fortbildung besucht – aber <strong>Interesse ist da</strong>. Nur eine Schule sagt "kein Interesse".
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>ChatGPT dominiert</strong> (15 Nennungen), gefolgt von Canva AI (7) – datenschutzkritische Tools. DSGVO-konforme Lösungen wie Telli (2), Fobizz (3) oder SchulKI sind kaum verbreitet. <strong>Claude wird aktuell nur in 1 Schule genutzt.</strong> <br>
+    <strong>Stadt vs. Landkreis:</strong> Im Landkreis liegt der Fokus stärker auf Qualität/Verlässlichkeit der KI-Ergebnisse (12/15) – in der Stadt eher auf fehlenden Kompetenzen und Zeit. Datenschutz ist überall ein Thema, aber im Landkreis prominenter.
+  </div>
+</section>
+
+<!-- ========================= FORTBILDUNGSBEDARF ========================= -->
+<section id="fortbildung">
+  <h2>5 · Fortbildungsbedarf &amp; Format-Wünsche</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Top-Themen für Fortbildungen</h3>
+      <div class="chart-wrap tall"><canvas id="chartTrainNeeds"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Bevorzugte Formate</h3>
+      <div class="chart-wrap"><canvas id="chartFormats"></canvas></div>
+      <h3 style="margin-top:24px">Bevorzugte Zeiten</h3>
+      <div class="chart-wrap short"><canvas id="chartTimes"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:24px">
+    <div class="card">
+      <h3>Konkrete Unterstützungsbedarfe</h3>
+      <div class="chart-wrap tall"><canvas id="chartSupportNeeds"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Gewünschte Software-Lizenzen</h3>
+      <div class="chart-wrap tall"><canvas id="chartLicenses"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Klare Prioritäten:</strong>
+    Im <strong>Landkreis</strong> stehen "KI für Unterrichtsvorbereitung" (13/15) und "KI-Grundlagen" (12/15) ganz oben.
+    In der <strong>Stadt</strong> ist "Digitale Förderdiagnostik" das Top-Thema (5/5 = 100&nbsp;%) – das passt zum hohen DaZ-Anteil und Startchancen-Profil. <br>
+    <strong>Format:</strong> Landkreis bevorzugt SchiLF und ganztägige Präsenzschulungen (jeweils 10–11/15). Die Stadt wünscht sich vor allem <strong>individuelle Begleitung vor Ort</strong> (4/5) – z.B. durch studentische Hilfskräfte. <br>
+    <strong>Zeit:</strong> Beide Räume bevorzugen Fortbildungen <em>während der Unterrichtszeit mit Vertretung</em> bzw. nachmittags.
+  </div>
+</section>
+
+<!-- ========================= SCHLUSSFOLGERUNGEN ========================= -->
+<section id="schlussfolgerungen">
+  <h2>6 · Schlussfolgerungen für Schulträger &amp; Infrastruktur</h2>
+  <p class="lead">Was muss nachgebessert werden? Differenziert nach Stadt und Landkreis.</p>
+
+  <div class="pillars">
+    <div class="pillar stadt">
+      <h4 style="color:var(--stadt)">Stadt Osnabrück (n = 5)</h4>
+      <p><strong>Stärken:</strong> Gute WLAN-Versorgung (Ø 4,2), sehr gute Support-Bewertung (Ø 4,5), durchgängig &gt;30 Tablets pro Schule, gemeinsamer Stack (IServ).</p>
+      <p><strong>Handlungsfelder Schulträger:</strong></p>
+      <ul>
+        <li><strong>Förderdiagnostik priorisieren</strong> – 100 % der Stadt-Schulen wünschen sich hier Schulungen. Lizenzpaket für DaZ/LRS-Tools (Deutschfuchs, Meister Cody, Levumi) zentral beschaffen.</li>
+        <li><strong>KI-Kompetenz aufbauen</strong> – mit Ø 1,5 / 5 das niedrigste Selbsteinschätzungs-Niveau. Bisher 0 Schulen mit "regelmäßiger KI-Nutzung".</li>
+        <li><strong>Studentische Hilfskräfte</strong> als 1:1-Begleitung etablieren – wird von 4 von 5 Schulen explizit gewünscht.</li>
+        <li><strong>Entlastungsstunden</strong> für digitale Koordination – 4 von 5 Medienverantwortlichen arbeiten ohne Entlastung.</li>
+        <li>Skepsis im Kollegium ist in Stadt-Schulen ausgeprägter (4/5) – braucht Change-Management und niederschwellige Erfolgserlebnisse.</li>
+      </ul>
+    </div>
+
+    <div class="pillar land">
+      <h4 style="color:var(--land)">Landkreis Osnabrück (n = 15)</h4>
+      <p><strong>Stärken:</strong> Höhere Eigeneinschätzung (Ø 3,0), 9/15 nutzen täglich digitale Tools, mehr regelmäßige KI-Anwender:innen (4/15).</p>
+      <p><strong>Handlungsfelder Schulträger:</strong></p>
+      <ul>
+        <li><strong>Geräteausstattung aufstocken</strong> – 10/15 nennen "zu wenige Geräte"; 2/15 Schulen haben unter 20 Tablets. Hardware-Beschaffungsplan.</li>
+        <li><strong>Wartung &amp; technischer Support</strong> – Support-Zufriedenheit nur Ø 3,4. Wartungs-/Update-Zyklen binden Lehrkräftezeit (8/15).</li>
+        <li><strong>WLAN-Reichweite</strong> – 2 Schulen melden instabiles oder lückenhaftes WLAN, weitere bewerten mit ≤ 3.</li>
+        <li><strong>Plattform-Heterogenität reduzieren</strong> – IServ + MS365 + Schulserver + Schul-Cloud parallel im Einsatz. Klare Trägerempfehlung sinnvoll.</li>
+        <li><strong>Praxisnahe Fortbildungen</strong> – Top-Wunsch Nr. 1 (11/15). KI-Grundlagen + Materialerstellung als Einstieg.</li>
+        <li><strong>Best-Practice-Pool</strong> aufbauen – 14/15 haben aktuell keine eigenen Best-Practice-Beispiele.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:36px">Querschnittsthemen für beide Träger</h3>
+  <div class="conclusion-grid">
+    <div class="concl-card urgent">
+      <h4>🚨 Dringend nachbessern</h4>
+      <ul>
+        <li><strong>Zeitressourcen</strong> – Zeitmangel ist in 18/20 Schulen das Top-Hindernis. Ohne Entlastungsstunden bleibt jede Schulung wirkungslos.</li>
+        <li><strong>Datenschutzkonforme KI</strong> – ChatGPT (privat) ist Standard. DSGVO-konforme Alternativen müssen zentral lizenziert werden (Telli, Fobizz, SchulKI, Claude Enterprise).</li>
+        <li><strong>Digitale Förderdiagnostik</strong> – 70 % nutzen keine, 75 % wollen Schulungen.</li>
+      </ul>
+    </div>
+    <div class="concl-card med">
+      <h4>📊 Mittelfristig aufbauen</h4>
+      <ul>
+        <li><strong>Medienkonzepte aktualisieren</strong> – 11/20 haben veraltete Konzepte, 1 Schule arbeitet erst daran.</li>
+        <li><strong>Pilot-/Pionierschulen identifizieren</strong> – 5 Schulen sind grundsätzlich offen, 3 sehr gerne. Diese als Multiplikatoren nutzen.</li>
+        <li><strong>Studentische Hilfskräfte</strong> – Win-win für Uni/HS Osnabrück und Schulen, in beiden Räumen gewünscht.</li>
+      </ul>
+    </div>
+    <div class="concl-card opp">
+      <h4>✅ Quick Wins</h4>
+      <ul>
+        <li><strong>Lizenz-Sammeleinkauf</strong> für KI-Assistenz (10/20 wünschen) und adaptive Mathe-Plattform (12/20).</li>
+        <li><strong>Praxisnahe SchiLF-Reihe "KI im Unterrichtsalltag"</strong> – einfacher Einstieg, mehrfacher Wunsch.</li>
+        <li><strong>Best-Practice-Werkstatt</strong> mit den 2 Schulen, die bereits Praxis haben (Pilot-Multiplikatoren).</li>
+      </ul>
+    </div>
+    <div class="concl-card opp">
+      <h4>🤝 Strategisch verzahnen</h4>
+      <ul>
+        <li>Gemeinsamer KI-/Digitalpakt zwischen Stadt &amp; Landkreis – Skaleneffekte bei Lizenzen, Schulungen, studentischer Begleitung.</li>
+        <li>Anbindung an HS / Uni Osnabrück (Lehramt) – Praktikum + technischer Support koppeln.</li>
+        <li>Kein "großer Wurf" – stattdessen iterativ in Wellen: Welle 1 KI-Grundlagen, Welle 2 Förderdiagnostik, Welle 3 Tablet-Didaktik.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= CLAUDE-ABDECKUNG ========================= -->
+<section id="claude">
+  <h2>7 · Was Claude in den Kursen abdecken kann</h2>
+  <p class="lead">Mapping: KI-Bedarf der Schulen ↔ Claude-Kompetenzen. Dunkelblau = direkt mit Claude umsetzbar.</p>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Bedarf aus der Umfrage</th>
+          <th>Anteil Schulen</th>
+          <th>Mit Claude umsetzbar?</th>
+          <th>Konkrete Kursinhalte</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>KI für Unterrichtsvorbereitung &amp; Materialerstellung</td>
+          <td class="num">16 / 20 (80 %)</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Arbeitsblätter, Aufgabenformate, Differenzierungsstufen, Lernziele, Wochenpläne</td>
+        </tr>
+        <tr>
+          <td>KI-Grundlagen &amp; Einsatzmöglichkeiten</td>
+          <td class="num">14 / 20 (70 %)</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Was ist ein LLM? Prompting-Grundlagen, sinnvolle vs. ungeeignete Anwendungsfälle, "Halluzinations"-Erkennung</td>
+        </tr>
+        <tr>
+          <td>Texte in Leichte Sprache &amp; Übersetzung (DaZ)</td>
+          <td class="num">8 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Texte vereinfachen, mehrsprachige Elternbriefe, DaZ-Materialien anpassen, Bildbeschreibungen</td>
+        </tr>
+        <tr>
+          <td>Elternkommunikation</td>
+          <td class="num">8 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Elternbriefe, Konfliktgespräch-Vorbereitung, Übersetzungen, formelle Schreiben</td>
+        </tr>
+        <tr>
+          <td>Verwaltungsaufgaben (Protokolle, Berichte)</td>
+          <td class="num">4 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Protokolle aus Stichpunkten, Förderberichte, Zeugnisbemerkungen-Bausteine, Mailbeantwortung</td>
+        </tr>
+        <tr>
+          <td>Förderplanung &amp; Differenzierung</td>
+          <td class="num">6 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Individuelle Förderpläne aus Beobachtungen, 3-Stufen-Differenzierung, Lernziel-Cluster</td>
+        </tr>
+        <tr>
+          <td>Recherche / eigene Fortbildung</td>
+          <td class="num">6 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Fachartikel zusammenfassen, Methoden recherchieren, Sparringspartner für Unterrichtsideen</td>
+        </tr>
+        <tr>
+          <td>Rechtssicherer KI-Einsatz (DSGVO, AI-Act)</td>
+          <td class="num">6 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Welche Daten dürfen rein? Schüler:innen-Daten anonymisieren, Auftragsverarbeitung, AI-Act für Schulen</td>
+        </tr>
+        <tr>
+          <td>Change Management / Digitale Schulentwicklung</td>
+          <td class="num">3 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>SchiLF-Konzepte erstellen, Kollegiumskommunikation, Etappenpläne, Stakeholder-Mapping</td>
+        </tr>
+        <tr>
+          <td>Medienkonzeptentwicklung</td>
+          <td class="num">2 / 20</td>
+          <td><span class="badge b-claude">Voll</span></td>
+          <td>Strukturvorlagen, Bestandsaufnahme strukturieren, Maßnahmenkatalog formulieren</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="insight" style="margin-top:20px">
+    <strong>Faustregel für Kursplanung:</strong> Praktisch <em>alle textbasierten</em> KI-Use-Cases der Bestandsaufnahme lassen sich direkt mit Claude unterrichten. Empfohlene Kurs-Architektur:<br>
+    <span class="tag">Modul 1</span> KI-Grundlagen &amp; Prompting ·
+    <span class="tag">Modul 2</span> Materialerstellung &amp; Differenzierung ·
+    <span class="tag">Modul 3</span> DaZ &amp; Leichte Sprache ·
+    <span class="tag">Modul 4</span> Elternkommunikation &amp; Verwaltung ·
+    <span class="tag">Modul 5</span> Förderplanung ·
+    <span class="tag">Modul 6</span> Datenschutz &amp; AI-Act ·
+    <span class="tag">Modul 7</span> Schulentwicklung &amp; Medienkonzept
+  </div>
+</section>
+
+<!-- ========================= LÜCKEN ========================= -->
+<section id="luecken">
+  <h2>8 · Was bleibt – jenseits von Claude abzudecken</h2>
+  <p class="lead">Themen, die im Bedarf stehen, aber <em>nicht</em> oder nur teilweise mit einem allgemeinen KI-Sprachmodell zu lösen sind.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>📱 Hardware- &amp; Tool-Didaktik</h3>
+      <p><span class="badge b-other">Ergänzendes Angebot nötig</span></p>
+      <ul>
+        <li><strong>Tablets im Unterricht einsetzen</strong> (Wunsch 10/20) – iPad-Klassenmanagement, Apple Classroom/Jamf, methodische Settings.</li>
+        <li><strong>Interaktive Displays effektiv nutzen</strong> (4/20) – herstellerabhängig (Promethean, ActivPanel etc.).</li>
+        <li><strong>Adaptive Lernplattformen</strong> – Anton, Antolin, bettermarks, Matific. Eigene Lehrer:innen-Logik, didaktische Einbettung.</li>
+        <li><strong>Robotik/Coding</strong> (Calliope, Bee-Bot, Scratch) – nur 2 Schulen aktiv, aber Bestandteil Niedersächsischer Lehrpläne.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🩺 Spezialisierte Fachtools</h3>
+      <p><span class="badge b-other">Andere Anbieter / Spezial-Schulungen</span></p>
+      <ul>
+        <li><strong>Digitale Förderdiagnostik</strong> (Top-Wunsch Stadt: 5/5) – Levumi, Quop, ELFE-Online. Eigene Schulungen mit den Anbietern oder Landesinstitut.</li>
+        <li><strong>DaZ/LRS-Spezialprogramme</strong> – Deutschfuchs, Meister Cody. Lizenzfragen + spezifische Methodik.</li>
+        <li><strong>Leseförderung</strong> (Antolin Plus, Leseo, Onilo) – 12/15 Landkreis-Schulen wünschen Lizenzen.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🏗️ Infrastruktur &amp; Strukturmaßnahmen (Schulträger)</h3>
+      <p><span class="badge b-infra">Politisch / strukturell</span></p>
+      <ul>
+        <li><strong>Geräteausstattung</strong> – 10/15 LK-Schulen melden zu wenig Geräte. Beschaffungsoffensive nötig.</li>
+        <li><strong>WLAN-Ausbau</strong> in einzelnen LK-Schulen.</li>
+        <li><strong>Plattform-Konsolidierung</strong> (IServ vs. MS365 vs. Schul-Cloud) – einheitliche Trägerlinie.</li>
+        <li><strong>Wartung &amp; technischer Support</strong> – externer Dienstleister statt Lehrkräfte; klare Zuständigkeiten Schul-IT/Träger/Medienzentrum.</li>
+        <li><strong>Entlastungsstunden für Medienverantwortliche</strong> – 10/20 arbeiten aktuell <em>ohne</em> Entlastung. Strukturelle Frage des Landes/Trägers.</li>
+        <li><strong>Datenschutzkonforme KI-Lizenzen zentral</strong> beschaffen (Telli, Fobizz, SchulKI, Claude Enterprise/Education).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>👥 Menschliche Begleitung &amp; Vernetzung</h3>
+      <p><span class="badge b-other">Coaching / Communities</span></p>
+      <ul>
+        <li><strong>Studentische Hilfskräfte vor Ort</strong> (Stadt 4/5, LK 10/15) – Kooperation mit HS/Uni Osnabrück.</li>
+        <li><strong>Individuelles Coaching</strong> (LK 6/15) – 1:1-Begleitung durch Mentor:innen.</li>
+        <li><strong>Best-Practice-Pool &amp; Peer-Austausch</strong> – moderiertes Format zwischen Schulen.</li>
+        <li><strong>Skepsis im Kollegium abbauen</strong> (Stadt 4/5) – Change Management, nicht nur Tool-Schulung.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="insight" style="margin-top:20px">
+    <strong>Fazit:</strong> Claude eignet sich hervorragend für die <em>textbasierte</em> KI-Schulungslinie (geschätzt 60–70&nbsp;% des Schulungsbedarfs der Bestandsaufnahme). Daneben braucht es zwingend (a) hardware-/tool-spezifische Didaktik, (b) Spezial-Schulungen für Förderdiagnostik &amp; DaZ-Tools, (c) strukturelle Maßnahmen des Schulträgers (Geräte, WLAN, Entlastung, Lizenzen) und (d) menschliche Begleitformate (studentische Hilfskräfte, Coaching, Peer-Austausch).
+  </div>
+</section>
+
+<p class="footer-note">Datenbasis: 20 Schulen (5 Stadt Osnabrück, 15 Landkreis Osnabrück) · Erhebung &quot;Bestandsaufnahme&quot; · Stand 04/2026 · Auswertung: K. Krafft</p>
+
+</main>
+
+<script>
+// ============== Datenbasis (vorberechnet aus Auswertung) ==============
+const D = {
+  selbst: {
+    labels: ["1","2","3","4","5"],
+    stadt: [1,2,1,1,0],   // verteilung digitization_level Stadt (n=5; 1x1, 2x2, 1x3, 1x4)
+    land:  [0,3,8,4,0]    // verteilung digitization_level Landkreis (n=15)
+  },
+  support: {
+    labels: ["1","2","3","4","5"],
+    stadt: [0,0,1,1,3],   // n=5 Stadt
+    land:  [0,3,4,7,1]    // n=15 LK
+  }
+};
+
+// Helpers ---------------------------------------------------------------
+const C_STADT='#2563eb', C_LAND='#16a34a', C_STADT_LIGHT='rgba(37,99,235,.7)', C_LAND_LIGHT='rgba(22,163,74,.7)';
+Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+Chart.defaults.color = '#334155';
+
+function pct(arr, total) { return arr.map(v => Math.round(v/total*1000)/10); }
+
+// 1. Selbsteinschätzung Digitalisierungsgrad
+new Chart(document.getElementById('chartSelbst'), {
+  type:'bar',
+  data:{ labels: D.selbst.labels,
+    datasets:[
+      { label:'Stadt (% Schulen)', backgroundColor:C_STADT, data: pct(D.selbst.stadt,5) },
+      { label:'Landkreis (% Schulen)', backgroundColor:C_LAND, data: pct(D.selbst.land,15) }
+    ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>v+'%' } } },
+    plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c=>c.dataset.label.split(' ')[0]+': '+c.parsed.y+'%' } } } }
+});
+
+// 2. Support-Bewertung
+new Chart(document.getElementById('chartSupport'), {
+  type:'bar',
+  data:{ labels: D.support.labels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data: pct(D.support.stadt,5) },
+      { label:'Landkreis', backgroundColor:C_LAND, data: pct(D.support.land,15) }
+    ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>v+'%' } } },
+    plugins:{ legend:{ display:false } } }
+});
+
+// 3. Geräte
+const devicesLabels = ["iPads/Tablets","Interaktive Displays","Dokumentenkameras","Laptops/Notebooks","Desktop-PCs","Roboter (Calliope/Bee-Bot)"];
+const devStadt = [5,4,4,1,1,1];
+const devLand  = [15,12,8,3,2,1];
+new Chart(document.getElementById('chartDevices'), {
+  type:'bar',
+  data:{ labels:devicesLabels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data: pct(devStadt,5) },
+      { label:'Landkreis', backgroundColor:C_LAND, data: pct(devLand,15) }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+});
+
+// 4. Infrastruktur
+const infraLabels = ["IServ","Microsoft 365 / Teams","Schulserver (lokal)","Schul-Cloud Niedersachsen","Sonstiges"];
+const infraStadt = [5,0,1,0,0];
+const infraLand  = [15,4,3,2,1];
+new Chart(document.getElementById('chartInfra'), {
+  type:'bar',
+  data:{ labels:infraLabels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data: pct(infraStadt,5) },
+      { label:'Landkreis', backgroundColor:C_LAND, data: pct(infraLand,15) }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+});
+
+// 5. Challenges (Top 10 nach gesamt)
+const chLabels = [
+  "Zeitmangel im Kollegium",
+  "Zu wenig verfügbare Geräte",
+  "Keine Entlastungsstunden",
+  "Einrichtung dauert zu lange",
+  "Wartung/Updates binden Zeit",
+  "Langsamer techn. Support",
+  "Datenschutzanforderungen",
+  "Unklare Zuständigkeiten",
+  "Skepsis im Kollegium",
+  "Fehlende Fortbildungen"
+];
+const chStadt = [5,1,4,2,1,0,2,1,4,1];
+const chLand  = [13,10,10,8,8,5,3,4,2,3];
+new Chart(document.getElementById('chartChallenges'), {
+  type:'bar',
+  data:{ labels:chLabels,
+    datasets:[
+      { label:'Stadt (n=5)', backgroundColor:C_STADT, data:chStadt },
+      { label:'Landkreis (n=15)', backgroundColor:C_LAND, data:chLand }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } },
+    plugins:{ legend:{ position:'bottom' } } }
+});
+
+// 6. Medienkonzept
+new Chart(document.getElementById('chartMedia'), {
+  type:'doughnut',
+  data:{ labels:["Aktuell (<2J)","Veraltet","In Arbeit"],
+    datasets:[{ data:[8,11,1], backgroundColor:['#16a34a','#f59e0b','#94a3b8'] }] },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+});
+
+// 7. Medienverantwortliche
+new Chart(document.getElementById('chartMediaResp'), {
+  type:'bar',
+  data:{ labels:["Mit Entlastung","Ohne Entlastung","Niemand"],
+    datasets:[{ data:[5,10,5], backgroundColor:['#16a34a','#f59e0b','#dc2626'] }] },
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:false } },
+    scales:{ x:{ beginAtZero:true } } }
+});
+
+// 8. Top Tools
+const toolsLabels = ["Anton App","Antolin","Worksheet Crafter","BookCreator","Kahoot","LearningApps","Sofatutor","Padlet"];
+const toolsStadt = [5,4,5,5,3,2,1,2];
+const toolsLand  = [15,13,12,5,5,5,3,1];
+new Chart(document.getElementById('chartTools'), {
+  type:'bar',
+  data:{ labels:toolsLabels,
+    datasets:[
+      { label:'Stadt (% Schulen)', backgroundColor:C_STADT, data: pct(toolsStadt,5) },
+      { label:'Landkreis (% Schulen)', backgroundColor:C_LAND, data: pct(toolsLand,15) }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+});
+
+// 9. Nutzungsfrequenz
+new Chart(document.getElementById('chartFreq'), {
+  type:'bar',
+  data:{ labels:["Täglich","Mehrmals/Wo","Einmal/Wo","Mehrmals/Mo","Selten/nie"],
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:[2,3,0,0,0] },
+      { label:'Landkreis', backgroundColor:C_LAND, data:[9,3,1,1,1] }
+    ]},
+  options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+});
+
+// 10. Diagnostik
+new Chart(document.getElementById('chartDiag'), {
+  type:'doughnut',
+  data:{ labels:["Keine digitale Diagnostik","Sonstiges/teilweise"],
+    datasets:[{ data:[14,5], backgroundColor:['#dc2626','#f59e0b'] }] },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+});
+
+// 11. AI Tools
+const aiLabels = ["ChatGPT","Canva AI","Fobizz KI","Google Gemini","DeepL","Telli","Microsoft Copilot","Claude (Anthropic)"];
+const aiStadt = [4,2,1,1,1,1,0,0];
+const aiLand  = [11,5,2,1,1,1,1,1];
+new Chart(document.getElementById('chartAITools'), {
+  type:'bar',
+  data:{ labels:aiLabels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:aiStadt },
+      { label:'Landkreis', backgroundColor:C_LAND, data:aiLand }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } },
+    plugins:{ legend:{ position:'bottom' } } }
+});
+
+// 12. AI Purposes
+const apLabels = ["Unterrichtsvorbereitung","Elternkommunikation","Textübersetzung/Leichte Sprache","Recherche/Fortbildung","Verwaltungsaufgaben","Förderplanung","Differenzierung"];
+const apStadt = [4,1,3,1,1,1,1];
+const apLand  = [9,7,5,5,3,3,2];
+new Chart(document.getElementById('chartAIPurposes'), {
+  type:'bar',
+  data:{ labels:apLabels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:apStadt },
+      { label:'Landkreis', backgroundColor:C_LAND, data:apLand }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } },
+    plugins:{ legend:{ position:'bottom' } } }
+});
+
+// 13. AI Concerns
+const acLabels = ["Qualität/Verlässlichkeit","Zeitmangel Einarbeitung","Fehlende Kompetenzen","Pädagogische Bedenken","Datenschutz/DSGVO","Technische Hürden","AI-Act/Recht","Urheberrecht"];
+const acStadt = [2,5,5,3,1,4,1,1];
+const acLand  = [12,11,10,8,7,7,5,4];
+new Chart(document.getElementById('chartAIConcerns'), {
+  type:'bar',
+  data:{ labels:acLabels,
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:acStadt },
+      { label:'Landkreis', backgroundColor:C_LAND, data:acLand }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } },
+    plugins:{ legend:{ position:'bottom' } } }
+});
+
+// 14. AI Trainings bisher
+new Chart(document.getElementById('chartAITrain'), {
+  type:'doughnut',
+  data:{ labels:["Nein, aber Interesse","Ja, Fobizz","Ja, andere Anbieter","Nein, kein Interesse","Sonstiges","Ja, KOS"],
+    datasets:[{ data:[17,2,2,1,1,1], backgroundColor:['#f59e0b','#16a34a','#0e7490','#dc2626','#94a3b8','#7c3aed'] }] },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+});
+
+// 15. Training Needs
+const tnLabels = ["KI für Unterrichtsvorbereitung","KI-Grundlagen","Digitale Förderdiagnostik","Tablets im Unterricht","Sprachförderung/DaZ","Adaptive Lernplattformen","Rechtssicherer KI-Einsatz","Interaktive Displays","Change Management","Digitale Produktion"];
+const tnStadt = [3,2,5,1,3,3,1,1,0,0];
+const tnLand  = [13,12,10,9,8,7,5,3,3,2];
+new Chart(document.getElementById('chartTrainNeeds'), {
+  type:'bar',
+  data:{ labels:tnLabels,
+    datasets:[
+      { label:'Stadt (% Schulen)', backgroundColor:C_STADT, data: pct(tnStadt,5) },
+      { label:'Landkreis (% Schulen)', backgroundColor:C_LAND, data: pct(tnLand,15) }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+    plugins:{ legend:{ position:'bottom' } } }
+});
+
+// 16. Formats
+new Chart(document.getElementById('chartFormats'), {
+  type:'bar',
+  data:{ labels:["SchiLF","Ganztägige Präsenz","Indiv. Begleitung vor Ort","Halbtags-Workshops","Peer-Learning","Online (synchron)","Online (asynchron)"],
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:[2,1,4,3,1,1,1] },
+      { label:'Landkreis', backgroundColor:C_LAND, data:[11,10,10,9,5,4,1] }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+});
+
+// 17. Times
+new Chart(document.getElementById('chartTimes'), {
+  type:'bar',
+  data:{ labels:["Während Unterrichtszeit","Nachmittags","An Studientagen","In den Ferien","Samstags"],
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:[3,4,0,1,0] },
+      { label:'Landkreis', backgroundColor:C_LAND, data:[14,11,8,2,2] }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+});
+
+// 18. Support needs
+new Chart(document.getElementById('chartSupportNeeds'), {
+  type:'bar',
+  data:{ labels:["Praxisnahe Fortbildungen","Finanzierung Software-Lizenzen","Indiv. Beratung/Coaching","Best-Practice-Materialien","Studentische Hilfskräfte","Entlastungsstunden","Bessere Infrastruktur","Austausch andere Schulen"],
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:[2,3,1,0,4,4,0,0] },
+      { label:'Landkreis', backgroundColor:C_LAND, data:[11,7,6,6,5,5,2,1] }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+});
+
+// 19. Software Licenses
+new Chart(document.getElementById('chartLicenses'), {
+  type:'bar',
+  data:{ labels:["Leseförderung","Materialerstellung","KI-Assistenz","Adaptive Mathe-Plattform","DaZ/LRS-Förderung"],
+    datasets:[
+      { label:'Stadt', backgroundColor:C_STADT, data:[2,2,3,2,3] },
+      { label:'Landkreis', backgroundColor:C_LAND, data:[12,10,10,10,9] }
+    ]},
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    scales:{ x:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+});
+
+</script>
+</body>
+</html>
