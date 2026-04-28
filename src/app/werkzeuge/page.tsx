@@ -23,6 +23,8 @@ import {
   Captions,
   FlaskConical,
   GraduationCap,
+  Network,
+  CalendarClock,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 
@@ -142,8 +144,35 @@ const categories: Category[] = [
     ],
   },
   {
-    id: "multimedia",
+    id: "organisation",
     index: "03",
+    eyebrow: "Schulorganisation",
+    title: "Planung",
+    body: "Pädagogische Klassenbildung und Schuljahresplanung – als geteilte Klassenliste verbunden mit den anderen Werkzeugen.",
+    tools: [
+      {
+        href: "/werkzeuge/klassenverteilung",
+        eyebrow: "WZ-016",
+        icon: <Network className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Klassenverteilung",
+        description:
+          "Schüler*innen pädagogisch sinnvoll auf parallele Klassen verteilen – mit Wünschen, NoGo-Paaren, Geschwistern und Geschlechterbalance.",
+        available: true,
+      },
+      {
+        href: "/werkzeuge/schulleitungs-cockpit",
+        eyebrow: "WZ-017",
+        icon: <CalendarClock className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Schulleitungs-Cockpit",
+        description:
+          "Termine, Pflichttermine Niedersachsen, Brückentage und Ferien-/Feiertags-Konflikte in einer Ansicht. iCal-Export.",
+        available: true,
+      },
+    ],
+  },
+  {
+    id: "multimedia",
+    index: "04",
     eyebrow: "Medien",
     title: "Multimedia",
     body: "Bilder und Audio bearbeiten, bevor sie ins LMS, ins Arbeitsblatt oder in die Präsentation kommen.",
@@ -170,7 +199,7 @@ const categories: Category[] = [
   },
   {
     id: "lokale-ki",
-    index: "04",
+    index: "05",
     eyebrow: "Edge-AI · Experimentell",
     title: "Lokale KI",
     body: "Sprachmodelle, Bild-KI und Whisper – alles läuft direkt in Ihrem Browser auf CPU oder GPU. Kein Server, kein Login, keine Daten verlassen das Gerät.",
@@ -437,7 +466,7 @@ export default function WerkzeugePage() {
                           </span>
                         </div>
                         <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-accent-strong whitespace-nowrap">
-                          LAB · 04
+                          LAB · 05
                         </span>
                       </div>
 

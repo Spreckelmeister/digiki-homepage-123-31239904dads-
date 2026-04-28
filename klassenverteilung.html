@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Klassenverteilung</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','Helvetica Neue',sans-serif;background:#FAFAF7;color:#1A1A2E}
+@media print{.noprint{display:none!important}body{background:#fff}}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef } = React;
+const h = React.createElement;
+
+const C = {
+  bg: "#FAFAF7",
+  card: "#FFF",
+  primary: "#1B4332",
+  primaryMid: "#2D6A4F",
+  primaryLight: "#D8F3DC",
+  accent: "#E09F3E",
+  accentLight: "#FFF3DB",
+  danger: "#D00000",
+  dangerLight: "#FFE0E0",
+  text: "#1A1A2E",
+  textMid: "#555",
+  textLight: "#999",
+  border: "#E8E6E0",
+  boyBg: "#DBEAFE",
+  boyTxt: "#1E40AF",
+  girlBg: "#FCE7F3",
+  girlTxt: "#9D174D",
+  shadow: "0 1px 8px rgba(0,0,0,.06)",
+  success: "#2D6A4F",
+  successLight: "#D8F3DC",
+  moveBg: "#EDE9FE",
+  moveTxt: "#6D28D9",
+  warnBg: "#FFF7ED",
+  warnTxt: "#C2410C",
+  lockBg: "#FEF3C7",
+  lockTxt: "#92400E"
+};
+const ff = "'Segoe UI','Helvetica Neue',sans-serif";
+
+function Badge({ children, bg, color, style }) {
+  return h("span", { style: { display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: bg, color, ...(style || {}) } }, children);
+}
+
+function Btn({ children, onClick, v, disabled, small, style, title }) {
+  const V = {
+    primary: { background: C.primary, color: "#fff" },
+    accent: { background: C.accent, color: "#fff" },
+    danger: { background: C.danger, color: "#fff" },
+    ghost: { background: "transparent", color: C.primary, border: "1px solid " + C.border },
+    success: { background: C.success, color: "#fff" },
+    move: { background: C.moveBg, color: C.moveTxt }
+  };
+  return h("button", {
+    onClick, disabled, title,
+    style: {
+      padding: small ? "6px 12px" : "10px 18px",
+      borderRadius: 8, border: "none", fontFamily: ff,
+      fontSize: small ? 12 : 14, fontWeight: 600,
+      cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.45 : 1,
+      ...(V[v || "primary"] || V.primary),
+      ...(style || {})
+    }
+  }, children);
+}
+
+function Inp({ value, onChange, placeholder, style, onKeyDown, type }) {
+  return h("input", {
+    value, onKeyDown, placeholder,
+    type: type || "text",
+    onChange: (e) => onChange(e.target.value),
+    style: {
+      padding: "9px 12px", borderRadius: 8, border: "1px solid " + C.border,
+      fontFamily: ff, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
+      ...(style || {})
+    }
+  });
+}
+
+function Card({ children, style, className }) {
+  return h("div", {
+    className: className || "",
+    style: {
+      background: C.card, borderRadius: 12, padding: 16, boxShadow: C.shadow,
+      border: "1px solid " + C.border, marginBottom: 12, ...(style || {})
+    }
+  }, children);
+}
+
+function HelpTip({ open, onToggle, children }) {
+  return h("div", { style: { marginTop: 4, marginBottom: 4 } },
+    h("button", {
+      onClick: onToggle,
+      style: { background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, color: C.accent, fontFamily: ff, fontWeight: 600 }
+    }, open ? "▼ Ausblenden" : "ℹ️ Was bedeutet das?"),
+    open && h("div", {
+      style: { marginTop: 6, padding: "10px 12px", borderRadius: 8, background: C.accentLight, fontSize: 12, lineHeight: 1.6, color: C.textMid, borderLeft: "3px solid " + C.accent }
+    }, children)
+  );
+}
+
+function QRDisplay({ data, size }) {
+  const ref = useRef(null), prev = useRef(""), sz = size || 70;
+  useEffect(() => {
+    if (!ref.current || !data || !window.QRCode) return;
+    if (prev.current === data) return;
+    prev.current = data;
+    ref.current.innerHTML = "";
+    try {
+      new window.QRCode(ref.current, { text: data, width: sz, height: sz, colorDark: C.primary, colorLight: "#fff" });
+    } catch (e) {}
+  }, [data, sz]);
+  return h("div", { ref, style: { display: "inline-block" } });
+}
+
+function QRScanner({ onScan, onClose }) {
+  const vRef = useRef(null), sRef = useRef(null), iRef = useRef(null);
+  const scanRef = useRef(onScan);
+  const [err, setErr] = useState(null);
+  useEffect(() => { scanRef.current = onScan; }, [onScan]);
+  useEffect(() => {
+    let cancelled = false;
+    const stop = () => {
+      if (iRef.current) clearInterval(iRef.current);
+      if (sRef.current) sRef.current.getTracks().forEach((t) => t.stop());
+    };
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        sRef.current = stream;
+        if (vRef.current) { vRef.current.srcObject = stream; vRef.current.play(); }
+        if ("BarcodeDetector" in window) {
+          const det = new BarcodeDetector({ formats: ["qr_code"] });
+          iRef.current = setInterval(async () => {
+            if (!vRef.current || vRef.current.readyState < 2) return;
+            try {
+              const b = await det.detect(vRef.current);
+              if (b.length > 0) { scanRef.current(b[0].rawValue); stop(); }
+            } catch (e) {}
+          }, 400);
+        } else setErr("BarcodeDetector nicht verfügbar. Bitte Code manuell eingeben.");
+      } catch (e) {
+        setErr("Kamera nicht verfügbar.");
+      }
+    })();
+    return () => { cancelled = true; stop(); };
+  }, []);
+  return h("div", { style: { textAlign: "center" } },
+    err
+      ? h("div", { style: { padding: 16, color: C.danger, fontSize: 13 } }, err)
+      : h("div", { style: { position: "relative", borderRadius: 12, overflow: "hidden", marginBottom: 10 } },
+          h("video", { ref: vRef, style: { width: "100%", maxWidth: 320, borderRadius: 12 }, playsInline: true, muted: true })
+        ),
+    h(Btn, { onClick: onClose, v: "ghost", small: true }, "Schließen")
+  );
+}
+
+const DEMO = [
+  { id: 1, name: "Emma Müller", gender: "w", wishes: [2, 3], noGo: [], note: "", code: "EM01", siblings: [], prevClass: "", lockedClass: null },
+  { id: 2, name: "Liam Schmidt", gender: "m", wishes: [1], noGo: [], note: "", code: "LS02", siblings: [], prevClass: "", lockedClass: null },
+  { id: 3, name: "Mia Fischer", gender: "w", wishes: [1, 5], noGo: [7], note: "", code: "MF03", siblings: [], prevClass: "", lockedClass: null },
+  { id: 4, name: "Noah Weber", gender: "m", wishes: [6], noGo: [], note: "Hochbegabt", code: "NW04", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 5, name: "Sophia Wagner", gender: "w", wishes: [3], noGo: [], note: "", code: "SW05", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 6, name: "Elias Becker", gender: "m", wishes: [4, 8], noGo: [], note: "", code: "EB06", siblings: [], prevClass: "", lockedClass: null },
+  { id: 7, name: "Hannah Schulz", gender: "w", wishes: [9], noGo: [3], note: "", code: "HS07", siblings: [], prevClass: "B", lockedClass: null },
+  { id: 8, name: "Ben Hoffmann", gender: "m", wishes: [6], noGo: [], note: "Förderbedarf", code: "BH08", siblings: [], prevClass: "B", lockedClass: null },
+  { id: 9, name: "Emilia Koch", gender: "w", wishes: [7, 10], noGo: [], note: "", code: "EK09", siblings: [], prevClass: "", lockedClass: null },
+  { id: 10, name: "Paul Richter", gender: "m", wishes: [2], noGo: [], note: "", code: "PR10", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 11, name: "Lina Wolf", gender: "w", wishes: [13], noGo: [], note: "", code: "LW11", siblings: [13], prevClass: "", lockedClass: null },
+  { id: 12, name: "Felix Braun", gender: "m", wishes: [10, 6], noGo: [], note: "", code: "FB12", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 13, name: "Amelie Schröder", gender: "w", wishes: [11], noGo: [], note: "", code: "AS13", siblings: [11], prevClass: "", lockedClass: null },
+  { id: 14, name: "Lukas Neumann", gender: "m", wishes: [2, 12], noGo: [], note: "", code: "LN14", siblings: [], prevClass: "B", lockedClass: null },
+  { id: 15, name: "Charlotte Zimmer", gender: "w", wishes: [9], noGo: [], note: "", code: "CZ15", siblings: [], prevClass: "", lockedClass: null },
+  { id: 16, name: "Max Lang", gender: "m", wishes: [4], noGo: [8], note: "", code: "ML16", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 17, name: "Lea Krüger", gender: "w", wishes: [15, 5], noGo: [], note: "", code: "LK17", siblings: [], prevClass: "B", lockedClass: null },
+  { id: 18, name: "Jonas Hartmann", gender: "m", wishes: [14], noGo: [], note: "LRS", code: "JH18", siblings: [], prevClass: "", lockedClass: null },
+  { id: 19, name: "Marie Werner", gender: "w", wishes: [17], noGo: [], note: "", code: "MW19", siblings: [], prevClass: "A", lockedClass: null },
+  { id: 20, name: "Tim Schwarz", gender: "m", wishes: [12, 10], noGo: [], note: "", code: "TS20", siblings: [], prevClass: "B", lockedClass: null }
+];
+
+function genCode(n, id) {
+  return n.trim().split(/\s+/).map((p) => (p[0] || "").toUpperCase()).join("").slice(0, 2) + String(id).padStart(2, "0");
+}
+
+function normalizeStudent(s) {
+  return {
+    id: s.id,
+    name: s.name || "",
+    gender: s.gender === "w" ? "w" : "m",
+    wishes: Array.isArray(s.wishes) ? s.wishes : [],
+    noGo: Array.isArray(s.noGo) ? s.noGo : [],
+    note: s.note || "",
+    code: s.code || genCode(s.name || "XX", s.id),
+    siblings: Array.isArray(s.siblings) ? s.siblings : [],
+    prevClass: s.prevClass || "",
+    lockedClass: (typeof s.lockedClass === "number" && s.lockedClass > 0) ? s.lockedClass : null
+  };
+}
+
+function calcScore(st, clStudents, cfg, total, nCls) {
+  let s = 0;
+  const ids = clStudents.map((x) => x.id);
+  if (cfg.wishWeight > 0) st.wishes.forEach((w) => { if (ids.includes(w)) s += cfg.wishWeight * 10; });
+  st.noGo.forEach((ng) => { if (ids.includes(ng)) s -= 100; });
+  if (cfg.genderBalance) {
+    const b = clStudents.filter((x) => x.gender === "m").length;
+    const g = clStudents.filter((x) => x.gender === "w").length;
+    s -= (st.gender === "m" ? Math.abs(b + 1 - g) : Math.abs(b - g - 1)) * 3;
+  }
+  if (cfg.distributeNotes && st.note) s -= clStudents.filter((x) => x.note).length * 5;
+  const sibs = st.siblings || [];
+  if (cfg.siblingRule === "separate") sibs.forEach((sib) => { if (ids.includes(sib)) s -= 80; });
+  if (cfg.siblingRule === "together") sibs.forEach((sib) => { if (ids.includes(sib)) s += 40; });
+  if (cfg.prevClassSeparate && st.prevClass) {
+    s -= clStudents.filter((x) => x.prevClass && x.prevClass === st.prevClass).length * 8;
+  }
+  s -= Math.abs(clStudents.length - total / nCls) * 2;
+  return s;
+}
+
+function distribute(students, numCls, cfg) {
+  try {
+    const cls = Array.from({ length: numCls }, (_, i) => ({ id: i + 1, students: [] }));
+    const asgn = {};
+
+    // Step 1: Fixierte Schüler zuerst platzieren
+    students.forEach((s) => {
+      if (s.lockedClass && s.lockedClass >= 1 && s.lockedClass <= numCls) {
+        cls[s.lockedClass - 1].students.push(s);
+        asgn[s.id] = s.lockedClass;
+      }
+    });
+
+    // Step 2: Greedy-Zuweisung für den Rest
+    const remaining = students.filter((s) => !asgn[s.id]);
+    const tgt = Math.ceil(students.length / numCls);
+    const shuf = [...remaining].sort(() => Math.random() - 0.5);
+    for (const st of shuf) {
+      let best = null, bs = -Infinity;
+      for (const cl of cls) {
+        if (cl.students.length >= tgt + 1) continue;
+        const v = calcScore(st, cl.students, cfg, students.length, numCls);
+        if (v > bs) { bs = v; best = cl; }
+      }
+      if (best) { best.students.push(st); asgn[st.id] = best.id; }
+    }
+
+    // Step 3: Fallback — falls Kapazität zu knapp, nicht zugewiesene Schüler in kleinste Klasse
+    students.forEach((s) => {
+      if (!asgn[s.id]) {
+        const smallest = cls.reduce((a, b) => a.students.length <= b.students.length ? a : b);
+        smallest.students.push(s);
+        asgn[s.id] = smallest.id;
+      }
+    });
+
+    // Step 4: Swap-Phase (fixierte Schüler bleiben fix)
+    const movable = new Set(students.filter((s) => !s.lockedClass).map((s) => s.id));
+    for (let iter = 0; iter < 100; iter++) {
+      let imp = false;
+      for (let ai = 0; ai < students.length; ai++) {
+        for (let bi = ai + 1; bi < students.length; bi++) {
+          const s1 = students[ai], s2 = students[bi];
+          if (!movable.has(s1.id) || !movable.has(s2.id)) continue;
+          const c1 = asgn[s1.id], c2 = asgn[s2.id];
+          if (!c1 || !c2 || c1 === c2) continue;
+          const cl1 = cls[c1 - 1], cl2 = cls[c2 - 1];
+          if (!cl1 || !cl2) continue;
+          const old = calcScore(s1, cl1.students, cfg, students.length, numCls)
+                    + calcScore(s2, cl2.students, cfg, students.length, numCls);
+          cl1.students = cl1.students.filter((s) => s.id !== s1.id);
+          cl2.students = cl2.students.filter((s) => s.id !== s2.id);
+          cl1.students.push(s2);
+          cl2.students.push(s1);
+          const nw = calcScore(s2, cl1.students, cfg, students.length, numCls)
+                   + calcScore(s1, cl2.students, cfg, students.length, numCls);
+          let ngV = false;
+          s1.noGo.forEach((ng) => { if (cl2.students.some((s) => s.id === ng)) ngV = true; });
+          s2.noGo.forEach((ng) => { if (cl1.students.some((s) => s.id === ng)) ngV = true; });
+          if (nw > old && !ngV) {
+            asgn[s1.id] = c2;
+            asgn[s2.id] = c1;
+            imp = true;
+          } else {
+            cl1.students = cl1.students.filter((s) => s.id !== s2.id);
+            cl2.students = cl2.students.filter((s) => s.id !== s1.id);
+            cl1.students.push(s1);
+            cl2.students.push(s2);
+          }
+        }
+      }
+      if (!imp) break;
+    }
+    return cls;
+  } catch (e) {
+    console.error(e);
+    // Allerletzter Fallback: simple Rundumverteilung
+    const fb = Array.from({ length: numCls }, (_, i) => ({ id: i + 1, students: [] }));
+    students.forEach((s, i) => fb[i % numCls].students.push(s));
+    return fb;
+  }
+}
+
+function scoreResult(classes) {
+  let wM = 0, wT = 0, ngV = 0, gD = 0;
+  classes.forEach((c) => {
+    const ids = c.students.map((s) => s.id);
+    c.students.forEach((s) => {
+      wT += s.wishes.length;
+      s.wishes.forEach((w) => { if (ids.includes(w)) wM++; });
+      s.noGo.forEach((n) => { if (ids.includes(n)) ngV++; });
+    });
+    gD += Math.abs(
+      c.students.filter((s) => s.gender === "m").length
+      - c.students.filter((s) => s.gender === "w").length
+    );
+  });
+  return { wishesMet: wM, wishesTotal: wT, noGoV: ngV, genderDiff: gD, score: wM * 10 - ngV * 50 - gD * 2 };
+}
+
+function calcStats(classes) {
+  return classes.map((c) => {
+    const ids = c.students.map((s) => s.id);
+    let wM = 0, wT = 0;
+    c.students.forEach((s) => {
+      wT += s.wishes.length;
+      s.wishes.forEach((w) => { if (ids.includes(w)) wM++; });
+    });
+    let ngViol = 0;
+    c.students.forEach((s) => s.noGo.forEach((n) => { if (ids.includes(n)) ngViol++; }));
+    return {
+      id: c.id,
+      total: c.students.length,
+      boys: c.students.filter((s) => s.gender === "m").length,
+      girls: c.students.filter((s) => s.gender === "w").length,
+      notes: c.students.filter((s) => s.note).length,
+      wishesMet: wM, wishesTotal: wT, noGoViolations: ngViol
+    };
+  });
+}
+
+function analyzeWishes(result, allStudents) {
+  const report = [];
+  result.forEach((cls) => {
+    const ids = cls.students.map((s) => s.id);
+    cls.students.forEach((s) => {
+      if (!s.wishes.length) return;
+      const met = s.wishes.filter((w) => ids.includes(w));
+      const unmet = s.wishes.filter((w) => !ids.includes(w));
+      if (unmet.length > 0) {
+        const details = unmet.map((wid) => {
+          const ws = allStudents.find((x) => x.id === wid);
+          const wCls = result.find((c) => c.students.some((x) => x.id === wid));
+          return { student: ws, inClass: wCls ? wCls.id : "?" };
+        });
+        report.push({ student: s, classId: cls.id, met, unmet, details, ratio: met.length / s.wishes.length });
+      }
+    });
+  });
+  report.sort((a, b) => a.ratio - b.ratio);
+  return report;
+}
+
+function exportResultCSV(result, allStudents) {
+  if (!result) return;
+  const rows = [["Name", "Geschlecht", "Klasse", "Wunsche_erfuellt", "Wunsche_gesamt", "NoGo_Konflikte", "Geschwister_zusammen", "Vorjahresklasse", "Notiz", "Fixiert"]];
+  result.forEach((cls) => {
+    const ids = cls.students.map((s) => s.id);
+    cls.students.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((s) => {
+      const wMet = s.wishes.filter((w) => ids.includes(w)).length;
+      const ngH = s.noGo.filter((n) => ids.includes(n)).length;
+      const sibT = (s.siblings || []).filter((sib) => ids.includes(sib)).length;
+      rows.push([
+        s.name,
+        s.gender === "m" ? "Junge" : "Mädchen",
+        "Klasse " + cls.id,
+        wMet, s.wishes.length,
+        ngH,
+        sibT,
+        s.prevClass || "",
+        s.note || "",
+        s.lockedClass ? "ja" : "nein"
+      ]);
+    });
+  });
+  const csv = "\uFEFF" + rows.map((r) =>
+    r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")
+  ).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "klassenverteilung_" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const TABS = [
+  { id: "students", label: "Schüler", icon: "👤" },
+  { id: "forms", label: "Formulare", icon: "📋" },
+  { id: "capture", label: "Erfassung", icon: "📷" },
+  { id: "settings", label: "Regeln", icon: "⚙️" },
+  { id: "result", label: "Ergebnis", icon: "📊" }
+];
+
+function App() {
+  const [tab, setTab] = useState("students");
+  const [students, setStudents] = useState(DEMO.map(normalizeStudent));
+  const [numClasses, setNumClasses] = useState(2);
+  const [customClassCount, setCustomClassCount] = useState("");
+  const [config, setConfig] = useState({
+    wishWeight: 3, genderBalance: true, distributeNotes: true,
+    maxWishes: 2, siblingRule: "separate", prevClassSeparate: false
+  });
+  const [helpOpen, setHelpOpen] = useState({});
+  const toggleHelp = (k) => setHelpOpen((p) => ({ ...p, [k]: !p[k] }));
+  const [result, setResult] = useState(null);
+  const [moveStudent, setMoveStudent] = useState(null);
+  const [comments, setComments] = useState({});
+  const [changeLog, setChangeLog] = useState([]);
+  const [scenarios, setScenarios] = useState(null);
+  const [moveHistory, setMoveHistory] = useState([]);
+  const [newName, setNewName] = useState("");
+  const [newGender, setNewGender] = useState("m");
+  const [newNote, setNewNote] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editWishes, setEditWishes] = useState([]);
+  const [editNoGo, setEditNoGo] = useState([]);
+  const [captureMode, setCaptureMode] = useState(null);
+  const [captureStudentId, setCaptureStudentId] = useState(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [captureSuccess, setCaptureSuccess] = useState(null);
+  const [capWishes, setCapWishes] = useState([]);
+  const [capNoGo, setCapNoGo] = useState([]);
+  const [showCsvHelp, setShowCsvHelp] = useState(false);
+  const [distributing, setDistributing] = useState(false);
+  const fileRef = useRef(null);
+  const loadRef = useRef(null);
+
+  useEffect(() => {
+    if (captureStudentId) {
+      const s = students.find((st) => st.id === captureStudentId);
+      if (s) { setCapWishes([...s.wishes]); setCapNoGo([...s.noGo]); }
+    }
+  }, [captureStudentId]);
+
+  const nextId = students.length > 0 ? Math.max(...students.map((s) => s.id)) + 1 : 1;
+
+  const addStudent = () => {
+    if (!newName.trim()) return;
+    setStudents((p) => [...p, normalizeStudent({
+      id: nextId, name: newName.trim(), gender: newGender, wishes: [], noGo: [],
+      note: newNote.trim(), code: genCode(newName, nextId), siblings: [], prevClass: "", lockedClass: null
+    })]);
+    setNewName(""); setNewNote("");
+  };
+
+  const removeStudent = (id) => {
+    setStudents((p) => p.filter((s) => s.id !== id).map((s) => ({
+      ...s,
+      wishes: s.wishes.filter((w) => w !== id),
+      noGo: s.noGo.filter((n) => n !== id),
+      siblings: (s.siblings || []).filter((x) => x !== id)
+    })));
+    if (editId === id) setEditId(null);
+  };
+
+  const startEdit = (s) => { setEditId(s.id); setEditWishes([...s.wishes]); setEditNoGo([...s.noGo]); };
+  const saveEdit = () => {
+    setStudents((p) => p.map((s) => s.id === editId ? { ...s, wishes: editWishes, noGo: editNoGo } : s));
+    setEditId(null);
+  };
+  const toggleWish = (tid) => {
+    setEditWishes((p) => p.includes(tid) ? p.filter((w) => w !== tid) : (p.length < config.maxWishes ? [...p, tid] : p));
+    setEditNoGo((p) => p.filter((n) => n !== tid));
+  };
+  const toggleNoGo = (tid) => {
+    setEditNoGo((p) => p.includes(tid) ? p.filter((n) => n !== tid) : [...p, tid]);
+    setEditWishes((p) => p.filter((w) => w !== tid));
+  };
+  const toggleSibling = (sid, tid) => {
+    setStudents((p) => p.map((s) => {
+      if (s.id === sid) {
+        const sibs = s.siblings || [];
+        return { ...s, siblings: sibs.includes(tid) ? sibs.filter((x) => x !== tid) : [...sibs, tid] };
+      }
+      if (s.id === tid) {
+        const sibs = s.siblings || [];
+        return { ...s, siblings: sibs.includes(sid) ? sibs.filter((x) => x !== sid) : [...sibs, sid] };
+      }
+      return s;
+    }));
+  };
+
+  const handleCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const raw = String(ev.target.result || "").replace(/^\uFEFF/, "");
+      const lines = raw.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) { alert("CSV braucht Kopfzeile + Daten."); return; }
+      const delim = lines[0].includes(";") ? ";" : (lines[0].includes("\t") ? "\t" : ",");
+      const h = lines[0].toLowerCase().split(delim).map((x) => x.trim().replace(/^"|"$/g, ""));
+      const ni = h.findIndex((x) => x.includes("name"));
+      const gi = h.findIndex((x) => x.includes("geschlecht") || x.includes("gender"));
+      const noi = h.findIndex((x) => x.includes("notiz") || x.includes("bemerkung"));
+      const pi = h.findIndex((x) => x.includes("klasse") || x.includes("vorjahr"));
+      if (ni === -1) { alert("Spalte 'Name' nicht gefunden."); return; }
+      const ns = [];
+      let id = 1;
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(delim).map((x) => x.trim().replace(/^"|"$/g, ""));
+        const name = cols[ni];
+        if (!name) continue;
+        const gr = gi >= 0 ? (cols[gi] || "").toLowerCase() : "";
+        ns.push(normalizeStudent({
+          id, name,
+          gender: gr.startsWith("w") || gr.startsWith("f") ? "w" : "m",
+          wishes: [], noGo: [],
+          note: noi >= 0 ? (cols[noi] || "") : "",
+          code: genCode(name, id),
+          siblings: [],
+          prevClass: pi >= 0 ? (cols[pi] || "") : "",
+          lockedClass: null
+        }));
+        id++;
+      }
+      if (ns.length > 0) {
+        setStudents(ns);
+        setResult(null);
+        setMoveHistory([]);
+        alert("✅ " + ns.length + " Schüler importiert!");
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const saveProject = () => {
+    const d = JSON.stringify({ students, numClasses, config, comments, changeLog, result }, null, 2);
+    const b = new Blob([d], { type: "application/json" });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = "klassenverteilung_" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    URL.revokeObjectURL(u);
+  };
+
+  const loadProject = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if (d.students) {
+          setStudents(d.students.map(normalizeStudent));
+          if (d.numClasses) setNumClasses(d.numClasses);
+          if (d.config) setConfig((p) => ({ ...p, ...d.config }));
+          if (d.comments) setComments(d.comments);
+          if (d.changeLog) setChangeLog(d.changeLog);
+          if (d.result) setResult(d.result.map((c) => ({ ...c, students: c.students.map(normalizeStudent) })));
+          else setResult(null);
+          setMoveHistory([]);
+          alert("✅ Projekt geladen!");
+        }
+      } catch (err) {
+        alert("Fehler beim Laden: " + err.message);
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const loadDemo = () => {
+    if (students.length > 0 && !confirm("Aktuelle Daten durch Demo ersetzen?")) return;
+    setStudents(DEMO.map(normalizeStudent));
+    setResult(null); setMoveHistory([]); setComments({}); setChangeLog([]);
+    alert("✅ Demo geladen.");
+  };
+  const clearAll = () => {
+    if (!confirm("Wirklich ALLE Schüler und Daten löschen?")) return;
+    setStudents([]); setResult(null); setMoveHistory([]); setComments({}); setChangeLog([]);
+  };
+
+  const runDistribution = () => {
+    if (students.length < numClasses) {
+      alert("Zu wenige Schüler für " + numClasses + " Klassen.");
+      return;
+    }
+    setDistributing(true);
+    setTimeout(() => {
+      try {
+        let best = null, bs = -Infinity;
+        for (let i = 0; i < 15; i++) {
+          const r = distribute(students, numClasses, config);
+          const s = scoreResult(r);
+          if (s.score > bs) { bs = s.score; best = r; }
+        }
+        setResult(best);
+        setMoveStudent(null);
+        setChangeLog([]);
+        setMoveHistory([]);
+        setScenarios(null);
+        setTab("result");
+      } catch (e) {
+        console.error(e);
+        alert("Fehler bei der Verteilung: " + e.message);
+      }
+      setDistributing(false);
+    }, 50);
+  };
+
+  const snapshotForUndo = (label) => {
+    setMoveHistory((p) => [
+      ...p.slice(-19),
+      { result: JSON.parse(JSON.stringify(result)), log: [...changeLog], label }
+    ]);
+  };
+
+  const undoMove = () => {
+    if (moveHistory.length === 0) return;
+    const last = moveHistory[moveHistory.length - 1];
+    setResult(last.result);
+    setChangeLog(last.log);
+    setMoveHistory((p) => p.slice(0, -1));
+    setMoveStudent(null);
+  };
+
+  const doMove = (tid) => {
+    if (!moveStudent || !result) return;
+    const { studentId, fromClassId } = moveStudent;
+    if (fromClassId === tid) return setMoveStudent(null);
+    const student = result.find((c) => c.id === fromClassId)?.students.find((s) => s.id === studentId);
+    if (!student) return;
+    snapshotForUndo("move " + student.name);
+    setResult(result.map((c) => {
+      if (c.id === fromClassId) return { ...c, students: c.students.filter((s) => s.id !== studentId) };
+      if (c.id === tid) return { ...c, students: [...c.students, student] };
+      return c;
+    }));
+    setChangeLog((p) => [
+      { text: `${student.name}: Kl.${fromClassId} → Kl.${tid}`, time: new Date().toLocaleTimeString("de") },
+      ...p
+    ]);
+    setMoveStudent(null);
+  };
+
+  const toggleLock = (studentId, classId) => {
+    const s = students.find((x) => x.id === studentId);
+    if (!s) return;
+    const newLocked = s.lockedClass === classId ? null : classId;
+    setStudents((p) => p.map((x) => x.id === studentId ? { ...x, lockedClass: newLocked } : x));
+    // Ergebnis-Kopie ebenso aktualisieren
+    if (result) {
+      setResult(result.map((c) => ({
+        ...c,
+        students: c.students.map((x) => x.id === studentId ? { ...x, lockedClass: newLocked } : x)
+      })));
+    }
+  };
+
+  const unlockAll = () => {
+    setStudents((p) => p.map((s) => ({ ...s, lockedClass: null })));
+    if (result) {
+      setResult(result.map((c) => ({ ...c, students: c.students.map((s) => ({ ...s, lockedClass: null })) })));
+    }
+  };
+
+  const runScenarios = () => {
+    const cfgs = [
+      { ...config, wishWeight: 5, label: "🔴 Wünsche priorisiert" },
+      { ...config, wishWeight: 3, label: "🟡 Ausgewogen" },
+      { ...config, wishWeight: 0, label: "🟢 Balance priorisiert" }
+    ];
+    setScenarios(cfgs.map((cf) => {
+      let best = null, bs = -Infinity;
+      for (let i = 0; i < 15; i++) {
+        const r = distribute(students, numClasses, cf);
+        const s = scoreResult(r);
+        if (s.score > bs) { bs = s.score; best = r; }
+      }
+      return { config: cf, result: best, score: scoreResult(best) };
+    }));
+  };
+
+  const handleQRScan = (data) => {
+    try {
+      const p = JSON.parse(data);
+      if (p.sid) {
+        const s = students.find((x) => x.id === p.sid);
+        if (s) { setCaptureStudentId(s.id); setCaptureMode("entry"); return; }
+      }
+    } catch (e) {}
+    handleCodeLookup(data);
+  };
+
+  const handleCodeLookup = (code) => {
+    const s = students.find((x) => x.code === code.trim().toUpperCase());
+    if (s) { setCaptureStudentId(s.id); setCaptureMode("entry"); setCodeInput(""); }
+    else {
+      setCaptureSuccess(`❌ "${code}" nicht gefunden.`);
+      setTimeout(() => setCaptureSuccess(null), 2500);
+    }
+  };
+
+  const saveCaptureWishes = () => {
+    const name = students.find((s) => s.id === captureStudentId)?.name;
+    setStudents((p) => p.map((s) => s.id === captureStudentId ? { ...s, wishes: capWishes, noGo: capNoGo } : s));
+    setCaptureSuccess(`✅ ${name}: gespeichert!`);
+    setCaptureStudentId(null);
+    setCaptureMode(null);
+    setTimeout(() => setCaptureSuccess(null), 3000);
+  };
+
+  const stats = result ? calcStats(result) : [];
+  const sc = result ? scoreResult(result) : null;
+  const wishReport = result ? analyzeWishes(result, students) : [];
+  const wishesEntered = students.filter((s) => s.wishes.length > 0).length;
+  const lockedCount = students.filter((s) => s.lockedClass).length;
+
+  // ============ RENDER ============
+  return h("div", { style: { fontFamily: ff, background: C.bg, minHeight: "100vh", color: C.text, maxWidth: 540, margin: "0 auto", padding: "0 10px 60px" } },
+    h("input", { ref: fileRef, type: "file", accept: ".csv,.txt", onChange: handleCSV, style: { display: "none" } }),
+    h("input", { ref: loadRef, type: "file", accept: ".json", onChange: loadProject, style: { display: "none" } }),
+
+    // Header
+    h("div", { className: "noprint", style: { textAlign: "center", padding: "22px 0 12px", borderBottom: "2px solid " + C.primary, marginBottom: 12 } },
+      h("div", { style: { fontSize: 28 } }, "🏫"),
+      h("h1", { style: { fontSize: 18, fontWeight: 800, color: C.primary } }, "Klassenverteilung"),
+      h("p", { style: { fontSize: 11, color: C.textLight, marginTop: 3 } },
+        students.length, " Schüler · ", wishesEntered, " Wünsche · ", numClasses, " Klassen",
+        lockedCount > 0 && ` · 📌 ${lockedCount}`
+      ),
+      h("div", { style: { display: "flex", gap: 4, justifyContent: "center", marginTop: 8, flexWrap: "wrap" } },
+        h(Btn, { onClick: saveProject, v: "ghost", small: true }, "💾 Speichern"),
+        h(Btn, { onClick: () => loadRef.current?.click(), v: "ghost", small: true }, "📂 Laden"),
+        h(Btn, { onClick: () => fileRef.current?.click(), v: "ghost", small: true }, "📥 CSV")
+      )
+    ),
+
+    // Tabs
+    h("div", { className: "noprint", style: { display: "flex", gap: 2, marginBottom: 12, background: C.card, borderRadius: 10, padding: 3, boxShadow: C.shadow, overflowX: "auto" } },
+      TABS.map((t) => h("button", {
+        key: t.id,
+        onClick: () => setTab(t.id),
+        style: {
+          flex: "1 0 auto", padding: "8px 6px", borderRadius: 8, border: "none",
+          background: tab === t.id ? C.primary : "transparent",
+          color: tab === t.id ? "#fff" : C.textLight,
+          fontFamily: ff, fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
+        }
+      }, t.icon, " ", t.label))
+    ),
+
+    // ============ STUDENTS TAB ============
+    tab === "students" && h("div", null,
+      h(Card, null,
+        h("div", { style: { fontSize: 13, fontWeight: 700, marginBottom: 8, color: C.primary } }, "+ Neuer Schüler"),
+        h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+          h(Inp, { value: newName, onChange: setNewName, placeholder: "Name", style: { flex: "2 1 130px" } }),
+          h("select", {
+            value: newGender, onChange: (e) => setNewGender(e.target.value),
+            style: { padding: "9px 8px", borderRadius: 8, border: "1px solid " + C.border, fontFamily: ff, fontSize: 13, flex: "0 0 85px" }
+          },
+            h("option", { value: "m" }, "♂ Junge"),
+            h("option", { value: "w" }, "♀ Mädchen")
+          ),
+          h(Inp, { value: newNote, onChange: setNewNote, placeholder: "Notiz", style: { flex: "1 1 90px" } }),
+          h(Btn, { onClick: addStudent, disabled: !newName.trim(), small: true }, "+")
+        )
+      ),
+      h(Card, null,
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+          h("span", { style: { fontSize: 12, fontWeight: 700, color: C.primary } }, "📥 CSV-Import"),
+          h("button", {
+            onClick: () => setShowCsvHelp(!showCsvHelp),
+            style: { fontSize: 11, color: C.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }
+          }, showCsvHelp ? "×" : "Format?")
+        ),
+        showCsvHelp && h("div", {
+          style: { fontSize: 11, color: C.textMid, lineHeight: 1.6, marginBottom: 8, padding: "8px 10px", background: C.accentLight, borderRadius: 8 }
+        },
+          "Spalten: ", h("b", null, "Name"), " (Pflicht), ",
+          h("b", null, "Geschlecht"), " (m/w), ",
+          h("b", null, "Notiz"), ", ",
+          h("b", null, "Vorjahresklasse"),
+          h("br", null),
+          "Trenner: ; , oder TAB. BOM & UTF-8 werden erkannt."
+        ),
+        h(Btn, { onClick: () => fileRef.current?.click(), v: "accent", small: true, style: { width: "100%" } }, "📂 CSV-Datei wählen")
+      ),
+      students.map((s) => {
+        const isEd = editId === s.id;
+        return h("div", {
+          key: s.id,
+          style: {
+            background: C.card, borderRadius: 10, padding: "9px 11px", marginBottom: 4,
+            boxShadow: C.shadow, border: isEd ? "2px solid " + C.accent : "1px solid " + C.border
+          }
+        },
+          h("div", { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" } },
+            h(Badge, { bg: s.gender === "m" ? C.boyBg : C.girlBg, color: s.gender === "m" ? C.boyTxt : C.girlTxt }, s.gender === "m" ? "♂" : "♀"),
+            h("span", { style: { fontWeight: 600, fontSize: 13, flex: 1 } }, s.name),
+            s.lockedClass && h(Badge, { bg: C.lockBg, color: C.lockTxt, style: { fontSize: 9 } }, "📌Kl.", s.lockedClass),
+            s.prevClass && h(Badge, { bg: "#F3F4F6", color: "#6B7280", style: { fontSize: 9 } }, "Vj:", s.prevClass),
+            (s.siblings || []).length > 0 && h(Badge, { bg: C.moveBg, color: C.moveTxt, style: { fontSize: 9 } }, "👫"),
+            s.note && h(Badge, { bg: C.accentLight, color: C.accent }, s.note),
+            s.wishes.length > 0 && h("span", { style: { fontSize: 11, color: C.success } }, "💚", s.wishes.length),
+            h("button", {
+              onClick: () => isEd ? saveEdit() : startEdit(s),
+              style: { background: isEd ? C.accent : C.primaryLight, color: isEd ? "#fff" : C.primary, border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }
+            }, isEd ? "✓" : "✏️"),
+            h("button", {
+              onClick: () => removeStudent(s.id),
+              style: { background: C.dangerLight, color: C.danger, border: "none", borderRadius: 6, padding: "4px 7px", fontSize: 11, cursor: "pointer" }
+            }, "✕")
+          ),
+          isEd && h("div", { style: { marginTop: 9, paddingTop: 9, borderTop: "1px dashed " + C.border } },
+            h("div", { style: { fontSize: 11, fontWeight: 600, color: C.textMid, marginBottom: 5 } }, "💚 Wunsch · 🚫 NoGo · 👫 Geschwister"),
+            h("div", { style: { display: "flex", flexWrap: "wrap", gap: 3 } },
+              students.filter((o) => o.id !== s.id).map((o) => {
+                const isW = editWishes.includes(o.id);
+                const isN = editNoGo.includes(o.id);
+                const isSib = (s.siblings || []).includes(o.id);
+                return h("div", {
+                  key: o.id,
+                  style: {
+                    display: "flex", alignItems: "center", gap: 2,
+                    background: isW ? "#D5F5E3" : isN ? "#FADBD8" : isSib ? C.moveBg : "#F4F3EF",
+                    borderRadius: 6, padding: "3px 4px", fontSize: 11
+                  }
+                },
+                  h("span", null, o.name.split(" ")[0]),
+                  h("button", {
+                    onClick: () => toggleWish(o.id),
+                    style: { background: isW ? C.primary : "#ddd", color: "#fff", border: "none", borderRadius: 3, width: 20, height: 20, fontSize: 10, cursor: "pointer" }
+                  }, "💚"),
+                  h("button", {
+                    onClick: () => toggleNoGo(o.id),
+                    style: { background: isN ? C.danger : "#ddd", color: "#fff", border: "none", borderRadius: 3, width: 20, height: 20, fontSize: 10, cursor: "pointer" }
+                  }, "🚫"),
+                  h("button", {
+                    onClick: () => toggleSibling(s.id, o.id),
+                    style: { background: isSib ? C.moveTxt : "#ddd", color: "#fff", border: "none", borderRadius: 3, width: 20, height: 20, fontSize: 10, cursor: "pointer" }
+                  }, "👫")
+                );
+              })
+            ),
+            h("div", { style: { marginTop: 6 } },
+              h("label", { style: { fontSize: 11, color: C.textMid } }, "Vorjahresklasse: "),
+              h("input", {
+                value: s.prevClass || "",
+                onChange: (e) => setStudents((p) => p.map((x) => x.id === s.id ? { ...x, prevClass: e.target.value } : x)),
+                placeholder: "z.B. A",
+                style: { padding: "4px 8px", borderRadius: 6, border: "1px solid " + C.border, fontFamily: ff, fontSize: 12, width: 60 }
+              })
+            )
+          )
+        );
+      })
+    ),
+
+    // ============ FORMS TAB ============
+    tab === "forms" && h("div", null,
+      h(Card, { className: "noprint" },
+        h("h3", { style: { fontSize: 14, fontWeight: 700, color: C.primary, margin: "0 0 6px" } }, "📋 Eltern-Formulare"),
+        h("p", { style: { fontSize: 12, color: C.textMid, margin: "0 0 10px" } }, "Drucken → Eltern ausfüllen → Erfassung eintragen."),
+        h(Btn, { onClick: () => window.print(), v: "accent", small: true }, "🖨️ Drucken")
+      ),
+      students.map((s) => h(Card, { key: s.id, style: { pageBreakInside: "avoid" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 } },
+          h("div", { style: { flex: 1 } },
+            h("div", { style: { fontSize: 9, color: C.textLight, textTransform: "uppercase", letterSpacing: 1 } }, "Wunschzettel"),
+            h("div", { style: { fontSize: 15, fontWeight: 800, color: C.primary } }, s.name),
+            h(Badge, { bg: C.bg, color: C.textMid, style: { fontFamily: "monospace", fontSize: 11, marginTop: 2 } }, "Code: ", s.code)
+          ),
+          h(QRDisplay, { data: JSON.stringify({ sid: s.id, code: s.code }), size: 70 })
+        ),
+        h("div", { style: { marginTop: 10, padding: "8px 10px", background: C.primaryLight, borderRadius: 8 } },
+          h("div", { style: { fontSize: 11, fontWeight: 700, color: C.primary, marginBottom: 6 } }, "Wunschkinder (max. ", config.maxWishes, "):"),
+          h("div", { style: { display: "flex", flexWrap: "wrap", gap: 3 } },
+            students.filter((o) => o.id !== s.id).map((o) =>
+              h("span", {
+                key: o.id,
+                style: { padding: "3px 7px", borderRadius: 5, background: "#fff", fontSize: 10, border: "1px solid " + C.border }
+              }, "☐ ", o.name)
+            )
+          )
+        ),
+        h("div", { style: { marginTop: 6, padding: "8px 10px", background: C.dangerLight, borderRadius: 8 } },
+          h("div", { style: { fontSize: 11, fontWeight: 700, color: C.danger, marginBottom: 3 } }, "NoGo (optional):"),
+          h("div", { style: { borderBottom: "1px solid " + C.border, height: 20 } })
+        ),
+        h("div", { style: { marginTop: 6, fontSize: 8, color: C.textLight, lineHeight: 1.4 } },
+          "🔒 Lokale Verarbeitung, Löschung nach Abschluss. Art. 6 Abs. 1 lit. e DSGVO."
+        )
+      ))
+    ),
+
+    // ============ CAPTURE TAB ============
+    tab === "capture" && h("div", null,
+      captureSuccess && h(Card, { style: { background: captureSuccess.startsWith("✅") ? C.successLight : C.dangerLight, border: "none" } },
+        h("div", { style: { fontSize: 13, fontWeight: 600, textAlign: "center" } }, captureSuccess)
+      ),
+      captureMode === "entry" && captureStudentId && (() => {
+        const s = students.find((st) => st.id === captureStudentId);
+        if (!s) return null;
+        return h(Card, null,
+          h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+            h("div", { style: { fontSize: 14, fontWeight: 700, color: C.primary } }, s.name),
+            h(Btn, { onClick: () => { setCaptureMode(null); setCaptureStudentId(null); }, v: "ghost", small: true }, "✕")
+          ),
+          h("div", { style: { display: "flex", flexWrap: "wrap", gap: 4 } },
+            students.filter((o) => o.id !== s.id).map((o) => {
+              const isW = capWishes.includes(o.id);
+              const isN = capNoGo.includes(o.id);
+              return h("div", {
+                key: o.id,
+                style: {
+                  display: "flex", alignItems: "center", gap: 3,
+                  background: isW ? "#D5F5E3" : isN ? "#FADBD8" : "#F0EFEA",
+                  borderRadius: 7, padding: "5px 7px", fontSize: 12
+                }
+              },
+                h("span", { style: { fontWeight: 500 } }, o.name),
+                h("button", {
+                  onClick: () => {
+                    setCapWishes((p) => p.includes(o.id) ? p.filter((w) => w !== o.id) : (p.length < config.maxWishes ? [...p, o.id] : p));
+                    setCapNoGo((p) => p.filter((n) => n !== o.id));
+                  },
+                  style: { background: isW ? C.primary : "#ccc", color: "#fff", border: "none", borderRadius: 4, width: 24, height: 24, fontSize: 11, cursor: "pointer" }
+                }, "💚"),
+                h("button", {
+                  onClick: () => {
+                    setCapNoGo((p) => p.includes(o.id) ? p.filter((n) => n !== o.id) : [...p, o.id]);
+                    setCapWishes((p) => p.filter((w) => w !== o.id));
+                  },
+                  style: { background: isN ? C.danger : "#ccc", color: "#fff", border: "none", borderRadius: 4, width: 24, height: 24, fontSize: 11, cursor: "pointer" }
+                }, "🚫")
+              );
+            })
+          ),
+          h(Btn, { onClick: saveCaptureWishes, v: "success", style: { width: "100%", marginTop: 10 } },
+            "✓ Speichern (", capWishes.length, " Wünsche)"
+          )
+        );
+      })(),
+      captureMode === "scan" && h(Card, null,
+        h(QRScanner, { onScan: handleQRScan, onClose: () => setCaptureMode(null) })
+      ),
+      captureMode !== "entry" && captureMode !== "scan" && h("div", null,
+        h(Card, null,
+          h("h3", { style: { fontSize: 14, fontWeight: 700, color: C.primary, margin: "0 0 8px" } }, "📷 Erfassung"),
+          h("div", { style: { display: "flex", gap: 6 } },
+            h(Btn, { onClick: () => setCaptureMode("scan"), v: "accent", style: { flex: 1 }, small: true }, "📷 QR"),
+            h(Btn, { onClick: () => setCaptureMode("code"), v: "ghost", style: { flex: 1 }, small: true }, "⌨️ Code")
+          ),
+          captureMode === "code" && h("div", { style: { display: "flex", gap: 6, marginTop: 8 } },
+            h(Inp, {
+              value: codeInput, onChange: setCodeInput, placeholder: "z.B. EM01",
+              style: { flex: 1, textTransform: "uppercase", fontFamily: "monospace", fontSize: 16, letterSpacing: 2, textAlign: "center" },
+              onKeyDown: (e) => { if (e.key === "Enter" && codeInput) handleCodeLookup(codeInput); }
+            }),
+            h(Btn, { onClick: () => handleCodeLookup(codeInput), disabled: !codeInput, small: true }, "→")
+          )
+        ),
+        h(Card, null,
+          h("div", { style: { fontSize: 12, fontWeight: 700, color: C.primary, marginBottom: 8 } }, "Direkt wählen:"),
+          students.map((s) => h("button", {
+            key: s.id,
+            onClick: () => { setCaptureStudentId(s.id); setCaptureMode("entry"); },
+            style: {
+              display: "flex", alignItems: "center", gap: 7, padding: "7px 9px", borderRadius: 7,
+              border: "1px solid " + C.border, background: s.wishes.length > 0 ? C.successLight : "#fff",
+              cursor: "pointer", fontFamily: ff, fontSize: 12, textAlign: "left", width: "100%", marginBottom: 3
+            }
+          },
+            h(Badge, { bg: s.gender === "m" ? C.boyBg : C.girlBg, color: s.gender === "m" ? C.boyTxt : C.girlTxt }, s.gender === "m" ? "♂" : "♀"),
+            h("span", { style: { flex: 1, fontWeight: 500 } }, s.name),
+            s.wishes.length > 0
+              ? h("span", { style: { fontSize: 10, color: C.success } }, "✅", s.wishes.length)
+              : h("span", { style: { fontSize: 10, color: C.accent } }, "⏳")
+          ))
+        )
+      )
+    ),
+
+    // ============ SETTINGS TAB ============
+    tab === "settings" && h("div", null,
+      h(Card, null,
+        h("h3", { style: { fontSize: 14, fontWeight: 700, margin: "0 0 12px", color: C.primary } }, "Grundeinstellungen"),
+
+        // Klassenzahl
+        h("div", { style: { marginBottom: 14 } },
+          h("label", { style: { fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 } }, "Anzahl Klassen"),
+          h("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" } },
+            [2, 3, 4, 5, 6].map((n) => h("button", {
+              key: n,
+              onClick: () => { setNumClasses(n); setCustomClassCount(""); },
+              style: {
+                width: 40, height: 40, borderRadius: 10, border: "none",
+                background: numClasses === n ? C.primary : C.primaryLight,
+                color: numClasses === n ? "#fff" : C.primary,
+                fontSize: 16, fontWeight: 700, cursor: "pointer"
+              }
+            }, n)),
+            h("span", { style: { fontSize: 12, color: C.textLight, margin: "0 4px" } }, "oder:"),
+            h("input", {
+              type: "number", min: 7, max: 20,
+              value: customClassCount,
+              placeholder: "7-20",
+              onChange: (e) => {
+                const v = e.target.value;
+                setCustomClassCount(v);
+                const n = parseInt(v, 10);
+                if (n >= 7 && n <= 20) setNumClasses(n);
+              },
+              style: {
+                width: 70, height: 40, textAlign: "center",
+                borderRadius: 10, border: numClasses > 6 ? "2px solid " + C.primary : "1px solid " + C.border,
+                fontFamily: ff, fontSize: 14, fontWeight: 700, color: C.primary
+              }
+            })
+          ),
+          h(HelpTip, { open: helpOpen.nc, onToggle: () => toggleHelp("nc") },
+            students.length, " Kinder, ", numClasses, " Klassen → ca. ", Math.ceil(students.length / numClasses), " pro Klasse."
+          )
+        ),
+
+        // Max Wünsche
+        h("div", { style: { marginBottom: 14 } },
+          h("label", { style: { fontSize: 12, fontWeight: 600 } }, "Max. Wünsche: ", config.maxWishes),
+          h("input", {
+            type: "range", min: 1, max: 5, value: config.maxWishes,
+            onChange: (e) => setConfig((p) => ({ ...p, maxWishes: +e.target.value })),
+            style: { width: "100%", accentColor: C.primary }
+          }),
+          h(HelpTip, { open: helpOpen.mw, onToggle: () => toggleHelp("mw") },
+            h("b", null, "1-2:"), " Hohe Erfüllungs-Quote. ",
+            h("b", null, "3-5:"), " Mehr Mitsprache, schwieriger erfüllbar."
+          )
+        ),
+
+        // Wunsch-Gewichtung
+        h("div", null,
+          h("label", { style: { fontSize: 12, fontWeight: 600 } },
+            "Wunsch-Gewichtung: ",
+            config.wishWeight === 0 ? "Aus" : config.wishWeight <= 1 ? "Niedrig" : config.wishWeight <= 3 ? "Mittel" : "Hoch"
+          ),
+          h("input", {
+            type: "range", min: 0, max: 5, value: config.wishWeight,
+            onChange: (e) => setConfig((p) => ({ ...p, wishWeight: +e.target.value })),
+            style: { width: "100%", accentColor: C.accent }
+          }),
+          h(HelpTip, { open: helpOpen.ww, onToggle: () => toggleHelp("ww") },
+            h("b", null, "Hoch:"), " Wunschpaare bevorzugt zusammen. ",
+            h("b", null, "Mittel:"), " Balance. ",
+            h("b", null, "Aus:"), " Nur Gleichverteilung."
+          )
+        )
+      ),
+
+      h(Card, null,
+        h("h3", { style: { fontSize: 14, fontWeight: 700, margin: "0 0 10px", color: C.primary } }, "Verteilungsregeln"),
+        [
+          { key: "genderBalance", label: "Geschlechterbalance", desc: "♂♀ gleichmäßig" },
+          { key: "distributeNotes", label: "Förderkinder verteilen", desc: "Vermerke aufteilen" },
+          { key: "prevClassSeparate", label: "Vorjahresklassen mischen", desc: "Alte Klassen trennen" }
+        ].map((r) => h("div", {
+          key: r.key,
+          style: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid " + C.border }
+        },
+          h("button", {
+            onClick: () => setConfig((p) => ({ ...p, [r.key]: !p[r.key] })),
+            style: {
+              width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+              background: config[r.key] ? C.primary : "#ccc", position: "relative", flexShrink: 0
+            }
+          },
+            h("div", {
+              style: {
+                width: 18, height: 18, borderRadius: 9, background: "#fff",
+                position: "absolute", top: 3, left: config[r.key] ? 23 : 3,
+                transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)"
+              }
+            })
+          ),
+          h("div", { style: { flex: 1 } },
+            h("div", { style: { fontWeight: 600, fontSize: 13 } }, r.label),
+            h("div", { style: { fontSize: 11, color: C.textLight } }, r.desc)
+          )
+        )),
+        h("div", { style: { padding: "9px 0" } },
+          h("label", { style: { fontSize: 13, fontWeight: 600 } }, "👫 Geschwister"),
+          h("div", { style: { display: "flex", gap: 4, marginTop: 6 } },
+            [
+              { v: "none", l: "Egal" },
+              { v: "separate", l: "Trennen" },
+              { v: "together", l: "Zusammen" }
+            ].map((o) => h("button", {
+              key: o.v,
+              onClick: () => setConfig((p) => ({ ...p, siblingRule: o.v })),
+              style: {
+                flex: 1, padding: "8px 4px", borderRadius: 8, border: "none",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                background: config.siblingRule === o.v ? C.moveBg : "#f0f0f0",
+                color: config.siblingRule === o.v ? C.moveTxt : C.textMid
+              }
+            }, o.l))
+          )
+        )
+      ),
+
+      // Lock management
+      lockedCount > 0 && h(Card, { style: { background: C.lockBg, borderColor: C.lockTxt } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+          h("div", null,
+            h("div", { style: { fontSize: 13, fontWeight: 700, color: C.lockTxt } }, "📌 ", lockedCount, " Schüler fixiert"),
+            h("div", { style: { fontSize: 11, color: C.lockTxt, marginTop: 3 } }, "Diese werden bei Neuberechnung NICHT verschoben.")
+          ),
+          h(Btn, { onClick: unlockAll, v: "ghost", small: true }, "Alle lösen")
+        )
+      ),
+
+      h(Btn, {
+        onClick: runDistribution, v: "accent",
+        disabled: students.length < numClasses || distributing,
+        style: { width: "100%", padding: "14px", fontSize: 15, borderRadius: 12 }
+      }, distributing ? "⏳ Berechne..." : "🎲 Beste Verteilung finden"),
+
+      h("div", { style: { height: 6 } }),
+
+      h(Btn, {
+        onClick: runScenarios, v: "ghost",
+        disabled: students.length < numClasses,
+        style: { width: "100%", padding: "12px", fontSize: 13, borderRadius: 12 }
+      }, "📊 3 Szenarien vergleichen"),
+
+      scenarios && h(Card, { style: { marginTop: 12 } },
+        h("h3", { style: { fontSize: 14, fontWeight: 700, color: C.primary, margin: "0 0 10px" } }, "📊 Szenario-Vergleich"),
+        scenarios.map((s, i) => h("div", {
+          key: i,
+          style: {
+            padding: "10px 12px", borderRadius: 8,
+            background: i === 0 ? "#FEE2E2" : i === 1 ? C.accentLight : C.primaryLight,
+            marginBottom: 6
+          }
+        },
+          h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+            h("div", null,
+              h("div", { style: { fontSize: 13, fontWeight: 700 } }, s.config.label),
+              h("div", { style: { fontSize: 11, color: C.textMid } },
+                "💚 ", s.score.wishesMet, "/", s.score.wishesTotal, " · ♂♀±", s.score.genderDiff, " · 🚫 ", s.score.noGoV
+              )
+            ),
+            h(Btn, {
+              onClick: () => {
+                setResult(s.result); setScenarios(null);
+                setMoveStudent(null); setChangeLog([]); setMoveHistory([]);
+                setTab("result");
+              },
+              v: "ghost", small: true
+            }, "Wählen")
+          )
+        ))
+      ),
+
+      // Reset actions
+      h(Card, { style: { marginTop: 12 } },
+        h("div", { style: { fontSize: 12, fontWeight: 700, color: C.textMid, marginBottom: 8 } }, "🔧 Daten"),
+        h("div", { style: { display: "flex", gap: 6 } },
+          h(Btn, { onClick: loadDemo, v: "ghost", small: true, style: { flex: 1 } }, "🔄 Demo laden"),
+          h(Btn, { onClick: clearAll, v: "ghost", small: true, style: { flex: 1, color: C.danger } }, "🗑️ Alles löschen")
+        )
+      )
+    ),
+
+    // ============ RESULT TAB ============
+    tab === "result" && h("div", null,
+      !result
+        ? h(Card, { style: { textAlign: "center", padding: 28 } },
+            h("div", { style: { fontSize: 36, marginBottom: 6 } }, "🎯"),
+            h("p", { style: { color: C.textLight, fontSize: 13 } }, "Gehe zu Regeln → Verteilung starten.")
+          )
+        : h("div", null,
+            // Score header
+            h(Card, { style: { background: `linear-gradient(135deg,${C.primary},${C.primaryMid})`, color: "#fff", border: "none" } },
+              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                h("div", null,
+                  h("div", { style: { fontSize: 11, opacity: 0.8 } }, "Bester Vorschlag (15 Durchläufe)"),
+                  h("div", { style: { fontSize: 20, fontWeight: 800, marginTop: 2 } }, sc.wishesMet, "/", sc.wishesTotal, " Wünsche erfüllt")
+                ),
+                h("div", { style: { textAlign: "right" } },
+                  h("div", { style: { fontSize: 26, fontWeight: 800 } },
+                    sc.wishesTotal > 0 ? Math.round(sc.wishesMet / sc.wishesTotal * 100) : 0, "%"
+                  ),
+                  sc.noGoV > 0 && h("div", { style: { fontSize: 11, color: "#FFB4A2" } }, "⚠ ", sc.noGoV, " Konflikte")
+                )
+              )
+            ),
+
+            // Move selector
+            moveStudent && h(Card, { style: { background: C.moveBg, border: "2px solid " + C.moveTxt } },
+              h("div", { style: { fontSize: 13, fontWeight: 600, color: C.moveTxt, textAlign: "center" } },
+                "📌 ", students.find((s) => s.id === moveStudent.studentId)?.name, " verschieben:"
+              ),
+              h("div", { style: { display: "flex", gap: 6, justifyContent: "center", marginTop: 8, flexWrap: "wrap" } },
+                result.map((c) => h(Btn, {
+                  key: c.id,
+                  onClick: () => doMove(c.id),
+                  v: c.id === moveStudent.fromClassId ? "ghost" : "move",
+                  small: true,
+                  disabled: c.id === moveStudent.fromClassId
+                }, "Kl.", c.id)),
+                h(Btn, { onClick: () => setMoveStudent(null), v: "ghost", small: true }, "✕")
+              )
+            ),
+
+            // Hint + Undo
+            h(Card, { className: "noprint", style: { padding: "10px 14px" } },
+              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } },
+                h("div", { style: { fontSize: 11, color: C.textMid, lineHeight: 1.6, flex: 1 } },
+                  h("b", null, "Tippe auf ein Kind"), " → Zielklasse wählen.",
+                  h("br", null),
+                  "💚 erfüllt · 💔 offen · 🚫 Konflikt · 📌 fixiert"
+                ),
+                h(Btn, {
+                  onClick: undoMove, v: "ghost", small: true, disabled: moveHistory.length === 0,
+                  title: "Letzten Umzug rückgängig machen"
+                }, "↶ Undo (", moveHistory.length, ")")
+              )
+            ),
+
+            // Class stats grid
+            h("div", { style: { display: "grid", gridTemplateColumns: `repeat(${Math.min(numClasses, 3)},1fr)`, gap: 6, marginBottom: 12 } },
+              stats.map((s) => h("div", {
+                key: s.id,
+                style: {
+                  background: C.card, borderRadius: 10, padding: 10, textAlign: "center",
+                  boxShadow: C.shadow, border: "1px solid " + C.border
+                }
+              },
+                h("div", { style: { fontSize: 12, fontWeight: 700, color: C.primary } }, "Kl.", s.id),
+                h("div", { style: { fontSize: 18, fontWeight: 800 } }, s.total),
+                h("div", { style: { fontSize: 10, color: C.textMid } }, "♂", s.boys, " ♀", s.girls),
+                h("div", { style: { fontSize: 10 } },
+                  h("span", { style: { color: C.success } }, "💚", s.wishesMet, "/", s.wishesTotal),
+                  s.noGoViolations > 0 && h("span", { style: { color: C.danger } }, " 🚫", s.noGoViolations)
+                )
+              ))
+            ),
+
+            // Class details
+            result.map((cls) => {
+              const st = stats.find((s) => s.id === cls.id);
+              return h(Card, { key: cls.id },
+                h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingBottom: 6, borderBottom: "2px solid " + C.primary } },
+                  h("h3", { style: { fontSize: 15, fontWeight: 800, color: C.primary, margin: 0 } }, "Klasse ", cls.id),
+                  h("div", { style: { display: "flex", gap: 6, alignItems: "center" } },
+                    h(Badge, { bg: C.primaryLight, color: C.primary }, cls.students.length),
+                    h("span", { style: { fontSize: 10, color: C.textMid } }, "♂", st?.boys, " ♀", st?.girls)
+                  )
+                ),
+                cls.students.slice().sort((a, b) => a.name.localeCompare(b.name)).map((s) => {
+                  const ids = cls.students.map((x) => x.id);
+                  const met = s.wishes.filter((w) => ids.includes(w));
+                  const unmet = s.wishes.filter((w) => !ids.includes(w));
+                  const ngH = s.noGo.filter((n) => ids.includes(n));
+                  const isSel = moveStudent?.studentId === s.id;
+                  const isLocked = s.lockedClass === cls.id;
+                  return h("div", {
+                    key: s.id,
+                    style: {
+                      display: "flex", alignItems: "center", gap: 5, padding: "5px 7px", borderRadius: 7, marginBottom: 2,
+                      background: isSel ? C.moveBg : ngH.length > 0 ? C.dangerLight : isLocked ? C.lockBg : "transparent",
+                      border: isSel ? "2px solid " + C.moveTxt : "2px solid transparent"
+                    }
+                  },
+                    h(Badge, { bg: s.gender === "m" ? C.boyBg : C.girlBg, color: s.gender === "m" ? C.boyTxt : C.girlTxt }, s.gender === "m" ? "♂" : "♀"),
+                    h("span", {
+                      onClick: () => {
+                        if (moveStudent?.studentId === s.id) setMoveStudent(null);
+                        else setMoveStudent({ studentId: s.id, fromClassId: cls.id });
+                      },
+                      style: { fontSize: 12, fontWeight: 500, flex: 1, cursor: "pointer" }
+                    }, s.name),
+                    s.note && h(Badge, { bg: C.accentLight, color: C.accent }, s.note),
+                    met.length > 0 && h("span", { style: { fontSize: 10, color: C.success } }, "💚", met.length),
+                    unmet.length > 0 && h("span", { style: { fontSize: 10, color: C.textLight } }, "💔", unmet.length),
+                    ngH.length > 0 && h("span", { style: { fontSize: 10, color: C.danger, fontWeight: 700 } }, "🚫"),
+                    h("button", {
+                      onClick: () => toggleLock(s.id, cls.id),
+                      title: isLocked ? "Fixierung lösen" : "An Klasse " + cls.id + " fixieren",
+                      style: {
+                        background: isLocked ? C.lockTxt : "transparent", color: isLocked ? "#fff" : C.textLight,
+                        border: "1px solid " + (isLocked ? C.lockTxt : C.border),
+                        borderRadius: 5, padding: "2px 5px", fontSize: 10, cursor: "pointer"
+                      }
+                    }, "📌")
+                  );
+                }),
+                h("div", { style: { marginTop: 8, paddingTop: 8, borderTop: "1px dashed " + C.border } },
+                  h("textarea", {
+                    value: comments[cls.id] || "",
+                    onChange: (e) => {
+                      const v = e.target.value, id = cls.id;
+                      setComments((p) => ({ ...p, [id]: v }));
+                    },
+                    placeholder: "Kommentar…",
+                    rows: 2,
+                    style: {
+                      width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 8,
+                      border: "1px solid " + C.border, fontFamily: ff, fontSize: 12, resize: "vertical",
+                      outline: "none", background: comments[cls.id] ? C.accentLight : "#FAFAF7"
+                    }
+                  })
+                )
+              );
+            }),
+
+            // Wish report
+            h(Card, { style: { borderLeft: "4px solid " + C.accent } },
+              h("h3", { style: { fontSize: 15, fontWeight: 800, color: C.accent, margin: "0 0 4px" } }, "📋 Elterngesprächs-Report"),
+              h("p", { style: { fontSize: 11, color: C.textMid, margin: "0 0 12px" } }, "Nicht erfüllte Wünsche — nach Dringlichkeit sortiert."),
+              wishReport.length === 0
+                ? h("div", { style: { textAlign: "center", padding: 16, background: C.successLight, borderRadius: 8 } },
+                    h("div", { style: { fontSize: 20 } }, "🎉"),
+                    h("div", { style: { fontSize: 13, fontWeight: 600, color: C.success, marginTop: 4 } }, "Alle Wünsche erfüllt!")
+                  )
+                : h("div", null,
+                    h("div", { style: { display: "flex", gap: 8, marginBottom: 12 } },
+                      h("div", { style: { flex: 1, padding: 10, borderRadius: 8, background: C.dangerLight, textAlign: "center" } },
+                        h("div", { style: { fontSize: 20, fontWeight: 800, color: C.danger } }, wishReport.filter((r) => r.ratio === 0).length),
+                        h("div", { style: { fontSize: 10, color: C.danger } }, "Kein Wunsch")
+                      ),
+                      h("div", { style: { flex: 1, padding: 10, borderRadius: 8, background: C.warnBg, textAlign: "center" } },
+                        h("div", { style: { fontSize: 20, fontWeight: 800, color: C.warnTxt } }, wishReport.filter((r) => r.ratio > 0 && r.ratio < 1).length),
+                        h("div", { style: { fontSize: 10, color: C.warnTxt } }, "Teilweise")
+                      ),
+                      h("div", { style: { flex: 1, padding: 10, borderRadius: 8, background: C.successLight, textAlign: "center" } },
+                        h("div", { style: { fontSize: 20, fontWeight: 800, color: C.success } },
+                          students.filter((s) => s.wishes.length > 0).length - wishReport.length
+                        ),
+                        h("div", { style: { fontSize: 10, color: C.success } }, "Alle erfüllt")
+                      )
+                    ),
+                    wishReport.map((r) => h("div", {
+                      key: r.student.id,
+                      style: {
+                        padding: "10px 12px", borderRadius: 8, marginBottom: 6,
+                        background: r.ratio === 0 ? C.dangerLight : C.warnBg
+                      }
+                    },
+                      h("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 4 } },
+                        h(Badge, { bg: r.ratio === 0 ? C.danger : C.warnTxt, color: "#fff" },
+                          r.ratio === 0 ? "0 erfüllt" : `${r.met.length}/${r.met.length + r.unmet.length}`
+                        ),
+                        h("span", { style: { fontWeight: 700, fontSize: 13 } }, r.student.name),
+                        h("span", { style: { fontSize: 11, color: C.textLight } }, "Kl.", r.classId)
+                      ),
+                      r.met.length > 0 && h("div", { style: { fontSize: 11, color: C.success, marginBottom: 2 } },
+                        "✅ Bei: ", r.met.map((w) => students.find((x) => x.id === w)?.name).join(", ")
+                      ),
+                      h("div", { style: { fontSize: 11, color: r.ratio === 0 ? C.danger : C.warnTxt } },
+                        "❌ Getrennt von: ", r.details.map((d) => `${d.student?.name} (Kl.${d.inClass})`).join(", ")
+                      )
+                    )),
+                    h("div", { style: { marginTop: 12, padding: 12, borderRadius: 8, background: "#F8F7F4", border: "1px solid " + C.border } },
+                      h("div", { style: { fontSize: 12, fontWeight: 700, color: C.primary, marginBottom: 6 } }, "🗣️ Gesprächsleitfaden"),
+                      h("div", { style: { fontSize: 11, color: C.textMid, lineHeight: 1.7 } },
+                        "• ", wishReport.filter((r) => r.ratio === 0).length, " Kinder ohne erfüllten Wunsch → Gesprächsbedarf", h("br", null),
+                        "• ", wishReport.filter((r) => r.ratio > 0).length, " Kinder teilweise erfüllt", h("br", null),
+                        "• Gesamtquote: ", sc.wishesTotal > 0 ? Math.round(sc.wishesMet / sc.wishesTotal * 100) : 0, "%", h("br", null),
+                        "• „Jeder Wunsch wurde berücksichtigt. Gegenläufige Wünsche erfordern Kompromisse.\""
+                      )
+                    )
+                  )
+            ),
+
+            changeLog.length > 0 && h(Card, null,
+              h("div", { style: { fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6 } }, "📝 Änderungen"),
+              changeLog.map((c, i) => h("div", {
+                key: i,
+                style: { fontSize: 11, padding: "4px 0", borderBottom: "1px solid " + C.border, color: C.textMid }
+              },
+                h("span", { style: { color: C.textLight, marginRight: 6 } }, c.time),
+                c.text
+              ))
+            ),
+
+            // Action bar
+            h("div", { className: "noprint", style: { display: "flex", gap: 8 } },
+              h(Btn, {
+                onClick: runDistribution, v: "accent", disabled: distributing,
+                style: { flex: 1, padding: 14, fontSize: 14, borderRadius: 12 }
+              }, distributing ? "⏳" : "🔄 Neu berechnen"),
+              h(Btn, {
+                onClick: () => exportResultCSV(result, students), v: "ghost",
+                style: { padding: 14, borderRadius: 12 }, title: "Klassenliste als CSV exportieren"
+              }, "📤 CSV"),
+              h(Btn, {
+                onClick: () => window.print(), v: "ghost",
+                style: { padding: 14, borderRadius: 12 }
+              }, "🖨️")
+            )
+          )
+    )
+  );
+}
+
+window.__App = App;
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(window.__App));
+</script>
+</body>
+</html>

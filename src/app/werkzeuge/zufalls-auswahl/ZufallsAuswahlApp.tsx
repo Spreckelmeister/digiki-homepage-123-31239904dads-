@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Dice5,
   Users,
@@ -9,16 +10,17 @@ import {
   Plus,
   ShieldCheck,
   RotateCcw,
+  Network,
 } from "lucide-react";
-
-const STORAGE_KEY = "digiki.werkzeuge.zufalls.lists.v1";
-
-interface StoredList {
-  id: string;
-  name: string;
-  names: string[];
-  createdAt: number;
-}
+import {
+  type ClassRoster,
+  loadRosters,
+  rosterFromNamesText,
+  rosterNames,
+  subscribeRosters,
+  upsertRoster,
+  deleteRoster,
+} from "@/lib/werkzeuge/classRosters";
 
 type Mode = "pick" | "groups";
 
@@ -38,32 +40,6 @@ function parseNames(raw: string): string[] {
     .filter((n) => n.length > 0);
 }
 
-function loadLists(): StoredList[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (l): l is StoredList =>
-        typeof l?.id === "string" &&
-        typeof l?.name === "string" &&
-        Array.isArray(l?.names)
-    );
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Nimmt jede String-Eingabe entgegen (auch leer, mit Leerzeichen etc.) und
- * liefert eine garantiert gültige Zahl im Bereich [min, max] zurück. Falls
- * der Input ungültig ist, wird `fallback` verwendet.
- *
- * So kann der User auf Mobile frei tippen (das Feld darf leer sein während
- * er eine neue Zahl tippt) und die Validierung passiert erst bei der Aktion.
- */
 function clampInt(raw: string, min: number, max: number, fallback: number): number {
   const n = parseInt(raw.trim(), 10);
   if (!Number.isFinite(n)) return Math.min(Math.max(fallback, min), max);
@@ -74,45 +50,32 @@ export default function ZufallsAuswahlApp() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<Mode>("pick");
 
-  // Pick-Mode – als String, damit das Feld beim Tippen leer sein darf.
   const [pickCountInput, setPickCountInput] = useState("1");
   const [pickResult, setPickResult] = useState<string[]>([]);
 
-  // Groups-Mode – ebenfalls als String.
   const [groupCountInput, setGroupCountInput] = useState("4");
   const [groups, setGroups] = useState<string[][]>([]);
 
-  // Gespeicherte Listen
-  const [stored, setStored] = useState<StoredList[]>([]);
+  // Geteilter Klassenlisten-Store
+  const [rosters, setRosters] = useState<ClassRoster[]>([]);
   const [listName, setListName] = useState("");
   const listNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setStored(loadLists());
-  }, []);
-
-  const persist = useCallback((next: StoredList[]) => {
-    setStored(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* Quota voll o. ä. – ignorieren */
-    }
+    setRosters(loadRosters());
+    const unsub = subscribeRosters(() => setRosters(loadRosters()));
+    return unsub;
   }, []);
 
   const names = useMemo(() => parseNames(input), [input]);
   const hasNames = names.length > 0;
 
-  // Effektive (validierte) Werte für die Vorschau-Texte – werden aus dem
-  // aktuellen Input-String abgeleitet und auf sinnvolle Grenzen geclampt.
   const effectivePickCount = clampInt(pickCountInput, 1, Math.max(1, names.length), 1);
   const effectiveGroupCount = clampInt(groupCountInput, 2, Math.max(2, names.length || 2), 2);
 
   const draw = useCallback(() => {
     if (!hasNames) return;
     const count = clampInt(pickCountInput, 1, names.length, 1);
-    // Bei ungültiger Eingabe den Wert sichtbar korrigieren, damit klar ist,
-    // was gezogen wurde.
     if (String(count) !== pickCountInput.trim()) {
       setPickCountInput(String(count));
     }
@@ -133,34 +96,26 @@ export default function ZufallsAuswahlApp() {
     setGroups(g);
   }, [hasNames, names, groupCountInput]);
 
-  const saveList = useCallback(() => {
+  const saveAsRoster = useCallback(() => {
     if (!hasNames || !listName.trim()) return;
-    const next: StoredList = {
-      id: crypto.randomUUID(),
-      name: listName.trim(),
-      names,
-      createdAt: Date.now(),
-    };
-    persist([next, ...stored].slice(0, 20));
+    const roster = rosterFromNamesText(listName.trim(), names.join("\n"));
+    upsertRoster(roster);
     setListName("");
-  }, [hasNames, listName, names, persist, stored]);
+  }, [hasNames, listName, names]);
 
-  const loadList = useCallback((list: StoredList) => {
-    setInput(list.names.join("\n"));
+  const loadRoster = useCallback((r: ClassRoster) => {
+    setInput(rosterNames(r).join("\n"));
     setPickResult([]);
     setGroups([]);
   }, []);
 
-  const deleteList = useCallback(
-    (id: string) => {
-      persist(stored.filter((l) => l.id !== id));
-    },
-    [persist, stored]
-  );
+  const removeRoster = useCallback((id: string) => {
+    deleteRoster(id);
+  }, []);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 lg:gap-10">
-      {/* Sidebar: Namen + gespeicherte Listen */}
+      {/* Sidebar: Namen + gespeicherte Klassen */}
       <aside className="space-y-6">
         <div>
           <label
@@ -190,10 +145,10 @@ export default function ZufallsAuswahlApp() {
           </p>
         </div>
 
-        {/* Speichern */}
+        {/* Klassenliste speichern */}
         <div className="rounded-lg bg-white border border-border p-4 space-y-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
-            Liste lokal speichern
+            Als Klassenliste speichern
           </p>
           <div className="flex gap-2">
             <input
@@ -206,7 +161,7 @@ export default function ZufallsAuswahlApp() {
             />
             <button
               type="button"
-              onClick={saveList}
+              onClick={saveAsRoster}
               disabled={!hasNames || !listName.trim()}
               className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
             >
@@ -214,23 +169,23 @@ export default function ZufallsAuswahlApp() {
               <span className="sr-only md:not-sr-only">Sichern</span>
             </button>
           </div>
-          {stored.length > 0 && (
+          {rosters.length > 0 && (
             <ul className="divide-y divide-border border border-border rounded-lg overflow-hidden bg-bg/50">
-              {stored.map((l) => (
+              {rosters.map((l) => (
                 <li key={l.id} className="flex items-center gap-2 px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => loadList(l)}
+                    onClick={() => loadRoster(l)}
                     className="flex-1 text-left"
                   >
                     <div className="text-sm font-bold text-text">{l.name}</div>
                     <div className="text-xs text-text-light">
-                      {l.names.length} Namen
+                      {l.students.length} Namen
                     </div>
                   </button>
                   <button
                     type="button"
-                    onClick={() => deleteList(l.id)}
+                    onClick={() => removeRoster(l.id)}
                     className="p-1 text-text-light hover:text-red-700 transition-colors"
                     aria-label={`Liste ${l.name} löschen`}
                   >
@@ -245,11 +200,30 @@ export default function ZufallsAuswahlApp() {
         <div className="flex items-start gap-3 rounded-lg bg-primary/5 border border-primary/20 p-4 text-xs text-text leading-relaxed">
           <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
           <p>
-            <strong>Lokal gespeichert:</strong> Listen liegen nur im{" "}
-            <strong>Local Storage</strong> dieses Browsers auf diesem Gerät.
-            Kein Server, kein Account, kein Sync.
+            <strong>Geteilte Klassenliste:</strong> Klassen werden lokal in
+            diesem Browser gespeichert und können auch von der{" "}
+            <Link
+              href="/werkzeuge/klassenverteilung"
+              className="text-primary underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong"
+            >
+              Klassenverteilung
+            </Link>{" "}
+            gelesen werden. Kein Server, kein Account, kein Sync.
           </p>
         </div>
+
+        <Link
+          href="/werkzeuge/klassenverteilung"
+          className="flex items-center gap-3 rounded-lg border border-dashed border-primary/30 bg-white px-4 py-3 text-sm text-primary hover:bg-primary/5 transition-colors"
+        >
+          <Network className="h-5 w-5" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="font-bold leading-tight">Mehr mit Klassenliste tun?</p>
+            <p className="text-xs text-text-light">
+              Klassenverteilung mit Wünschen & Regeln öffnen.
+            </p>
+          </div>
+        </Link>
       </aside>
 
       {/* Main: Aktion + Ergebnis */}
@@ -297,7 +271,6 @@ export default function ZufallsAuswahlApp() {
                 pattern="[0-9]*"
                 value={pickCountInput}
                 onChange={(e) => {
-                  // Nur Ziffern zulassen, sonst alles akzeptieren (auch leer).
                   const cleaned = e.target.value.replace(/[^0-9]/g, "");
                   setPickCountInput(cleaned);
                 }}

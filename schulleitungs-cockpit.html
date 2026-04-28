@@ -1,0 +1,4446 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Schulleitungs-Cockpit</title>
+<style>
+  /* ============================================================
+     Schulleitungs-Cockpit – Styles
+     Ruhige, warme Palette. Viel Weißraum. System-Schrift.
+     ============================================================ */
+
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface-2: #fbfaf7;
+    --border: #e5e2d9;
+    --text: #1f2a2e;
+    --text-muted: #6b7a80;
+    --accent: #286b6b;          /* gedämpftes Petrol/Teal */
+    --accent-soft: #e6f0ef;
+    --accent-dark: #1c5050;
+    --warn: #c98a2b;
+    --warn-soft: #fcefd6;
+    --danger: #b0463a;
+    --danger-soft: #fbe3df;
+    --ok: #2f7a4f;
+    --ok-soft: #dff0e5;
+    --holiday-bg: #eef0f2;      /* graue Ferien-Bänder */
+    --feiertag: #b0463a;
+    --shadow: 0 1px 2px rgba(20,30,30,.04), 0 4px 18px rgba(20,30,30,.06);
+    --shadow-lg: 0 6px 24px rgba(20,30,30,.10);
+    --radius: 10px;
+    --radius-sm: 6px;
+
+    /* Kategorien */
+    --cat-eltern: #3d6fa8;
+    --cat-konferenz: #7a4e9c;
+    --cat-pflicht: #b0463a;
+    --cat-unterricht: #2f7a4f;
+    --cat-schulentw: #c87d2b;
+    --cat-sonstiges: #6b7a80;
+  }
+
+  [data-theme="dark"] {
+    --bg: #121819;
+    --surface: #1a2224;
+    --surface-2: #202a2c;
+    --border: #2c3739;
+    --text: #e8ece8;
+    --text-muted: #9aa8ad;
+    --accent: #4ea3a3;
+    --accent-soft: #1e3636;
+    --accent-dark: #6fc2c2;
+    --warn-soft: #3a2e15;
+    --danger-soft: #3a1e1a;
+    --ok-soft: #173024;
+    --holiday-bg: #242b2c;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 18px rgba(0,0,0,.25);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  button, input, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: .55em 1em;
+    border-radius: var(--radius-sm);
+    transition: background .15s, border-color .15s, transform .05s;
+  }
+  button:hover { background: var(--accent-soft); border-color: var(--accent); }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  button.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  button.ghost { background: transparent; border-color: transparent; }
+  button.ghost:hover { background: var(--accent-soft); }
+  button.danger {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="url"],
+  select, textarea {
+    width: 100%;
+    padding: .55em .7em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  label { display: block; font-weight: 500; margin-bottom: .3em; }
+  .field { margin-bottom: 1em; }
+  .field small { color: var(--text-muted); display: block; margin-top: .25em; }
+  .row { display: flex; gap: .8em; }
+  .row > * { flex: 1; }
+  .checkbox-row { display: flex; align-items: center; gap: .5em; margin: .5em 0; }
+  .checkbox-row input[type="checkbox"] { width: auto; margin: 0; }
+
+  /* ==================== Layout ==================== */
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .7em 1.4em;
+    display: flex;
+    align-items: center;
+    gap: 1.2em;
+    flex-wrap: wrap;
+  }
+  .topbar .logo {
+    font-weight: 600;
+    font-size: 1.05em;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  .topbar nav {
+    display: flex;
+    gap: .2em;
+    flex-wrap: wrap;
+  }
+  .topbar nav button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: .45em .9em;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .topbar nav button.active {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+  }
+  .topbar nav button:hover { color: var(--accent-dark); }
+
+  .topbar .spacer { flex: 1; }
+  .topbar .folder-status {
+    font-size: .85em;
+    color: var(--text-muted);
+    padding: .35em .7em;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar .folder-status.connected { color: var(--ok); background: var(--ok-soft); }
+  .topbar .search {
+    position: relative;
+    min-width: 240px;
+  }
+  .topbar .search input {
+    padding-left: 2em;
+  }
+  .topbar .search::before {
+    content: "🔍";
+    position: absolute;
+    left: .6em;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: .9em;
+    opacity: .6;
+  }
+  .topbar .search-results {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+  }
+  .topbar .search-results .result {
+    padding: .55em .8em;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .search-results .result:last-child { border-bottom: none; }
+  .topbar .search-results .result:hover { background: var(--accent-soft); }
+  .topbar .search-results .result .meta { font-size: .8em; color: var(--text-muted); }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    overflow: hidden;
+  }
+  .content {
+    padding: 1.6em 2em;
+    overflow-y: auto;
+    max-height: calc(100vh - 58px);
+  }
+  .sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    padding: 1.4em 1.2em;
+    overflow-y: auto;
+    max-height: calc(100vh - 58px);
+  }
+
+  @media (max-width: 1100px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { border-left: none; border-top: 1px solid var(--border); max-height: none; }
+  }
+
+  h1 { font-size: 1.6em; margin: 0 0 .3em; letter-spacing: -0.02em; }
+  h2 { font-size: 1.2em; margin: 1.2em 0 .6em; letter-spacing: -0.01em; }
+  h3 { font-size: 1.0em; margin: 1em 0 .4em; letter-spacing: -0.01em; }
+  p.lead { color: var(--text-muted); margin-top: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2em 1.4em;
+    margin-bottom: 1.1em;
+    box-shadow: var(--shadow);
+  }
+  .card.soft { box-shadow: none; background: var(--surface-2); }
+
+  /* ==================== Kalender – Jahresansicht ==================== */
+  .year-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: .9em;
+  }
+  .month-mini {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .7em .85em;
+  }
+  .month-mini h4 {
+    margin: 0 0 .4em;
+    font-size: .95em;
+    color: var(--accent-dark);
+  }
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    font-size: .72em;
+  }
+  .mini-grid .dow {
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 500;
+    padding: 2px 0;
+  }
+  .mini-grid .d {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .mini-grid .d.other-month { color: var(--text-muted); opacity: .3; }
+  .mini-grid .d.today { outline: 2px solid var(--accent); font-weight: 600; }
+  .mini-grid .d.holiday { background: var(--holiday-bg); }
+  .mini-grid .d.feiertag { color: var(--feiertag); font-weight: 600; }
+  .mini-grid .d.has-termin::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .mini-grid .d.has-termin.many::after {
+    width: 6px;
+    background: var(--warn);
+  }
+
+  /* ==================== Kalender – Monatsansicht ==================== */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: .6em;
+    margin-bottom: .9em;
+  }
+  .month-nav h2 { margin: 0; }
+  .month-full {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .month-full .dow-head {
+    background: var(--surface-2);
+    padding: .4em .6em;
+    font-size: .82em;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .month-full .cell {
+    background: var(--surface);
+    min-height: 100px;
+    padding: .35em .5em;
+    font-size: .85em;
+    position: relative;
+    cursor: pointer;
+  }
+  .month-full .cell:hover { background: var(--surface-2); }
+  .month-full .cell.other-month { background: var(--surface-2); color: var(--text-muted); }
+  .month-full .cell.today .daynum { background: var(--accent); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
+  .month-full .cell.holiday { background: var(--holiday-bg); }
+  .month-full .cell .daynum { font-weight: 500; display: inline-block; }
+  .month-full .cell .feiertag-label {
+    display: block;
+    font-size: .7em;
+    color: var(--feiertag);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .month-full .termin-chip {
+    background: var(--cat-sonstiges);
+    color: #fff;
+    font-size: .75em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-top: 3px;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: grab;
+  }
+  .month-full .termin-chip.dragging { opacity: .4; }
+  .month-full .termin-chip.external { opacity: .6; font-style: italic; }
+  .month-full .cell.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .termin-chip[data-cat="elternkommunikation"] { background: var(--cat-eltern); }
+  .termin-chip[data-cat="konferenzen"] { background: var(--cat-konferenz); }
+  .termin-chip[data-cat="pflichttermine"] { background: var(--cat-pflicht); }
+  .termin-chip[data-cat="unterricht"] { background: var(--cat-unterricht); }
+  .termin-chip[data-cat="schulentwicklung"] { background: var(--cat-schulentw); }
+  .termin-chip.conflict::before {
+    content: "⚠ ";
+  }
+
+  /* ==================== Listenansicht ==================== */
+  .list-group h3 {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .3em;
+    margin-top: 1.5em;
+  }
+  .list-item {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 1em;
+    padding: .8em 0;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    cursor: pointer;
+  }
+  .list-item:hover { background: var(--surface-2); }
+  .list-item .date {
+    font-weight: 600;
+    color: var(--accent-dark);
+    text-align: center;
+  }
+  .list-item .date .day { font-size: 1.4em; line-height: 1; }
+  .list-item .date .month { font-size: .75em; text-transform: uppercase; color: var(--text-muted); }
+  .list-item .info .title { font-weight: 500; }
+  .list-item .info .meta { font-size: .85em; color: var(--text-muted); }
+  .list-item .cat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cat-sonstiges);
+  }
+  .cat-dot[data-cat="elternkommunikation"] { background: var(--cat-eltern); }
+  .cat-dot[data-cat="konferenzen"] { background: var(--cat-konferenz); }
+  .cat-dot[data-cat="pflichttermine"] { background: var(--cat-pflicht); }
+  .cat-dot[data-cat="unterricht"] { background: var(--cat-unterricht); }
+  .cat-dot[data-cat="schulentwicklung"] { background: var(--cat-schulentw); }
+
+  /* ==================== Sidebar-Checkliste ==================== */
+  .sidebar h3 {
+    margin: 1em 0 .5em;
+    font-size: .85em;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-muted);
+  }
+  .sidebar h3:first-child { margin-top: 0; }
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .6em;
+    padding: .5em 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item.done { opacity: .4; }
+  .checklist-item.done .title { text-decoration: line-through; }
+  .checklist-item input { margin-top: 3px; }
+  .checklist-item .title { font-size: .92em; }
+  .checklist-item .meta { font-size: .78em; color: var(--text-muted); }
+  .checklist-item.overdue { background: var(--danger-soft); border-radius: 4px; padding: .5em; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5em;
+    margin-bottom: 1em;
+  }
+  .stat {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: .6em .7em;
+  }
+  .stat .num { font-size: 1.4em; font-weight: 600; color: var(--accent); }
+  .stat .lbl { font-size: .78em; color: var(--text-muted); }
+
+  /* ==================== Modals ==================== */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,30,30,.4);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3em 1em;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    max-width: 600px;
+    width: 100%;
+    padding: 1.6em 1.8em;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+  .modal.large { max-width: 900px; }
+  .modal h2 { margin-top: 0; }
+  .modal .close {
+    position: absolute;
+    top: .8em;
+    right: .8em;
+    border: none;
+    background: transparent;
+    font-size: 1.5em;
+    line-height: 1;
+    color: var(--text-muted);
+    padding: .3em .5em;
+  }
+  .modal .actions {
+    margin-top: 1.4em;
+    display: flex;
+    justify-content: flex-end;
+    gap: .6em;
+  }
+
+  /* ==================== Plus-Button (FAB) ==================== */
+  .fab {
+    position: fixed;
+    bottom: 1.5em;
+    right: 1.5em;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 1.6em;
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+  }
+  .fab:hover { background: var(--accent-dark); border: none; }
+
+  /* ==================== Banner / Toast ==================== */
+  .banner {
+    background: var(--warn-soft);
+    border-left: 4px solid var(--warn);
+    padding: .8em 1em;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1em;
+  }
+  .banner.info { background: var(--accent-soft); border-left-color: var(--accent); }
+  .banner.error { background: var(--danger-soft); border-left-color: var(--danger); }
+  .banner.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+  .vertretung-banner {
+    background: var(--warn-soft);
+    border-bottom: 2px solid var(--warn);
+    padding: .5em 1em;
+    font-size: .9em;
+    text-align: center;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 1em;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    padding: .7em 1.2em;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    animation: slide-up .2s;
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  /* ==================== Tabellen ==================== */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: .55em .7em; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-weight: 500; color: var(--text-muted); font-size: .85em; background: var(--surface-2); }
+  tr:hover td { background: var(--surface-2); }
+
+  /* ==================== Tags / Badges ==================== */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .78em;
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.danger { background: var(--danger-soft); color: var(--danger); }
+
+  /* ==================== Zeitstrahl ==================== */
+  .timeline {
+    position: relative;
+    padding: 1em 0;
+    overflow-x: auto;
+  }
+  .timeline-track {
+    position: relative;
+    height: 60px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    min-width: 900px;
+  }
+  .timeline-month {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-right: 1px dashed var(--border);
+    font-size: .75em;
+    color: var(--text-muted);
+    padding: 2px 4px;
+  }
+  .timeline-ferien {
+    position: absolute;
+    top: 22px;
+    height: 16px;
+    background: var(--holiday-bg);
+    border-radius: 3px;
+  }
+  .timeline-dot {
+    position: absolute;
+    top: 44px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translateX(-50%);
+    cursor: pointer;
+  }
+
+  /* ==================== Print ==================== */
+  @media print {
+    .topbar, .sidebar, .fab { display: none; }
+    .content { padding: 1em; max-height: none; overflow: visible; }
+    .card { page-break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+  }
+
+  /* ==================== Onboarding ==================== */
+  .onboarding {
+    text-align: center;
+    padding: 3em 2em;
+  }
+  .onboarding h1 { font-size: 2em; }
+  .onboarding .steps {
+    display: flex;
+    justify-content: center;
+    gap: 2em;
+    margin: 2em 0;
+    flex-wrap: wrap;
+  }
+  .onboarding .step {
+    max-width: 200px;
+    text-align: center;
+  }
+  .onboarding .step .num {
+    width: 40px;
+    height: 40px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin: 0 auto .6em;
+  }
+
+  /* ==================== Utility ==================== */
+  .muted { color: var(--text-muted); }
+  .center { text-align: center; }
+  .flex { display: flex; gap: .6em; align-items: center; }
+  .flex.wrap { flex-wrap: wrap; }
+  .mt-0 { margin-top: 0; }
+  .mt-1 { margin-top: .6em; }
+  .mt-2 { margin-top: 1em; }
+  .hidden { display: none !important; }
+  .code-block {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: .8em 1em;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: .82em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  /* Theme toggle pill */
+  .theme-toggle {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: .2em .6em;
+    font-size: .85em;
+  }
+
+  /* Focus-Ring für Barrierefreiheit */
+  *:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ==================== Import-Hub ==================== */
+  .import-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2em 1.4em;
+    margin-bottom: 1em;
+  }
+  .import-section .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1em;
+    margin-bottom: .8em;
+  }
+  .import-section h3 { margin: 0; display: flex; align-items: center; gap: .5em; }
+  .import-section .hint { color: var(--text-muted); font-size: .88em; margin: .3em 0 0; }
+  .import-table { width: 100%; border-collapse: collapse; margin-top: .6em; }
+  .import-table td, .import-table th {
+    padding: .5em .6em;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .import-table tr.sel { background: var(--accent-soft); }
+  .import-table .preview-badge {
+    font-family: monospace;
+    font-size: .82em;
+    color: var(--accent-dark);
+  }
+  .import-table .warn-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warn);
+    margin-right: .3em;
+  }
+  .import-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: .6em;
+    margin-top: .8em;
+    align-items: center;
+  }
+  .import-actions .count { font-size: .88em; color: var(--text-muted); }
+
+  /* ==================== Cowork-Bibliothek ==================== */
+  .cowork-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: .9em;
+  }
+  .cowork-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1em 1.1em;
+    cursor: pointer;
+    transition: transform .1s, border-color .15s, box-shadow .15s;
+  }
+  .cowork-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+  .cowork-card .icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    margin-bottom: .5em;
+  }
+  .cowork-card h4 { margin: 0 0 .25em; font-size: .98em; }
+  .cowork-card p { margin: 0; font-size: .85em; color: var(--text-muted); line-height: 1.4; }
+  .cowork-card .tags { margin-top: .5em; display: flex; flex-wrap: wrap; gap: .3em; }
+
+  /* ==================== Command Palette ==================== */
+  .cmd-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,30,30,.5);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 10vh 1em 1em;
+    z-index: 2000;
+  }
+  .cmd-box {
+    background: var(--surface);
+    border-radius: var(--radius);
+    max-width: 640px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .cmd-input-wrap {
+    padding: 1em 1.2em;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-input {
+    border: none;
+    background: transparent;
+    font-size: 1.05em;
+    padding: 0;
+  }
+  .cmd-input:focus { box-shadow: none; }
+  .cmd-results {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .cmd-item {
+    display: flex;
+    align-items: center;
+    gap: .7em;
+    padding: .6em 1.2em;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  .cmd-item.active {
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+  }
+  .cmd-item .cmd-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9em;
+  }
+  .cmd-item .cmd-label { flex: 1; }
+  .cmd-item .cmd-sub { font-size: .8em; color: var(--text-muted); }
+  .cmd-item .cmd-shortcut {
+    font-size: .75em;
+    color: var(--text-muted);
+    font-family: monospace;
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .cmd-group-label {
+    font-size: .72em;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-muted);
+    padding: .7em 1.2em .2em;
+  }
+  .cmd-footer {
+    border-top: 1px solid var(--border);
+    padding: .5em 1.2em;
+    font-size: .8em;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 1em;
+    background: var(--surface-2);
+  }
+  .cmd-footer kbd {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: .85em;
+    font-family: inherit;
+  }
+
+  /* Quick-Add Button */
+  .quick-add-btn {
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    color: var(--accent-dark);
+    border-radius: var(--radius-sm);
+    padding: .35em .8em;
+    font-size: .85em;
+    display: flex;
+    align-items: center;
+    gap: .4em;
+  }
+  .quick-add-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .quick-add-btn kbd {
+    background: rgba(255,255,255,.4);
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: .8em;
+    font-family: inherit;
+  }
+  [data-theme="dark"] .quick-add-btn kbd { background: rgba(0,0,0,.3); }
+
+  /* Cowork Bridge Modal – schönere Darstellung */
+  .cowork-preview {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1em 1.1em;
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .92em;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 340px;
+    overflow-y: auto;
+    color: var(--text);
+  }
+  .cowork-preview strong { color: var(--accent-dark); }
+  .cowork-template-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3em;
+    margin-bottom: 1em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .6em;
+  }
+  .cowork-template-tabs button {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: .3em .7em;
+    font-size: .85em;
+    border-radius: 12px;
+  }
+  .cowork-template-tabs button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .cowork-template-tabs button:hover:not(.active) {
+    background: var(--accent-soft);
+  }
+
+  /* Editable placeholders in Cowork */
+  .placeholder-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .6em;
+    margin: .8em 0;
+  }
+  .placeholder-form .field { margin-bottom: 0; }
+  .placeholder-form label { font-size: .8em; margin-bottom: .2em; }
+  .placeholder-form input {
+    padding: .35em .5em;
+    font-size: .9em;
+  }
+
+  /* Undo Toast */
+  .toast.undo {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+  }
+  .toast.undo button {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: .15em .6em;
+    font-size: .85em;
+    border-radius: 4px;
+  }
+
+  /* Icon-Button */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .35em;
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .nav-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3em;
+  }
+  .nav-icon-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div id="vertretungsBanner" class="vertretung-banner hidden"></div>
+
+  <header class="topbar">
+    <div class="logo">Schulleitungs-Cockpit</div>
+    <nav id="nav">
+      <button data-tab="kalender" class="active">Kalender</button>
+      <button data-tab="termine">Termine</button>
+      <button data-tab="importieren">Importieren</button>
+      <button data-tab="cowork">Cowork</button>
+      <button data-tab="jahreswechsel">Jahreswechsel</button>
+      <button data-tab="vorlagen">Vorlagen</button>
+      <button data-tab="zeitstrahl">Zeitstrahl</button>
+      <button data-tab="einstellungen">Einstellungen</button>
+    </nav>
+    <div class="spacer"></div>
+    <button class="quick-add-btn" id="quickAddBtn" title="Schnellsuche &amp; Befehle (Strg+K)">
+      <span>Suchen &amp; Befehle</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+    <div class="search" style="max-width:220px">
+      <input type="text" id="searchInput" placeholder="Termine durchsuchen …" aria-label="Suche" />
+      <div class="search-results hidden" id="searchResults"></div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="Dunkelmodus umschalten">🌓</button>
+    <div class="folder-status" id="folderStatus">Kein Ordner gewählt</div>
+  </header>
+
+  <div class="main">
+    <main class="content" id="content">
+      <!-- Tab-Inhalte werden hier gerendert -->
+    </main>
+    <aside class="sidebar" id="sidebar">
+      <!-- Seitenleiste mit Checklisten -->
+    </aside>
+  </div>
+</div>
+
+<button class="fab" id="fabNew" title="Neuen Termin anlegen" aria-label="Neuen Termin anlegen">+</button>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ============================================================================
+   Schulleitungs-Cockpit – JavaScript
+   Eine einzige HTML-Datei, lokale Arbeit mit File System Access API.
+   Kommentare knapp gehalten; ausführlich nur an zentralen Stellen
+   (Regel-Engine, Jahreswechsel, Konflikt-Erkennung).
+   ============================================================================ */
+
+// ------------------------ Globaler State ------------------------
+const State = {
+  dirHandle: null,              // FileSystemDirectoryHandle des Schulordners
+  dirName: null,                // Anzeige-Name
+  termineFile: null,            // Datei-Handle für termine.json
+  ferienFile: null,             // Datei-Handle für ferien.json
+  settingsFile: null,           // settings.json
+  termineData: null,            // geparste termine.json
+  ferienData: null,             // geparste ferien.json (Feiertage + Ferien)
+  settings: {                   // UI-Einstellungen, in settings.json persistiert
+    theme: 'light',
+    vertretungsmodus: false,
+    vertretungsname: '',
+    externeKalender: [],
+    kategorieFilter: null,      // null = alle
+    checkedItems: {},           // abgehakte Checklisten-Einträge (id -> true)
+  },
+  currentTab: 'kalender',
+  currentView: 'jahr',          // jahr | monat | liste
+  currentMonth: new Date(),     // für Monatsansicht
+  externeTermine: [],           // eingelesene iCal-Termine
+  activeModal: null,
+};
+
+// ------------------------ IndexedDB für Ordner-Handle ------------------------
+// Wir speichern nur den DirectoryHandle; alle Daten liegen im Dateisystem.
+const IDB_NAME = 'schulleitungs-cockpit';
+const IDB_STORE = 'handles';
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ------------------------ Helfer ------------------------
+const WEEKDAYS_DE = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const WEEKDAYS_DE_SHORT = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MONTHS_DE_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseIso(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatDateDE(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function slugify(s) {
+  return s
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 40);
+}
+
+function folderNameForTermin(t) {
+  return `${t.datum}_${slugify(t.titel)}`;
+}
+
+function getSchuljahrRange(schuljahr) {
+  // "2026-27" -> { from: "2026-08-01", to: "2027-07-31" }
+  const [y1] = schuljahr.split('-');
+  const y1n = parseInt(y1);
+  return {
+    from: `${y1n}-08-01`,
+    to: `${y1n + 1}-07-31`,
+  };
+}
+
+function currentSchuljahr() {
+  // Schuljahr läuft August bis Juli (Niedersachsen)
+  const now = new Date();
+  const y = now.getFullYear();
+  if (now.getMonth() >= 7) return `${y}-${String(y + 1).slice(2)}`;
+  return `${y - 1}-${String(y).slice(2)}`;
+}
+
+// ------------------------ Toast / Banner ------------------------
+function toast(msg, kind = 'info', duration = 2500) {
+  const root = document.getElementById('toastRoot');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ------------------------ Zwischenablage ------------------------
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('In die Zwischenablage kopiert');
+  } catch {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('In die Zwischenablage kopiert');
+  }
+}
+
+// ============================================================================
+// ORDNER / DATEI-ZUGRIFF
+// ============================================================================
+
+async function pickSchoolFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert('Diese App benötigt die File System Access API und funktioniert aktuell nur in Chrome, Edge oder Brave. Bitte öffnen Sie die Datei in einem dieser Browser.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ id: 'schulordner', mode: 'readwrite' });
+    await ensurePermission(handle);
+    State.dirHandle = handle;
+    State.dirName = handle.name;
+    await idbSet('dirHandle', handle);
+    await initializeSchoolFolder();
+    updateFolderStatus();
+    await loadAll();
+    render();
+    toast(`Ordner "${handle.name}" verbunden`);
+    // Nach erstem Ordner-Wählen: Schnellstart anbieten, wenn leer
+    if (State.termineData && State.termineData.termine.length === 0) {
+      setTimeout(openSchnellstartModal, 200);
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+async function ensurePermission(handle) {
+  const opts = { mode: 'readwrite' };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  if ((await handle.requestPermission(opts)) === 'granted') return true;
+  return false;
+}
+
+async function tryRestoreFolder() {
+  const handle = await idbGet('dirHandle');
+  if (!handle) return false;
+  try {
+    if ((await handle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+      State.dirHandle = handle;
+      State.dirName = handle.name;
+      await loadAll();
+      return true;
+    }
+    // Berechtigung muss bei nächster Nutzerinteraktion erneut bestätigt werden
+    State.dirHandle = handle;
+    State.dirName = handle.name;
+    return 'needsPermission';
+  } catch {
+    return false;
+  }
+}
+
+async function initializeSchoolFolder() {
+  if (!State.dirHandle) return;
+  // termine.json anlegen, falls nicht vorhanden
+  let termineHandle;
+  try {
+    termineHandle = await State.dirHandle.getFileHandle('termine.json');
+  } catch {
+    termineHandle = await State.dirHandle.getFileHandle('termine.json', { create: true });
+    const initial = {
+      schuljahr: currentSchuljahr(),
+      schule: { name: '', bundesland: 'DE-NI' },
+      termine: [],
+      externe_kalender: [],
+    };
+    await writeJson(termineHandle, initial);
+  }
+  State.termineFile = termineHandle;
+
+  // settings.json
+  try {
+    State.settingsFile = await State.dirHandle.getFileHandle('settings.json');
+  } catch {
+    State.settingsFile = await State.dirHandle.getFileHandle('settings.json', { create: true });
+    await writeJson(State.settingsFile, State.settings);
+  }
+
+  // _Vorlagen-Ordner anlegen
+  try {
+    await State.dirHandle.getDirectoryHandle('_Vorlagen', { create: true });
+  } catch (e) { console.warn(e); }
+}
+
+async function readJson(handle) {
+  const file = await handle.getFile();
+  const text = await file.text();
+  return text.trim() ? JSON.parse(text) : null;
+}
+
+async function writeJson(handle, data) {
+  const w = await handle.createWritable();
+  await w.write(JSON.stringify(data, null, 2));
+  await w.close();
+}
+
+async function loadAll() {
+  if (!State.dirHandle) return;
+  try {
+    State.termineFile = await State.dirHandle.getFileHandle('termine.json');
+    State.termineData = await readJson(State.termineFile);
+  } catch (e) {
+    // Fehlt noch → initialize
+    await initializeSchoolFolder();
+    State.termineData = await readJson(State.termineFile);
+  }
+
+  try {
+    State.settingsFile = await State.dirHandle.getFileHandle('settings.json');
+    const s = await readJson(State.settingsFile);
+    if (s) State.settings = { ...State.settings, ...s };
+  } catch { /* optional */ }
+
+  applySettings();
+
+  // Ferien laden (Cache oder API)
+  await loadFerien();
+
+  // Externe Kalender laden
+  await loadExterneKalender();
+}
+
+async function saveTermine() {
+  if (!State.termineFile) return;
+  await writeJson(State.termineFile, State.termineData);
+}
+
+async function saveSettings() {
+  if (!State.settingsFile) return;
+  await writeJson(State.settingsFile, State.settings);
+}
+
+function applySettings() {
+  document.documentElement.setAttribute('data-theme', State.settings.theme || 'light');
+  const vb = document.getElementById('vertretungsBanner');
+  if (State.settings.vertretungsmodus) {
+    vb.classList.remove('hidden');
+    vb.textContent = `Vertretungsmodus aktiv — Rückfragen bitte an ${State.settings.vertretungsname || '[Name ergänzen]'}.`;
+  } else {
+    vb.classList.add('hidden');
+  }
+}
+
+// ============================================================================
+// FERIEN & FEIERTAGE (OpenHolidays API)
+// ============================================================================
+
+async function loadFerien() {
+  if (!State.dirHandle) return;
+  let ferienHandle;
+  try {
+    ferienHandle = await State.dirHandle.getFileHandle('ferien.json');
+    const cached = await readJson(ferienHandle);
+    if (cached && isCacheFresh(cached)) {
+      State.ferienData = cached;
+      return;
+    }
+  } catch { /* noch nicht vorhanden */ }
+
+  try {
+    const freshData = await fetchFerienFromAPI();
+    try {
+      ferienHandle = await State.dirHandle.getFileHandle('ferien.json', { create: true });
+      await writeJson(ferienHandle, freshData);
+    } catch (e) { console.warn('Konnte ferien.json nicht schreiben', e); }
+    State.ferienData = freshData;
+  } catch (e) {
+    console.warn('Ferien-API nicht erreichbar, nutze Cache falls vorhanden', e);
+    if (!State.ferienData && ferienHandle) {
+      try { State.ferienData = await readJson(ferienHandle); } catch {}
+    }
+  }
+  State.ferienFile = ferienHandle;
+}
+
+function isCacheFresh(cached) {
+  if (!cached.cached_at) return false;
+  const age = Date.now() - new Date(cached.cached_at).getTime();
+  return age < 30 * 24 * 3600 * 1000; // 30 Tage
+}
+
+async function fetchFerienFromAPI() {
+  // Zwei aktuelle Schuljahre laden, damit der Jahreswechsel-Assistent alles hat
+  const nowY = new Date().getFullYear();
+  const from = `${nowY - 1}-01-01`;
+  const to = `${nowY + 2}-12-31`;
+  const country = 'DE';
+  const sub = 'DE-NI';
+
+  const [holidays, schoolHolidays] = await Promise.all([
+    fetch(`https://openholidaysapi.org/PublicHolidays?countryIsoCode=${country}&subdivisionCode=${sub}&validFrom=${from}&validTo=${to}&languageIsoCode=DE`).then(r => r.json()),
+    fetch(`https://openholidaysapi.org/SchoolHolidays?countryIsoCode=${country}&subdivisionCode=${sub}&validFrom=${from}&validTo=${to}&languageIsoCode=DE`).then(r => r.json()),
+  ]);
+
+  return {
+    cached_at: new Date().toISOString(),
+    feiertage: holidays.map(h => ({
+      name: (h.name && h.name[0] ? h.name[0].text : 'Feiertag'),
+      startDate: h.startDate,
+      endDate: h.endDate,
+    })),
+    ferien: schoolHolidays.map(h => ({
+      name: (h.name && h.name[0] ? h.name[0].text : 'Ferien'),
+      startDate: h.startDate,
+      endDate: h.endDate,
+    })),
+  };
+}
+
+function isFeiertag(iso) {
+  if (!State.ferienData) return null;
+  return State.ferienData.feiertage.find(f => iso >= f.startDate && iso <= f.endDate) || null;
+}
+
+function isFerientag(iso) {
+  if (!State.ferienData) return null;
+  return State.ferienData.ferien.find(f => iso >= f.startDate && iso <= f.endDate) || null;
+}
+
+// Alle Ferien-Starts/-Enden als "Ankerpunkte" für relative Regeln
+function getFerienAnker() {
+  if (!State.ferienData) return [];
+  const anker = [];
+  for (const f of State.ferienData.ferien) {
+    anker.push({ label: `${f.name} – Beginn`, datum: f.startDate, type: 'beginn', name: f.name });
+    anker.push({ label: `${f.name} – Ende`, datum: f.endDate, type: 'ende', name: f.name });
+  }
+  return anker;
+}
+
+// ============================================================================
+// REGEL-ENGINE — Datumsberechnung für wiederkehrende Termine
+// ============================================================================
+//
+// Drei Regeltypen:
+//   1. "fest"       → {tag:15, monat:11}              → fester Tag+Monat
+//   2. "wochentag"  → {position:"erster", wochentag:"mittwoch", monat:9}
+//   3. "relativ"    → {offsetTage:-3, anker:"Herbstferien", ankerTyp:"beginn"}
+//
+// Für jede Regel gibt es berechneDatum(regel, ferienDaten, jahr).
+// Jahr ist das Kalenderjahr, in dem der Termin fällt. Wir nutzen die
+// ferienDaten, um bei "relativ"-Regeln den Bezugspunkt aufzulösen.
+
+const WOCHENTAG_MAP = {
+  sonntag: 0, montag: 1, dienstag: 2, mittwoch: 3,
+  donnerstag: 4, freitag: 5, samstag: 6,
+};
+const POSITION_MAP = { erster: 0, zweiter: 1, dritter: 2, vierter: 3, letzter: -1 };
+
+function berechneDatum(regel, ferienDaten, jahr) {
+  if (!regel) return null;
+
+  if (regel.art === 'fest') {
+    const { tag, monat } = regel.details || {};
+    if (!tag || !monat) return null;
+    return `${jahr}-${String(monat).padStart(2,'0')}-${String(tag).padStart(2,'0')}`;
+  }
+
+  if (regel.art === 'wochentag') {
+    const { wochentag, position, monat } = regel.details || {};
+    const dow = WOCHENTAG_MAP[wochentag];
+    const pos = POSITION_MAP[position];
+    if (dow === undefined || pos === undefined || !monat) return null;
+
+    if (pos === -1) {
+      // letzter Wochentag im Monat
+      const lastDay = new Date(jahr, monat, 0);
+      const diff = (lastDay.getDay() - dow + 7) % 7;
+      const d = new Date(jahr, monat - 1, lastDay.getDate() - diff);
+      return isoDate(d);
+    }
+    // erster/zweiter/dritter/vierter
+    const first = new Date(jahr, monat - 1, 1);
+    const diff = (dow - first.getDay() + 7) % 7;
+    const dayNum = 1 + diff + pos * 7;
+    const d = new Date(jahr, monat - 1, dayNum);
+    if (d.getMonth() !== monat - 1) return null; // überschritten
+    return isoDate(d);
+  }
+
+  if (regel.art === 'relativ') {
+    const { offsetTage, anker, ankerTyp } = regel.details || {};
+    if (!ferienDaten || offsetTage == null || !anker) return null;
+    // Passende Ferien im Zieljahr finden. Achtung: Osterferien können über
+    // Jahreswechsel gehen, daher ±1 Jahr tolerieren.
+    const candidates = ferienDaten.ferien.filter(f => f.name.includes(anker));
+    let best = null;
+    for (const c of candidates) {
+      const dateIso = ankerTyp === 'ende' ? c.endDate : c.startDate;
+      const y = parseInt(dateIso.split('-')[0]);
+      if (Math.abs(y - jahr) <= 1) {
+        // Wähle das Exemplar, dessen Datum am nächsten zum Zieljahr-Beginn liegt
+        if (!best || Math.abs(parseInt(dateIso.split('-')[0]) - jahr) < Math.abs(parseInt((ankerTyp === 'ende' ? best.endDate : best.startDate)).split('-')[0] - jahr)) {
+          best = c;
+        }
+      }
+    }
+    if (!best) return null;
+    const ankerDate = parseIso(ankerTyp === 'ende' ? best.endDate : best.startDate);
+    ankerDate.setDate(ankerDate.getDate() + parseInt(offsetTage));
+    return isoDate(ankerDate);
+  }
+
+  return null;
+}
+
+// Konflikt-Erkennung: Termin kollidiert, wenn er auf Feiertag/Ferientag fällt
+// oder innerhalb ±2 Tagen ein anderer Termin liegt (nur für Vorschläge im
+// Jahreswechsel-Assistenten relevant).
+function checkKonflikte(iso, alleTermine = [], eigenerId = null) {
+  const konflikte = [];
+  const f = isFeiertag(iso);
+  if (f) konflikte.push(`Fällt auf Feiertag: ${f.name}`);
+  const sf = isFerientag(iso);
+  if (sf) konflikte.push(`Fällt in Schulferien: ${sf.name}`);
+  const d = parseIso(iso);
+  for (const t of alleTermine) {
+    if (t.id === eigenerId) continue;
+    const td = parseIso(t.datum);
+    const diff = Math.abs((d - td) / 86400000);
+    if (diff <= 2 && diff > 0) konflikte.push(`Nah an "${t.titel}" (${formatDateDE(t.datum)})`);
+    if (diff === 0) konflikte.push(`Gleicher Tag wie "${t.titel}"`);
+  }
+  return konflikte;
+}
+
+// ============================================================================
+// PFLICHTTERMINE-BIBLIOTHEK NIEDERSACHSEN
+// ============================================================================
+// Empfehlungen beim Anlegen eines neuen Schuljahres.
+// Die Daten sind Orientierungspunkte – die Schulleitung prüft sie selbst.
+
+const PFLICHTTERMINE_NI = [
+  {
+    titel: 'izn-Stabil Februar',
+    beschreibung: 'Individuelle Lernstandserhebung – zweiter Durchgang',
+    kategorie: 'pflichttermine',
+    regel: { art: 'fest', details: { tag: 15, monat: 2 } },
+  },
+  {
+    titel: 'izn-Stabil September',
+    beschreibung: 'Individuelle Lernstandserhebung – erster Durchgang',
+    kategorie: 'pflichttermine',
+    regel: { art: 'fest', details: { tag: 15, monat: 9 } },
+  },
+  {
+    titel: 'Versetzungskonferenz',
+    beschreibung: 'Notenfestlegung und Versetzungsentscheidungen',
+    kategorie: 'konferenzen',
+    regel: { art: 'relativ', details: { offsetTage: -14, anker: 'Sommerferien', ankerTyp: 'beginn' } },
+  },
+  {
+    titel: 'Zeugnisausgabe Halbjahr',
+    beschreibung: 'Halbjahreszeugnisse am letzten Schultag vor den Zeugnisferien',
+    kategorie: 'pflichttermine',
+    regel: { art: 'relativ', details: { offsetTage: -1, anker: 'Zeugnisferien', ankerTyp: 'beginn' } },
+  },
+  {
+    titel: 'Zeugnisausgabe Schuljahresende',
+    beschreibung: 'Jahreszeugnisse am letzten Schultag vor den Sommerferien',
+    kategorie: 'pflichttermine',
+    regel: { art: 'relativ', details: { offsetTage: -1, anker: 'Sommerferien', ankerTyp: 'beginn' } },
+  },
+  {
+    titel: 'Masernschutznachweis Prüfung',
+    beschreibung: 'Einmal jährlich Masernschutz-Nachweise für Schülerinnen und Schüler prüfen',
+    kategorie: 'pflichttermine',
+    regel: { art: 'fest', details: { tag: 1, monat: 10 } },
+  },
+  {
+    titel: 'DGUV-V3-Prüfung ortsveränderlicher Geräte',
+    beschreibung: 'Prüfung elektrischer Geräte nach DGUV Vorschrift 3 (ca. alle 2 Jahre)',
+    kategorie: 'pflichttermine',
+    regel: { art: 'fest', details: { tag: 15, monat: 10 } },
+  },
+  {
+    titel: 'Brandschutzübung',
+    beschreibung: 'Jährliche Räumungsübung in Abstimmung mit der Feuerwehr',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'zweiter', wochentag: 'dienstag', monat: 10 } },
+  },
+  {
+    titel: 'Gesamtkonferenz',
+    beschreibung: 'Pflicht-Gesamtkonferenz zu Beginn des Schuljahres',
+    kategorie: 'konferenzen',
+    regel: { art: 'relativ', details: { offsetTage: 7, anker: 'Sommerferien', ankerTyp: 'ende' } },
+  },
+  {
+    titel: 'Schulvorstandssitzung',
+    beschreibung: 'Mindestens eine Sitzung pro Halbjahr',
+    kategorie: 'konferenzen',
+    regel: { art: 'wochentag', details: { position: 'dritter', wochentag: 'donnerstag', monat: 11 } },
+  },
+];
+
+// ============================================================================
+// COWORK-VORLAGEN-BIBLIOTHEK
+// ============================================================================
+// Vordefinierte Aufgaben-Templates, die an Cowork geschickt werden.
+// Jedes Template enthält einen Prompt-Text mit Platzhaltern, die aus
+// den Termin-Daten automatisch gefüllt werden (und notfalls vom Nutzer
+// vor dem Kopieren nachbearbeitet werden können).
+
+const COWORK_TEMPLATES = [
+  {
+    id: 'elternbrief-einladung',
+    titel: 'Elternbrief: Einladung',
+    icon: '✉️',
+    beschreibung: 'Förmliche Einladung an Eltern mit Datum, Uhrzeit, Ort und Tagesordnung.',
+    kategorien: ['elternkommunikation'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{UHRZEIT}', '{ORT}', '{ZIELGRUPPE}', '{ZWECK}'],
+    template: `Bitte erstelle einen freundlichen, professionellen Elternbrief als Einladung. Nutze die Vorlage _Vorlagen/Einladung_Elternabend.docx als Basis, falls vorhanden, und speichere das Ergebnis im Ordner {ORDNER}/.
+
+Angaben für den Brief:
+- Titel: {TITEL}
+- Datum: {DATUM}
+- Uhrzeit: {UHRZEIT}
+- Ort: {ORT}
+- Zielgruppe: {ZIELGRUPPE}
+- Zweck: {ZWECK}
+
+Bitte:
+1. Begrüßung mit "Liebe Eltern", Anrede respektvoll und warm.
+2. Einleitungssatz: Zweck des Treffens.
+3. Klare Aufzählung der Eckdaten (Datum, Uhrzeit, Ort).
+4. Kurze Tagesordnung (3-5 Punkte, falls relevant).
+5. Rückantwort-Bitte mit Frist (eine Woche vor dem Termin).
+6. Freundlicher Abschluss mit Unterschrift-Platzhalter der Schulleitung.
+7. Sprache: formell aber nicht steif, Sie-Anrede, deutsche Rechtschreibung.`
+  },
+  {
+    id: 'elternbrief-info',
+    titel: 'Elternbrief: Information',
+    icon: '📄',
+    beschreibung: 'Allgemeiner Informationsbrief (z.B. zu Regelungen, Änderungen, Hinweisen).',
+    kategorien: ['elternkommunikation'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{THEMA}', '{ZIELGRUPPE}'],
+    template: `Bitte erstelle einen sachlichen, klaren Informationsbrief an Eltern zum Thema "{THEMA}".
+
+Kontext:
+- Bezugstermin/Datum: {DATUM}
+- Zielgruppe: {ZIELGRUPPE}
+- Dateiablage: {ORDNER}/
+
+Struktur:
+1. Anrede "Liebe Eltern".
+2. Ein einleitender Satz, der das Thema benennt.
+3. Hauptteil: die zentrale Information klar und in kurzen Absätzen.
+4. Konkrete Handlungsaufforderung (falls vorhanden) oder Ansprechpartner.
+5. Freundlicher Abschluss, Unterschrift-Platzhalter.
+
+Sprache: höflich, Sie-Anrede, verständlich auch für Nicht-Muttersprachler, keine Fachbegriffe ohne Erläuterung.`
+  },
+  {
+    id: 'elternbrief-absage',
+    titel: 'Elternbrief: Absage oder Verschiebung',
+    icon: '⚠️',
+    beschreibung: 'Kurzfristige Änderung eines Termins höflich mitteilen.',
+    kategorien: ['elternkommunikation'],
+    platzhalter: ['{TITEL}', '{ALTES_DATUM}', '{NEUES_DATUM}', '{GRUND}'],
+    template: `Bitte formuliere einen kurzen, freundlichen Elternbrief zur Verschiebung bzw. Absage des folgenden Termins:
+
+- Ursprünglicher Termin: {TITEL} am {ALTES_DATUM}
+- Neuer Termin (falls Verschiebung): {NEUES_DATUM}
+- Grund: {GRUND}
+- Zielordner: {ORDNER}/
+
+Der Brief soll:
+1. Sich für die kurzfristige Änderung entschuldigen.
+2. Den Grund transparent benennen, ohne ins Detail zu gehen.
+3. Das neue Datum hervorheben oder (bei Absage) einen Ausblick auf einen Ersatz geben.
+4. Um Verständnis bitten und einen Ansprechpartner für Rückfragen nennen.
+
+Sprache: klar, kurz, respektvoll.`
+  },
+  {
+    id: 'elternbrief-erinnerung',
+    titel: 'Elternbrief: Erinnerung',
+    icon: '🔔',
+    beschreibung: 'Kurze Erinnerung kurz vor einem Termin (z.B. Materialien, Abgaben).',
+    kategorien: ['elternkommunikation'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{UHRZEIT}', '{MITZUBRINGEN}'],
+    template: `Bitte erstelle eine kurze, freundliche Erinnerung an Eltern:
+
+- Termin: {TITEL}
+- Datum: {DATUM}
+- Uhrzeit: {UHRZEIT}
+- Ort: {ORT}
+- Mitzubringen: {MITZUBRINGEN}
+
+Die Erinnerung soll kompakt sein (max. 8 Sätze), die wichtigsten Daten hervorheben und mit einer freundlichen Vorfreude-Formulierung enden. Anrede "Liebe Eltern". Ablageort: {ORDNER}/`
+  },
+  {
+    id: 'konferenzeinladung',
+    titel: 'Konferenz-Einladung (Kollegium)',
+    icon: '🤝',
+    beschreibung: 'Einladung zur Gesamtkonferenz, Fachkonferenz oder Dienstbesprechung.',
+    kategorien: ['konferenzen'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{UHRZEIT}', '{ORT}', '{TAGESORDNUNG}'],
+    template: `Bitte erstelle eine Einladung für das Kollegium zur Konferenz "{TITEL}".
+
+Daten:
+- Datum: {DATUM}
+- Uhrzeit: {UHRZEIT}
+- Ort: {ORT}
+- Vorgeschlagene Tagesordnung: {TAGESORDNUNG}
+- Ablage: {ORDNER}/
+
+Struktur:
+1. Anrede "Liebe Kolleginnen und Kollegen".
+2. Einleitung, Zweck der Konferenz in zwei Sätzen.
+3. Tagesordnung als nummerierte Liste (5-8 Punkte, TOP Organisatorisches am Anfang, Verschiedenes am Ende).
+4. Bitte um Ergänzungswünsche zur Tagesordnung bis drei Tage vorher.
+5. Freundlicher Abschluss.
+
+Sprache: kollegial, klar, nicht zu förmlich.`
+  },
+  {
+    id: 'aushang',
+    titel: 'Aushang / Hinweis',
+    icon: '📌',
+    beschreibung: 'Kurzer Aushang für das Schwarze Brett oder die Eingangstür.',
+    kategorien: ['elternkommunikation', 'unterricht'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{HINWEIS}'],
+    template: `Bitte erstelle einen prägnanten Aushang (max. eine halbe Seite, großzügige Schrift).
+
+Inhalt:
+- Überschrift: {TITEL}
+- Datum/Zeitraum: {DATUM}
+- Kernaussage: {HINWEIS}
+- Ablage: {ORDNER}/
+
+Stil:
+- Visuell ruhig, mit Platz für den Schul-Briefkopf.
+- Die wichtigste Information in großer Schrift, auf einen Blick erfassbar.
+- Keine langen Sätze — Stichpunkte bevorzugt.
+- Kontakt für Rückfragen am Ende.`
+  },
+  {
+    id: 'pressemitteilung',
+    titel: 'Pressemitteilung',
+    icon: '📰',
+    beschreibung: 'Kurze Pressemitteilung für die lokale Presse (Schulfest, Auszeichnung, Projekt).',
+    kategorien: ['schulentwicklung'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{EREIGNIS}', '{KONTAKT}'],
+    template: `Bitte erstelle eine kurze Pressemitteilung (ca. 200-250 Wörter) zum Thema "{TITEL}".
+
+Eckdaten:
+- Ereignis: {EREIGNIS}
+- Datum: {DATUM}
+- Ort: {ORT}
+- Ansprechpartner für Rückfragen: {KONTAKT}
+- Ablage: {ORDNER}/
+
+Struktur:
+1. Überschrift: knackig, prägnant, ohne Ausrufezeichen.
+2. Lead-Absatz mit W-Fragen (wer, was, wann, wo, warum) in zwei Sätzen.
+3. Hauptteil: Details, ein bis zwei Zitate (Platzhalter für Schulleitung o.ä.).
+4. Abschluss-Absatz: Einordnung, Ausblick.
+5. Redaktioneller Hinweis (Kontaktdaten) am Ende.
+
+Sprache: journalistisch, neutral, keine Werbung, keine Ausrufezeichen.`
+  },
+  {
+    id: 'dankesschreiben',
+    titel: 'Dankesschreiben',
+    icon: '🌸',
+    beschreibung: 'Dank an Helfer, Spender, Gäste nach einer Veranstaltung.',
+    kategorien: ['elternkommunikation', 'schulentwicklung'],
+    platzhalter: ['{ANLASS}', '{DATUM}', '{EMPFÄNGER}', '{BEITRAG}'],
+    template: `Bitte erstelle ein persönliches, warmes Dankesschreiben an "{EMPFÄNGER}" für den Beitrag zu "{ANLASS}" am {DATUM}.
+
+Konkreter Beitrag: {BEITRAG}
+Ablage: {ORDNER}/
+
+Das Schreiben soll:
+1. Einen konkreten Bezug zum Beitrag herstellen (keine Textbausteine).
+2. Die Bedeutung für die Schule würdigen.
+3. Die Wirkung auf Schülerinnen und Schüler benennen.
+4. Mit einer persönlichen Grußformel und Unterschrift der Schulleitung enden.
+
+Sprache: warm, ehrlich, nicht floskelhaft. Länge: eine halbe DIN A4-Seite.`
+  },
+  {
+    id: 'schultraeger',
+    titel: 'Brief an Schulträger / Amt',
+    icon: '🏛️',
+    beschreibung: 'Formeller Brief an Schulamt, Gemeinde oder Kreis.',
+    kategorien: ['schulentwicklung'],
+    platzhalter: ['{TITEL}', '{DATUM}', '{ANLIEGEN}', '{EMPFÄNGER}'],
+    template: `Bitte erstelle einen formellen Brief an "{EMPFÄNGER}" zum Anliegen "{ANLIEGEN}".
+
+Kontext:
+- Bezug: {TITEL}
+- Datum des Bezugs: {DATUM}
+- Schule: {SCHULE}
+- Ablage: {ORDNER}/
+
+Struktur:
+1. Anschrift des Empfängers (Platzhalter, falls unbekannt).
+2. Betreff-Zeile (prägnant, ohne Satzzeichen am Ende).
+3. Anrede "Sehr geehrte Damen und Herren" oder konkrete Ansprache, falls Empfänger bekannt.
+4. Absatz 1: Anlass und Ausgangslage.
+5. Absatz 2: konkretes Anliegen / Bitte / Frage.
+6. Absatz 3: ggf. Fristen, weitere Schritte.
+7. Abschluss: freundliche Grußformel, Unterschrift Schulleitung, Anlagen-Vermerk.
+
+Sprache: formell, knapp, sachlich — kein Amtsdeutsch, aber korrekte Form.`
+  },
+  {
+    id: 'vertretung-info',
+    titel: 'Vertretungs-/Abwesenheits-Info',
+    icon: '🕰️',
+    beschreibung: 'Kurze Information ans Kollegium über Abwesenheit und Vertretung.',
+    kategorien: ['konferenzen'],
+    platzhalter: ['{ZEITRAUM}', '{VERTRETUNG}', '{KONTAKT}'],
+    template: `Bitte erstelle eine interne Notiz ans Kollegium über die Abwesenheit der Schulleitung.
+
+- Abwesenheitszeitraum: {ZEITRAUM}
+- Vertretung: {VERTRETUNG}
+- Notfallkontakt: {KONTAKT}
+- Ablage: {ORDNER}/
+
+Die Notiz soll kurz (max. 6 Sätze) sein, klar regeln, wer wofür zuständig ist (dringende Entscheidungen, laufende Projekte, Elterngespräche), und mit einem kollegialen Gruß enden.`
+  },
+  {
+    id: 'zeugnis-begleitschreiben',
+    titel: 'Begleitschreiben zu Zeugnissen',
+    icon: '🎓',
+    beschreibung: 'Hinweistext, der mit Zeugnissen an Eltern ausgegeben wird.',
+    kategorien: ['pflichttermine', 'elternkommunikation'],
+    platzhalter: ['{ZEUGNISART}', '{DATUM}', '{HINWEISE}'],
+    template: `Bitte erstelle ein Begleitschreiben, das mit den Zeugnissen an die Eltern geht.
+
+- Zeugnisart: {ZEUGNISART} (z.B. Halbjahreszeugnis, Abschlusszeugnis)
+- Ausgabedatum: {DATUM}
+- Spezielle Hinweise dieses Mal: {HINWEISE}
+- Ablage: {ORDNER}/
+
+Inhalt:
+1. Dank für die Begleitung durch das Schuljahr/Halbjahr.
+2. Kurze Einordnung des Zeugnisses (kein Werturteil einzelner Kinder).
+3. Hinweis auf Beratungsmöglichkeiten bei Fragen.
+4. Je nach Zeitpunkt: Hinweis auf Ferien, anstehende Termine, Schuljahresende.
+5. Wertschätzender Abschluss.
+
+Sprache: Sie-Anrede, warm, respektvoll, gleichzeitig sachlich.`
+  },
+  {
+    id: 'vorlage-neu',
+    titel: 'Neue Brief-Vorlage erstellen',
+    icon: '✨',
+    beschreibung: 'Cowork erstellt eine neue, wiederverwendbare Vorlage im Ordner _Vorlagen/.',
+    kategorien: [],
+    platzhalter: ['{ZWECK}', '{PLATZHALTER_LISTE}'],
+    template: `Bitte erstelle eine neue Brief-Vorlage für wiederkehrende Einsätze und lege sie im Ordner _Vorlagen/ ab.
+
+Zweck der Vorlage: {ZWECK}
+Gewünschte Platzhalter im Format {NAME}: {PLATZHALTER_LISTE}
+
+Vorgehen:
+1. Erstelle eine gut strukturierte Word-/Text-Datei (je nach Zweck) mit Schul-Briefkopf-Platzhalter oben.
+2. Nutze klare Platzhalter im Format {NAME} (Großbuchstaben, Unterstriche).
+3. Füge Kommentare ein, wo der Nutzer Inhalte ergänzen muss.
+4. Speichere als aussagekräftigen Dateinamen in _Vorlagen/.
+5. Gib nach Fertigstellung eine Zusammenfassung zurück, welche Platzhalter die Vorlage nutzt.`
+  }
+];
+
+// ============================================================================
+// PRÜFUNGSTERMINE NIEDERSACHSEN
+// ============================================================================
+// Wichtige Termine des Kultusministeriums. Monat+ungefährer Bereich — die
+// Schulleitung ergänzt das genaue Datum. (Nicht hart verdrahten, weil
+// jährlich schwankend; besser als Platzhalter mit Hinweis anbieten.)
+
+const PRUEFUNGSTERMINE_NI = [
+  {
+    titel: 'VERA 3 – Deutsch',
+    beschreibung: 'Vergleichsarbeit Jahrgang 3. Bitte genaues Datum auf MK-Website prüfen.',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'dritter', wochentag: 'dienstag', monat: 5 } },
+  },
+  {
+    titel: 'VERA 3 – Mathematik',
+    beschreibung: 'Vergleichsarbeit Jahrgang 3 – Mathematik',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'dritter', wochentag: 'donnerstag', monat: 5 } },
+  },
+  {
+    titel: 'VERA 8 – Deutsch',
+    beschreibung: 'Vergleichsarbeit Jahrgang 8 – Deutsch',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'zweiter', wochentag: 'dienstag', monat: 3 } },
+  },
+  {
+    titel: 'VERA 8 – Mathematik',
+    beschreibung: 'Vergleichsarbeit Jahrgang 8 – Mathematik',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'zweiter', wochentag: 'donnerstag', monat: 3 } },
+  },
+  {
+    titel: 'Zentralabitur schriftlich (Start)',
+    beschreibung: 'Beginn des schriftlichen Zentralabiturs. Bitte exaktes Datum per KM-Erlass prüfen.',
+    kategorie: 'pflichttermine',
+    regel: { art: 'wochentag', details: { position: 'dritter', wochentag: 'mittwoch', monat: 4 } },
+  },
+  {
+    titel: 'Anmeldung Einschulung (Fristende)',
+    beschreibung: 'Anmeldefrist für das kommende Schuljahr – abhängig vom Schulträger.',
+    kategorie: 'pflichttermine',
+    regel: { art: 'fest', details: { tag: 1, monat: 5 } },
+  },
+];
+
+// ============================================================================
+// KURATIERTE KALENDER-QUELLEN
+// ============================================================================
+// Hinweise auf öffentlich zugängliche iCal-Feeds. Die App füllt die
+// URL-Felder nicht automatisch — die Schulleitung fügt sie selbst ein,
+// weil Feeds regional unterschiedlich sind.
+
+const CURATED_ICAL_SOURCES = [
+  {
+    titel: 'Ferien und Feiertage Niedersachsen',
+    beschreibung: 'Wird automatisch über die OpenHolidays-API geladen (bereits aktiv). Als iCal optional für Redundanz.',
+    hinweis: 'Bereits im Hintergrund aktiv – kein manuelles Einrichten nötig.',
+    icon: '🏖️',
+    bereich: 'offiziell',
+  },
+  {
+    titel: 'Kultusministerium – Termine und Fristen',
+    beschreibung: 'Offizielle Seite mit Prüfungsterminen, Ferien, Eckdaten. Bitte aktuelle Rundschreiben prüfen.',
+    hinweis: 'Quelle: mk.niedersachsen.de – kein direkter iCal-Feed verfügbar. Tipp: Rundschreiben als PDF ablegen und Termine manuell übernehmen.',
+    icon: '🏛️',
+    bereich: 'offiziell',
+  },
+  {
+    titel: 'Gemeinde-/Stadtkalender',
+    beschreibung: 'Viele Kommunen veröffentlichen ihre öffentlichen Termine als iCal. Rathaus-Website nach "Kalender exportieren" durchsuchen.',
+    hinweis: 'URL bei der Gemeinde erfragen oder im Veranstaltungskalender der Gemeindewebsite suchen.',
+    icon: '🏘️',
+    bereich: 'regional',
+  },
+  {
+    titel: 'Kirchengemeinde vor Ort',
+    beschreibung: 'Kollisionen mit Einschulungsgottesdiensten oder Festen vermeiden.',
+    hinweis: 'Oft als iCal-Export im Veranstaltungsbereich der Gemeindewebsite.',
+    icon: '⛪',
+    bereich: 'regional',
+  },
+  {
+    titel: 'Sportverein / Jugendzentrum',
+    beschreibung: 'Hilfreich zum Abgleich mit Sporttagen, Ferienprogrammen und AG-Zeiten.',
+    hinweis: 'Direkt beim Verein nach einem ICS-Link fragen.',
+    icon: '⚽',
+    bereich: 'regional',
+  },
+  {
+    titel: 'Schule einer Nachbarschule',
+    beschreibung: 'Falls Sie mit einer Nachbarschule abstimmen (gemeinsame Konferenzen, Tag der offenen Tür).',
+    hinweis: 'Bitte direkt bei der anderen Schulleitung nach ICS-Link anfragen.',
+    icon: '🏫',
+    bereich: 'regional',
+  },
+  {
+    titel: 'Eigene iCal-URL',
+    beschreibung: 'Eine beliebige iCal-URL eintragen (Google Calendar Export, Outlook-Share, etc.).',
+    hinweis: 'Feld unten in den Einstellungen oder direkt hier.',
+    icon: '🔗',
+    bereich: 'eigene',
+  },
+];
+
+// ============================================================================
+// CRUD Termine
+// ============================================================================
+
+async function addTermin(t) {
+  if (!t.id) t.id = uuid();
+  t.erstellt_am = isoDate(new Date());
+  t.letzte_aenderung = t.erstellt_am;
+  State.termineData.termine.push(t);
+  await saveTermine();
+  if (t.ordner_anlegen && t.ordner) {
+    await ensureTerminOrdner(t);
+  }
+}
+
+async function updateTermin(id, patch) {
+  const idx = State.termineData.termine.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  const old = State.termineData.termine[idx];
+  const neu = { ...old, ...patch, letzte_aenderung: isoDate(new Date()) };
+  State.termineData.termine[idx] = neu;
+  await saveTermine();
+
+  // Ordner umbenennen, falls Datum geändert und Ordner existiert
+  if (patch.datum && patch.datum !== old.datum && old.ordner) {
+    const neuerName = folderNameForTermin(neu);
+    try {
+      await renameFolder(old.ordner, neuerName);
+      neu.ordner = neuerName;
+      State.termineData.termine[idx] = neu;
+      await saveTermine();
+      const hinweis = `Ordner umbenannt von ${old.ordner} auf ${neuerName}. Die Briefe darin sollten auch auf das neue Datum aktualisiert werden. Soll Cowork das übernehmen?`;
+      showCoworkBridge(neu, hinweis, 'termin-verschoben');
+    } catch (e) {
+      console.warn('Ordner konnte nicht umbenannt werden', e);
+      toast('Ordner konnte nicht umbenannt werden – Details in der Konsole.');
+    }
+  }
+  return neu;
+}
+
+async function deleteTermin(id) {
+  State.termineData.termine = State.termineData.termine.filter(t => t.id !== id);
+  await saveTermine();
+}
+
+async function ensureTerminOrdner(t) {
+  if (!State.dirHandle) return;
+  const name = folderNameForTermin(t);
+  t.ordner = name;
+  const folder = await State.dirHandle.getDirectoryHandle(name, { create: true });
+  // Vorlage kopieren?
+  if (t.vorlage) {
+    await copyVorlageToFolder(t.vorlage, folder);
+  }
+  await saveTermine();
+}
+
+async function renameFolder(oldName, newName) {
+  // File System Access API hat kein natives rename. Wir kopieren die Dateien
+  // in einen neuen Ordner und löschen den alten.
+  const oldDir = await State.dirHandle.getDirectoryHandle(oldName);
+  const newDir = await State.dirHandle.getDirectoryHandle(newName, { create: true });
+  for await (const [name, handle] of oldDir.entries()) {
+    if (handle.kind === 'file') {
+      const file = await handle.getFile();
+      const newFile = await newDir.getFileHandle(name, { create: true });
+      const w = await newFile.createWritable();
+      await w.write(await file.arrayBuffer());
+      await w.close();
+    }
+  }
+  await State.dirHandle.removeEntry(oldName, { recursive: true });
+}
+
+async function copyVorlageToFolder(vorlagePfad, zielFolder) {
+  try {
+    const vorlagenDir = await State.dirHandle.getDirectoryHandle('_Vorlagen');
+    const dateiname = vorlagePfad.split('/').pop();
+    const vorlageHandle = await vorlagenDir.getFileHandle(dateiname);
+    const file = await vorlageHandle.getFile();
+    const ziel = await zielFolder.getFileHandle(dateiname, { create: true });
+    const w = await ziel.createWritable();
+    await w.write(await file.arrayBuffer());
+    await w.close();
+  } catch (e) {
+    console.warn('Vorlage konnte nicht kopiert werden', e);
+  }
+}
+
+async function listVorlagen() {
+  if (!State.dirHandle) return [];
+  try {
+    const dir = await State.dirHandle.getDirectoryHandle('_Vorlagen');
+    const result = [];
+    for await (const [name, handle] of dir.entries()) {
+      if (handle.kind === 'file') {
+        const file = await handle.getFile();
+        result.push({ name, size: file.size, lastModified: file.lastModified, handle });
+      }
+    }
+    return result;
+  } catch { return []; }
+}
+
+async function listDateienInTerminOrdner(ordnerName) {
+  if (!State.dirHandle) return [];
+  try {
+    const dir = await State.dirHandle.getDirectoryHandle(ordnerName);
+    const result = [];
+    for await (const [name, handle] of dir.entries()) {
+      if (handle.kind === 'file') {
+        const file = await handle.getFile();
+        result.push({ name, size: file.size, lastModified: file.lastModified });
+      }
+    }
+    return result;
+  } catch { return []; }
+}
+
+async function getVorlagenPlatzhalter(handle) {
+  // Nur Textdateien analysieren; docx ist binär.
+  try {
+    const file = await handle.getFile();
+    if (!/\.(txt|md|html|csv)$/i.test(file.name)) return [];
+    const text = await file.text();
+    const set = new Set();
+    const re = /\{[A-ZÄÖÜ_]+\}/g;
+    let m;
+    while ((m = re.exec(text))) set.add(m[0]);
+    return Array.from(set);
+  } catch { return []; }
+}
+
+// ============================================================================
+// EXTERNE KALENDER (iCal)
+// ============================================================================
+
+async function loadExterneKalender() {
+  State.externeTermine = [];
+  if (!State.settings.externeKalender) return;
+  for (const cal of State.settings.externeKalender) {
+    try {
+      const res = await fetch(cal.url);
+      const text = await res.text();
+      const parsed = parseIcal(text);
+      parsed.forEach(t => { t.quelle = cal.name; });
+      State.externeTermine.push(...parsed);
+    } catch (e) {
+      console.warn(`iCal "${cal.name}" konnte nicht geladen werden`, e);
+    }
+  }
+}
+
+function parseIcal(text) {
+  // Sehr minimaler iCal-Parser: nur VEVENT mit DTSTART und SUMMARY
+  const events = [];
+  const lines = text.split(/\r?\n/);
+  let cur = null;
+  for (const line of lines) {
+    if (line === 'BEGIN:VEVENT') cur = {};
+    else if (line === 'END:VEVENT') { if (cur && cur.datum && cur.titel) events.push(cur); cur = null; }
+    else if (cur) {
+      const [key, ...rest] = line.split(':');
+      const val = rest.join(':');
+      if (key.startsWith('DTSTART')) {
+        const raw = val.replace(/\D/g, '');
+        if (raw.length >= 8) cur.datum = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
+      } else if (key === 'SUMMARY') cur.titel = val;
+      else if (key === 'DESCRIPTION') cur.beschreibung = val;
+    }
+  }
+  return events;
+}
+
+function exportIcal() {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Schulleitungs-Cockpit//DE'];
+  for (const t of State.termineData.termine) {
+    if (!t.datum) continue;
+    const dt = t.datum.replace(/-/g, '');
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${t.id}@schulleitungs-cockpit`);
+    lines.push(`DTSTART;VALUE=DATE:${dt}`);
+    lines.push(`DTEND;VALUE=DATE:${dt}`);
+    lines.push(`SUMMARY:${(t.titel || '').replace(/\n/g, ' ')}`);
+    if (t.beschreibung) lines.push(`DESCRIPTION:${t.beschreibung.replace(/\n/g, '\\n')}`);
+    if (t.ort) lines.push(`LOCATION:${t.ort}`);
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `schulkalender-${State.termineData.schuljahr || 'aktuell'}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================================
+// BRÜCKENTAGE & NATURAL-LANGUAGE-PARSER
+// ============================================================================
+
+// Findet Tage zwischen einem Feiertag und einem Wochenende (Brückentage).
+// Einsatzzweck: Schulleitung will z.B. vor Himmelfahrt einen schulfreien Tag
+// festlegen (bewegliche Ferientage dürfen Schulen in NI selbst setzen).
+function findBrueckentage(fromIso, toIso) {
+  if (!State.ferienData) return [];
+  const out = [];
+  const from = parseIso(fromIso);
+  const to = parseIso(toIso);
+  for (const ft of State.ferienData.feiertage) {
+    const d = parseIso(ft.startDate);
+    if (d < from || d > to) continue;
+    const dow = d.getDay(); // 0=So, 6=Sa
+    if (dow === 2) {
+      // Dienstag = Montag davor ist Brückentag
+      const br = new Date(d); br.setDate(d.getDate() - 1);
+      out.push({ datum: isoDate(br), brücke: `Montag vor ${ft.name}`, anlass: ft.name });
+    } else if (dow === 4) {
+      // Donnerstag = Freitag danach ist Brückentag
+      const br = new Date(d); br.setDate(d.getDate() + 1);
+      out.push({ datum: isoDate(br), brücke: `Freitag nach ${ft.name}`, anlass: ft.name });
+    }
+  }
+  return out;
+}
+
+// Einfacher Natural-Language-Parser für die Schnelleingabe.
+// Unterstützt: "Elternabend 15.9. 19:30", "Konferenz am 3.10.2026 14:00",
+// "Zeugnisvergabe morgen", "... nächsten Dienstag", "... am Freitag".
+function parseQuickAdd(text) {
+  if (!text) return null;
+  let datum = null;
+  let uhrzeit = null;
+  let titel = text.trim();
+  const now = new Date();
+
+  // Uhrzeit: HH:MM, HH.MM oder "19 Uhr"
+  const zeitRe = /\b(\d{1,2})[:.](\d{2})\s*(?:Uhr|h)?\b|\b(\d{1,2})\s*Uhr\b/i;
+  const mZeit = titel.match(zeitRe);
+  if (mZeit) {
+    const h = parseInt(mZeit[1] || mZeit[3]);
+    const m = parseInt(mZeit[2] || '0');
+    uhrzeit = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    titel = titel.replace(mZeit[0], '').trim();
+  }
+
+  // Datum: 15.9., 15.09., 15.09.2026, 2026-09-15
+  const mDeutsch = titel.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?\b/);
+  const mIso = titel.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (mDeutsch) {
+    let y = mDeutsch[3] ? parseInt(mDeutsch[3]) : now.getFullYear();
+    if (y < 100) y += 2000;
+    // Wenn Datum in der Vergangenheit liegt und kein Jahr angegeben war → nächstes Jahr
+    if (!mDeutsch[3]) {
+      const test = new Date(y, parseInt(mDeutsch[2]) - 1, parseInt(mDeutsch[1]));
+      if (test < now) y += 1;
+    }
+    datum = `${y}-${String(mDeutsch[2]).padStart(2,'0')}-${String(mDeutsch[1]).padStart(2,'0')}`;
+    titel = titel.replace(mDeutsch[0], '').trim();
+  } else if (mIso) {
+    datum = mIso[0];
+    titel = titel.replace(mIso[0], '').trim();
+  } else {
+    // Keywords: heute, morgen, übermorgen, Wochentage
+    const kw = titel.toLowerCase();
+    if (/\bheute\b/.test(kw)) { datum = isoDate(now); titel = titel.replace(/\bheute\b/i, '').trim(); }
+    else if (/\bmorgen\b/.test(kw)) { const d = new Date(now); d.setDate(d.getDate()+1); datum = isoDate(d); titel = titel.replace(/\bmorgen\b/i, '').trim(); }
+    else if (/\bübermorgen\b/.test(kw)) { const d = new Date(now); d.setDate(d.getDate()+2); datum = isoDate(d); titel = titel.replace(/\bübermorgen\b/i, '').trim(); }
+    else {
+      // "nächsten Dienstag" / "am Freitag"
+      const wtMatch = kw.match(/\b(?:nächsten?|kommenden|am)\s+(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/);
+      if (wtMatch) {
+        const target = WOCHENTAG_MAP[wtMatch[1]];
+        const d = new Date(now);
+        let addDays = (target - d.getDay() + 7) % 7;
+        if (addDays === 0) addDays = 7;
+        d.setDate(d.getDate() + addDays);
+        datum = isoDate(d);
+        titel = titel.replace(new RegExp(wtMatch[0], 'i'), '').trim();
+      }
+    }
+  }
+
+  // Füllwörter entfernen
+  titel = titel.replace(/\b(am|um|für|ab|von|den)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+  titel = titel.replace(/[,.;]+$/, '').trim();
+
+  return { titel, datum, uhrzeit };
+}
+
+// Einfacher iCal-Text-Parser für den Import aus eingefügtem Text (z.B. Mail).
+// Erkennt Datumszeilen und nimmt den Rest als Titel.
+function parseTextTermine(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const found = [];
+  const datumRe = /\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})\b/;
+  for (const line of lines) {
+    const m = line.match(datumRe);
+    if (!m) continue;
+    let y = parseInt(m[3]);
+    if (y < 100) y += 2000;
+    const iso = `${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+    const rest = line.replace(m[0], '').replace(/^[\s:,\-–—]+|[\s:,\-–—]+$/g, '').trim();
+    if (rest) found.push({ titel: rest.slice(0, 120), datum: iso });
+  }
+  return found;
+}
+
+// Duplikat-Check für Import-Vorschauen
+function isLikelyDuplicate(vorschlag, termine) {
+  return termine.some(t =>
+    t.datum === vorschlag.datum &&
+    (t.titel || '').toLowerCase().trim() === (vorschlag.titel || '').toLowerCase().trim()
+  );
+}
+
+// ============================================================================
+// UI-RENDERING
+// ============================================================================
+
+function updateFolderStatus() {
+  const el = document.getElementById('folderStatus');
+  if (State.dirHandle) {
+    el.textContent = `📁 ${State.dirName}`;
+    el.classList.add('connected');
+  } else {
+    el.textContent = 'Kein Ordner gewählt';
+    el.classList.remove('connected');
+  }
+}
+
+function render() {
+  updateFolderStatus();
+  renderSidebar();
+  const content = document.getElementById('content');
+  if (!State.dirHandle) {
+    renderOnboarding(content);
+    return;
+  }
+  switch (State.currentTab) {
+    case 'kalender':       renderKalender(content); break;
+    case 'termine':        renderTermineListe(content); break;
+    case 'importieren':    renderImportHub(content); break;
+    case 'cowork':         renderCoworkTab(content); break;
+    case 'jahreswechsel':  renderJahreswechsel(content); break;
+    case 'vorlagen':       renderVorlagen(content); break;
+    case 'zeitstrahl':     renderZeitstrahl(content); break;
+    case 'einstellungen':  renderEinstellungen(content); break;
+    default:               renderKalender(content);
+  }
+}
+
+// ============================================================================
+// IMPORT-HUB
+// ============================================================================
+
+function renderImportHub(root) {
+  root.innerHTML = `
+    <h1>Termine importieren</h1>
+    <p class="lead">Alles, was reinkommt, in einem Bildschirm. Auswählen, prüfen, übernehmen — nichts wird automatisch hinzugefügt ohne Ihre Bestätigung.</p>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>🏛 Pflichttermine Niedersachsen</h3>
+          <p class="hint">Empfehlungen für ein typisches niedersächsisches Schuljahr. Prüfen Sie die berechneten Daten bei relativen Regeln auf Plausibilität.</p>
+        </div>
+      </div>
+      <div id="pflichtList"></div>
+    </div>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>📝 Prüfungs- und Lernstandstermine (Niedersachsen)</h3>
+          <p class="hint">VERA 3 / VERA 8, Zentralabitur-Beginn, Einschulungs-Anmeldung. Genaue Termine bitte auf <code>mk.niedersachsen.de</code> prüfen.</p>
+        </div>
+      </div>
+      <div id="pruefungList"></div>
+    </div>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>🌉 Brückentage erkennen</h3>
+          <p class="hint">Feiertage, die auf Dienstag oder Donnerstag fallen, erzeugen mögliche Brückentage. Sie können diese als bewegliche Ferientage festlegen.</p>
+        </div>
+      </div>
+      <div id="brueckenList"></div>
+    </div>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>📋 Aus Text extrahieren</h3>
+          <p class="hint">Fügen Sie eine Mail, Liste oder eingescannten Text ein. Die App erkennt Datumsangaben und schlägt Termine vor.</p>
+        </div>
+      </div>
+      <div class="field">
+        <textarea id="textImportArea" rows="5" placeholder="Z.B.&#10;15.09.2026 Einschulung Klasse 1&#10;03.10.2026 Tag der Deutschen Einheit – schulfrei&#10;12.11.2026 Elternsprechtag"></textarea>
+      </div>
+      <div class="flex" style="gap:.6em">
+        <button class="primary" id="btnParseText">Datumsangaben erkennen</button>
+        <button class="ghost" id="btnCoworkText">Cowork um Strukturierung bitten</button>
+      </div>
+      <div id="textImportResult"></div>
+    </div>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>📎 iCal-Datei hochladen</h3>
+          <p class="hint">Eine .ics-Datei aus einem anderen Kalender (Google, Outlook, Apple, Nachbarschule). Termine werden zur Auswahl angezeigt.</p>
+        </div>
+      </div>
+      <button id="btnIcsUpload">iCal-Datei auswählen</button>
+      <div id="icsImportResult"></div>
+    </div>
+
+    <div class="import-section">
+      <div class="section-head">
+        <div>
+          <h3>🔗 Kalender-Quellen (iCal-URLs)</h3>
+          <p class="hint">Regionale Kalender-Feeds abonnieren — Termine erscheinen halbtransparent im Hauptkalender, bei Kollisionen gibt es Warnungen.</p>
+        </div>
+      </div>
+      <div id="quellenList"></div>
+      <div class="row mt-2">
+        <input type="text" id="newFeedName" placeholder="Name (z.B. Gemeinde)" />
+        <input type="url" id="newFeedUrl" placeholder="https://… .ics" />
+        <button class="primary" id="btnAddFeed">Feed hinzufügen</button>
+      </div>
+    </div>
+  `;
+
+  renderPflichtteriminListe();
+  renderPruefungsterminListe();
+  renderBrueckenListe();
+  renderQuellenListe();
+
+  document.getElementById('btnParseText').addEventListener('click', () => {
+    const txt = document.getElementById('textImportArea').value;
+    const parsed = parseTextTermine(txt);
+    renderTextImportResult(parsed);
+  });
+  document.getElementById('btnCoworkText').addEventListener('click', () => {
+    const txt = document.getElementById('textImportArea').value;
+    if (!txt.trim()) { toast('Bitte erst Text einfügen.'); return; }
+    const prompt = `Bitte strukturiere die folgenden Textzeilen in Schulterminen. Gib für jeden erkannten Termin in einer Liste zurück: Titel, Datum im Format JJJJ-MM-TT, optional Uhrzeit und Ort. Wenn ein Datum unklar ist, markiere es als "unklar".\n\n---\n${txt}\n---`;
+    copyToClipboard(prompt);
+    toast('Aufgabe für Cowork kopiert — in Cowork einfügen, Antwort dann hier eintragen.');
+  });
+  document.getElementById('btnIcsUpload').addEventListener('click', handleIcsUpload);
+  document.getElementById('btnAddFeed').addEventListener('click', async () => {
+    const name = document.getElementById('newFeedName').value.trim();
+    const url = document.getElementById('newFeedUrl').value.trim();
+    if (!name || !url) { toast('Bitte Name und URL angeben.'); return; }
+    State.settings.externeKalender = State.settings.externeKalender || [];
+    State.settings.externeKalender.push({ name, url });
+    await saveSettings();
+    await loadExterneKalender();
+    renderQuellenListe();
+    document.getElementById('newFeedName').value = '';
+    document.getElementById('newFeedUrl').value = '';
+    toast(`Feed "${name}" hinzugefügt`);
+  });
+}
+
+function renderPflichtteriminListe() {
+  const root = document.getElementById('pflichtList');
+  const jahr = new Date().getFullYear();
+  const rows = PFLICHTTERMINE_NI.map((p, i) => {
+    const datum = berechneDatum(p.regel, State.ferienData, jahr);
+    const dup = datum && isLikelyDuplicate({ datum, titel: p.titel }, State.termineData.termine);
+    return { ...p, datum, dup, idx: i };
+  });
+  root.innerHTML = `
+    <table class="import-table">
+      <thead><tr><th style="width:2em"><input type="checkbox" id="selAllPflicht" /></th><th>Titel</th><th>Regel</th><th>Datum ${jahr}</th><th></th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td><input type="checkbox" class="pf-chk" data-idx="${r.idx}" ${r.dup ? '' : ''} /></td>
+            <td>${escapeHtml(r.titel)}${r.dup ? ' <span class="tag">bereits vorhanden</span>' : ''}</td>
+            <td>${regelAlsText(r.regel)}</td>
+            <td>${r.datum ? formatDateDE(r.datum) : '<span class="muted">—</span>'}</td>
+            <td><small class="muted">${escapeHtml(r.beschreibung || '')}</small></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="import-actions">
+      <span class="count" id="pfCount">0 ausgewählt</span>
+      <button class="primary" id="btnPflichtImport">Ausgewählte übernehmen</button>
+    </div>
+  `;
+  document.getElementById('selAllPflicht').addEventListener('change', (e) => {
+    root.querySelectorAll('.pf-chk').forEach(c => { c.checked = e.target.checked; });
+    updatePfCount();
+  });
+  root.querySelectorAll('.pf-chk').forEach(c => c.addEventListener('change', updatePfCount));
+  document.getElementById('btnPflichtImport').addEventListener('click', async () => {
+    const selected = Array.from(root.querySelectorAll('.pf-chk:checked')).map(c => rows[parseInt(c.dataset.idx)]);
+    if (selected.length === 0) { toast('Bitte mindestens einen Termin auswählen.'); return; }
+    let count = 0;
+    for (const r of selected) {
+      if (!r.datum) continue;
+      await addTermin({ titel: r.titel, beschreibung: r.beschreibung, kategorie: r.kategorie, regel: r.regel, datum: r.datum, ordner_anlegen: false });
+      count++;
+    }
+    toast(`${count} Pflichttermine übernommen`);
+    render();
+  });
+  function updatePfCount() {
+    document.getElementById('pfCount').textContent = `${root.querySelectorAll('.pf-chk:checked').length} ausgewählt`;
+  }
+}
+
+function renderPruefungsterminListe() {
+  const root = document.getElementById('pruefungList');
+  const jahr = new Date().getFullYear();
+  const rows = PRUEFUNGSTERMINE_NI.map((p, i) => {
+    const datum = berechneDatum(p.regel, State.ferienData, jahr);
+    const dup = datum && isLikelyDuplicate({ datum, titel: p.titel }, State.termineData.termine);
+    return { ...p, datum, dup, idx: i };
+  });
+  root.innerHTML = `
+    <table class="import-table">
+      <thead><tr><th style="width:2em"><input type="checkbox" id="selAllPruef" /></th><th>Titel</th><th>Typischer Zeitraum</th><th>Vorschlag ${jahr}</th><th></th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td><input type="checkbox" class="pr-chk" data-idx="${r.idx}" /></td>
+            <td>${escapeHtml(r.titel)}${r.dup ? ' <span class="tag">bereits vorhanden</span>' : ''}</td>
+            <td>${regelAlsText(r.regel)}</td>
+            <td>${r.datum ? formatDateDE(r.datum) : '<span class="muted">—</span>'}</td>
+            <td><small class="muted">${escapeHtml(r.beschreibung || '')}</small></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="import-actions">
+      <span class="count" id="prCount">0 ausgewählt</span>
+      <button class="primary" id="btnPruefImport">Ausgewählte übernehmen</button>
+    </div>
+  `;
+  document.getElementById('selAllPruef').addEventListener('change', (e) => {
+    root.querySelectorAll('.pr-chk').forEach(c => { c.checked = e.target.checked; });
+    updatePrCount();
+  });
+  root.querySelectorAll('.pr-chk').forEach(c => c.addEventListener('change', updatePrCount));
+  document.getElementById('btnPruefImport').addEventListener('click', async () => {
+    const selected = Array.from(root.querySelectorAll('.pr-chk:checked')).map(c => rows[parseInt(c.dataset.idx)]);
+    if (selected.length === 0) { toast('Bitte mindestens einen Termin auswählen.'); return; }
+    let count = 0;
+    for (const r of selected) {
+      if (!r.datum) continue;
+      await addTermin({ titel: r.titel, beschreibung: r.beschreibung, kategorie: r.kategorie, regel: r.regel, datum: r.datum, ordner_anlegen: false });
+      count++;
+    }
+    toast(`${count} Prüfungstermine übernommen`);
+    render();
+  });
+  function updatePrCount() {
+    document.getElementById('prCount').textContent = `${root.querySelectorAll('.pr-chk:checked').length} ausgewählt`;
+  }
+}
+
+function renderBrueckenListe() {
+  const root = document.getElementById('brueckenList');
+  const sj = State.termineData?.schuljahr || currentSchuljahr();
+  const { from, to } = getSchuljahrRange(sj);
+  const br = findBrueckentage(from, to);
+  if (br.length === 0) {
+    root.innerHTML = '<p class="muted">Keine Brückentage im aktuellen Schuljahr gefunden (oder Ferien-Daten werden noch geladen).</p>';
+    return;
+  }
+  root.innerHTML = `
+    <table class="import-table">
+      <thead><tr><th style="width:2em"><input type="checkbox" id="selAllBr" /></th><th>Datum</th><th>Brücke</th><th>Anlass</th></tr></thead>
+      <tbody>
+        ${br.map((b, i) => {
+          const dup = isLikelyDuplicate({ datum: b.datum, titel: `Brückentag: ${b.anlass}` }, State.termineData.termine);
+          return `
+            <tr>
+              <td><input type="checkbox" class="br-chk" data-idx="${i}" /></td>
+              <td>${formatDateDE(b.datum)} (${WEEKDAYS_DE_SHORT[parseIso(b.datum).getDay()]})</td>
+              <td>${escapeHtml(b.brücke)}</td>
+              <td>${escapeHtml(b.anlass)}${dup ? ' <span class="tag">bereits vorhanden</span>' : ''}</td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="import-actions">
+      <span class="count" id="brCount">0 ausgewählt</span>
+      <button class="primary" id="btnBrImport">Als schulfreie Tage übernehmen</button>
+    </div>
+  `;
+  document.getElementById('selAllBr').addEventListener('change', (e) => {
+    root.querySelectorAll('.br-chk').forEach(c => { c.checked = e.target.checked; });
+    document.getElementById('brCount').textContent = `${root.querySelectorAll('.br-chk:checked').length} ausgewählt`;
+  });
+  root.querySelectorAll('.br-chk').forEach(c => c.addEventListener('change', () => {
+    document.getElementById('brCount').textContent = `${root.querySelectorAll('.br-chk:checked').length} ausgewählt`;
+  }));
+  document.getElementById('btnBrImport').addEventListener('click', async () => {
+    const selected = Array.from(root.querySelectorAll('.br-chk:checked')).map(c => br[parseInt(c.dataset.idx)]);
+    if (selected.length === 0) { toast('Bitte mindestens einen Tag auswählen.'); return; }
+    for (const b of selected) {
+      await addTermin({
+        titel: `Brückentag: ${b.anlass}`,
+        beschreibung: `${b.brücke} — mögliche bewegliche Ferientage. Bitte mit Schulvorstand abstimmen.`,
+        kategorie: 'pflichttermine',
+        datum: b.datum,
+        ordner_anlegen: false,
+      });
+    }
+    toast(`${selected.length} Brückentage übernommen`);
+    render();
+  });
+}
+
+function renderTextImportResult(parsed) {
+  const root = document.getElementById('textImportResult');
+  if (parsed.length === 0) {
+    root.innerHTML = '<p class="muted mt-1">Keine Datumsangaben erkannt. Tipp: Format <code>TT.MM.JJJJ</code> oder <code>TT.MM.JJ</code> je Zeile.</p>';
+    return;
+  }
+  root.innerHTML = `
+    <table class="import-table mt-1">
+      <thead><tr><th style="width:2em"><input type="checkbox" id="selAllTx" /></th><th>Datum</th><th>Titel</th></tr></thead>
+      <tbody>
+        ${parsed.map((p, i) => `
+          <tr>
+            <td><input type="checkbox" class="tx-chk" data-idx="${i}" checked /></td>
+            <td>${formatDateDE(p.datum)}</td>
+            <td><input type="text" class="tx-title" data-idx="${i}" value="${escapeHtml(p.titel)}" /></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="import-actions">
+      <span class="count">${parsed.length} erkannt</span>
+      <button class="primary" id="btnTxImport">Ausgewählte übernehmen</button>
+    </div>
+  `;
+  document.getElementById('selAllTx').addEventListener('change', (e) => {
+    root.querySelectorAll('.tx-chk').forEach(c => { c.checked = e.target.checked; });
+  });
+  document.getElementById('btnTxImport').addEventListener('click', async () => {
+    const checks = Array.from(root.querySelectorAll('.tx-chk:checked'));
+    let count = 0;
+    for (const c of checks) {
+      const idx = parseInt(c.dataset.idx);
+      const titel = root.querySelector(`.tx-title[data-idx="${idx}"]`).value;
+      if (!titel.trim()) continue;
+      await addTermin({ titel: titel.trim(), datum: parsed[idx].datum, ordner_anlegen: false });
+      count++;
+    }
+    toast(`${count} Termine aus Text übernommen`);
+    render();
+  });
+}
+
+async function handleIcsUpload() {
+  try {
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: 'iCal-Datei', accept: { 'text/calendar': ['.ics'] } }]
+    });
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    const events = parseIcal(text);
+    renderIcsImportResult(events);
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+function renderIcsImportResult(events) {
+  const root = document.getElementById('icsImportResult');
+  if (events.length === 0) {
+    root.innerHTML = '<p class="muted mt-1">Keine Termine in der Datei gefunden.</p>';
+    return;
+  }
+  root.innerHTML = `
+    <p class="muted mt-1">${events.length} Termine in der Datei gefunden. Welche möchten Sie übernehmen?</p>
+    <table class="import-table">
+      <thead><tr><th style="width:2em"><input type="checkbox" id="selAllIcs" /></th><th>Datum</th><th>Titel</th></tr></thead>
+      <tbody>
+        ${events.map((e, i) => {
+          const dup = isLikelyDuplicate(e, State.termineData.termine);
+          return `
+            <tr>
+              <td><input type="checkbox" class="ics-chk" data-idx="${i}" ${dup ? '' : 'checked'} /></td>
+              <td>${formatDateDE(e.datum)}</td>
+              <td>${escapeHtml(e.titel)}${dup ? ' <span class="tag">bereits vorhanden</span>' : ''}</td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="import-actions">
+      <span class="count">${events.length} gefunden</span>
+      <button class="primary" id="btnIcsImport">Ausgewählte übernehmen</button>
+    </div>
+  `;
+  document.getElementById('selAllIcs').addEventListener('change', (e) => {
+    root.querySelectorAll('.ics-chk').forEach(c => { c.checked = e.target.checked; });
+  });
+  document.getElementById('btnIcsImport').addEventListener('click', async () => {
+    const checks = Array.from(root.querySelectorAll('.ics-chk:checked'));
+    let count = 0;
+    for (const c of checks) {
+      const e = events[parseInt(c.dataset.idx)];
+      await addTermin({ titel: e.titel, datum: e.datum, beschreibung: e.beschreibung || null, ordner_anlegen: false });
+      count++;
+    }
+    toast(`${count} Termine aus iCal übernommen`);
+    render();
+  });
+}
+
+function renderQuellenListe() {
+  const root = document.getElementById('quellenList');
+  const eigene = State.settings.externeKalender || [];
+  const html = [
+    '<h4 class="mt-0" style="margin-top:0">Aktive Feeds</h4>',
+    eigene.length ? eigene.map((c, i) => `
+      <div class="flex" style="justify-content:space-between;padding:.4em .6em;border:1px solid var(--border);border-radius:6px;margin-bottom:.3em">
+        <div><strong>${escapeHtml(c.name)}</strong><br><small class="muted">${escapeHtml(c.url)}</small></div>
+        <button class="ghost" data-del-feed="${i}">Entfernen</button>
+      </div>`).join('') : '<p class="muted" style="font-size:.9em">Noch keine Feeds abonniert.</p>',
+    '<h4 style="margin-top:1em">Quellen-Tipps</h4>',
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.6em">',
+    CURATED_ICAL_SOURCES.map(q => `
+      <div style="padding:.8em;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)">
+        <div style="font-size:1.2em">${q.icon}</div>
+        <strong style="display:block;margin-top:.3em">${escapeHtml(q.titel)}</strong>
+        <p class="muted" style="font-size:.82em;margin:.25em 0">${escapeHtml(q.beschreibung)}</p>
+        <small class="muted">${escapeHtml(q.hinweis)}</small>
+      </div>`).join(''),
+    '</div>'
+  ].join('');
+  root.innerHTML = html;
+  root.querySelectorAll('[data-del-feed]').forEach(b => b.addEventListener('click', async () => {
+    State.settings.externeKalender.splice(parseInt(b.dataset.delFeed), 1);
+    await saveSettings();
+    await loadExterneKalender();
+    renderQuellenListe();
+    render();
+  }));
+}
+
+// ============================================================================
+// COWORK-TAB — Vorlagen-Bibliothek
+// ============================================================================
+
+function renderCoworkTab(root) {
+  root.innerHTML = `
+    <h1>Cowork-Vorlagen</h1>
+    <p class="lead">Fertig formulierte Aufgaben für Claude Cowork. Wählen Sie eine Karte, verknüpfen Sie sie optional mit einem Termin und kopieren Sie die fertige Anweisung.</p>
+
+    <div class="banner info">
+      Wie das Zusammenspiel funktioniert: Sie öffnen Claude Cowork mit Zugriff auf Ihren Schulordner, kopieren die hier erzeugte Anweisung und fügen sie dort ein. Cowork erledigt dann die Arbeit in den passenden Ordnern.
+    </div>
+
+    <div class="cowork-grid" id="coworkGrid"></div>
+  `;
+  const grid = document.getElementById('coworkGrid');
+  grid.innerHTML = COWORK_TEMPLATES.map((t, i) => `
+    <div class="cowork-card" data-idx="${i}">
+      <div class="icon">${t.icon}</div>
+      <h4>${escapeHtml(t.titel)}</h4>
+      <p>${escapeHtml(t.beschreibung)}</p>
+      <div class="tags">${(t.kategorien || []).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join('')}</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.cowork-card').forEach(c => c.addEventListener('click', () => {
+    openCoworkBridge(null, COWORK_TEMPLATES[parseInt(c.dataset.idx)]);
+  }));
+}
+
+// ---- Onboarding ----
+function renderOnboarding(root) {
+  root.innerHTML = `
+    <div class="onboarding">
+      <h1>Willkommen</h1>
+      <p class="lead">Ihr Cockpit für den Schuljahresplan — lokal, ohne Cloud, ohne Anmeldung.</p>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><strong>Schulordner wählen</strong><p class="muted">Wo sollen Termine und Briefe liegen?</p></div>
+        <div class="step"><div class="num">2</div><strong>Termine importieren</strong><p class="muted">Pflichttermine, Prüfungen, Brückentage oder aus Text erkennen.</p></div>
+        <div class="step"><div class="num">3</div><strong>Briefe mit Cowork</strong><p class="muted">Fertige Vorlagen für Eltern­briefe und Einladungen.</p></div>
+      </div>
+      <button class="primary" id="btnPickFolder">Schulordner wählen</button>
+      <p class="muted mt-2" style="font-size:.9em">Tipp: Überall <kbd style="background:var(--surface-2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">Strg+K</kbd> drücken — öffnet die Befehls- und Schnellsuche. Tippen Sie z.B. „Elternabend 15.9. 19:30" für eine Schnellanlage.</p>
+      <p class="muted mt-2" style="font-size:.82em">Diese App arbeitet mit der File System Access API Ihres Browsers. Alle Daten bleiben auf Ihrem Rechner — DSGVO-konform, ohne Server.</p>
+    </div>`;
+  document.getElementById('btnPickFolder').addEventListener('click', pickSchoolFolder);
+}
+
+// Nach dem ersten Ordner-Wählen: freundlicher Schnellstart mit drei Wegen
+function openSchnellstartModal() {
+  const modal = createModal(`
+    <h2>Schulordner verbunden – schön!</h2>
+    <p class="muted">Was möchten Sie als Nächstes tun?</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8em;margin:1em 0">
+      <div class="cowork-card" id="quickImport">
+        <div class="icon">📥</div>
+        <h4>Termine importieren</h4>
+        <p>Pflichttermine, Prüfungen, Brückentage auswählen und übernehmen.</p>
+      </div>
+      <div class="cowork-card" id="quickNew">
+        <div class="icon">➕</div>
+        <h4>Ersten Termin anlegen</h4>
+        <p>Von Hand oder per Schnellsuche (Strg+K).</p>
+      </div>
+      <div class="cowork-card" id="quickCowork">
+        <div class="icon">✨</div>
+        <h4>Cowork-Vorlagen anschauen</h4>
+        <p>Fertige Aufgaben für Eltern­briefe und Konferenzen.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="ghost" data-close>Später</button>
+    </div>
+  `, 'large');
+  modal.querySelector('#quickImport').addEventListener('click', () => { closeModal(); State.currentTab = 'importieren'; document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'importieren')); render(); });
+  modal.querySelector('#quickNew').addEventListener('click', () => { closeModal(); openTerminModal(); });
+  modal.querySelector('#quickCowork').addEventListener('click', () => { closeModal(); State.currentTab = 'cowork'; document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'cowork')); render(); });
+}
+
+// ---- Kalender-Tab ----
+function renderKalender(root) {
+  root.innerHTML = `
+    <div class="flex wrap" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <h1>Kalender</h1>
+        <p class="lead">${State.termineData?.schuljahr ? `Schuljahr ${State.termineData.schuljahr}` : ''}</p>
+      </div>
+      <div class="flex" role="tablist" aria-label="Ansicht wechseln">
+        <button data-view="jahr" ${State.currentView === 'jahr' ? 'class="primary"' : ''}>Jahresansicht</button>
+        <button data-view="monat" ${State.currentView === 'monat' ? 'class="primary"' : ''}>Monat</button>
+        <button data-view="liste" ${State.currentView === 'liste' ? 'class="primary"' : ''}>Liste</button>
+      </div>
+    </div>
+    <div id="calBody"></div>
+  `;
+  root.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+    State.currentView = b.dataset.view;
+    render();
+  }));
+  const body = root.querySelector('#calBody');
+  if (State.currentView === 'jahr') renderJahresansicht(body);
+  else if (State.currentView === 'monat') renderMonatsansicht(body);
+  else renderListenansicht(body);
+}
+
+// ---- Jahresansicht (12 Mini-Monate) ----
+function renderJahresansicht(root) {
+  const refDate = State.currentMonth;
+  // Schuljahr-Ansicht: August bis Juli
+  const startY = refDate.getMonth() >= 7 ? refDate.getFullYear() : refDate.getFullYear() - 1;
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const m = (7 + i) % 12;
+    const y = startY + (7 + i >= 12 ? 1 : 0);
+    months.push({ y, m });
+  }
+  const html = `<div class="year-grid">${months.map(({ y, m }) => miniMonthHtml(y, m)).join('')}</div>`;
+  root.innerHTML = html;
+  root.querySelectorAll('.month-mini h4').forEach(h => h.addEventListener('click', (e) => {
+    const [y, m] = e.currentTarget.dataset.date.split('-').map(Number);
+    State.currentMonth = new Date(y, m, 1);
+    State.currentView = 'monat';
+    render();
+  }));
+}
+
+function miniMonthHtml(y, m) {
+  const first = new Date(y, m, 1);
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  // Montag als erster Wochentag
+  let offset = first.getDay() - 1;
+  if (offset < 0) offset = 6;
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push('<div class="d other-month"></div>');
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = iso === isoDate(new Date());
+    const termine = getTermineAm(iso);
+    const ft = isFeiertag(iso);
+    const sh = isFerientag(iso);
+    const cls = ['d'];
+    if (isToday) cls.push('today');
+    if (sh) cls.push('holiday');
+    if (ft) cls.push('feiertag');
+    if (termine.length > 0) cls.push('has-termin');
+    if (termine.length > 2) cls.push('many');
+    const title = [ft?.name, sh?.name, ...termine.map(t => t.titel)].filter(Boolean).join('\n');
+    cells.push(`<div class="${cls.join(' ')}" title="${escapeHtml(title)}" data-date="${iso}">${d}</div>`);
+  }
+  return `
+    <div class="month-mini">
+      <h4 data-date="${y}-${m}">${MONTHS_DE[m]} ${y}</h4>
+      <div class="mini-grid">
+        ${['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => `<div class="dow">${d}</div>`).join('')}
+        ${cells.join('')}
+      </div>
+    </div>`;
+}
+
+// ---- Monatsansicht ----
+function renderMonatsansicht(root) {
+  const d = State.currentMonth;
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const first = new Date(y, m, 1);
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  let offset = first.getDay() - 1;
+  if (offset < 0) offset = 6;
+
+  root.innerHTML = `
+    <div class="month-nav">
+      <button class="ghost" id="prevMonth" aria-label="Vorheriger Monat">‹</button>
+      <h2>${MONTHS_DE[m]} ${y}</h2>
+      <button class="ghost" id="nextMonth" aria-label="Nächster Monat">›</button>
+      <button class="ghost" id="todayBtn">Heute</button>
+    </div>
+    <div class="month-full" id="monthGrid"></div>
+  `;
+  document.getElementById('prevMonth').addEventListener('click', () => { State.currentMonth = new Date(y, m - 1, 1); render(); });
+  document.getElementById('nextMonth').addEventListener('click', () => { State.currentMonth = new Date(y, m + 1, 1); render(); });
+  document.getElementById('todayBtn').addEventListener('click', () => { State.currentMonth = new Date(); render(); });
+
+  const grid = document.getElementById('monthGrid');
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(dw => {
+    const el = document.createElement('div'); el.className = 'dow-head'; el.textContent = dw; grid.appendChild(el);
+  });
+  // Tage vorheriger Monat
+  const prevDays = new Date(y, m, 0).getDate();
+  for (let i = offset - 1; i >= 0; i--) {
+    const day = prevDays - i;
+    grid.appendChild(makeMonthCell(new Date(y, m - 1, day), true));
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    grid.appendChild(makeMonthCell(new Date(y, m, day), false));
+  }
+  // Auf ganze Wochen auffüllen
+  const total = offset + daysInMonth;
+  const tail = (7 - (total % 7)) % 7;
+  for (let i = 1; i <= tail; i++) grid.appendChild(makeMonthCell(new Date(y, m + 1, i), true));
+}
+
+function makeMonthCell(date, otherMonth) {
+  const iso = isoDate(date);
+  const isToday = iso === isoDate(new Date());
+  const ft = isFeiertag(iso);
+  const sh = isFerientag(iso);
+  const cell = document.createElement('div');
+  cell.className = 'cell' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (sh ? ' holiday' : '');
+  cell.dataset.date = iso;
+  const fragments = [`<span class="daynum">${date.getDate()}</span>`];
+  if (ft) fragments.push(`<span class="feiertag-label">${escapeHtml(ft.name)}</span>`);
+  const termine = getTermineAm(iso).filter(t => !State.settings.kategorieFilter || State.settings.kategorieFilter === t.kategorie);
+  for (const t of termine) {
+    const kon = checkKonflikte(iso, State.termineData.termine, t.id);
+    fragments.push(`<span class="termin-chip ${kon.length ? 'conflict' : ''}" data-cat="${t.kategorie || 'sonstiges'}" data-id="${t.id}" draggable="true" title="${escapeHtml(t.titel)}${kon.length ? ' — ' + escapeHtml(kon.join(', ')) : ''}">${escapeHtml(t.titel)}</span>`);
+  }
+  // externe Termine
+  const ext = State.externeTermine.filter(e => e.datum === iso);
+  for (const e of ext) {
+    fragments.push(`<span class="termin-chip external" title="${escapeHtml(e.quelle)}: ${escapeHtml(e.titel)}">${escapeHtml(e.titel)}</span>`);
+  }
+  cell.innerHTML = fragments.join('');
+  // Click auf Zelle (leer): neuer Termin
+  cell.addEventListener('click', (e) => {
+    if (e.target.classList.contains('termin-chip')) {
+      const id = e.target.dataset.id;
+      if (id) openTerminDetails(id);
+      return;
+    }
+    openTerminModal({ datum: iso });
+  });
+  // Drag & Drop
+  cell.addEventListener('dragover', (ev) => { ev.preventDefault(); cell.classList.add('drag-over'); });
+  cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+  cell.addEventListener('drop', async (ev) => {
+    ev.preventDefault();
+    cell.classList.remove('drag-over');
+    const id = ev.dataTransfer.getData('text/plain');
+    if (!id) return;
+    await updateTermin(id, { datum: iso });
+    render();
+  });
+  cell.querySelectorAll('.termin-chip[data-id]').forEach(chip => {
+    chip.addEventListener('dragstart', (ev) => {
+      ev.dataTransfer.setData('text/plain', chip.dataset.id);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+  });
+  return cell;
+}
+
+// ---- Listenansicht ----
+function renderListenansicht(root) {
+  const all = [...State.termineData.termine]
+    .filter(t => !State.settings.kategorieFilter || State.settings.kategorieFilter === t.kategorie)
+    .sort((a, b) => a.datum.localeCompare(b.datum));
+  const groups = {};
+  for (const t of all) {
+    const key = t.datum.slice(0, 7);
+    (groups[key] = groups[key] || []).push(t);
+  }
+  const html = Object.keys(groups).sort().map(k => {
+    const [y, m] = k.split('-').map(Number);
+    return `
+      <div class="list-group">
+        <h3>${MONTHS_DE[m-1]} ${y}</h3>
+        ${groups[k].map(t => {
+          const d = parseIso(t.datum);
+          return `
+            <div class="list-item" data-id="${t.id}">
+              <div class="date"><div class="day">${d.getDate()}</div><div class="month">${MONTHS_DE_SHORT[d.getMonth()]}</div></div>
+              <div class="info">
+                <div class="title">${escapeHtml(t.titel)}</div>
+                <div class="meta">${t.uhrzeit ? t.uhrzeit + ' Uhr · ' : ''}${escapeHtml(t.ort || '')}${t.zielgruppe ? ' · ' + escapeHtml(t.zielgruppe) : ''}</div>
+              </div>
+              <div class="cat-dot" data-cat="${t.kategorie || 'sonstiges'}" title="${t.kategorie || ''}"></div>
+            </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+  root.innerHTML = html || '<p class="muted">Noch keine Termine – legen Sie mit dem Plus-Button rechts unten den ersten an.</p>';
+  root.querySelectorAll('.list-item').forEach(el => el.addEventListener('click', () => openTerminDetails(el.dataset.id)));
+}
+
+// ---- Termine-Tab (Tabellenübersicht) ----
+function renderTermineListe(root) {
+  const list = [...State.termineData.termine].sort((a,b) => a.datum.localeCompare(b.datum));
+  root.innerHTML = `
+    <h1>Alle Termine</h1>
+    <p class="lead">${list.length} Termin${list.length === 1 ? '' : 'e'} im Schuljahr ${State.termineData.schuljahr || ''}</p>
+    <div class="card">
+      <table>
+        <thead><tr><th>Datum</th><th>Titel</th><th>Kategorie</th><th>Regel</th><th>Ordner</th><th></th></tr></thead>
+        <tbody>
+          ${list.map(t => `
+            <tr data-id="${t.id}">
+              <td>${formatDateDE(t.datum)}</td>
+              <td>${escapeHtml(t.titel)}</td>
+              <td>${t.kategorie || '—'}</td>
+              <td>${regelAlsText(t.regel)}</td>
+              <td>${t.ordner ? `<code style="font-size:.8em">${escapeHtml(t.ordner)}</code>` : '—'}</td>
+              <td><button class="ghost" data-action="details">Details</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  root.querySelectorAll('[data-action="details"]').forEach(b => b.addEventListener('click', (e) => {
+    const id = e.target.closest('tr').dataset.id;
+    openTerminDetails(id);
+  }));
+}
+
+function regelAlsText(regel) {
+  if (!regel) return 'einmalig';
+  if (regel.art === 'fest') return `jährlich am ${regel.details.tag}.${regel.details.monat}.`;
+  if (regel.art === 'wochentag') return `${regel.details.position} ${regel.details.wochentag} im ${MONTHS_DE[regel.details.monat-1]}`;
+  if (regel.art === 'relativ') return `${regel.details.offsetTage > 0 ? '+' : ''}${regel.details.offsetTage} Tage ${regel.details.ankerTyp === 'ende' ? 'nach Ende' : 'vor Beginn'} ${regel.details.anker}`;
+  return '—';
+}
+
+// ---- Jahreswechsel-Assistent ----
+function renderJahreswechsel(root) {
+  const akt = State.termineData.schuljahr || currentSchuljahr();
+  const [y1] = akt.split('-');
+  const zielSchuljahr = `${parseInt(y1)+1}-${String(parseInt(y1)+2).slice(2)}`;
+  root.innerHTML = `
+    <h1>Jahreswechsel-Assistent</h1>
+    <p class="lead">Übertragen Sie wiederkehrende Termine in das neue Schuljahr.</p>
+    <div class="card">
+      <div class="field">
+        <label>Zieljahr</label>
+        <input type="text" id="zielJahr" value="${zielSchuljahr}" />
+        <small>Format z.B. 2026-27</small>
+      </div>
+      <button class="primary" id="btnPreview">Vorschau berechnen</button>
+    </div>
+    <div id="previewArea"></div>
+  `;
+  document.getElementById('btnPreview').addEventListener('click', () => {
+    const ziel = document.getElementById('zielJahr').value.trim();
+    renderJahreswechselVorschau(ziel);
+  });
+}
+
+function renderJahreswechselVorschau(zielSchuljahr) {
+  const preview = computeJahreswechsel(zielSchuljahr);
+  const area = document.getElementById('previewArea');
+  if (preview.length === 0) {
+    area.innerHTML = `<div class="banner info">Keine wiederkehrenden Termine im aktuellen Schuljahr gefunden.</div>`;
+    return;
+  }
+  area.innerHTML = `
+    <div class="card">
+      <h3>Vorschau für ${zielSchuljahr}</h3>
+      <table>
+        <thead><tr><th>Titel</th><th>Altes Datum</th><th>Neues Datum</th><th>Regel</th><th>Status</th></tr></thead>
+        <tbody>
+          ${preview.map(p => `
+            <tr>
+              <td>${escapeHtml(p.titel)}</td>
+              <td>${formatDateDE(p.altDatum)}</td>
+              <td>${p.neuDatum ? formatDateDE(p.neuDatum) : '—'}</td>
+              <td>${regelAlsText(p.regel)}</td>
+              <td>${statusBadge(p)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="flex mt-2" style="justify-content:flex-end">
+        <button class="ghost" id="btnExportCowork">Cowork-Anweisung kopieren</button>
+        <button class="primary" id="btnUebernehmen">Jahresplan übernehmen</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnUebernehmen').addEventListener('click', async () => {
+    await uebernehmeJahresplan(preview, zielSchuljahr);
+  });
+  document.getElementById('btnExportCowork').addEventListener('click', () => {
+    const txt = coworkTextJahreswechsel(preview, zielSchuljahr);
+    copyToClipboard(txt);
+  });
+}
+
+function computeJahreswechsel(zielSchuljahr) {
+  const [yStart] = zielSchuljahr.split('-');
+  const startYear = parseInt(yStart);
+  const result = [];
+  for (const t of State.termineData.termine) {
+    if (!t.regel) continue; // einmalige Termine werden nicht übertragen
+    // Passendes Kalenderjahr finden: Termin im August-Dezember → startYear; Januar-Juli → startYear+1
+    const altMonat = parseInt(t.datum.split('-')[1]);
+    const jahr = altMonat >= 8 ? startYear : startYear + 1;
+    const neuDatum = berechneDatum(t.regel, State.ferienData, jahr);
+    let konflikte = [];
+    let status = 'ok';
+    if (!neuDatum) { status = 'error'; }
+    else {
+      konflikte = checkKonflikte(neuDatum, State.termineData.termine, t.id);
+      if (konflikte.length) status = 'konflikt';
+    }
+    result.push({
+      id: t.id,
+      titel: t.titel,
+      altDatum: t.datum,
+      neuDatum,
+      regel: t.regel,
+      status,
+      konflikte,
+      original: t,
+    });
+  }
+  return result;
+}
+
+function statusBadge(p) {
+  if (p.status === 'ok') return '<span class="tag ok">Übernommen</span>';
+  if (p.status === 'konflikt') return `<span class="tag warn" title="${escapeHtml(p.konflikte.join(', '))}">Konflikt</span>`;
+  return '<span class="tag danger">Berechnung fehlgeschlagen</span>';
+}
+
+async function uebernehmeJahresplan(preview, zielSchuljahr) {
+  // Für jeden Termin mit neuDatum einen neuen Termin ins aktuelle termineData schreiben.
+  // Bestehende Termine des Zieljahres für die selbe Serie ggf. überschreiben.
+  const neueListe = [];
+  for (const p of preview) {
+    if (!p.neuDatum) continue;
+    const n = {
+      ...p.original,
+      id: uuid(),
+      datum: p.neuDatum,
+      ordner: p.original.ordner_anlegen ? `${p.neuDatum}_${slugify(p.original.titel)}` : null,
+      erstellt_am: isoDate(new Date()),
+      letzte_aenderung: isoDate(new Date()),
+    };
+    neueListe.push(n);
+    if (n.ordner_anlegen && n.ordner) {
+      try { await State.dirHandle.getDirectoryHandle(n.ordner, { create: true }); } catch (e) { console.warn(e); }
+    }
+  }
+  State.termineData.termine.push(...neueListe);
+  State.termineData.schuljahr = zielSchuljahr;
+  await saveTermine();
+  toast(`${neueListe.length} Termine für ${zielSchuljahr} übernommen`);
+  const txt = coworkTextJahreswechsel(preview, zielSchuljahr);
+  showCoworkBridge(null, 'Jahresplan wurde übernommen. Möchten Sie, dass Cowork die Briefvorlagen in die neuen Ordner kopiert und die Daten aktualisiert?', 'jahreswechsel', txt);
+  render();
+}
+
+function coworkTextJahreswechsel(preview, zielSchuljahr) {
+  const ok = preview.filter(p => p.neuDatum);
+  return [
+    `Jahreswechsel ins Schuljahr ${zielSchuljahr}:`,
+    `Bitte im Schulordner ${State.dirName || '[Schulordner]'} folgendes erledigen:`,
+    '',
+    '1. Prüfe jeden der folgenden neuen Termin-Ordner.',
+    '2. Kopiere die passenden Briefvorlagen aus dem Vorjahresordner.',
+    '3. Aktualisiere die Platzhalter ({DATUM}, {KLASSE}, {UHRZEIT}, etc.) auf das neue Datum.',
+    '',
+    'Termine:',
+    ...ok.map(p => `- ${p.titel}: ${formatDateDE(p.altDatum)} → ${formatDateDE(p.neuDatum)}${p.konflikte.length ? '  [Konflikt: ' + p.konflikte.join('; ') + ']' : ''}`),
+  ].join('\n');
+}
+
+// ---- Vorlagen-Tab ----
+async function renderVorlagen(root) {
+  root.innerHTML = `
+    <h1>Vorlagen</h1>
+    <p class="lead">Briefe und Formulare aus dem Ordner <code>_Vorlagen/</code>. Platzhalter im Format <code>{NAME}</code> werden erkannt.</p>
+    <div class="card">
+      <button class="primary" id="btnUpload">Neue Vorlage hinzufügen</button>
+    </div>
+    <div id="vorlagenListe"><p class="muted">Wird geladen…</p></div>
+  `;
+  document.getElementById('btnUpload').addEventListener('click', uploadVorlage);
+  const list = await listVorlagen();
+  const listEl = document.getElementById('vorlagenListe');
+  if (list.length === 0) {
+    listEl.innerHTML = `<p class="muted">Noch keine Vorlagen hinterlegt. Legen Sie Word-/PDF-/Text-Dateien mit Platzhaltern wie <code>{DATUM}</code> oder <code>{KLASSE}</code> ab.</p>`;
+    return;
+  }
+  const rows = await Promise.all(list.map(async v => {
+    const ph = await getVorlagenPlatzhalter(v.handle);
+    return { ...v, platzhalter: ph };
+  }));
+  listEl.innerHTML = `
+    <div class="card">
+      <table>
+        <thead><tr><th>Dateiname</th><th>Größe</th><th>Geändert</th><th>Platzhalter</th></tr></thead>
+        <tbody>
+          ${rows.map(v => `
+            <tr>
+              <td>${escapeHtml(v.name)}</td>
+              <td>${Math.round(v.size/1024)} KB</td>
+              <td>${new Date(v.lastModified).toLocaleDateString('de-DE')}</td>
+              <td>${v.platzhalter.length ? v.platzhalter.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join(' ') : '<span class="muted">—</span>'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function uploadVorlage() {
+  if (!State.dirHandle) return;
+  try {
+    const [fileHandle] = await window.showOpenFilePicker({ multiple: false });
+    const file = await fileHandle.getFile();
+    const dir = await State.dirHandle.getDirectoryHandle('_Vorlagen', { create: true });
+    const ziel = await dir.getFileHandle(file.name, { create: true });
+    const w = await ziel.createWritable();
+    await w.write(await file.arrayBuffer());
+    await w.close();
+    toast(`Vorlage ${file.name} hinzugefügt`);
+    render();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+// ---- Zeitstrahl ----
+function renderZeitstrahl(root) {
+  const sj = State.termineData.schuljahr || currentSchuljahr();
+  const { from, to } = getSchuljahrRange(sj);
+  const startMs = parseIso(from).getTime();
+  const endMs = parseIso(to).getTime();
+  const span = endMs - startMs;
+  const pct = ms => ((ms - startMs) / span) * 100;
+  const monate = [];
+  for (let m = 0; m < 12; m++) {
+    const y = parseInt(from.split('-')[0]) + (7 + m >= 12 ? 1 : 0);
+    const mi = (7 + m) % 12;
+    const d = new Date(y, mi, 1).getTime();
+    monate.push({ label: MONTHS_DE_SHORT[mi], left: pct(d) });
+  }
+  const ferien = (State.ferienData?.ferien || []).filter(f => f.startDate >= from && f.endDate <= to);
+  const termine = State.termineData.termine.filter(t => t.datum >= from && t.datum <= to);
+
+  root.innerHTML = `
+    <h1>Zeitstrahl Schuljahr ${sj}</h1>
+    <p class="lead">Ein Blick aufs ganze Jahr.</p>
+    <div class="card">
+      <div class="timeline">
+        <div class="timeline-track">
+          ${monate.map(m => `<div class="timeline-month" style="left:${m.left}%">${m.label}</div>`).join('')}
+          ${ferien.map(f => {
+            const l = pct(parseIso(f.startDate).getTime());
+            const r = pct(parseIso(f.endDate).getTime());
+            return `<div class="timeline-ferien" style="left:${l}%;width:${r-l}%" title="${escapeHtml(f.name)}"></div>`;
+          }).join('')}
+          ${termine.map(t => `<div class="timeline-dot" style="left:${pct(parseIso(t.datum).getTime())}%" title="${escapeHtml(t.titel)} (${formatDateDE(t.datum)})" data-id="${t.id}"></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  root.querySelectorAll('.timeline-dot').forEach(el => el.addEventListener('click', () => openTerminDetails(el.dataset.id)));
+}
+
+// ---- Einstellungen ----
+function renderEinstellungen(root) {
+  const cats = [
+    ['elternkommunikation','Elternkommunikation'],
+    ['konferenzen','Konferenzen'],
+    ['pflichttermine','Pflichttermine'],
+    ['unterricht','Unterricht'],
+    ['schulentwicklung','Schulentwicklung'],
+  ];
+  root.innerHTML = `
+    <h1>Einstellungen</h1>
+    <div class="card">
+      <h3 class="mt-0">Schule</h3>
+      <div class="field">
+        <label>Name der Schule</label>
+        <input type="text" id="schuleName" value="${escapeHtml(State.termineData.schule?.name || '')}" />
+      </div>
+      <div class="field">
+        <label>Bundesland</label>
+        <input type="text" id="schuleBL" value="${escapeHtml(State.termineData.schule?.bundesland || 'DE-NI')}" />
+        <small>Format ISO-3166-2 (DE-NI = Niedersachsen)</small>
+      </div>
+      <button class="primary" id="saveSchule">Speichern</button>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Schuljahr</h3>
+      <div class="field">
+        <label>Aktuelles Schuljahr</label>
+        <input type="text" id="schuljahr" value="${State.termineData.schuljahr || currentSchuljahr()}" />
+      </div>
+      <button class="ghost" id="pflichtVorschlagen">Pflichttermine Niedersachsen vorschlagen</button>
+      <button class="ghost" id="exportIcal">Als iCal exportieren</button>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Externe Kalender (iCal-URLs)</h3>
+      <p class="muted">Termine von Gemeinde, Kreis oder Nachbarschulen halbtransparent anzeigen.</p>
+      <div id="extListe"></div>
+      <div class="row mt-2">
+        <input type="text" id="extName" placeholder="Name (z.B. Gemeinde)" />
+        <input type="url" id="extUrl" placeholder="https://… .ics" />
+        <button id="btnAddExt">Hinzufügen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Ansicht & Darstellung</h3>
+      <div class="checkbox-row">
+        <input type="checkbox" id="themeChk" ${State.settings.theme === 'dark' ? 'checked' : ''} />
+        <label for="themeChk">Dunkelmodus</label>
+      </div>
+      <div class="field">
+        <label>Kategorie-Filter</label>
+        <select id="catFilter">
+          <option value="">Alle Kategorien anzeigen</option>
+          ${cats.map(([v,l]) => `<option value="${v}" ${State.settings.kategorieFilter===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Vertretungsmodus</h3>
+      <div class="checkbox-row">
+        <input type="checkbox" id="vertChk" ${State.settings.vertretungsmodus ? 'checked' : ''} />
+        <label for="vertChk">Vertretungsmodus aktivieren (Banner oben, Cowork-Texte werden ergänzt)</label>
+      </div>
+      <div class="field">
+        <label>Name der Vertretung</label>
+        <input type="text" id="vertName" value="${escapeHtml(State.settings.vertretungsname || '')}" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Drucken &amp; PDF</h3>
+      <p class="muted">Druckbare Übersicht über das Schuljahr als Aushang oder Handout.</p>
+      <button id="btnPrint">Übersicht drucken / als PDF speichern</button>
+    </div>
+
+    <div class="card">
+      <h3 class="mt-0">Daten &amp; Datenschutz</h3>
+      <p class="muted">Alle Daten liegen lokal in Ihrem Schulordner. Es werden <strong>keine</strong> Termindaten an Server gesendet. Einzige Netzwerk-Abfragen gehen an <code>openholidaysapi.org</code>, um niedersächsische Ferien- und Feiertagsdaten zu laden.</p>
+      <p class="muted">DSGVO: Diese App speichert weder personenbezogene Daten in der Cloud noch verwendet sie Analytics oder Tracking.</p>
+      <button class="danger" id="btnForget">Verbindung zum Schulordner trennen</button>
+    </div>
+  `;
+
+  document.getElementById('saveSchule').addEventListener('click', async () => {
+    State.termineData.schule = {
+      name: document.getElementById('schuleName').value,
+      bundesland: document.getElementById('schuleBL').value,
+    };
+    State.termineData.schuljahr = document.getElementById('schuljahr').value;
+    await saveTermine();
+    toast('Schuldaten gespeichert');
+  });
+
+  document.getElementById('pflichtVorschlagen').addEventListener('click', openPflichttermineModal);
+  document.getElementById('exportIcal').addEventListener('click', exportIcal);
+  document.getElementById('themeChk').addEventListener('change', async (e) => {
+    State.settings.theme = e.target.checked ? 'dark' : 'light';
+    applySettings();
+    await saveSettings();
+  });
+  document.getElementById('catFilter').addEventListener('change', async (e) => {
+    State.settings.kategorieFilter = e.target.value || null;
+    await saveSettings();
+    render();
+  });
+  document.getElementById('vertChk').addEventListener('change', async (e) => {
+    State.settings.vertretungsmodus = e.target.checked;
+    applySettings(); await saveSettings();
+  });
+  document.getElementById('vertName').addEventListener('input', async (e) => {
+    State.settings.vertretungsname = e.target.value;
+    applySettings();
+  });
+  document.getElementById('vertName').addEventListener('blur', saveSettings);
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+  document.getElementById('btnForget').addEventListener('click', async () => {
+    if (!confirm('Die Verbindung zum Schulordner trennen? Die Daten im Ordner bleiben erhalten.')) return;
+    await idbSet('dirHandle', null);
+    State.dirHandle = null; State.dirName = null; State.termineData = null;
+    render();
+  });
+
+  renderExterneListe();
+  document.getElementById('btnAddExt').addEventListener('click', async () => {
+    const name = document.getElementById('extName').value.trim();
+    const url = document.getElementById('extUrl').value.trim();
+    if (!name || !url) { toast('Bitte Name und URL angeben.'); return; }
+    State.settings.externeKalender = State.settings.externeKalender || [];
+    State.settings.externeKalender.push({ name, url });
+    await saveSettings();
+    await loadExterneKalender();
+    renderExterneListe();
+    document.getElementById('extName').value = '';
+    document.getElementById('extUrl').value = '';
+  });
+}
+
+function renderExterneListe() {
+  const root = document.getElementById('extListe');
+  if (!root) return;
+  const list = State.settings.externeKalender || [];
+  if (list.length === 0) { root.innerHTML = '<p class="muted">Keine externen Kalender eingebunden.</p>'; return; }
+  root.innerHTML = list.map((c, i) => `
+    <div class="flex" style="justify-content:space-between;padding:.4em 0;border-bottom:1px solid var(--border)">
+      <div><strong>${escapeHtml(c.name)}</strong><br><small class="muted">${escapeHtml(c.url)}</small></div>
+      <button class="ghost" data-del="${i}">Entfernen</button>
+    </div>`).join('');
+  root.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    State.settings.externeKalender.splice(parseInt(b.dataset.del), 1);
+    await saveSettings();
+    await loadExterneKalender();
+    renderExterneListe();
+    render();
+  }));
+}
+
+// ---- Sidebar ----
+function renderSidebar() {
+  const side = document.getElementById('sidebar');
+  if (!State.termineData) { side.innerHTML = ''; return; }
+  const heute = new Date();
+  const in7 = new Date(heute); in7.setDate(in7.getDate() + 7);
+  const inMonat = new Date(heute.getFullYear(), heute.getMonth() + 1, 0);
+
+  const woche = State.termineData.termine
+    .filter(t => t.datum >= isoDate(heute) && t.datum <= isoDate(in7))
+    .sort((a,b) => a.datum.localeCompare(b.datum));
+  const monat = State.termineData.termine
+    .filter(t => t.datum >= isoDate(heute) && t.datum <= isoDate(inMonat))
+    .sort((a,b) => a.datum.localeCompare(b.datum));
+  const ueberfaellig = State.termineData.termine
+    .filter(t => t.datum < isoDate(heute) && !State.settings.checkedItems[t.id])
+    .sort((a,b) => b.datum.localeCompare(a.datum))
+    .slice(0, 5);
+
+  const reminder = getAktiveReminder();
+
+  const stats = computeStats();
+  side.innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="num">${stats.monat}</div><div class="lbl">Termine diesen Monat</div></div>
+      <div class="stat"><div class="num">${stats.mitBrief}</div><div class="lbl">Mit Brief-Ordner</div></div>
+      <div class="stat"><div class="num">${stats.konflikte}</div><div class="lbl">Konflikte</div></div>
+      <div class="stat"><div class="num">${stats.wiederkehrend}</div><div class="lbl">Wiederkehrend</div></div>
+    </div>
+
+    <h3>Diese Woche</h3>
+    ${woche.length ? woche.map(t => checklistItemHtml(t)).join('') : '<p class="muted" style="font-size:.9em">Keine Termine in den nächsten 7 Tagen.</p>'}
+
+    <h3>Fällige Reminder</h3>
+    ${reminder.length ? reminder.map(r => `
+      <div class="checklist-item ${r.ueberfaellig?'overdue':''}">
+        <div>
+          <div class="title">${escapeHtml(r.titel)}</div>
+          <div class="meta">${r.label} · ${formatDateDE(r.terminDatum)}</div>
+        </div>
+      </div>`).join('') : '<p class="muted" style="font-size:.9em">Nichts Fälliges.</p>'}
+
+    <h3>Dieser Monat</h3>
+    ${monat.length ? monat.slice(0, 10).map(t => checklistItemHtml(t)).join('') : '<p class="muted" style="font-size:.9em">Keine weiteren Termine diesen Monat.</p>'}
+
+    ${ueberfaellig.length ? '<h3>Überfällig</h3>' + ueberfaellig.map(t => checklistItemHtml(t, true)).join('') : ''}
+  `;
+  side.querySelectorAll('.checklist-item input').forEach(cb => {
+    cb.addEventListener('change', async (e) => {
+      const id = e.target.dataset.id;
+      State.settings.checkedItems[id] = e.target.checked;
+      await saveSettings();
+      renderSidebar();
+    });
+  });
+  side.querySelectorAll('.checklist-item').forEach(el => {
+    const id = el.querySelector('input')?.dataset.id;
+    if (!id) return;
+    el.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      openTerminDetails(id);
+    });
+  });
+}
+
+function checklistItemHtml(t, overdue = false) {
+  const done = !!State.settings.checkedItems[t.id];
+  return `
+    <div class="checklist-item ${done?'done':''} ${overdue?'overdue':''}">
+      <input type="checkbox" data-id="${t.id}" ${done?'checked':''} aria-label="${escapeHtml(t.titel)} abhaken" />
+      <div>
+        <div class="title">${escapeHtml(t.titel)}</div>
+        <div class="meta">${formatDateDE(t.datum)}${t.uhrzeit?' · '+t.uhrzeit:''}${t.zielgruppe?' · '+escapeHtml(t.zielgruppe):''}</div>
+      </div>
+    </div>`;
+}
+
+function computeStats() {
+  const heute = new Date();
+  const mStart = isoDate(new Date(heute.getFullYear(), heute.getMonth(), 1));
+  const mEnd = isoDate(new Date(heute.getFullYear(), heute.getMonth()+1, 0));
+  const monat = State.termineData.termine.filter(t => t.datum >= mStart && t.datum <= mEnd);
+  return {
+    monat: monat.length,
+    mitBrief: monat.filter(t => t.ordner).length,
+    konflikte: State.termineData.termine.filter(t => checkKonflikte(t.datum, State.termineData.termine, t.id).length).length,
+    wiederkehrend: State.termineData.termine.filter(t => t.regel).length,
+  };
+}
+
+function getAktiveReminder() {
+  const out = [];
+  const heute = new Date();
+  const offsetMap = { '1 Tag vorher': 1, '1 Woche vorher': 7, '2 Wochen vorher': 14, '1 Monat vorher': 30 };
+  for (const t of State.termineData.termine) {
+    if (!t.reminder) continue;
+    for (const r of t.reminder) {
+      if (!r.aktiv) continue;
+      const off = offsetMap[r.zeitpunkt] || 0;
+      const rd = parseIso(t.datum);
+      rd.setDate(rd.getDate() - off);
+      const rdIso = isoDate(rd);
+      const heuteIso = isoDate(heute);
+      if (rdIso <= heuteIso && t.datum >= heuteIso) {
+        out.push({
+          titel: t.titel,
+          label: r.zeitpunkt,
+          terminDatum: t.datum,
+          reminderDatum: rdIso,
+          ueberfaellig: rdIso < heuteIso,
+        });
+      }
+    }
+  }
+  return out.sort((a,b) => a.reminderDatum.localeCompare(b.reminderDatum));
+}
+
+// ============================================================================
+// MODALS (Termin anlegen, Details, Pflichttermine, Cowork-Bridge)
+// ============================================================================
+
+function openTerminModal(prefill = {}) {
+  const t = { ...prefill };
+  const ferienAnker = getFerienAnker();
+  const ankerNames = Array.from(new Set(State.ferienData?.ferien.map(f => f.name) || []));
+  const modal = createModal(`
+    <h2>${t.id ? 'Termin bearbeiten' : 'Neuen Termin anlegen'}</h2>
+    <div class="field">
+      <label for="tTitel">Titel <span class="muted">*</span></label>
+      <input type="text" id="tTitel" value="${escapeHtml(t.titel||'')}" required />
+    </div>
+    <div class="field">
+      <label for="tBeschreibung">Beschreibung</label>
+      <textarea id="tBeschreibung" rows="3">${escapeHtml(t.beschreibung||'')}</textarea>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="tTyp">Terminart</label>
+        <select id="tTyp">
+          <option value="einmalig" ${!t.regel?'selected':''}>Einmaliger Termin</option>
+          <option value="wiederkehrend" ${t.regel?'selected':''}>Wiederkehrender Termin</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="tKategorie">Kategorie</label>
+        <select id="tKategorie">
+          <option value="">—</option>
+          <option value="elternkommunikation" ${t.kategorie==='elternkommunikation'?'selected':''}>Elternkommunikation</option>
+          <option value="konferenzen" ${t.kategorie==='konferenzen'?'selected':''}>Konferenzen</option>
+          <option value="pflichttermine" ${t.kategorie==='pflichttermine'?'selected':''}>Pflichttermine</option>
+          <option value="unterricht" ${t.kategorie==='unterricht'?'selected':''}>Unterricht</option>
+          <option value="schulentwicklung" ${t.kategorie==='schulentwicklung'?'selected':''}>Schulentwicklung</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="regelEinmalig" class="field">
+      <label for="tDatum">Datum</label>
+      <input type="date" id="tDatum" value="${t.datum||''}" />
+    </div>
+
+    <div id="regelWiederkehrend" class="hidden">
+      <div class="field">
+        <label for="tRegelArt">Regeltyp</label>
+        <select id="tRegelArt">
+          <option value="fest">Fester Tag im Monat</option>
+          <option value="wochentag">Bestimmter Wochentag im Monat</option>
+          <option value="relativ">Relativ zu Ferien</option>
+        </select>
+      </div>
+      <div id="regelFest" class="row">
+        <div class="field"><label>Tag</label><input type="number" id="regelTag" min="1" max="31" value="1" /></div>
+        <div class="field"><label>Monat</label>
+          <select id="regelMonatFest">${MONTHS_DE.map((m,i) => `<option value="${i+1}">${m}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div id="regelWochentag" class="hidden">
+        <div class="row">
+          <div class="field"><label>Position</label>
+            <select id="regelPosition"><option value="erster">erster</option><option value="zweiter">zweiter</option><option value="dritter">dritter</option><option value="vierter">vierter</option><option value="letzter">letzter</option></select>
+          </div>
+          <div class="field"><label>Wochentag</label>
+            <select id="regelWochentagDow">${Object.keys(WOCHENTAG_MAP).filter(k=>k!=='sonntag'&&k!=='samstag').map(w => `<option value="${w}">${w.charAt(0).toUpperCase()+w.slice(1)}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Monat</label>
+            <select id="regelMonatWt">${MONTHS_DE.map((m,i) => `<option value="${i+1}">${m}</option>`).join('')}</select>
+          </div>
+        </div>
+      </div>
+      <div id="regelRelativ" class="hidden">
+        <div class="row">
+          <div class="field"><label>Offset (Tage)</label><input type="number" id="regelOffset" value="-7" /><small>negativ = davor, positiv = danach</small></div>
+          <div class="field"><label>Bezug</label>
+            <select id="regelAnker">${ankerNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Ankerpunkt</label>
+            <select id="regelAnkerTyp"><option value="beginn">Beginn</option><option value="ende">Ende</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="tUhrzeit">Uhrzeit</label>
+        <input type="time" id="tUhrzeit" value="${t.uhrzeit||''}" />
+      </div>
+      <div class="field">
+        <label for="tDauer">Dauer (Minuten)</label>
+        <input type="number" id="tDauer" value="${t.dauer_minuten||60}" />
+      </div>
+      <div class="field">
+        <label for="tOrt">Ort</label>
+        <input type="text" id="tOrt" value="${escapeHtml(t.ort||'')}" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="tZielgruppe">Zielgruppe</label>
+      <input type="text" id="tZielgruppe" value="${escapeHtml(t.zielgruppe||'')}" placeholder="z.B. Eltern Klasse 5, Kollegium" />
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="tOrdner" ${t.ordner_anlegen?'checked':''} />
+      <label for="tOrdner">Ordner für diesen Termin anlegen</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="tVorlageChk" ${t.vorlage?'checked':''} />
+      <label for="tVorlageChk">Vorlage verwenden</label>
+    </div>
+    <div class="field hidden" id="vorlageFeld">
+      <select id="tVorlage"><option value="">— Vorlage wählen —</option></select>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="tReminderChk" ${(t.reminder&&t.reminder.length)?'checked':''} />
+      <label for="tReminderChk">Reminder setzen</label>
+    </div>
+    <div class="field hidden" id="reminderFeld">
+      <select id="tReminder">
+        <option value="1 Tag vorher">1 Tag vorher</option>
+        <option value="1 Woche vorher">1 Woche vorher</option>
+        <option value="2 Wochen vorher">2 Wochen vorher</option>
+        <option value="1 Monat vorher">1 Monat vorher</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      ${t.id ? '<button class="danger" id="btnDelete">Löschen</button>' : ''}
+      <button class="ghost" data-close>Abbrechen</button>
+      <button class="primary" id="btnSave">Speichern</button>
+    </div>
+  `);
+
+  // Typ-Umschaltung
+  const typSel = modal.querySelector('#tTyp');
+  const regelArt = modal.querySelector('#tRegelArt');
+  const toggleTyp = () => {
+    if (typSel.value === 'einmalig') {
+      modal.querySelector('#regelEinmalig').classList.remove('hidden');
+      modal.querySelector('#regelWiederkehrend').classList.add('hidden');
+    } else {
+      modal.querySelector('#regelEinmalig').classList.add('hidden');
+      modal.querySelector('#regelWiederkehrend').classList.remove('hidden');
+    }
+  };
+  typSel.addEventListener('change', toggleTyp); toggleTyp();
+
+  const toggleRegel = () => {
+    ['regelFest','regelWochentag','regelRelativ'].forEach(id => modal.querySelector('#'+id).classList.add('hidden'));
+    modal.querySelector('#regel'+regelArt.value.charAt(0).toUpperCase()+regelArt.value.slice(1)).classList.remove('hidden');
+  };
+  regelArt.addEventListener('change', toggleRegel); toggleRegel();
+
+  // Regel-Defaults aus bestehendem Termin
+  if (t.regel) {
+    regelArt.value = t.regel.art;
+    toggleRegel();
+    if (t.regel.art === 'fest') {
+      modal.querySelector('#regelTag').value = t.regel.details.tag;
+      modal.querySelector('#regelMonatFest').value = t.regel.details.monat;
+    } else if (t.regel.art === 'wochentag') {
+      modal.querySelector('#regelPosition').value = t.regel.details.position;
+      modal.querySelector('#regelWochentagDow').value = t.regel.details.wochentag;
+      modal.querySelector('#regelMonatWt').value = t.regel.details.monat;
+    } else if (t.regel.art === 'relativ') {
+      modal.querySelector('#regelOffset').value = t.regel.details.offsetTage;
+      modal.querySelector('#regelAnker').value = t.regel.details.anker;
+      modal.querySelector('#regelAnkerTyp').value = t.regel.details.ankerTyp;
+    }
+  }
+
+  // Vorlagen & Reminder Toggles
+  modal.querySelector('#tVorlageChk').addEventListener('change', (e) => {
+    modal.querySelector('#vorlageFeld').classList.toggle('hidden', !e.target.checked);
+  });
+  modal.querySelector('#tReminderChk').addEventListener('change', (e) => {
+    modal.querySelector('#reminderFeld').classList.toggle('hidden', !e.target.checked);
+  });
+
+  listVorlagen().then(vs => {
+    const sel = modal.querySelector('#tVorlage');
+    vs.forEach(v => {
+      const o = document.createElement('option');
+      o.value = `_Vorlagen/${v.name}`;
+      o.textContent = v.name;
+      if (t.vorlage === o.value) o.selected = true;
+      sel.appendChild(o);
+    });
+    if (t.vorlage) {
+      modal.querySelector('#tVorlageChk').checked = true;
+      modal.querySelector('#vorlageFeld').classList.remove('hidden');
+    }
+    if (t.reminder && t.reminder.length) {
+      modal.querySelector('#reminderFeld').classList.remove('hidden');
+      modal.querySelector('#tReminder').value = t.reminder[0].zeitpunkt;
+    }
+  });
+
+  modal.querySelector('#btnSave').addEventListener('click', async () => {
+    const data = {
+      id: t.id,
+      titel: modal.querySelector('#tTitel').value.trim(),
+      beschreibung: modal.querySelector('#tBeschreibung').value,
+      kategorie: modal.querySelector('#tKategorie').value || null,
+      uhrzeit: modal.querySelector('#tUhrzeit').value || null,
+      dauer_minuten: parseInt(modal.querySelector('#tDauer').value) || null,
+      ort: modal.querySelector('#tOrt').value || null,
+      zielgruppe: modal.querySelector('#tZielgruppe').value || null,
+      ordner_anlegen: modal.querySelector('#tOrdner').checked,
+      vorlage: modal.querySelector('#tVorlageChk').checked ? modal.querySelector('#tVorlage').value : null,
+      reminder: modal.querySelector('#tReminderChk').checked ? [{ zeitpunkt: modal.querySelector('#tReminder').value, aktiv: true }] : [],
+    };
+    if (!data.titel) {
+      alert('Bitte einen Titel eingeben — sonst kann der Termin nicht gespeichert werden.');
+      return;
+    }
+
+    if (typSel.value === 'einmalig') {
+      data.datum = modal.querySelector('#tDatum').value;
+      if (!data.datum) { alert('Bitte ein Datum wählen.'); return; }
+    } else {
+      const art = regelArt.value;
+      let regel;
+      const y = new Date().getFullYear();
+      if (art === 'fest') {
+        regel = { art, details: { tag: parseInt(modal.querySelector('#regelTag').value), monat: parseInt(modal.querySelector('#regelMonatFest').value) } };
+      } else if (art === 'wochentag') {
+        regel = { art, details: { position: modal.querySelector('#regelPosition').value, wochentag: modal.querySelector('#regelWochentagDow').value, monat: parseInt(modal.querySelector('#regelMonatWt').value) } };
+      } else {
+        regel = { art, details: { offsetTage: parseInt(modal.querySelector('#regelOffset').value), anker: modal.querySelector('#regelAnker').value, ankerTyp: modal.querySelector('#regelAnkerTyp').value } };
+      }
+      data.regel = regel;
+      const berechnet = berechneDatum(regel, State.ferienData, y);
+      if (!berechnet) { alert('Das Datum konnte aus der Regel nicht berechnet werden. Bitte Werte prüfen.'); return; }
+      data.datum = berechnet;
+    }
+
+    if (t.id) await updateTermin(t.id, data);
+    else await addTermin(data);
+
+    closeModal();
+    render();
+  });
+
+  if (t.id) {
+    modal.querySelector('#btnDelete').addEventListener('click', async () => {
+      if (confirm('Termin wirklich löschen? Zugehörige Ordner bleiben bestehen.')) {
+        await deleteTermin(t.id);
+        closeModal();
+        render();
+      }
+    });
+  }
+}
+
+async function openTerminDetails(id) {
+  const t = State.termineData.termine.find(x => x.id === id);
+  if (!t) return;
+  const dateien = t.ordner ? await listDateienInTerminOrdner(t.ordner) : [];
+  const konflikte = checkKonflikte(t.datum, State.termineData.termine, t.id);
+
+  const modal = createModal(`
+    <h2>${escapeHtml(t.titel)}</h2>
+    <p class="muted">${formatDateDE(t.datum)}${t.uhrzeit?' · '+t.uhrzeit+' Uhr':''}${t.ort?' · '+escapeHtml(t.ort):''}</p>
+    ${konflikte.length ? `<div class="banner">${konflikte.map(escapeHtml).join('<br>')}</div>` : ''}
+    ${t.beschreibung ? `<p>${escapeHtml(t.beschreibung).replace(/\n/g,'<br>')}</p>` : ''}
+    <p class="muted">Zielgruppe: ${escapeHtml(t.zielgruppe||'—')} · Kategorie: ${escapeHtml(t.kategorie||'—')} · Regel: ${regelAlsText(t.regel)}</p>
+
+    ${t.ordner ? `
+      <h3>Ordner</h3>
+      <p class="muted"><code>${escapeHtml(t.ordner)}/</code></p>
+      ${dateien.length ? `
+        <table>
+          <thead><tr><th>Datei</th><th>Größe</th><th>Geändert</th></tr></thead>
+          <tbody>${dateien.map(d => `<tr><td>${escapeHtml(d.name)}</td><td>${Math.round(d.size/1024)} KB</td><td>${new Date(d.lastModified).toLocaleDateString('de-DE')}</td></tr>`).join('')}</tbody>
+        </table>` : '<p class="muted">Noch keine Dateien in diesem Ordner.</p>'}
+    ` : '<p class="muted">Für diesen Termin wurde kein Ordner angelegt.</p>'}
+
+    <div class="actions">
+      <button class="ghost" data-close>Schließen</button>
+      <button id="btnCowork">Cowork-Anweisung generieren</button>
+      <button id="btnEdit">Bearbeiten</button>
+    </div>
+  `);
+  modal.querySelector('#btnEdit').addEventListener('click', () => { closeModal(); openTerminModal(t); });
+  modal.querySelector('#btnCowork').addEventListener('click', () => {
+    closeModal();
+    openCoworkBridge(t);
+  });
+}
+
+function coworkTextForTermin(t, dateien = []) {
+  const schulordner = State.dirName || '[Schulordner]';
+  const vertretung = State.settings.vertretungsmodus
+    ? `\n\nHinweis: Die Schulleitung ist abwesend, Rückfragen bitte an ${State.settings.vertretungsname || '[Name]'}.`
+    : '';
+  if (t.vorlage && t.ordner) {
+    return `Bitte führe folgende Aufgabe im Schulordner ${schulordner}/ aus:
+
+1. Öffne die Vorlage ${t.vorlage}
+2. Kopiere sie in den Ordner ${t.ordner}/
+3. Ersetze folgende Platzhalter:
+   - {DATUM} → ${formatDateDE(t.datum)}
+   - {UHRZEIT} → ${t.uhrzeit || '[Uhrzeit]'}${t.uhrzeit ? ' Uhr' : ''}
+   - {KLASSE} → ${t.zielgruppe || '[Zielgruppe]'}
+   - {RAUM} → ${t.ort || '[Raum]'}
+   - {TITEL} → ${t.titel}
+4. Speichere als ${slugify(t.titel)}.${t.vorlage.split('.').pop()}${vertretung}`;
+  }
+  return `Bitte im Schulordner ${schulordner}/${t.ordner ? t.ordner + '/' : ''} folgendes prüfen/aktualisieren:
+
+Termin: ${t.titel}
+Datum: ${formatDateDE(t.datum)}${t.uhrzeit ? ' um ' + t.uhrzeit + ' Uhr' : ''}
+${t.beschreibung ? 'Beschreibung: ' + t.beschreibung : ''}
+Zielgruppe: ${t.zielgruppe || '—'}
+${dateien.length ? '\nVorhandene Dateien:\n' + dateien.map(d => '- ' + d.name).join('\n') : ''}${vertretung}`;
+}
+
+function showCoworkBridge(termin, hinweis, kind, textOverride = null) {
+  // Alt-Einstieg: z.B. beim Ordner-Umbenennen. Zeigt direkt einen festen Text.
+  const txt = textOverride || (termin ? coworkTextForTermin(termin) : hinweis);
+  const modal = createModal(`
+    <h2>Cowork-Anweisung</h2>
+    <p>${escapeHtml(hinweis)}</p>
+    <div class="cowork-preview">${escapeHtml(txt)}</div>
+    <div class="actions">
+      <button class="ghost" data-close>Später</button>
+      <button class="primary" id="btnCopy">Anweisung für Cowork kopieren</button>
+    </div>
+  `);
+  modal.querySelector('#btnCopy').addEventListener('click', () => {
+    copyToClipboard(txt);
+    closeModal();
+  });
+}
+
+// Neuer, richer Bridge mit Vorlagen-Auswahl, editierbaren Platzhaltern,
+// Termin-Verknüpfung und Live-Vorschau.
+function openCoworkBridge(termin = null, vorgewähltTpl = null) {
+  // Liste der passenden Templates: bei vorhandenem Termin die mit passender Kategorie zuerst
+  const sortedTpls = [...COWORK_TEMPLATES].sort((a, b) => {
+    if (!termin) return 0;
+    const aM = (a.kategorien || []).includes(termin.kategorie) ? 0 : 1;
+    const bM = (b.kategorien || []).includes(termin.kategorie) ? 0 : 1;
+    return aM - bM;
+  });
+
+  const modal = createModal(`
+    <h2>Cowork-Anweisung erstellen</h2>
+    <p class="muted">Wählen Sie eine Vorlage, prüfen Sie die Platzhalter und kopieren Sie die fertige Anweisung.</p>
+
+    <div class="field">
+      <label>Optional: mit Termin verknüpfen</label>
+      <select id="cwTermin">
+        <option value="">— kein Termin —</option>
+        ${State.termineData ? State.termineData.termine
+          .slice()
+          .sort((a,b) => a.datum.localeCompare(b.datum))
+          .map(t => `<option value="${t.id}">${formatDateDE(t.datum)} — ${escapeHtml(t.titel)}</option>`).join('') : ''}
+      </select>
+    </div>
+
+    <div class="cowork-template-tabs" id="cwTpls">
+      ${sortedTpls.map((t, i) => `<button data-idx="${i}">${t.icon} ${escapeHtml(t.titel)}</button>`).join('')}
+    </div>
+
+    <div id="cwBody"></div>
+
+    <div class="actions">
+      <button class="ghost" data-close>Schließen</button>
+      <button class="primary" id="btnCopyCw">Anweisung kopieren</button>
+    </div>
+  `, 'large');
+
+  let currentTpl = vorgewähltTpl || sortedTpls[0];
+  let currentTermin = termin;
+  const placeholderValues = {};
+
+  const tplTabs = modal.querySelector('#cwTpls');
+  function highlightTab() {
+    tplTabs.querySelectorAll('button').forEach((btn, i) => {
+      btn.classList.toggle('active', sortedTpls[i].id === currentTpl.id);
+    });
+  }
+  tplTabs.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    currentTpl = sortedTpls[parseInt(btn.dataset.idx)];
+    Object.keys(placeholderValues).forEach(k => delete placeholderValues[k]);
+    renderBody();
+  }));
+
+  modal.querySelector('#cwTermin').addEventListener('change', (e) => {
+    const id = e.target.value;
+    currentTermin = id ? State.termineData.termine.find(t => t.id === id) : null;
+    Object.keys(placeholderValues).forEach(k => delete placeholderValues[k]);
+    renderBody();
+  });
+
+  if (termin) modal.querySelector('#cwTermin').value = termin.id;
+
+  function autoFillPlaceholders(tpl, t) {
+    // Bringt bekannte Termin-Felder auf Standard-Platzhalter
+    const map = {
+      '{TITEL}': t?.titel,
+      '{DATUM}': t?.datum ? formatDateDE(t.datum) : '',
+      '{UHRZEIT}': t?.uhrzeit || '',
+      '{ORT}': t?.ort || '',
+      '{ZIELGRUPPE}': t?.zielgruppe || '',
+      '{ORDNER}': t?.ordner || (t ? folderNameForTermin(t) : '[Ordner nach Termin-Anlage]'),
+      '{SCHULE}': State.termineData?.schule?.name || State.dirName || '[Ihre Schule]',
+    };
+    return { ...map };
+  }
+
+  function renderBody() {
+    highlightTab();
+    const body = modal.querySelector('#cwBody');
+    const auto = autoFillPlaceholders(currentTpl, currentTermin);
+    const platzhalter = currentTpl.platzhalter || [];
+    const fieldsHtml = platzhalter.map(p => {
+      const prefill = placeholderValues[p] ?? auto[p] ?? '';
+      return `
+        <div class="field">
+          <label>${escapeHtml(p)}</label>
+          <input type="text" class="cw-ph" data-ph="${escapeHtml(p)}" value="${escapeHtml(prefill)}" />
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <p class="muted" style="margin-top:.5em"><strong>${currentTpl.icon} ${escapeHtml(currentTpl.titel)}</strong> — ${escapeHtml(currentTpl.beschreibung)}</p>
+      ${fieldsHtml ? '<div class="placeholder-form">' + fieldsHtml + '</div>' : ''}
+      <label style="margin-top:.8em">Vorschau der Anweisung</label>
+      <div class="cowork-preview" id="cwPreview"></div>
+    `;
+    body.querySelectorAll('.cw-ph').forEach(inp => {
+      inp.addEventListener('input', () => {
+        placeholderValues[inp.dataset.ph] = inp.value;
+        renderPreview();
+      });
+    });
+    renderPreview();
+  }
+
+  function renderPreview() {
+    const auto = autoFillPlaceholders(currentTpl, currentTermin);
+    const all = { ...auto, ...placeholderValues };
+    let out = currentTpl.template;
+    Object.keys(all).forEach(k => {
+      out = out.split(k).join(all[k] || k);
+    });
+    // Kontext ergänzen
+    if (currentTermin) {
+      out = `Kontext: Termin "${currentTermin.titel}" am ${formatDateDE(currentTermin.datum)}${currentTermin.uhrzeit ? ' um ' + currentTermin.uhrzeit : ''}${currentTermin.ort ? ' in ' + currentTermin.ort : ''}.\nSchulordner: ${State.dirName || '[Schulordner]'}\n\n` + out;
+    }
+    if (State.settings.vertretungsmodus) {
+      out += `\n\nHinweis an Cowork: Die Schulleitung ist abwesend, Rückfragen bitte an ${State.settings.vertretungsname || '[Name]'}.`;
+    }
+    modal.querySelector('#cwPreview').textContent = out;
+  }
+
+  modal.querySelector('#btnCopyCw').addEventListener('click', () => {
+    const text = modal.querySelector('#cwPreview').textContent;
+    copyToClipboard(text);
+    closeModal();
+  });
+
+  renderBody();
+}
+
+function openPflichttermineModal() {
+  const rows = PFLICHTTERMINE_NI.map((p, i) => {
+    const berechnet = berechneDatum(p.regel, State.ferienData, new Date().getFullYear());
+    return `
+      <tr>
+        <td><input type="checkbox" data-idx="${i}" /></td>
+        <td>${escapeHtml(p.titel)}</td>
+        <td>${regelAlsText(p.regel)}</td>
+        <td>${berechnet ? formatDateDE(berechnet) : '—'}</td>
+      </tr>`;
+  }).join('');
+  const modal = createModal(`
+    <h2>Pflichttermine Niedersachsen</h2>
+    <p class="muted">Wählen Sie aus, welche Termine für Ihre Schule relevant sind. Die Berechnung nutzt die aktuellen Ferien-Daten.</p>
+    <div style="max-height:50vh;overflow-y:auto">
+      <table>
+        <thead><tr><th></th><th>Titel</th><th>Regel</th><th>Berechnetes Datum</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="actions">
+      <button class="ghost" data-close>Abbrechen</button>
+      <button class="primary" id="btnAdd">Ausgewählte übernehmen</button>
+    </div>
+  `, 'large');
+  modal.querySelector('#btnAdd').addEventListener('click', async () => {
+    const selected = Array.from(modal.querySelectorAll('input[type=checkbox]:checked')).map(cb => PFLICHTTERMINE_NI[parseInt(cb.dataset.idx)]);
+    for (const p of selected) {
+      const berechnet = berechneDatum(p.regel, State.ferienData, new Date().getFullYear());
+      if (!berechnet) continue;
+      await addTermin({
+        titel: p.titel,
+        beschreibung: p.beschreibung,
+        kategorie: p.kategorie,
+        regel: p.regel,
+        datum: berechnet,
+        zielgruppe: '',
+        ordner_anlegen: false,
+      });
+    }
+    closeModal();
+    toast(`${selected.length} Pflichttermine übernommen`);
+    render();
+  });
+}
+
+// ---- Modal-Helper ----
+function createModal(innerHtml, cls = '') {
+  closeModal();
+  const root = document.getElementById('modalRoot');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `<div class="modal ${cls}"><button class="close" data-close aria-label="Schließen">×</button>${innerHtml}</div>`;
+  root.appendChild(backdrop);
+  State.activeModal = backdrop;
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  backdrop.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModal));
+  document.addEventListener('keydown', escClose);
+  return backdrop.querySelector('.modal');
+}
+function closeModal() {
+  if (State.activeModal) { State.activeModal.remove(); State.activeModal = null; }
+  document.removeEventListener('keydown', escClose);
+}
+function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+// ============================================================================
+// SUCHE
+// ============================================================================
+function setupSuche() {
+  const input = document.getElementById('searchInput');
+  const resultsEl = document.getElementById('searchResults');
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q || !State.termineData) { resultsEl.classList.add('hidden'); return; }
+    const hits = State.termineData.termine.filter(t =>
+      (t.titel||'').toLowerCase().includes(q) ||
+      (t.beschreibung||'').toLowerCase().includes(q) ||
+      (t.zielgruppe||'').toLowerCase().includes(q) ||
+      (t.ordner||'').toLowerCase().includes(q)
+    ).slice(0, 10);
+    if (hits.length === 0) {
+      resultsEl.innerHTML = '<div class="result muted">Keine Treffer.</div>';
+    } else {
+      resultsEl.innerHTML = hits.map(t => `
+        <div class="result" data-id="${t.id}">
+          <div><strong>${escapeHtml(t.titel)}</strong></div>
+          <div class="meta">${formatDateDE(t.datum)}${t.ordner?' · '+escapeHtml(t.ordner):''}</div>
+        </div>`).join('');
+      resultsEl.querySelectorAll('.result[data-id]').forEach(r => r.addEventListener('click', () => {
+        openTerminDetails(r.dataset.id);
+        input.value = ''; resultsEl.classList.add('hidden');
+      }));
+    }
+    resultsEl.classList.remove('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search')) resultsEl.classList.add('hidden');
+  });
+}
+
+// ============================================================================
+// COMMAND PALETTE (Strg+K)
+// ============================================================================
+// Zentraler Einstieg für alle Funktionen. Auch: "Schnell-Hinzufügen" — wenn
+// der eingegebene Text nach einem Termin aussieht, bietet die Palette direkt
+// das Anlegen an.
+
+function openCommandPalette() {
+  closeModal();
+  const root = document.getElementById('modalRoot');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'cmd-backdrop';
+  backdrop.innerHTML = `
+    <div class="cmd-box" role="dialog" aria-label="Befehle">
+      <div class="cmd-input-wrap">
+        <input type="text" id="cmdInput" class="cmd-input" placeholder="Suchen oder Befehl eingeben (z.B. „Elternabend 15.9. 19:30")…" autocomplete="off" />
+      </div>
+      <div class="cmd-results" id="cmdResults"></div>
+      <div class="cmd-footer">
+        <span><kbd>↑↓</kbd> Navigieren · <kbd>↵</kbd> Ausführen · <kbd>Esc</kbd> Schließen</span>
+        <span>Strg+K überall öffnen</span>
+      </div>
+    </div>`;
+  root.appendChild(backdrop);
+  State.activeModal = backdrop;
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+  const input = backdrop.querySelector('#cmdInput');
+  const results = backdrop.querySelector('#cmdResults');
+  let cursor = 0;
+  let entries = [];
+
+  function commandList(q) {
+    const out = [];
+    const quickAdd = parseQuickAdd(q);
+    if (q && quickAdd && quickAdd.datum && quickAdd.titel) {
+      out.push({
+        label: `Termin anlegen: „${quickAdd.titel}" am ${formatDateDE(quickAdd.datum)}${quickAdd.uhrzeit ? ' um ' + quickAdd.uhrzeit : ''}`,
+        sub: 'Schnellanlage aus Ihrer Eingabe',
+        icon: '➕',
+        group: 'Schnellaktion',
+        action: async () => {
+          await addTermin({ titel: quickAdd.titel, datum: quickAdd.datum, uhrzeit: quickAdd.uhrzeit || null, ordner_anlegen: false });
+          toast(`„${quickAdd.titel}" angelegt`);
+          render();
+        }
+      });
+    }
+
+    const nav = [
+      { label: 'Kalender öffnen', icon: '📅', tab: 'kalender', shortcut: '1' },
+      { label: 'Terminliste öffnen', icon: '📝', tab: 'termine', shortcut: '2' },
+      { label: 'Importieren öffnen', icon: '📥', tab: 'importieren', shortcut: '3' },
+      { label: 'Cowork-Vorlagen öffnen', icon: '✨', tab: 'cowork', shortcut: '4' },
+      { label: 'Jahreswechsel öffnen', icon: '🔄', tab: 'jahreswechsel', shortcut: '5' },
+      { label: 'Vorlagen öffnen', icon: '📄', tab: 'vorlagen', shortcut: '6' },
+      { label: 'Zeitstrahl öffnen', icon: '📊', tab: 'zeitstrahl', shortcut: '7' },
+      { label: 'Einstellungen öffnen', icon: '⚙️', tab: 'einstellungen', shortcut: '8' },
+    ];
+    nav.forEach(n => out.push({ ...n, group: 'Navigation', action: () => { State.currentTab = n.tab; document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === n.tab)); render(); } }));
+
+    out.push({
+      label: 'Neuen Termin anlegen…',
+      icon: '➕',
+      group: 'Aktionen',
+      shortcut: 'N',
+      action: () => openTerminModal(),
+    });
+    out.push({
+      label: 'Zum heutigen Tag springen',
+      icon: '📍',
+      group: 'Aktionen',
+      shortcut: 'T',
+      action: () => { State.currentMonth = new Date(); State.currentTab = 'kalender'; State.currentView = 'monat'; render(); },
+    });
+    out.push({
+      label: 'Dunkelmodus umschalten',
+      icon: '🌓',
+      group: 'Aktionen',
+      action: async () => {
+        State.settings.theme = State.settings.theme === 'dark' ? 'light' : 'dark';
+        applySettings(); await saveSettings();
+      },
+    });
+    out.push({
+      label: 'Kalender als iCal exportieren',
+      icon: '📤',
+      group: 'Aktionen',
+      action: exportIcal,
+    });
+    out.push({
+      label: 'Schulordner trennen',
+      icon: '🔌',
+      group: 'Aktionen',
+      action: async () => {
+        if (!confirm('Verbindung zum Schulordner trennen?')) return;
+        await idbSet('dirHandle', null);
+        State.dirHandle = null; State.dirName = null; State.termineData = null;
+        render();
+      }
+    });
+
+    // Cowork-Vorlagen
+    COWORK_TEMPLATES.forEach(t => {
+      out.push({
+        label: `Cowork: ${t.titel}`,
+        sub: t.beschreibung,
+        icon: t.icon,
+        group: 'Cowork-Vorlage',
+        action: () => openCoworkBridge(null, t),
+      });
+    });
+
+    // Termine
+    if (State.termineData && q && q.length >= 2) {
+      const lowQ = q.toLowerCase();
+      State.termineData.termine
+        .filter(t => (t.titel||'').toLowerCase().includes(lowQ) || (t.ordner||'').toLowerCase().includes(lowQ))
+        .slice(0, 6)
+        .forEach(t => out.push({
+          label: t.titel,
+          sub: `${formatDateDE(t.datum)}${t.ordner ? ' · ' + t.ordner : ''}`,
+          icon: '🔎',
+          group: 'Termine',
+          action: () => openTerminDetails(t.id),
+        }));
+    }
+
+    if (!q) return out;
+    const lowQ = q.toLowerCase();
+    return out.filter(e =>
+      e.label.toLowerCase().includes(lowQ) ||
+      (e.sub || '').toLowerCase().includes(lowQ) ||
+      e.group.toLowerCase().includes(lowQ)
+    );
+  }
+
+  function renderResults() {
+    entries = commandList(input.value.trim());
+    if (cursor >= entries.length) cursor = Math.max(0, entries.length - 1);
+    let lastGroup = '';
+    results.innerHTML = entries.map((e, i) => {
+      const groupHeader = e.group !== lastGroup ? `<div class="cmd-group-label">${escapeHtml(e.group)}</div>` : '';
+      lastGroup = e.group;
+      return groupHeader + `
+        <div class="cmd-item ${i === cursor ? 'active' : ''}" data-i="${i}">
+          <div class="cmd-icon">${e.icon || '•'}</div>
+          <div class="cmd-label">
+            <div>${escapeHtml(e.label)}</div>
+            ${e.sub ? `<div class="cmd-sub">${escapeHtml(e.sub)}</div>` : ''}
+          </div>
+          ${e.shortcut ? `<span class="cmd-shortcut">${e.shortcut}</span>` : ''}
+        </div>`;
+    }).join('') || '<div class="cmd-item muted" style="padding:1em 1.2em;color:var(--text-muted)">Keine Treffer.</div>';
+
+    results.querySelectorAll('.cmd-item[data-i]').forEach(el => {
+      el.addEventListener('click', () => execute(parseInt(el.dataset.i)));
+      el.addEventListener('mouseenter', () => { cursor = parseInt(el.dataset.i); highlightCursor(); });
+    });
+  }
+
+  function highlightCursor() {
+    results.querySelectorAll('.cmd-item').forEach((el, i) => {
+      el.classList.toggle('active', i === cursor);
+    });
+    // in den sichtbaren Bereich scrollen
+    const active = results.querySelector('.cmd-item.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
+
+  function execute(i) {
+    const e = entries[i];
+    if (!e || !e.action) return;
+    closeModal();
+    setTimeout(() => e.action(), 0);
+  }
+
+  input.addEventListener('input', () => { cursor = 0; renderResults(); });
+  backdrop.addEventListener('keydown', (ev) => {
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); cursor = Math.min(entries.length - 1, cursor + 1); highlightCursor(); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); cursor = Math.max(0, cursor - 1); highlightCursor(); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); execute(cursor); }
+    else if (ev.key === 'Escape') { closeModal(); }
+  });
+
+  renderResults();
+  setTimeout(() => input.focus(), 10);
+}
+
+// ============================================================================
+// KEYBOARD SHORTCUTS
+// ============================================================================
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    const inField = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+    // Strg+K / Cmd+K öffnet Palette — auch im Input
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    if (inField) return;
+    // Einzelne Tasten ohne Modifier
+    if (e.key === '/') { e.preventDefault(); document.getElementById('searchInput').focus(); return; }
+    if (e.key.toLowerCase() === 'n' && State.dirHandle) { e.preventDefault(); openTerminModal(); return; }
+    if (e.key.toLowerCase() === 't') { State.currentMonth = new Date(); State.currentTab = 'kalender'; State.currentView = 'monat'; document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'kalender')); render(); return; }
+    if (e.key.toLowerCase() === 'j' && State.currentTab === 'kalender') { State.currentView = 'jahr'; render(); return; }
+    if (e.key.toLowerCase() === 'm' && State.currentTab === 'kalender') { State.currentView = 'monat'; render(); return; }
+    if (e.key.toLowerCase() === 'l' && State.currentTab === 'kalender') { State.currentView = 'liste'; render(); return; }
+    const tabs = ['kalender','termine','importieren','cowork','jahreswechsel','vorlagen','zeitstrahl','einstellungen'];
+    if (/^[1-8]$/.test(e.key)) {
+      const idx = parseInt(e.key) - 1;
+      if (tabs[idx]) {
+        State.currentTab = tabs[idx];
+        document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tabs[idx]));
+        render();
+      }
+    }
+  });
+}
+
+// ============================================================================
+// UTILS
+// ============================================================================
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getTermineAm(iso) {
+  if (!State.termineData) return [];
+  return State.termineData.termine.filter(t => t.datum === iso);
+}
+
+// ============================================================================
+// EVENT-WIRING
+// ============================================================================
+
+document.getElementById('nav').addEventListener('click', (e) => {
+  if (e.target.tagName === 'BUTTON') {
+    State.currentTab = e.target.dataset.tab;
+    document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b === e.target));
+    render();
+  }
+});
+
+document.getElementById('fabNew').addEventListener('click', () => {
+  if (!State.dirHandle) { pickSchoolFolder(); return; }
+  openTerminModal();
+});
+
+document.getElementById('themeToggle').addEventListener('click', async () => {
+  State.settings.theme = State.settings.theme === 'dark' ? 'light' : 'dark';
+  applySettings();
+  await saveSettings();
+});
+
+document.getElementById('quickAddBtn').addEventListener('click', openCommandPalette);
+
+// ============================================================================
+// START
+// ============================================================================
+
+(async function init() {
+  setupSuche();
+  setupKeyboardShortcuts();
+  const restored = await tryRestoreFolder();
+  if (restored === 'needsPermission') {
+    // Beim ersten Klick Berechtigung neu anfordern
+    const banner = document.createElement('div');
+    banner.className = 'banner info';
+    banner.innerHTML = `Willkommen zurück. Bitte bestätigen Sie den Zugriff auf den Schulordner "<strong>${escapeHtml(State.dirName)}</strong>". <button class="primary mt-1" id="btnGrant">Zugriff bestätigen</button>`;
+    document.getElementById('content').prepend(banner);
+    document.getElementById('btnGrant').addEventListener('click', async () => {
+      const ok = await ensurePermission(State.dirHandle);
+      if (ok) { await loadAll(); render(); }
+    });
+  }
+  render();
+})();
+
+// ============================================================================
+// ENDE
+//
+// Bekannte Einschränkungen und nächste Schritte:
+//
+// 1. File System Access API wird in Firefox und Safari (noch) nicht unterstützt.
+//    Die App zeigt einen Hinweis; für produktiven Einsatz empfohlen: Chrome, Edge, Brave.
+//
+// 2. Word-/PDF-Platzhalter: Aktuell werden nur Text-, Markdown-, HTML- und CSV-Dateien
+//    auf Platzhalter im Format {NAME} analysiert. Für .docx müsste ein Parser
+//    (z.B. mammoth.js) eingebunden werden.
+//
+// 3. Das automatische Umbenennen von Ordnern kopiert alle enthaltenen Dateien,
+//    weil die File System Access API kein natives rename bietet. Bei großen
+//    Ordnern kann das dauern. Ein Hinweis wäre nett.
+//
+// 4. iCal-Parser ist minimal (nur VEVENT mit DTSTART, SUMMARY, DESCRIPTION).
+//    Wiederholungen (RRULE), Zeitzonen und Ausnahmen werden ignoriert. Für
+//    die meisten kommunalen Kalender reicht das aus, für komplexere Feeds
+//    sollte ical.js o.ä. eingebunden werden.
+//
+// 5. Reminder: derzeit nur in der Sidebar sichtbar. System-Notifications
+//    (Notification API) könnten ergänzt werden, verlangen aber zusätzliche
+//    Berechtigungen und laufen nur bei geöffnetem Tab.
+//
+// 6. Mehrere Schuljahre: aktuell wird nur ein Schuljahr aktiv geführt.
+//    Als nächstes Feature könnte das termine.json-Schema um eine
+//    Schuljahre-Liste erweitert und ein Switcher in die Topbar gesetzt werden.
+//
+// 7. Offline-Fähigkeit: OpenHolidays-Daten werden lokal gecacht. Die App
+//    selbst läuft komplett offline, sofern sie einmal geladen wurde. Ein
+//    Service Worker würde das Laden beschleunigen, ist aber nicht zwingend.
+//
+// 8. Barrierefreiheit: Grundlagen (Labels, Tastaturbedienung, ARIA-Labels,
+//    Fokus-Ringe) sind vorhanden. Ein vollständiger Screenreader-Durchlauf
+//    steht noch aus.
+//
+// 9. Die KI-Pflege-Hinweise (Nice-to-Have) sind bewusst schlicht gehalten —
+//    die App weist nach dem Speichern nicht proaktiv auf "Soll das nächstes
+//    Jahr wieder erscheinen?" hin. Das ließe sich nach dem addTermin()-Aufruf
+//    mit einem dezenten Hinweis-Toast ergänzen.
+//
+// 10. Cowork-Bridge: Die Anweisungen werden in die Zwischenablage gelegt.
+//    Eine noch engere Integration (z.B. Schreiben einer "cowork-aufgaben.md"
+//    im Schulordner, die Cowork selbstständig abarbeitet) wäre naheliegend
+//    und würde den Workflow weiter vereinfachen.
+// ============================================================================
+</script>
+</body>
+</html>
