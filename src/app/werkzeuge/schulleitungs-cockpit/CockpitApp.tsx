@@ -127,6 +127,7 @@ export default function CockpitApp() {
     if (!quickInput.trim() || !quickPreview?.datum) return;
     addTermin(quickPreview.titel, quickPreview.datum, {
       uhrzeit: quickPreview.uhrzeit ?? undefined,
+      kategorie: quickPreview.kategorie ?? "sonstiges",
     });
     setQuickInput("");
     setQuickPreview(null);
@@ -421,17 +422,31 @@ export default function CockpitApp() {
               }`}
             >
               {quickPreview.datum ? (
-                <span>
-                  <CheckCircle2 className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                  <strong>{quickPreview.titel}</strong> am{" "}
-                  <strong>{formatDateDE(quickPreview.datum)}</strong>
-                  {quickPreview.uhrzeit && (
-                    <>
-                      {" "}
-                      um <strong>{quickPreview.uhrzeit} Uhr</strong>
-                    </>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    <strong>{quickPreview.titel}</strong> am{" "}
+                    <strong>{formatDateDE(quickPreview.datum)}</strong>
+                    {quickPreview.uhrzeit && (
+                      <>
+                        {" "}
+                        um <strong>{quickPreview.uhrzeit} Uhr</strong>
+                      </>
+                    )}
+                  </span>
+                  {quickPreview.kategorie && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+                      style={{
+                        backgroundColor: categoryStyle(quickPreview.kategorie).bg,
+                        color: categoryStyle(quickPreview.kategorie).color,
+                      }}
+                      title="Automatisch erkannt – kann nach dem Anlegen geändert werden"
+                    >
+                      → {categoryStyle(quickPreview.kategorie).label}
+                    </span>
                   )}
-                </span>
+                </div>
               ) : (
                 <span>
                   <AlertTriangle className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />

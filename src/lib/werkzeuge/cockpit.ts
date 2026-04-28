@@ -493,12 +493,131 @@ export const PFLICHTTERMINE_NI: PflichtterminTemplate[] = [
   },
 ];
 
+// ════════ KATEGORIE-ERKENNUNG aus Titel-Stichwörtern ══════════════════
+// Wird von parseQuickAdd genutzt; kann auch standalone aufgerufen werden,
+// um z. B. beim manuellen Anlegen einen Vorschlag zu liefern.
+
+interface CategoryRule {
+  category: TerminCategory;
+  /** Stichwörter; jeweils Wortstamm-orientiert (case-insensitiv) */
+  keywords: string[];
+}
+
+// Reihenfolge ist Priorität bei Mehrfachtreffern: erste passende Regel gewinnt.
+// Spezifischere Begriffe stehen oben, allgemeine unten.
+const CATEGORY_RULES: CategoryRule[] = [
+  {
+    category: "pflicht",
+    keywords: [
+      "zeugnis",
+      "vera",
+      "einschulung",
+      "schulanfang",
+      "schuljahresbeginn",
+      "schuljahresende",
+      "halbjahres",
+      "anmeldewoche",
+      "schulanmeldung",
+    ],
+  },
+  {
+    category: "konferenz",
+    keywords: [
+      "konferenz",
+      "dienstbesprechung",
+      "dienstbespr",
+      "fachkonferenz",
+      "gesamtkonferenz",
+      "schulkonferenz",
+      "lehrerkonferenz",
+      "zeugniskonferenz",
+      "klassenkonferenz",
+      "förderkonferenz",
+      "glk",
+    ],
+  },
+  {
+    category: "schulentw",
+    keywords: [
+      "schilf",
+      "fortbildung",
+      "studientag",
+      "weiterbildung",
+      "schulentwicklung",
+      "evaluation",
+      "audit",
+      "tag der offenen tür",
+      "tag der offenen tuer",
+      "schulinspektion",
+      "qualitätsanalyse",
+      "brückentag",
+      "brueckentag",
+      "leitbild",
+      "konzept",
+      "projektwoche",
+    ],
+  },
+  {
+    category: "eltern",
+    keywords: [
+      "eltern", // fängt Elternabend, Elterngespräch, Elternsprechtag etc.
+      "klassenpflegschaft",
+      "schulpflegschaft",
+      "sprechtag",
+      "infoabend",
+      "informationsabend",
+      "schnuppertag",
+      "kennenlernen",
+      "klassenpflegsch",
+    ],
+  },
+  {
+    category: "unterricht",
+    keywords: [
+      "wandertag",
+      "klassenfahrt",
+      "exkursion",
+      "ausflug",
+      "sportfest",
+      "schwimm",
+      "lesewettbewerb",
+      "vorlesetag",
+      "klassenarbeit",
+      "klassenrat",
+      "sponsorenlauf",
+      "schulfest",
+      "weihnachtsfeier",
+      "sommerfest",
+      "lauftag",
+      "theaterbesuch",
+      "schulgottesdienst",
+    ],
+  },
+];
+
+/**
+ * Erkennt anhand des Titels die wahrscheinliche Kategorie.
+ * Gibt null zurück, wenn kein Stichwort passt – Aufrufer kann dann
+ * "sonstiges" als Default verwenden.
+ */
+export function detectCategory(text: string): TerminCategory | null {
+  const lower = text.toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    for (const kw of rule.keywords) {
+      if (lower.includes(kw)) return rule.category;
+    }
+  }
+  return null;
+}
+
 // ════════ QUICK-ADD-PARSER ════════════════════════════════════════════
 
 export interface QuickAddResult {
   titel: string;
   datum: string | null;
   uhrzeit: string | null;
+  /** Aus dem Titel abgeleitete Kategorie – null, wenn kein Stichwort passt */
+  kategorie: TerminCategory | null;
 }
 
 const WOCHENTAG_MAP: Record<string, number> = {
@@ -597,7 +716,11 @@ export function parseQuickAdd(text: string, today: Date = new Date()): QuickAddR
   titel = titel.replace(/\s+/g, " ").trim();
   if (!titel) titel = "Ohne Titel";
 
-  return { titel, datum, uhrzeit };
+  // Kategorie aus Titel-Stichwörtern ableiten (Original-Eingabe, damit auch
+  // Wörter erkannt werden, die durch das Datum-Strip am Rand standen)
+  const kategorie = detectCategory(titel) ?? detectCategory(text);
+
+  return { titel, datum, uhrzeit, kategorie };
 }
 
 // ════════ iCal-Export ═════════════════════════════════════════════════
