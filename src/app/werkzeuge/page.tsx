@@ -21,6 +21,8 @@ import {
   ScanText,
   Wand2,
   Captions,
+  FlaskConical,
+  GraduationCap,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 
@@ -52,6 +54,7 @@ interface Category {
   title: string;
   body: string;
   tools: Tool[];
+  experimental?: boolean;
 }
 
 const iconProps = { strokeWidth: 1.6, "aria-hidden": true as const };
@@ -168,9 +171,10 @@ const categories: Category[] = [
   {
     id: "lokale-ki",
     index: "04",
-    eyebrow: "Edge-AI",
+    eyebrow: "Edge-AI · Experimentell",
     title: "Lokale KI",
     body: "Sprachmodelle, Bild-KI und Whisper – alles läuft direkt in Ihrem Browser auf CPU oder GPU. Kein Server, kein Login, keine Daten verlassen das Gerät.",
+    experimental: true,
     tools: [
       {
         href: "/werkzeuge/bild-verbesserer",
@@ -353,14 +357,31 @@ export default function WerkzeugePage() {
                   <div className="flex md:flex-col md:justify-start items-baseline md:items-start gap-4 md:gap-2">
                     <span
                       aria-hidden="true"
-                      className="font-bold text-7xl md:text-8xl text-primary/15 leading-none tabular-nums tracking-tighter select-none"
+                      className={`font-bold text-7xl md:text-8xl leading-none tabular-nums tracking-tighter select-none ${
+                        cat.experimental ? "text-accent-strong/20" : "text-primary/15"
+                      }`}
                     >
                       {cat.index}
                     </span>
-                    <span className="hidden md:block w-12 h-0.5 bg-accent-strong" />
+                    <span
+                      className={`hidden md:block w-12 h-0.5 ${
+                        cat.experimental ? "bg-accent" : "bg-accent-strong"
+                      }`}
+                    />
                   </div>
                   <div className="md:pt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-light mb-2">
+                    <p
+                      className={`text-[11px] font-bold uppercase tracking-[0.2em] mb-2 inline-flex items-center gap-2 ${
+                        cat.experimental ? "text-accent-strong" : "text-text-light"
+                      }`}
+                    >
+                      {cat.experimental && (
+                        <FlaskConical
+                          className="h-3.5 w-3.5"
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
+                      )}
                       {cat.eyebrow}
                     </p>
                     <h3 className="text-2xl md:text-3xl font-bold text-primary mb-3 tracking-tight">
@@ -371,6 +392,121 @@ export default function WerkzeugePage() {
                     </p>
                   </div>
                 </div>
+
+                {cat.experimental && (
+                  <div
+                    role="note"
+                    aria-label="Hinweis: Experimentelle Werkzeuge"
+                    className="relative mb-12 overflow-hidden rounded-2xl border-2 border-accent-strong/30 bg-white shadow-md"
+                  >
+                    {/* Diagonale Warnstreifen oben */}
+                    <div
+                      aria-hidden="true"
+                      className="h-2.5"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(135deg, #AB7A0E 0 14px, #E8A838 14px 28px)",
+                      }}
+                    />
+
+                    {/* Subtiles Raster im Hintergrund */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(0deg, #AB7A0E 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, #AB7A0E 0 1px, transparent 1px 24px)",
+                      }}
+                    />
+
+                    <div className="relative grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 lg:gap-10 p-6 md:p-8">
+                      {/* Icon-Spalte */}
+                      <div className="flex items-start gap-4 lg:flex-col lg:items-center lg:gap-3">
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-strong text-white shrink-0 shadow-lg shadow-accent/40">
+                          <FlaskConical
+                            className="h-8 w-8"
+                            strokeWidth={1.6}
+                            aria-hidden="true"
+                          />
+                          <span
+                            aria-hidden="true"
+                            className="absolute -top-1 -right-1 flex h-3.5 w-3.5"
+                          >
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-75 motion-safe:animate-ping" />
+                            <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-white" />
+                          </span>
+                        </div>
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-accent-strong whitespace-nowrap">
+                          LAB · 04
+                        </span>
+                      </div>
+
+                      {/* Inhalt */}
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong mb-2.5 inline-flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-1.5 w-1.5 rounded-full bg-accent-strong"
+                          />
+                          Experimentell · zum Ausprobieren gedacht
+                        </p>
+                        <h4 className="text-xl md:text-2xl font-bold text-primary mb-3 leading-tight tracking-tight">
+                          Kleine, lokale Modelle – ein Vorgeschmack, kein Produktiv-Werkzeug.
+                        </h4>
+                        <p className="text-sm md:text-base text-text/90 leading-relaxed mb-3">
+                          Diese KI-Werkzeuge laufen direkt in Ihrem Browser auf
+                          CPU oder GPU. Das ist datensparsam und kostenlos –
+                          aber nur mit{" "}
+                          <strong className="font-semibold text-text">
+                            kleinen Modellen
+                          </strong>{" "}
+                          möglich, die je nach Aufgabe spürbar fehleranfälliger
+                          sind als die großen Cloud-Modelle. Bitte als
+                          Spielwiese verstehen, nicht als Verlass-Werkzeug für
+                          den Klassenraum.
+                        </p>
+                        <p className="text-sm md:text-base text-text-light leading-relaxed">
+                          Den souveränen Umgang mit den{" "}
+                          <strong className="font-semibold text-primary">
+                            großen, leistungsstarken und zuverlässigen Modellen
+                          </strong>{" "}
+                          vermitteln wir Ihnen praxisnah in unseren
+                          DigiKI-Schulungen.
+                        </p>
+                      </div>
+
+                      {/* CTA-Spalte */}
+                      <div className="flex flex-col items-start justify-end gap-3 lg:border-l-2 lg:border-dashed lg:border-accent-strong/25 lg:pl-8">
+                        <Link
+                          href="/fuer-schulen"
+                          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-[gap,background-color] hover:bg-primary/90 hover:gap-3"
+                        >
+                          <GraduationCap
+                            className="h-4 w-4"
+                            strokeWidth={2}
+                            aria-hidden="true"
+                          />
+                          Zu den Schulungen
+                          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                        <p className="text-[11px] text-text-light leading-relaxed max-w-[14rem]">
+                          Praxisnaher Einstieg in die großen, zuverlässigen
+                          KI-Modelle – kostenfrei für Grundschulen.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Diagonale Warnstreifen unten – dezent */}
+                    <div
+                      aria-hidden="true"
+                      className="h-1 opacity-60"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(135deg, #AB7A0E 0 10px, transparent 10px 20px)",
+                      }}
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {cat.tools.map((tool, toolIndex) => (
@@ -390,17 +526,44 @@ export default function WerkzeugePage() {
                         aria-hidden="true"
                         className="relative h-1 bg-border overflow-hidden"
                       >
-                        <span className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-primary to-primary-light transition-all duration-500 group-hover:w-full group-hover:from-primary group-hover:via-accent-strong group-hover:to-primary" />
+                        <span
+                          className={`absolute inset-y-0 left-0 w-1/3 transition-all duration-500 group-hover:w-full ${
+                            cat.experimental
+                              ? "bg-gradient-to-r from-accent-strong to-accent group-hover:from-accent-strong group-hover:via-primary group-hover:to-accent"
+                              : "bg-gradient-to-r from-primary to-primary-light group-hover:from-primary group-hover:via-accent-strong group-hover:to-primary"
+                          }`}
+                        />
                       </div>
 
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-5">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                          <div
+                            className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors ${
+                              cat.experimental
+                                ? "bg-accent/15 group-hover:bg-accent/25"
+                                : "bg-primary/10 group-hover:bg-primary/15"
+                            }`}
+                          >
                             {tool.icon}
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-text-light/70 tabular-nums">
-                            {tool.eyebrow}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            {cat.experimental && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full bg-accent-strong px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white shadow-sm"
+                                title="Experimentell – kleines lokales Modell"
+                              >
+                                <FlaskConical
+                                  className="h-2.5 w-2.5"
+                                  strokeWidth={2.6}
+                                  aria-hidden="true"
+                                />
+                                Exp.
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono font-bold text-text-light/70 tabular-nums">
+                              {tool.eyebrow}
+                            </span>
+                          </div>
                         </div>
                         <h4 className="text-lg font-bold text-primary mb-2">
                           {tool.title}
