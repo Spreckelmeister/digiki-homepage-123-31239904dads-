@@ -65,14 +65,29 @@ export default function OnlineSessions({ defaultName, onImport }: Props) {
         return;
       }
       if (!res.ok) {
-        setLoadErr("Sessions konnten nicht geladen werden.");
+        // Aus Loading-State raus, damit der Spinner nicht hängt
+        setAuth("authed");
+        setSessions([]);
+        const json = await res.json().catch(() => ({}));
+        setLoadErr(
+          json?.detail ??
+            json?.error ??
+            `Sessions konnten nicht geladen werden (HTTP ${res.status}). Sind die Migrations 015 + 016 in Supabase eingespielt?`
+        );
         return;
       }
       const json = await res.json();
       setSessions(json.sessions ?? []);
       setAuth("authed");
-    } catch {
-      setLoadErr("Netzwerk-Fehler beim Laden der Sessions.");
+    } catch (e) {
+      // Auch bei Netzwerkfehler aus dem unknown-State raus
+      setAuth("authed");
+      setSessions([]);
+      setLoadErr(
+        e instanceof Error
+          ? `Netzwerk-Fehler: ${e.message}`
+          : "Netzwerk-Fehler beim Laden der Sessions."
+      );
     }
   }, []);
 

@@ -13,6 +13,14 @@ const ALLOWED_ORIGINS = [
 
 function checkOrigin(req: NextRequest): NextResponse | null {
   const origin = req.headers.get("origin");
+  // GET ist idempotent → kein CSRF-Risiko. Browser senden bei
+  // Same-Origin-GETs oft keinen Origin-Header.
+  if (req.method === "GET") {
+    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+    return null;
+  }
   if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
