@@ -229,7 +229,10 @@ export default function AnmeldungForm({ code }: { code: string }) {
   if (!session) return null;
   return (
     <div className="min-h-screen bg-bg pb-32">
-      <div className="bg-primary text-white px-4 pt-8 pb-16">
+      <div
+        className="bg-primary text-white px-4"
+        style={{ paddingTop: "2rem", paddingBottom: "5rem" }}
+      >
         <div className="mx-auto max-w-md">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
@@ -249,7 +252,10 @@ export default function AnmeldungForm({ code }: { code: string }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 -mt-12 space-y-5 relative">
+      <div
+        className="mx-auto max-w-md px-4 space-y-5"
+        style={{ marginTop: "-3.5rem", position: "relative", zIndex: 10 }}
+      >
         {/* Kind */}
         <section className="rounded-2xl bg-white border border-border shadow-sm p-5 space-y-4">
           <h2 className="text-base font-bold text-primary">Über das Kind</h2>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Users,
@@ -49,6 +50,7 @@ import {
   calcStats,
   distributeBest,
   exportResultCSV,
+  formatClassLabel,
   scoreResult,
 } from "@/lib/werkzeuge/klassenverteilung";
 import {
@@ -83,6 +85,7 @@ const DEFAULT_CONFIG: DistributionConfig = {
   distributeNotes: true,
   prevClassSeparate: false,
   siblingRule: "separate",
+  gradeLabel: "1",
 };
 
 interface PendingMatch {
@@ -636,7 +639,14 @@ export default function KlassenverteilungApp() {
         setStudents((p) =>
           p.map((s) =>
             s.id === local.student.id
-              ? { ...s, wishes: local.wishes, noGo: local.noGo }
+              ? {
+                  ...s,
+                  wishes: local.wishes,
+                  noGo: local.noGo,
+                  // Eltern-Kontakt nur überschreiben, wenn neu mitgegeben
+                  parentEmail: local.parentEmail ?? s.parentEmail,
+                  parentName: local.parentName ?? s.parentName,
+                }
               : s
           )
         );
@@ -644,7 +654,7 @@ export default function KlassenverteilungApp() {
           ok: true,
           message: `Wunsch von ${local.student.name} übernommen (${local.wishes.length} Wünsche${
             local.noGo.length > 0 ? `, ${local.noGo.length} NoGo` : ""
-          }).`,
+          }${local.parentEmail ? ", inkl. Eltern-E-Mail" : ""}).`,
         };
       }
       // Fallback: in allen gespeicherten Rostern suchen (z. B. wenn der Code
@@ -658,7 +668,13 @@ export default function KlassenverteilungApp() {
             ...r,
             students: r.students.map((s) =>
               s.id === m.student.id
-                ? { ...s, wishes: m.wishes, noGo: m.noGo }
+                ? {
+                    ...s,
+                    wishes: m.wishes,
+                    noGo: m.noGo,
+                    parentEmail: m.parentEmail ?? s.parentEmail,
+                    parentName: m.parentName ?? s.parentName,
+                  }
                 : s
             ),
             updatedAt: Date.now(),
@@ -670,7 +686,9 @@ export default function KlassenverteilungApp() {
           setSaveName(r.name);
           return {
             ok: true,
-            message: `Wunsch von ${m.student.name} aus Liste „${r.name}" übernommen.`,
+            message: `Wunsch von ${m.student.name} aus Liste „${r.name}" übernommen${
+              m.parentEmail ? " (inkl. Eltern-E-Mail)" : ""
+            }.`,
           };
         }
       }
@@ -721,21 +739,51 @@ export default function KlassenverteilungApp() {
 
   const notifyParents = useCallback(async () => {
     if (!result) return;
-    // Mapping: für jeden Schüler, der eine registrationId hat, das
-    // assigned_class-Paar erstellen.
+
+    // 1) Online-Sessions: Schüler mit registrationId+sessionId
     const sessionIds = new Set<string>();
-    const assignments: { registration_id: string; assigned_class: number }[] = [];
+    const sessionAssignments: {
+      registration_id: string;
+      assigned_class: number;
+      class_label?: string;
+    }[] = [];
+    // 2) Offline-Wunsch-Imports: Schüler mit parentEmail (aber ohne registrationId)
+    const localNotifications: {
+      email: string;
+      child_name: string;
+      parent_name?: string;
+      assigned_class: number;
+      class_label?: string;
+    }[] = [];
+
     for (const cls of result) {
+      const label = formatClassLabel(cls.id, config.gradeLabel);
       for (const s of cls.students) {
-        if (!s.registrationId || !s.sessionId) continue;
-        sessionIds.add(s.sessionId);
-        assignments.push({ registration_id: s.registrationId, assigned_class: cls.id });
+        if (s.registrationId && s.sessionId) {
+          sessionIds.add(s.sessionId);
+          sessionAssignments.push({
+            registration_id: s.registrationId,
+            assigned_class: cls.id,
+            class_label: label,
+          });
+        } else if (s.parentEmail) {
+          localNotifications.push({
+            email: s.parentEmail,
+            child_name: s.name,
+            parent_name: s.parentName,
+            assigned_class: cls.id,
+            class_label: label,
+          });
+        }
       }
     }
-    if (assignments.length === 0 || sessionIds.size === 0) {
+
+    const total = sessionAssignments.length + localNotifications.length;
+    if (total === 0) {
       setNotifyState({
         stage: "error",
-        message: "Diese Klasse stammt nicht aus einer Online-Anmeldung.",
+        message:
+          "Keine Eltern-E-Mails gefunden. Eltern müssen entweder per Online-Anmeldung erfasst sein oder im Offline-Wunschzettel eine E-Mail eingetragen haben.",
       });
       return;
     }
@@ -747,39 +795,79 @@ export default function KlassenverteilungApp() {
       });
       return;
     }
-    const sid = [...sessionIds][0];
 
     if (
       !confirm(
-        `${assignments.length} Eltern werden per E-Mail über die Klassenzuteilung informiert. Fortfahren?`
+        `${total} Eltern werden per E-Mail über die Klassenzuteilung informiert (${sessionAssignments.length} aus Online-Anmeldungen, ${localNotifications.length} aus Offline-Wunschzetteln). Fortfahren?`
       )
     ) {
       return;
     }
     setNotifyState({ stage: "running" });
+
+    let sent = 0;
+    let skipped = 0;
+    let eligible = 0;
+    let smtpReady = false;
+    let errMsg = "";
+
     try {
-      const res = await fetch(
-        `/api/klassenbildung/session/${encodeURIComponent(sid)}/notify`,
-        {
+      // Online-Anmeldungen → bestehende Session-Notify-Route
+      if (sessionAssignments.length > 0) {
+        const sid = [...sessionIds][0];
+        const res = await fetch(
+          `/api/klassenbildung/session/${encodeURIComponent(sid)}/notify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ assignments: sessionAssignments }),
+          }
+        );
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errMsg = json?.error ?? "Versand fehlgeschlagen.";
+        } else {
+          sent += json.mails_sent ?? 0;
+          skipped += json.mails_skipped ?? 0;
+          eligible += json.eligible_emails ?? 0;
+          smtpReady = smtpReady || (json.smtp_configured ?? false);
+        }
+      }
+
+      // Offline-Wunsch-Eltern → notify-local
+      if (localNotifications.length > 0) {
+        const res = await fetch(`/api/klassenbildung/notify-local`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assignments }),
-        }
-      );
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setNotifyState({
-          stage: "error",
-          message: json?.error ?? "Versand fehlgeschlagen.",
+          body: JSON.stringify({
+            session_label: saveName || "Klassenbildung",
+            school_name: printSchoolName || undefined,
+            contact_name: printContactName || undefined,
+            contact_email: printContactEmail || undefined,
+            notifications: localNotifications,
+          }),
         });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errMsg ||= json?.error ?? "Lokale Mails fehlgeschlagen.";
+        } else {
+          sent += json.mails_sent ?? 0;
+          skipped += json.mails_skipped ?? 0;
+          eligible += json.eligible_emails ?? 0;
+          smtpReady = smtpReady || (json.smtp_configured ?? false);
+        }
+      }
+
+      if (errMsg && sent === 0) {
+        setNotifyState({ stage: "error", message: errMsg });
         return;
       }
       setNotifyState({
         stage: "done",
-        sent: json.mails_sent ?? 0,
-        skipped: json.mails_skipped ?? 0,
-        smtpReady: json.smtp_configured ?? false,
-        eligible: json.eligible_emails ?? 0,
+        sent,
+        skipped,
+        smtpReady,
+        eligible,
       });
     } catch {
       setNotifyState({
@@ -787,12 +875,19 @@ export default function KlassenverteilungApp() {
         message: "Verbindung zum Server fehlgeschlagen.",
       });
     }
-  }, [result]);
+  }, [
+    result,
+    saveName,
+    printSchoolName,
+    printContactName,
+    printContactEmail,
+    config.gradeLabel,
+  ]);
 
   // ── Export & Print ───────────────────────────────────────────────
   const downloadCSV = useCallback(() => {
     if (!result) return;
-    const csv = exportResultCSV(result);
+    const csv = exportResultCSV(result, config.gradeLabel);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -800,7 +895,7 @@ export default function KlassenverteilungApp() {
     a.download = `klassenverteilung_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [result]);
+  }, [result, config.gradeLabel]);
 
   // ── Statistiken (memoized) ────────────────────────────────────────
   const stats = useMemo(() => (result ? calcStats(result) : []), [result]);
@@ -1110,6 +1205,7 @@ export default function KlassenverteilungApp() {
             downloadCSV={downloadCSV}
             notifyParents={notifyParents}
             notifyState={notifyState}
+            gradeLabel={config.gradeLabel}
           />
         )}
       </div>
@@ -2183,36 +2279,52 @@ function PrintForms({
     contactEmail,
   ]);
 
+  // SSR-Schutz: Portal nur clientseitig
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (studentsToPrint.length === 0) {
     // Nichts zu drucken — keine Eltern-Formulare nötig.
     return null;
   }
+  if (!mounted) return null;
 
-  return (
-    <div className="hidden print:block">
+  // Wir rendern via Portal direkt an document.body, um aus allen
+  // Grid-/Flex-Eltern-Containern auszubrechen. Beim Druck wird ALLES
+  // andere im body ausgeblendet, sodass nur unsere Formulare bleiben –
+  // das macht Page-Breaks zuverlässig.
+  return createPortal(
+    <div className="wunsch-print-host">
       <style>{`
+        @media screen {
+          .wunsch-print-host { display: none; }
+        }
         @media print {
           @page { margin: 1.4cm; }
           html, body { background: white !important; }
-          /* Verhindert, dass Grid-/Flex-Container der Eltern-Layouts
-             Page-Breaks der Druckformulare unterdrücken. */
-          .wunsch-print-host,
-          .wunsch-print-host > *,
+          /* Im Druck: alles im Body ausblenden außer unserem Container.
+             Damit gibt es keine konkurrierenden Layouts und keine
+             versehentlichen Leerseiten. */
+          body > *:not(.wunsch-print-host) {
+            display: none !important;
+          }
+          .wunsch-print-host {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+          }
           .wunsch-form-wrapper {
             display: block !important;
-            break-inside: auto !important;
-            page-break-inside: auto !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            /* Page-Break NACH jeder Karte, damit jedes Kind seine
+               eigene A4-Seite bekommt. */
+            break-after: page !important;
+            page-break-after: always !important;
           }
-          .wunsch-form-wrapper {
-            /* Jede Karte beginnt auf einer NEUEN Seite (außer der ersten).
-               page-break-before ist robuster als after, wenn der Container
-               in einem Grid liegt. */
-            break-before: page;
-            page-break-before: always;
-          }
-          .wunsch-form-wrapper:first-child {
-            break-before: auto;
-            page-break-before: auto;
+          .wunsch-form-wrapper:last-child {
+            break-after: auto !important;
+            page-break-after: auto !important;
           }
           .wunsch-form {
             display: block !important;
@@ -2221,7 +2333,6 @@ function PrintForms({
           }
         }
       `}</style>
-      <div className="wunsch-print-host">
       {studentsToPrint.map((s) => (
         <div key={s.id} className="wunsch-form-wrapper">
         <div
@@ -2349,8 +2460,8 @@ function PrintForms({
         </div>
         </div>
       ))}
-      </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -2426,6 +2537,49 @@ function RegelnStep(props: RegelnStepProps) {
             Grundeinstellungen
           </h3>
           <div className="space-y-5">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-light block mb-2">
+                Jahrgangsstufe (Vorzeichen)
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={config.gradeLabel}
+                  onChange={(e) =>
+                    setConfig((p) => ({
+                      ...p,
+                      gradeLabel: e.target.value.replace(/[^0-9A-Za-z]/g, "").slice(0, 2),
+                    }))
+                  }
+                  inputMode="numeric"
+                  placeholder="1"
+                  className="w-16 h-10 rounded-lg border border-border bg-white px-2 text-center text-base font-bold text-primary focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+                />
+                <span className="text-xs text-text-light">
+                  → Klassen heißen z. B.{" "}
+                  <strong className="font-mono text-primary">
+                    {formatClassLabel(1, config.gradeLabel)}
+                  </strong>
+                  ,{" "}
+                  <strong className="font-mono text-primary">
+                    {formatClassLabel(2, config.gradeLabel)}
+                  </strong>
+                  {config.numClasses > 2 && (
+                    <>
+                      ,{" "}
+                      <strong className="font-mono text-primary">
+                        {formatClassLabel(3, config.gradeLabel)}
+                      </strong>
+                    </>
+                  )}
+                  {" …"}
+                </span>
+              </div>
+              <p className="mt-1.5 text-[11px] text-text-light">
+                Standard: 1. Buchstaben werden automatisch vergeben.
+              </p>
+            </div>
+
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-light block mb-2">
                 Anzahl Klassen
@@ -2738,6 +2892,7 @@ interface ErgebnisStepProps {
   downloadCSV: () => void;
   notifyParents: () => void;
   notifyState: NotifyState;
+  gradeLabel: string;
 }
 
 function ErgebnisStep(props: ErgebnisStepProps) {
@@ -2758,13 +2913,19 @@ function ErgebnisStep(props: ErgebnisStepProps) {
     downloadCSV,
     notifyParents,
     notifyState,
+    gradeLabel,
   } = props;
 
-  // Anzahl Schüler*innen mit Online-Anmeldung (für Notify-Button)
+  // Anzahl Schüler*innen mit Eltern-E-Mail (Online-Session ODER
+  // Offline-QR-Wunschzettel) – Notify-Banner erscheint, sobald
+  // mindestens eine versendbare Adresse vorliegt.
   const onlineLinkedCount = result
     ? result.reduce(
         (n, c) =>
-          n + c.students.filter((s) => s.registrationId && s.sessionId).length,
+          n +
+          c.students.filter(
+            (s) => (s.registrationId && s.sessionId) || s.parentEmail
+          ).length,
         0
       )
     : 0;
@@ -2862,7 +3023,7 @@ function ErgebnisStep(props: ErgebnisStepProps) {
                     : "bg-violet-600 text-white hover:bg-violet-700"
                 }`}
               >
-                Klasse {c.id}
+                Klasse {formatClassLabel(c.id, gradeLabel)}
               </button>
             ))}
             <button
@@ -2891,8 +3052,8 @@ function ErgebnisStep(props: ErgebnisStepProps) {
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-light">
               Klasse
             </p>
-            <p className="text-2xl font-bold text-primary tabular-nums leading-none">
-              {s.id}
+            <p className="text-2xl font-bold text-primary leading-none">
+              {formatClassLabel(s.id, gradeLabel)}
             </p>
             <p className="text-3xl font-bold tabular-nums leading-none mt-1">
               {s.total}
@@ -2943,7 +3104,7 @@ function ErgebnisStep(props: ErgebnisStepProps) {
             >
               <div className="flex items-center justify-between px-4 py-2.5 border-b-2 border-primary/20 bg-bg/30">
                 <h3 className="text-base font-bold text-primary">
-                  Klasse {cls.id}
+                  Klasse {formatClassLabel(cls.id, gradeLabel)}
                 </h3>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="rounded-md bg-primary/10 text-primary px-2 py-0.5 font-bold tabular-nums">
@@ -3045,7 +3206,7 @@ function ErgebnisStep(props: ErgebnisStepProps) {
                           aria-label={
                             isLocked
                               ? "Fixierung aufheben"
-                              : `${s.name} an Klasse ${cls.id} fixieren`
+                              : `${s.name} an Klasse ${formatClassLabel(cls.id, gradeLabel)} fixieren`
                           }
                           className={`inline-flex h-6 w-6 items-center justify-center rounded transition-colors ${
                             isLocked
@@ -3129,7 +3290,7 @@ function ErgebnisStep(props: ErgebnisStepProps) {
                     </span>
                     <strong>{r.student.name}</strong>
                     <span className="text-xs text-text-light ml-2">
-                      Klasse {r.classId}
+                      Klasse {formatClassLabel(r.classId, gradeLabel)}
                     </span>
                   </p>
                   {r.met.length > 0 && (
@@ -3150,7 +3311,11 @@ function ErgebnisStep(props: ErgebnisStepProps) {
                     {r.details
                       .map(
                         (d) =>
-                          `${d.student?.name ?? "?"} (Kl. ${d.inClass})`
+                          `${d.student?.name ?? "?"} (Klasse ${
+                            typeof d.inClass === "number"
+                              ? formatClassLabel(d.inClass, gradeLabel)
+                              : d.inClass
+                          })`
                       )
                       .join(", ")}
                   </p>

@@ -34,6 +34,10 @@ export default function WunschForm() {
   const [resultCode, setResultCode] = useState("");
   const [resultQr, setResultQr] = useState("");
   const [copied, setCopied] = useState(false);
+  // Optional: Eltern-E-Mail für die Klassenzuteilungs-Benachrichtigung
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [emailErr, setEmailErr] = useState(false);
 
   // ── Payload aus URL-Hash lesen (Hash geht NICHT an den Server) ────
   useEffect(() => {
@@ -79,12 +83,22 @@ export default function WunschForm() {
 
   const handleSubmit = async () => {
     if (!payload) return;
+    // Eltern-E-Mail validieren (nur wenn ausgefüllt)
+    setEmailErr(false);
+    const trimmedEmail = parentEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEmailErr(true);
+      return;
+    }
     const result: WunschResult = {
       v: 1,
       s: payload.s,
       w: wishes,
       ng: noGo,
     };
+    if (trimmedEmail) result.e = trimmedEmail.toLowerCase();
+    const trimmedName = parentName.trim();
+    if (trimmedName) result.pn = trimmedName.slice(0, 120);
     const code = encodeResult(result);
     setResultCode(code);
     try {
@@ -266,7 +280,10 @@ export default function WunschForm() {
   return (
     <div className="min-h-screen bg-bg pb-32">
       {/* Hero */}
-      <div className="bg-primary text-white px-4 pt-8 pb-16">
+      <div
+        className="bg-primary text-white px-4"
+        style={{ paddingTop: "2rem", paddingBottom: "5rem" }}
+      >
         <div className="mx-auto max-w-md">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
@@ -287,7 +304,10 @@ export default function WunschForm() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 -mt-12 space-y-5 relative">
+      <div
+        className="mx-auto max-w-md px-4 space-y-5"
+        style={{ marginTop: "-3.5rem", position: "relative", zIndex: 10 }}
+      >
         {/* Wünsche */}
         <section className="rounded-2xl bg-white border-2 border-emerald-300 shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
@@ -392,6 +412,61 @@ export default function WunschForm() {
               );
             })}
           </ul>
+        </section>
+
+        {/* Eltern-Kontakt für Klassenzuteilungs-Mail (optional) */}
+        <section className="rounded-2xl bg-white border border-border shadow-sm p-5 space-y-3">
+          <div>
+            <h2 className="inline-flex items-center gap-2 text-base font-bold text-primary">
+              <Mail className="h-5 w-5" aria-hidden="true" />
+              Über die Klassenzuteilung informiert werden
+            </h2>
+            <p className="text-xs text-text-light leading-relaxed mt-1">
+              <strong>Optional.</strong> Wenn Sie eine E-Mail-Adresse
+              hinterlegen, schickt Ihnen die Schule die Klassenzuteilung
+              automatisch zu.
+            </p>
+          </div>
+          <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-text-light">
+            Ihr Name
+            <input
+              type="text"
+              value={parentName}
+              onChange={(e) => setParentName(e.target.value)}
+              placeholder="z. B. Sabine Müller"
+              autoComplete="name"
+              className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm font-normal normal-case tracking-normal focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+            />
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-text-light">
+            E-Mail-Adresse
+            <input
+              type="email"
+              value={parentEmail}
+              onChange={(e) => {
+                setParentEmail(e.target.value);
+                if (emailErr) setEmailErr(false);
+              }}
+              placeholder="ihre@e-mail.de"
+              autoComplete="email"
+              inputMode="email"
+              className={`mt-1 w-full rounded-lg border bg-white px-3 py-2.5 text-sm font-mono normal-case tracking-normal focus:ring-2 outline-none ${
+                emailErr
+                  ? "border-red-400 focus:ring-red-300 focus:border-red-500"
+                  : "border-border focus:ring-accent-strong focus:border-accent-strong"
+              }`}
+            />
+            {emailErr && (
+              <span className="text-[11px] text-red-700 font-normal normal-case tracking-normal mt-1 block">
+                Diese E-Mail-Adresse sieht ungültig aus.
+              </span>
+            )}
+          </label>
+          <p className="text-[10px] text-text-light/80 leading-relaxed border-l-2 border-border pl-2">
+            Die E-Mail wird im zurückgegebenen Code mit übermittelt und nur
+            zur Versendung der Klassenzuteilung verwendet. Sie verbleibt bis
+            dahin offline (kein Server-Upload).
+          </p>
         </section>
 
         {/* Schul-Ansprechperson */}

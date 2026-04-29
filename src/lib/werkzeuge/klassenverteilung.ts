@@ -19,6 +19,23 @@ export interface DistributionConfig {
   prevClassSeparate: boolean;
   /** Geschwister-Regel */
   siblingRule: "none" | "separate" | "together";
+  /** Jahrgangsstufe als Display-Präfix vor dem Buchstaben, z. B. "1" → "1a" */
+  gradeLabel: string;
+}
+
+/**
+ * Formatiert einen Klassen-Index (1-basiert) als "{Jahrgang}{Buchstabe}",
+ * z. B. id=1 + grade="1" → "1a", id=3 + grade="2" → "2c".
+ * Bei mehr als 26 Klassen (theoretisch) Fallback auf Zahlen.
+ */
+export function formatClassLabel(classId: number, gradeLabel: string): string {
+  const safeGrade = (gradeLabel ?? "").trim();
+  if (classId < 1) return safeGrade;
+  if (classId <= 26) {
+    const letter = String.fromCharCode("a".charCodeAt(0) + (classId - 1));
+    return `${safeGrade}${letter}`;
+  }
+  return `${safeGrade}-${classId}`;
 }
 
 export interface ClassResult {
@@ -350,7 +367,7 @@ export function analyzeWishes(
 // CSV-Export
 // ──────────────────────────────────────────────────────────────────────
 
-export function exportResultCSV(result: ClassResult[]): string {
+export function exportResultCSV(result: ClassResult[], gradeLabel = ""): string {
   const rows: string[][] = [
     [
       "Name",
@@ -375,7 +392,9 @@ export function exportResultCSV(result: ClassResult[]): string {
       rows.push([
         s.name,
         s.gender === "m" ? "Junge" : s.gender === "w" ? "Mädchen" : "divers",
-        `Klasse ${cls.id}`,
+        gradeLabel
+          ? `Klasse ${formatClassLabel(cls.id, gradeLabel)}`
+          : `Klasse ${cls.id}`,
         String(wMet),
         String(s.wishes.length),
         String(ngH),

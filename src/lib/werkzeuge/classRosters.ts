@@ -22,6 +22,11 @@ export interface Student {
   registrationId?: string;
   /** Verknüpfung zur Online-Session (für die Notify-API) */
   sessionId?: string;
+  /** Eltern-E-Mail (aus Offline-QR-Wunschzettel oder manuell). Wird genutzt,
+   *  um nach der Verteilung die Klassenzuteilung zu mailen. */
+  parentEmail?: string;
+  /** Eltern-Name (Anrede) */
+  parentName?: string;
 }
 
 export interface ClassRoster {
@@ -64,6 +69,10 @@ export function makeStudent(partial: Partial<Student> & { name: string }): Stude
       typeof partial.registrationId === "string" ? partial.registrationId : undefined,
     sessionId:
       typeof partial.sessionId === "string" ? partial.sessionId : undefined,
+    parentEmail:
+      typeof partial.parentEmail === "string" ? partial.parentEmail : undefined,
+    parentName:
+      typeof partial.parentName === "string" ? partial.parentName : undefined,
   };
 }
 
@@ -99,6 +108,9 @@ function normalizeStudent(raw: unknown, fallbackId?: string): Student | null {
     registrationId:
       typeof r.registrationId === "string" ? r.registrationId : undefined,
     sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
+    parentEmail:
+      typeof r.parentEmail === "string" ? r.parentEmail : undefined,
+    parentName: typeof r.parentName === "string" ? r.parentName : undefined,
   };
 }
 

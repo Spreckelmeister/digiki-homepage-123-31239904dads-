@@ -76,6 +76,10 @@ export interface WunschResult {
   s: string; // short-id des Kindes
   w: string[]; // short-ids der Wünsche
   ng: string[]; // short-ids der NoGo
+  /** Optional: Eltern-E-Mail für Klassenzuteilungs-Benachrichtigung */
+  e?: string;
+  /** Optional: Eltern-Name */
+  pn?: string;
 }
 
 // ── Encode / Decode ──────────────────────────────────────────────────
@@ -149,7 +153,13 @@ export function buildPayloadForStudent(
 export function applyResultToRoster(
   roster: ClassRoster,
   result: WunschResult
-): { student: Student; wishes: string[]; noGo: string[] } | null {
+): {
+  student: Student;
+  wishes: string[];
+  noGo: string[];
+  parentEmail?: string;
+  parentName?: string;
+} | null {
   const lookup = new Map<string, string>(); // shortId -> realId
   for (const s of roster.students) lookup.set(shortId(s.id), s.id);
   const realStudentId = lookup.get(result.s);
@@ -162,5 +172,11 @@ export function applyResultToRoster(
   const noGo = result.ng
     .map((sid) => lookup.get(sid))
     .filter((id): id is string => !!id && id !== realStudentId);
-  return { student, wishes, noGo };
+  return {
+    student,
+    wishes,
+    noGo,
+    parentEmail: result.e?.trim() || undefined,
+    parentName: result.pn?.trim() || undefined,
+  };
 }
