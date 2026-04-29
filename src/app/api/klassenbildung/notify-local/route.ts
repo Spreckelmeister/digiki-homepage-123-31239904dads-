@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no_notifications" }, { status: 400 });
   }
 
-  // ── SMTP-Quelle bestimmen: User-eigener Server > System-Fallback ──
+  // ── SMTP-Quelle: User-eigener Server (primär) → System-Fallback ──
   let userSmtp: {
     transporter: nodemailer.Transporter;
     fromHeader: string;
@@ -137,19 +137,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Fallback: Checkdomain-SMTP für die Klassenverteilung.
+  // BEWUSST nicht der allgemeine SMTP_*-Pool (= Resend), damit das
+  // Resend-Kontingent unangetastet bleibt.
+  // Env-Vars: KV_SMTP_HOST, KV_SMTP_PORT, KV_SMTP_USER,
+  //           KV_SMTP_PASSWORD, KV_SMTP_FROM, KV_SMTP_SECURE
   const systemSmtpReady =
-    !!process.env.SMTP_HOST &&
-    !!process.env.SMTP_USER &&
-    !!process.env.SMTP_PASSWORD;
+    !!process.env.KV_SMTP_HOST &&
+    !!process.env.KV_SMTP_USER &&
+    !!process.env.KV_SMTP_PASSWORD;
   let systemTransporter: nodemailer.Transporter | null = null;
   if (!userSmtp && systemSmtpReady) {
     systemTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT ?? "587"),
-      secure: process.env.SMTP_SECURE === "true",
+      host: process.env.KV_SMTP_HOST,
+      port: parseInt(process.env.KV_SMTP_PORT ?? "587"),
+      secure: process.env.KV_SMTP_SECURE === "true",
       auth: {
-        user: process.env.SMTP_USER!,
-        pass: process.env.SMTP_PASSWORD!,
+        user: process.env.KV_SMTP_USER!,
+        pass: process.env.KV_SMTP_PASSWORD!,
       },
     });
   }
@@ -174,7 +179,7 @@ export async function POST(req: NextRequest) {
   const transporter = userSmtp ? userSmtp.transporter : systemTransporter!;
   const fromHeader = userSmtp
     ? userSmtp.fromHeader
-    : `DigiKI <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`;
+    : `DigiKI <${process.env.KV_SMTP_FROM ?? process.env.KV_SMTP_USER}>`;
   const replyTo = userSmtp?.replyTo ?? contactEmail ?? undefined;
   const branding = {
     schoolName: userSmtp?.schoolName ?? schoolName ?? sessionLabel ?? null,
@@ -244,6 +249,8 @@ function assignmentEmailHtml({
     ? `Guten Tag ${escapeHtml(parentName)},`
     : "Guten Tag,";
 
+  // Header: Schul-Branding nur bei eigenem SMTP — sonst DigiKI-Logo,
+  // damit Absender und Branding zusammenpassen.
   const headerHtml = useSchoolBranding
     ? schoolLogoUrl
       ? `<img src="${escapeHtml(schoolLogoUrl)}" alt="${escapeHtml(schoolName ?? "Schule")}" style="display:block;border:0;max-height:80px;max-width:280px;" />`

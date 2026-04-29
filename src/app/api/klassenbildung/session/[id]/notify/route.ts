@@ -128,12 +128,11 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // ── 2) E-Mails versenden ────────────────────────────────────────
   // Reihenfolge der Quellen:
-  //   1. Eigener SMTP-Server der Lehrkraft (falls hinterlegt + verschlüsselt
-  //      entschlüsselbar) → Schul-Branding möglich.
-  //   2. System-SMTP via Env-Vars als Fallback.
+  //   1. Eigener SMTP-Server der Lehrkraft (Schul-Branding möglich).
+  //   2. Fallback: DigiKI-System-SMTP via Env-Vars.
   //
-  // Wenn weder noch verfügbar ist, werden Klassenzuteilungen trotzdem
-  // gespeichert (s. o.) – die Mails werden übersprungen.
+  // Klassenzuteilungen werden immer in der DB gespeichert; Mails
+  // werden übersprungen, falls weder noch verfügbar ist.
   let mailsSent = 0;
   let mailsSkipped = 0;
 
@@ -146,7 +145,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         )
       : null;
 
-  // Eigenen SMTP-Server der Lehrkraft suchen
+  // Eigener SMTP der Lehrkraft (primär)
   let userSmtp: {
     transporter: nodemailer.Transporter;
     fromHeader: string;
@@ -154,7 +153,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     schoolName: string | null;
     schoolLogoUrl: string | null;
   } | null = null;
-
   if (serviceSupabase && isEncryptionConfigured()) {
     const { data: cfg } = await serviceSupabase
       .from("klassenbildung_smtp_config")
@@ -168,14 +166,13 @@ export async function POST(req: NextRequest, { params }: Params) {
           iv: cfg.password_iv,
           tag: cfg.password_tag,
         });
-        const transporter = nodemailer.createTransport({
-          host: cfg.host,
-          port: cfg.port,
-          secure: cfg.secure,
-          auth: { user: cfg.smtp_user, pass: password },
-        });
         userSmtp = {
-          transporter,
+          transporter: nodemailer.createTransport({
+            host: cfg.host,
+            port: cfg.port,
+            secure: cfg.secure,
+            auth: { user: cfg.smtp_user, pass: password },
+          }),
           fromHeader: cfg.from_name
             ? `${cfg.from_name} <${cfg.from_email}>`
             : cfg.from_email,
@@ -189,20 +186,25 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
   }
 
-  // Fallback: System-SMTP
+  // Fallback: Checkdomain-SMTP für die Klassenverteilung.
+  // BEWUSST nicht der allgemeine SMTP_*-Pool (= Resend), damit das
+  // Resend-Kontingent unangetastet bleibt. Diese Mails laufen über
+  // einen separaten Checkdomain-Account.
+  // Env-Vars: KV_SMTP_HOST, KV_SMTP_PORT, KV_SMTP_USER,
+  //           KV_SMTP_PASSWORD, KV_SMTP_FROM, KV_SMTP_SECURE
   const systemSmtpReady =
-    !!process.env.SMTP_HOST &&
-    !!process.env.SMTP_USER &&
-    !!process.env.SMTP_PASSWORD;
+    !!process.env.KV_SMTP_HOST &&
+    !!process.env.KV_SMTP_USER &&
+    !!process.env.KV_SMTP_PASSWORD;
   let systemTransporter: nodemailer.Transporter | null = null;
   if (!userSmtp && systemSmtpReady) {
     systemTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT ?? "587"),
-      secure: process.env.SMTP_SECURE === "true",
+      host: process.env.KV_SMTP_HOST,
+      port: parseInt(process.env.KV_SMTP_PORT ?? "587"),
+      secure: process.env.KV_SMTP_SECURE === "true",
       auth: {
-        user: process.env.SMTP_USER!,
-        pass: process.env.SMTP_PASSWORD!,
+        user: process.env.KV_SMTP_USER!,
+        pass: process.env.KV_SMTP_PASSWORD!,
       },
     });
   }
@@ -217,8 +219,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     const transporter = userSmtp ? userSmtp.transporter : systemTransporter!;
     const fromHeader = userSmtp
       ? userSmtp.fromHeader
-      : `DigiKI <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`;
-    const replyTo = userSmtp?.replyTo ?? undefined;
+      : `DigiKI <${process.env.KV_SMTP_FROM ?? process.env.KV_SMTP_USER}>`;
+    const replyTo =
+      userSmtp?.replyTo ?? session.contact_email ?? undefined;
     const branding = {
       schoolName: userSmtp?.schoolName ?? session.school_name,
       schoolLogoUrl: userSmtp?.schoolLogoUrl ?? null,
@@ -295,7 +298,8 @@ function assignmentEmailHtml({
     ? `Guten Tag ${escapeHtml(parentName)},`
     : "Guten Tag,";
 
-  // Header: Schul-Branding wenn eigener SMTP + Logo gesetzt, sonst DigiKI
+  // Header: Schul-Branding nur wenn eigener SMTP läuft (sonst wäre der
+  // Absender DigiKI, das Logo aber Schule → Phishing-Optik).
   const headerHtml = useSchoolBranding
     ? schoolLogoUrl
       ? `<img src="${escapeHtml(schoolLogoUrl)}" alt="${escapeHtml(schoolName ?? "Schule")}" style="display:block;border:0;max-height:80px;max-width:280px;" />`

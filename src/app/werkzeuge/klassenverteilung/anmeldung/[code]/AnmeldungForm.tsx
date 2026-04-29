@@ -229,11 +229,9 @@ export default function AnmeldungForm({ code }: { code: string }) {
   if (!session) return null;
   return (
     <div className="min-h-screen bg-bg pb-32">
-      <div
-        className="bg-primary text-white px-4"
-        style={{ paddingTop: "2rem", paddingBottom: "5rem" }}
-      >
-        <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-xl px-4 py-6 md:py-10 space-y-4">
+        {/* Hero als Karte – kein voll-breiter Teal-Stripe mehr */}
+        <div className="rounded-2xl bg-primary text-white p-6 md:p-7 shadow-lg shadow-primary/20">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
             Online-Anmeldung
@@ -246,15 +244,13 @@ export default function AnmeldungForm({ code }: { code: string }) {
               {session.school_name}
             </p>
           )}
-          <p className="text-xs text-white/70 mt-3 font-mono">
+          <p className="text-xs text-white/60 mt-3 font-mono">
             Code: {session.code}
           </p>
         </div>
-      </div>
 
       <div
-        className="mx-auto max-w-md px-4 space-y-5"
-        style={{ marginTop: "-3.5rem", position: "relative", zIndex: 10 }}
+        className="space-y-5"
       >
         {/* Kind */}
         <section className="rounded-2xl bg-white border border-border shadow-sm p-5 space-y-4">
@@ -532,9 +528,10 @@ export default function AnmeldungForm({ code }: { code: string }) {
           </p>
         </footer>
       </div>
+      </div>
 
       <div className="fixed bottom-0 inset-x-0 bg-white border-t border-border shadow-lg p-3 z-50">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-xl">
           <button
             type="button"
             onClick={handleSubmit}

@@ -279,12 +279,9 @@ export default function WunschForm() {
   if (!payload || !self) return null;
   return (
     <div className="min-h-screen bg-bg pb-32">
-      {/* Hero */}
-      <div
-        className="bg-primary text-white px-4"
-        style={{ paddingTop: "2rem", paddingBottom: "5rem" }}
-      >
-        <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-xl px-4 py-6 md:py-10 space-y-4">
+        {/* Hero als Karte */}
+        <div className="rounded-2xl bg-primary text-white p-6 md:p-7 shadow-lg shadow-primary/20">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
             Wunschzettel · Online
@@ -302,11 +299,9 @@ export default function WunschForm() {
             </p>
           )}
         </div>
-      </div>
 
       <div
-        className="mx-auto max-w-md px-4 space-y-5"
-        style={{ marginTop: "-3.5rem", position: "relative", zIndex: 10 }}
+        className="space-y-5"
       >
         {/* Wünsche */}
         <section className="rounded-2xl bg-white border-2 border-emerald-300 shadow-sm p-5">
@@ -560,10 +555,11 @@ export default function WunschForm() {
           </p>
         </footer>
       </div>
+      </div>
 
       {/* Sticky-Submit unten */}
       <div className="fixed bottom-0 inset-x-0 bg-white border-t border-border shadow-lg p-3 z-50">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-xl">
           <button
             type="button"
             onClick={handleSubmit}
