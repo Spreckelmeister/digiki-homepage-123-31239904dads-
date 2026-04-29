@@ -28,7 +28,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className="bg-white shadow-sm sticky top-0 z-50 print:hidden">
       <a href="#main-content" className="skip-link">
         Zum Inhalt springen
       </a>

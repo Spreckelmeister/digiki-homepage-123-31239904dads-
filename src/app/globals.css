@@ -73,3 +73,25 @@ select:focus-visible {
 .skip-link:focus {
   top: 0;
 }
+
+/* ── Druckausgabe: kompakt halten ───────────────────────────────────────
+   Verhindert, dass Sticky-Elemente und Hintergrundflächen Leerseiten
+   erzeugen, und sorgt dafür, dass Listen-Karten nicht in der Mitte
+   umgebrochen werden. */
+@media print {
+  @page {
+    margin: 1.4cm;
+  }
+  html, body {
+    background: #fff !important;
+  }
+  /* Sticky-Header etc. dürfen im Druck nicht klemmen */
+  .sticky {
+    position: static !important;
+  }
+  /* Vermeide Page-Break innerhalb von Listen-Items / Karten */
+  ul, ol, li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

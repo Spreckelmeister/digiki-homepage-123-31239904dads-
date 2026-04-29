@@ -18,6 +18,10 @@ export interface Student {
   prevClass: string;
   /** Klassenindex (1-basiert) – nur für Klassenverteilung relevant */
   lockedClass: number | null;
+  /** Verknüpfung zu einer Online-Anmeldung (für spätere E-Mail-Benachrichtigung) */
+  registrationId?: string;
+  /** Verknüpfung zur Online-Session (für die Notify-API) */
+  sessionId?: string;
 }
 
 export interface ClassRoster {
@@ -56,6 +60,10 @@ export function makeStudent(partial: Partial<Student> & { name: string }): Stude
       typeof partial.lockedClass === "number" && partial.lockedClass > 0
         ? partial.lockedClass
         : null,
+    registrationId:
+      typeof partial.registrationId === "string" ? partial.registrationId : undefined,
+    sessionId:
+      typeof partial.sessionId === "string" ? partial.sessionId : undefined,
   };
 }
 
@@ -88,6 +96,9 @@ function normalizeStudent(raw: unknown, fallbackId?: string): Student | null {
     prevClass: typeof r.prevClass === "string" ? r.prevClass : "",
     lockedClass:
       typeof r.lockedClass === "number" && r.lockedClass > 0 ? r.lockedClass : null,
+    registrationId:
+      typeof r.registrationId === "string" ? r.registrationId : undefined,
+    sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
   };
 }
 

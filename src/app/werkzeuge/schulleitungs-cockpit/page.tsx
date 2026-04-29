@@ -26,8 +26,8 @@ export default function Page() {
         }
         icon={<CalendarClock className="h-7 w-7 md:h-8 md:w-8 text-accent" strokeWidth={1.5} aria-hidden="true" />}
       />
-      <section className="py-10 md:py-14 bg-bg">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="py-10 md:py-14 bg-bg print:py-0 print:bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 print:px-0">
           <CockpitApp />
         </div>
       </section>

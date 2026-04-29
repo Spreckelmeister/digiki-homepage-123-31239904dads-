@@ -27,6 +27,8 @@ import {
   HeartCrack,
   Ban,
   UserPlus,
+  ClipboardPaste,
+  Mail,
 } from "lucide-react";
 import QRCode from "qrcode";
 import {
@@ -47,9 +49,21 @@ import {
   calcStats,
   distributeBest,
   exportResultCSV,
-  genCode,
   scoreResult,
 } from "@/lib/werkzeuge/klassenverteilung";
+import {
+  applyResultToRoster,
+  buildPayloadForStudent,
+  decodeResult,
+  encodePayload,
+} from "@/lib/werkzeuge/wunschShare";
+import OnlineSessions from "./OnlineSessions";
+import type { KlassenbildungRegistration } from "@/lib/klassenbildung/types";
+import {
+  exactNameMatch,
+  findNameMatches,
+  type NameSuggestion,
+} from "@/lib/werkzeuge/nameMatching";
 
 type Step = "schueler" | "wuensche" | "regeln" | "ergebnis";
 
@@ -69,6 +83,15 @@ const DEFAULT_CONFIG: DistributionConfig = {
   prevClassSeparate: false,
   siblingRule: "separate",
 };
+
+interface PendingMatch {
+  id: string;
+  fromStudentId: string;
+  fromStudentName: string;
+  category: "wish" | "noGo" | "sibling";
+  rawName: string;
+  suggestions: NameSuggestion[];
+}
 
 interface ResultSnapshot {
   result: ClassResult[];
@@ -136,6 +159,127 @@ export default function KlassenverteilungApp() {
     setHistory([]);
     setScenarios(null);
   }, []);
+
+  // ── Pending-Matches: Eltern-Eingaben, die nicht eindeutig zugeordnet
+  //    werden konnten. Lehrkraft entscheidet manuell.
+  const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
+
+  // ── Import aus Online-Anmeldungen ────────────────────────────────
+  // Wandelt eine Liste Server-Registrations in lokale Students um.
+  // Exakte Namens-Treffer (case-/Umlaut-tolerant) werden direkt
+  // übernommen. Alles andere landet als „Pending Match" mit
+  // Vorschlägen vor der Lehrkraft.
+  const importFromRegistrations = useCallback(
+    (
+      sessionId: string,
+      rosterName: string,
+      registrations: KlassenbildungRegistration[]
+    ) => {
+      // 1) Students bauen, jeder mit registrationId verknüpft
+      const newStudents: Student[] = registrations.map((r) =>
+        makeStudent({
+          name: r.child_name,
+          gender: (r.gender as "m" | "w" | "x" | null) ?? "x",
+          notes: r.notes ?? "",
+          prevClass: r.prev_class ?? "",
+          registrationId: r.id,
+          sessionId,
+        })
+      );
+
+      const candidates = newStudents.map((s) => ({ id: s.id, name: s.name }));
+      const pending: PendingMatch[] = [];
+
+      // Hilfs-ID für stabile Pending-Reihen, damit React korrekt key-t
+      let pIdx = 0;
+      const newPendingId = () => `pm-${Date.now()}-${pIdx++}`;
+
+      const resolve = (
+        fromStudent: Student,
+        names: string[],
+        category: "wish" | "noGo" | "sibling"
+      ): string[] => {
+        const matched: string[] = [];
+        for (const raw of names) {
+          const exact = exactNameMatch(raw, candidates);
+          if (exact && exact.id !== fromStudent.id) {
+            matched.push(exact.id);
+            continue;
+          }
+          // Selbst-Bezug → silently dropped (Eltern haben evtl. eigenes Kind genannt)
+          if (
+            exact &&
+            exact.id === fromStudent.id
+          ) {
+            continue;
+          }
+          // Kein exakter Treffer → Pending mit Vorschlägen
+          const suggestions = findNameMatches(raw, candidates).filter(
+            (s) => s.id !== fromStudent.id
+          );
+          pending.push({
+            id: newPendingId(),
+            fromStudentId: fromStudent.id,
+            fromStudentName: fromStudent.name,
+            category,
+            rawName: raw,
+            suggestions,
+          });
+        }
+        return matched;
+      };
+
+      const finalStudents = newStudents.map((s) => {
+        const r = registrations.find((x) => x.id === s.registrationId);
+        if (!r) return s;
+        return {
+          ...s,
+          wishes: resolve(s, r.wishes, "wish"),
+          noGo: resolve(s, r.no_go, "noGo"),
+          siblings: resolve(s, r.siblings, "sibling"),
+        };
+      });
+
+      // 4) In den lokalen Tool-State laden, Step auf Wünsche setzen
+      setActiveRosterId(null);
+      setStudents(finalStudents);
+      setSaveName(rosterName);
+      setResult(null);
+      setResultScore(null);
+      setHistory([]);
+      setPendingMatches(pending);
+      setStep("wuensche");
+    },
+    []
+  );
+
+  // Lehrkraft akzeptiert einen Vorschlag (oder „kein Match")
+  const acceptPending = useCallback(
+    (pendingId: string, targetStudentId: string | null) => {
+      setPendingMatches((curr) => {
+        const item = curr.find((p) => p.id === pendingId);
+        if (!item) return curr;
+        if (targetStudentId) {
+          setStudents((prev) =>
+            prev.map((s) => {
+              if (s.id !== item.fromStudentId) return s;
+              const key: "wishes" | "noGo" | "siblings" =
+                item.category === "noGo"
+                  ? "noGo"
+                  : item.category === "sibling"
+                    ? "siblings"
+                    : "wishes";
+              if (s[key].includes(targetStudentId)) return s;
+              return { ...s, [key]: [...s[key], targetStudentId] };
+            })
+          );
+        }
+        return curr.filter((p) => p.id !== pendingId);
+      });
+    },
+    []
+  );
+  const dismissAllPending = useCallback(() => setPendingMatches([]), []);
 
   // ── CSV-Import: Name; Geschlecht; Notiz; Vorjahresklasse ─────────
   const handleCSV = useCallback(
@@ -405,6 +549,185 @@ export default function KlassenverteilungApp() {
     setActiveRosterId(id);
   }, [activeRosterId, saveName, students]);
 
+  // ── Eltern-Wunsch-Code übernehmen ────────────────────────────────
+  // Decodiert einen Rück-Code und schreibt Wünsche/NoGo in den passenden
+  // Schüler. Sucht zuerst im aktiven Roster, dann in allen anderen.
+  const importWunschCode = useCallback(
+    (codeRaw: string): { ok: boolean; message: string } => {
+      const code = codeRaw.trim().split(/\s+/).pop() ?? "";
+      const result = decodeResult(code);
+      if (!result) {
+        return {
+          ok: false,
+          message: "Code konnte nicht gelesen werden – bitte erneut prüfen.",
+        };
+      }
+      // Erst im aktuell geladenen Schüler-Set suchen
+      const localRoster: ClassRoster = {
+        id: activeRosterId ?? "tmp",
+        name: saveName || "aktuelle Klasse",
+        students,
+        createdAt: 0,
+        updatedAt: 0,
+      };
+      const local = applyResultToRoster(localRoster, result);
+      if (local) {
+        setStudents((p) =>
+          p.map((s) =>
+            s.id === local.student.id
+              ? { ...s, wishes: local.wishes, noGo: local.noGo }
+              : s
+          )
+        );
+        return {
+          ok: true,
+          message: `Wunsch von ${local.student.name} übernommen (${local.wishes.length} Wünsche${
+            local.noGo.length > 0 ? `, ${local.noGo.length} NoGo` : ""
+          }).`,
+        };
+      }
+      // Fallback: in allen gespeicherten Rostern suchen (z. B. wenn der Code
+      // aus einer anderen Klasse stammt). In dem Fall laden wir den Roster.
+      const allRosters = loadRosters();
+      for (const r of allRosters) {
+        const m = applyResultToRoster(r, result);
+        if (m) {
+          // Roster-Snapshot aktualisieren
+          const updated: ClassRoster = {
+            ...r,
+            students: r.students.map((s) =>
+              s.id === m.student.id
+                ? { ...s, wishes: m.wishes, noGo: m.noGo }
+                : s
+            ),
+            updatedAt: Date.now(),
+          };
+          upsertRoster(updated);
+          // In aktive Ansicht laden, damit Lehrkraft direkt sieht was passierte
+          setActiveRosterId(r.id);
+          setStudents(updated.students.map((s) => ({ ...s })));
+          setSaveName(r.name);
+          return {
+            ok: true,
+            message: `Wunsch von ${m.student.name} aus Liste „${r.name}" übernommen.`,
+          };
+        }
+      }
+      return {
+        ok: false,
+        message:
+          "Kein passendes Kind in den Klassenlisten gefunden. Wurden Schüler*innen umbenannt oder gelöscht?",
+      };
+    },
+    [activeRosterId, saveName, students]
+  );
+
+  // Beim Mount: Hash auf #import=… prüfen → automatisch übernehmen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#import=")) return;
+    const code = decodeURIComponent(hash.slice(8));
+    const r = importWunschCode(code);
+    // Hash entfernen, damit ein Reload nicht erneut importiert.
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (r.ok) {
+      setStep("wuensche");
+    }
+    // (Nachricht wird beim nächsten Render im WunschStep gezeigt, sobald
+    //  der Lehrkraft-Workflow dort ankommt. Für die Sofortrückmeldung im
+    //  Edge-Case zeigen wir einen kurzen Alert.)
+    if (typeof window !== "undefined" && !r.ok) {
+      // Nur bei Fehler explizit anzeigen — Erfolge sind im Datenstand sichtbar.
+      window.alert(r.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Eltern per E-Mail benachrichtigen (Online-Sessions) ──────────
+  const [notifyState, setNotifyState] = useState<
+    | { stage: "idle" }
+    | { stage: "running" }
+    | {
+        stage: "done";
+        sent: number;
+        skipped: number;
+        smtpReady: boolean;
+        eligible: number;
+      }
+    | { stage: "error"; message: string }
+  >({ stage: "idle" });
+
+  const notifyParents = useCallback(async () => {
+    if (!result) return;
+    // Mapping: für jeden Schüler, der eine registrationId hat, das
+    // assigned_class-Paar erstellen.
+    const sessionIds = new Set<string>();
+    const assignments: { registration_id: string; assigned_class: number }[] = [];
+    for (const cls of result) {
+      for (const s of cls.students) {
+        if (!s.registrationId || !s.sessionId) continue;
+        sessionIds.add(s.sessionId);
+        assignments.push({ registration_id: s.registrationId, assigned_class: cls.id });
+      }
+    }
+    if (assignments.length === 0 || sessionIds.size === 0) {
+      setNotifyState({
+        stage: "error",
+        message: "Diese Klasse stammt nicht aus einer Online-Anmeldung.",
+      });
+      return;
+    }
+    if (sessionIds.size > 1) {
+      setNotifyState({
+        stage: "error",
+        message:
+          "Schüler*innen stammen aus mehreren Online-Sessions – das wird aktuell nicht unterstützt.",
+      });
+      return;
+    }
+    const sid = [...sessionIds][0];
+
+    if (
+      !confirm(
+        `${assignments.length} Eltern werden per E-Mail über die Klassenzuteilung informiert. Fortfahren?`
+      )
+    ) {
+      return;
+    }
+    setNotifyState({ stage: "running" });
+    try {
+      const res = await fetch(
+        `/api/klassenbildung/session/${encodeURIComponent(sid)}/notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assignments }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotifyState({
+          stage: "error",
+          message: json?.error ?? "Versand fehlgeschlagen.",
+        });
+        return;
+      }
+      setNotifyState({
+        stage: "done",
+        sent: json.mails_sent ?? 0,
+        skipped: json.mails_skipped ?? 0,
+        smtpReady: json.smtp_configured ?? false,
+        eligible: json.eligible_emails ?? 0,
+      });
+    } catch {
+      setNotifyState({
+        stage: "error",
+        message: "Verbindung zum Server fehlgeschlagen.",
+      });
+    }
+  }, [result]);
+
   // ── Export & Print ───────────────────────────────────────────────
   const downloadCSV = useCallback(() => {
     if (!result) return;
@@ -430,7 +753,7 @@ export default function KlassenverteilungApp() {
   const studentCountWord = students.length === 1 ? "Schüler*in" : "Schüler*innen";
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6 xl:gap-10">
+    <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6 xl:gap-10 print:!grid-cols-1 print:!gap-0">
       {/* ╭─────── SIDEBAR: Klassenliste & Steps ───────╮ */}
       <aside className="space-y-5 print:hidden">
         {/* Klassenliste-Picker */}
@@ -499,6 +822,12 @@ export default function KlassenverteilungApp() {
             className="hidden"
           />
         </div>
+
+        {/* Online-Anmeldung (server-backed) */}
+        <OnlineSessions
+          defaultName={saveName}
+          onImport={importFromRegistrations}
+        />
 
         {/* Schritte */}
         <nav aria-label="Arbeitsschritte" className="rounded-xl bg-white border border-border p-2 shadow-sm">
@@ -584,7 +913,12 @@ export default function KlassenverteilungApp() {
       </aside>
 
       {/* ╭─────── HAUPTINHALT ───────╮ */}
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-6 print:space-y-3">
+        {/* Druck-Titel: ersetzt sichtbar die ausgeblendete Tool-Hülle */}
+        <h1 className="hidden print:block text-xl font-bold text-primary border-b border-border pb-2 mb-2">
+          Klassenverteilung
+          {saveName && ` · ${saveName}`}
+        </h1>
         {/* Status-Leiste */}
         <div className="hidden md:flex items-center gap-3 rounded-lg bg-white border border-border px-4 py-3 shadow-sm print:hidden">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-light">
@@ -638,8 +972,13 @@ export default function KlassenverteilungApp() {
             toggleSibling={toggleSibling}
             updatePrevClass={(id, value) => updateStudent(id, { prevClass: value })}
             maxWishes={config.maxWishes}
+            rosterName={saveName || "aktuelle Klassenliste"}
             onPrev={() => setStep("schueler")}
             onNext={() => setStep("regeln")}
+            onImportCode={importWunschCode}
+            pendingMatches={pendingMatches}
+            acceptPending={acceptPending}
+            dismissAllPending={dismissAllPending}
           />
         )}
 
@@ -687,6 +1026,8 @@ export default function KlassenverteilungApp() {
             runDistribution={runDistribution}
             distributing={distributing}
             downloadCSV={downloadCSV}
+            notifyParents={notifyParents}
+            notifyState={notifyState}
           />
         )}
       </div>
@@ -932,8 +1273,13 @@ interface WunschStepProps {
   toggleSibling: (sid: string, tid: string) => void;
   updatePrevClass: (id: string, value: string) => void;
   maxWishes: number;
+  rosterName: string;
   onPrev: () => void;
   onNext: () => void;
+  onImportCode: (code: string) => { ok: boolean; message: string };
+  pendingMatches: PendingMatch[];
+  acceptPending: (id: string, targetStudentId: string | null) => void;
+  dismissAllPending: () => void;
 }
 
 function WunschStep(props: WunschStepProps) {
@@ -945,12 +1291,27 @@ function WunschStep(props: WunschStepProps) {
     toggleNoGo,
     toggleSibling,
     maxWishes,
+    rosterName,
     onPrev,
     onNext,
+    onImportCode,
+    pendingMatches,
+    acceptPending,
+    dismissAllPending,
   } = props;
+  const [importInput, setImportInput] = useState("");
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; message: string } | null>(null);
+  const handleImport = () => {
+    if (!importInput.trim()) return;
+    const r = onImportCode(importInput.trim());
+    setImportMsg(r);
+    if (r.ok) setImportInput("");
+    setTimeout(() => setImportMsg(null), 4500);
+  };
 
   return (
-    <div className="space-y-5">
+    <>
+    <div className="space-y-5 print:hidden">
       <SectionHeader
         index="02"
         eyebrow="Wünsche & Beziehungen"
@@ -964,29 +1325,82 @@ function WunschStep(props: WunschStepProps) {
         }
       />
 
-      {/* Print-Vorlage als Drucker-Hilfe */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white border border-border p-4 shadow-sm print:hidden">
-        <FileText className="h-5 w-5 text-primary shrink-0" aria-hidden="true" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-primary leading-tight">
-            Wunschzettel für die Eltern drucken
+      {/* Pending-Matches Review (Online-Import) */}
+      {pendingMatches.length > 0 && (
+        <PendingMatchesPanel
+          pendingMatches={pendingMatches}
+          students={students}
+          acceptPending={acceptPending}
+          dismissAllPending={dismissAllPending}
+        />
+      )}
+
+      {/* Eltern-Erfassung: Druckformulare + Code-Import */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="rounded-xl bg-white border border-border p-4 shadow-sm">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
+            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+            Eltern-Formulare drucken
           </p>
-          <p className="text-xs text-text-light leading-relaxed">
-            Mit QR-Code pro Kind. Eltern füllen aus, Sie übernehmen die
-            Wünsche dann hier.
+          <p className="text-xs text-text-light leading-relaxed mb-3">
+            Eine Seite pro Kind mit großem QR-Code zum Online-Ausfüllen am
+            Smartphone (kein Schneiden nötig).
           </p>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={students.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-40"
+          >
+            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+            {students.length} Formular{students.length === 1 ? "" : "e"} drucken
+          </button>
         </div>
-        <Link
-          href="?print=forms"
-          onClick={(e) => {
-            e.preventDefault();
-            window.print();
-          }}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary/90 transition-colors"
-        >
-          <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-          Formulare drucken
-        </Link>
+        <div className="rounded-xl bg-white border border-border p-4 shadow-sm">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
+            <ClipboardPaste className="h-3.5 w-3.5" aria-hidden="true" />
+            Wunsch-Code von Eltern übernehmen
+          </p>
+          <p className="text-xs text-text-light leading-relaxed mb-2">
+            Code aus E-Mail / Zettel hier einfügen.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={importInput}
+              onChange={(e) => setImportInput(e.target.value)}
+              placeholder="Code einfügen…"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleImport();
+              }}
+              className="flex-1 min-w-0 rounded-lg border border-border bg-white px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={!importInput.trim()}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent text-text px-3 py-2 text-xs font-bold hover:bg-accent-hover transition-colors disabled:opacity-40 shrink-0"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+              Übernehmen
+            </button>
+          </div>
+          {importMsg && (
+            <p
+              className={`mt-2 text-xs leading-relaxed ${
+                importMsg.ok ? "text-emerald-700" : "text-red-700"
+              }`}
+              role="status"
+            >
+              {importMsg.ok ? (
+                <CheckCircle2 className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              ) : (
+                <AlertTriangle className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              )}
+              {importMsg.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Schülerkarten */}
@@ -1133,10 +1547,7 @@ function WunschStep(props: WunschStepProps) {
         })}
       </div>
 
-      {/* Druck-Vorlagen für Eltern */}
-      <PrintForms students={students} maxWishes={maxWishes} />
-
-      <div className="flex justify-between pt-2 print:hidden">
+      <div className="flex justify-between pt-2">
         <button
           type="button"
           onClick={onPrev}
@@ -1155,31 +1566,330 @@ function WunschStep(props: WunschStepProps) {
         </button>
       </div>
     </div>
+
+    {/* Druck-Vorlagen für Eltern – nur beim Drucken sichtbar */}
+    <PrintForms students={students} maxWishes={maxWishes} rosterName={rosterName} />
+    </>
   );
 }
 
-// Druckansicht: Eltern-Wunschzettel
+// ════════════════════════════════════════════════════════════════════════
+// Pending-Matches-Review Panel
+// Editorial-„Korrektur-Stapel": jede ungeklärte Eltern-Eingabe als Karte
+// mit Vorschlägen. Confidence-gefärbt; Lehrkraft entscheidet manuell.
+// ════════════════════════════════════════════════════════════════════════
+
+function PendingMatchesPanel({
+  pendingMatches,
+  students,
+  acceptPending,
+  dismissAllPending,
+}: {
+  pendingMatches: PendingMatch[];
+  students: Student[];
+  acceptPending: (id: string, targetStudentId: string | null) => void;
+  dismissAllPending: () => void;
+}) {
+  const studentsById = useMemo(() => {
+    const m = new Map<string, Student>();
+    for (const s of students) m.set(s.id, s);
+    return m;
+  }, [students]);
+
+  // Gruppiere nach Eltern-Eingabe (Kind), damit zusammenhängende
+  // Korrekturen visuell zusammenbleiben.
+  const grouped = useMemo(() => {
+    const map = new Map<string, PendingMatch[]>();
+    for (const p of pendingMatches) {
+      const arr = map.get(p.fromStudentId) ?? [];
+      arr.push(p);
+      map.set(p.fromStudentId, arr);
+    }
+    return Array.from(map.entries());
+  }, [pendingMatches]);
+
+  return (
+    <section
+      role="region"
+      aria-label="Eltern-Eingaben zur Bestätigung"
+      className="relative overflow-hidden rounded-2xl bg-white border-2 border-accent-strong/35 shadow-md"
+    >
+      {/* Diagonale Warn-Streifen oben (Korrektur-Signal) */}
+      <div
+        aria-hidden="true"
+        className="h-2"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, #AB7A0E 0 12px, #E8A838 12px 24px)",
+        }}
+      />
+      {/* Subtiles Raster */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, #AB7A0E 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, #AB7A0E 0 1px, transparent 1px 24px)",
+        }}
+      />
+
+      <header className="relative flex items-start gap-4 p-5 md:p-6 border-b border-border">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-strong text-white shrink-0 shadow-lg shadow-accent/30">
+          <Sparkles className="h-6 w-6" aria-hidden="true" strokeWidth={1.6} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-accent-strong mb-1 inline-flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-strong" />
+            Eltern-Eingaben prüfen
+          </p>
+          <h3 className="text-lg md:text-xl font-bold text-primary leading-tight tracking-tight">
+            {pendingMatches.length} freie Eingabe
+            {pendingMatches.length === 1 ? "" : "n"} – Zuordnung bestätigen
+          </h3>
+          <p className="text-xs text-text-light leading-relaxed mt-1.5 max-w-2xl">
+            Eltern haben die folgenden Namen frei eingetippt. Ein eindeutiger
+            Treffer wurde nicht gefunden – meist wegen Schreibweise (z. B. nur
+            Vorname, Initialen, Umlaute). Bitte einmal pro Eintrag bestätigen.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (
+              confirm(
+                "Alle offenen Vorschläge verwerfen? Die Eltern-Eingaben gehen verloren – die Klassenverteilung läuft dann ohne diese Wünsche."
+              )
+            )
+              dismissAllPending();
+          }}
+          className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-light hover:text-red-700 underline-offset-2 hover:underline transition-colors shrink-0"
+        >
+          Alle verwerfen
+        </button>
+      </header>
+
+      <div className="relative divide-y divide-border">
+        {grouped.map(([fromId, items], gi) => {
+          const child = studentsById.get(fromId);
+          return (
+            <div
+              key={fromId}
+              className="p-5 md:p-6 space-y-3"
+              style={{
+                animation: `pending-in 320ms ${Math.min(gi * 60, 360)}ms cubic-bezier(0.22,0.61,0.36,1) both`,
+              }}
+            >
+              <div className="flex items-baseline gap-3 pb-2">
+                <span
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs shrink-0 ${
+                    child?.gender === "m"
+                      ? "bg-blue-100 text-blue-700"
+                      : child?.gender === "w"
+                        ? "bg-pink-100 text-pink-800"
+                        : "bg-bg text-text-light"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {child?.gender === "m"
+                    ? "♂"
+                    : child?.gender === "w"
+                      ? "♀"
+                      : "—"}
+                </span>
+                <p className="font-bold text-text">
+                  {child?.name ?? "Unbekanntes Kind"}
+                </p>
+                <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-light">
+                  {items.length} offen
+                </span>
+              </div>
+
+              <ul className="space-y-2">
+                {items.map((item) => (
+                  <PendingRow
+                    key={item.id}
+                    item={item}
+                    onAccept={(targetId) => acceptPending(item.id, targetId)}
+                  />
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      <style>{`
+        @keyframes pending-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="animation: pending-in"] { animation: none !important; }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+function PendingRow({
+  item,
+  onAccept,
+}: {
+  item: PendingMatch;
+  onAccept: (targetId: string | null) => void;
+}) {
+  const catLabel =
+    item.category === "wish"
+      ? "möchte mit"
+      : item.category === "noGo"
+        ? "lieber NICHT mit"
+        : "Geschwisterkind";
+  const catIcon =
+    item.category === "wish" ? (
+      <Heart className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+    ) : item.category === "noGo" ? (
+      <Ban className="h-3.5 w-3.5 text-red-600" aria-hidden="true" />
+    ) : (
+      <Users className="h-3.5 w-3.5 text-violet-700" aria-hidden="true" />
+    );
+
+  return (
+    <li className="rounded-xl bg-bg/40 border border-border p-3 md:p-4">
+      <div className="flex items-baseline gap-2 mb-2.5">
+        {catIcon}
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-light">
+          {catLabel}
+        </span>
+        <span className="font-mono text-base font-bold text-primary px-2 py-0.5 rounded bg-white border border-border tabular-nums">
+          „{item.rawName}"
+        </span>
+      </div>
+      {item.suggestions.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {item.suggestions.map((s) => (
+            <SuggestionChip
+              key={s.id}
+              suggestion={s}
+              onPick={() => onAccept(s.id)}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => onAccept(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-text-light hover:bg-bg hover:text-text transition-colors"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+            Niemand / verwerfen
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-xs text-text-light leading-relaxed flex-1 min-w-[14rem]">
+            <AlertTriangle
+              className="inline h-3.5 w-3.5 mr-1 text-amber-600"
+              aria-hidden="true"
+            />
+            Kein passendes Kind gefunden. Wahrscheinlich hat das gewünschte
+            Kind sich nicht angemeldet.
+          </p>
+          <button
+            type="button"
+            onClick={() => onAccept(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-text-light/10 border border-border px-3 py-2 text-xs font-bold text-text hover:bg-bg transition-colors"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+            Verwerfen
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function SuggestionChip({
+  suggestion,
+  onPick,
+}: {
+  suggestion: NameSuggestion;
+  onPick: () => void;
+}) {
+  const pct = Math.round(suggestion.score * 100);
+  const tone =
+    suggestion.score >= 0.9
+      ? "border-emerald-400 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+      : suggestion.score >= 0.78
+        ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
+        : "border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100";
+  const barColor =
+    suggestion.score >= 0.9
+      ? "bg-emerald-600"
+      : suggestion.score >= 0.78
+        ? "bg-primary"
+        : "bg-amber-600";
+
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={`group relative inline-flex flex-col items-stretch gap-1.5 rounded-lg border-2 px-3 py-2 text-left transition-colors min-w-[140px] ${tone}`}
+    >
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-bold leading-tight">{suggestion.name}</span>
+        <span className="font-mono text-[10px] tabular-nums opacity-70 ml-auto">
+          {pct}%
+        </span>
+      </div>
+      <div className="h-1 rounded-full bg-white/60 overflow-hidden">
+        <span
+          className={`block h-full ${barColor} transition-all`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </button>
+  );
+}
+
+// Druckansicht: Eltern-Wunschzettel — eine ganze A4-Seite pro Kind.
+// Primärer CTA: QR-Code zum Online-Ausfüllen am Smartphone.
+// Backup unten: Papier-Checkboxen, falls kein Smartphone zur Hand.
 function PrintForms({
   students,
   maxWishes,
+  rosterName,
 }: {
   students: Student[];
   maxWishes: number;
+  rosterName: string;
 }) {
   const [qrMap, setQrMap] = useState<Record<string, string>>({});
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    if (!origin) return;
     let cancelled = false;
     (async () => {
       const next: Record<string, string> = {};
+      // Wir bauen einen Roster-ähnlichen Container ohne realen ID/Timestamps,
+      // weil buildPayloadForStudent nur students[] und name braucht.
+      const fakeRoster = {
+        id: "tmp",
+        name: rosterName || "Klassenliste",
+        students,
+        createdAt: 0,
+        updatedAt: 0,
+      };
       for (const s of students) {
-        const code = genCode(s.name, s.id);
-        const data = JSON.stringify({ sid: s.id, code });
+        const payload = buildPayloadForStudent(fakeRoster, s, maxWishes);
+        const url = `${origin}/werkzeuge/klassenverteilung/wunsch#p=${encodePayload(payload)}`;
         try {
-          next[s.id] = await QRCode.toDataURL(data, {
+          next[s.id] = await QRCode.toDataURL(url, {
             errorCorrectionLevel: "M",
             margin: 1,
-            width: 120,
+            width: 480,
           });
         } catch {
           next[s.id] = "";
@@ -1190,68 +1900,125 @@ function PrintForms({
     return () => {
       cancelled = true;
     };
-  }, [students]);
+  }, [students, maxWishes, rosterName, origin]);
 
   return (
     <div className="hidden print:block">
       <style>{`
         @media print {
-          @page { margin: 1.6cm; }
+          @page { margin: 1.4cm; }
           body { background: white !important; }
-          .print-form { break-inside: avoid; page-break-inside: avoid; }
-          .print-form + .print-form { margin-top: 1rem; }
+          .wunsch-form {
+            page-break-after: always;
+            break-after: page;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .wunsch-form:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
         }
       `}</style>
       {students.map((s) => (
         <div
           key={s.id}
-          className="print-form rounded-xl border-2 border-text/20 p-5 bg-white"
+          className="wunsch-form bg-white"
         >
-          <div className="flex items-start justify-between mb-3">
+          {/* Kopfzeile */}
+          <div className="flex items-baseline justify-between border-b-2 border-primary pb-2 mb-6">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-text-light">
-                Wunschzettel · neue Klassenbildung
+              <p className="text-[10px] uppercase tracking-[0.22em] text-text-light">
+                DigiKI · Klassenbildung
               </p>
-              <p className="text-2xl font-bold text-primary mt-0.5">{s.name}</p>
-              <p className="text-xs text-text-light font-mono">
-                Code: {genCode(s.name, s.id)}
-              </p>
+              <p className="text-sm font-bold text-primary">Wunschzettel</p>
             </div>
-            {qrMap[s.id] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qrMap[s.id]}
-                alt={`QR-Code für ${s.name}`}
-                width={90}
-                height={90}
-              />
-            )}
-          </div>
-          <div className="rounded-lg bg-emerald-50 p-3 mb-2">
-            <p className="text-xs font-bold text-emerald-800 mb-1.5">
-              💚 Wunschkinder (max. {maxWishes}):
+            <p className="text-[10px] text-text-light font-mono">
+              {rosterName}
             </p>
-            <div className="flex flex-wrap gap-1">
-              {students
-                .filter((o) => o.id !== s.id)
-                .map((o) => (
-                  <span
-                    key={o.id}
-                    className="rounded border border-text/20 bg-white px-2 py-0.5 text-[10px]"
-                  >
-                    ☐ {o.name}
-                  </span>
-                ))}
+          </div>
+
+          {/* Name */}
+          <p className="text-[11px] uppercase tracking-[0.18em] text-text-light mb-1">
+            Für
+          </p>
+          <h2 className="text-4xl font-bold text-primary tracking-tight mb-6">
+            {s.name}
+          </h2>
+
+          {/* Hauptteil: QR + Anleitung */}
+          <div className="grid grid-cols-[auto_1fr] gap-6 items-start mb-6">
+            <div className="border-2 border-text/15 rounded-xl p-3 bg-white">
+              {qrMap[s.id] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={qrMap[s.id]}
+                  alt={`QR-Code für ${s.name}`}
+                  width={220}
+                  height={220}
+                  className="block"
+                />
+              ) : (
+                <div className="h-[220px] w-[220px] flex items-center justify-center text-xs text-text-light">
+                  Code wird vorbereitet…
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] font-bold text-accent-strong mb-1">
+                Online ausfüllen — geht in 2 Minuten
+              </p>
+              <h3 className="text-lg font-bold text-text leading-tight mb-3">
+                📱 Smartphone-Kamera auf den Code richten
+              </h3>
+              <ol className="space-y-1.5 text-[12px] text-text leading-relaxed list-decimal list-inside">
+                <li>Kamera-App öffnen, auf den QR-Code richten.</li>
+                <li>Auf den Hinweis tippen, der erscheint.</li>
+                <li>Bis zu <strong>{maxWishes} Wunschkinder</strong> auswählen.</li>
+                <li>Auf <strong>„Fertig"</strong> tippen, der entstandene Code geht zurück an die Schule.</li>
+              </ol>
+              <p className="text-[10px] text-text-light leading-relaxed mt-3 border-l-2 border-border pl-2">
+                Daten verlassen Ihr Handy nicht. Erst wenn Sie aktiv den
+                Bestätigungs-Code zurückgeben, sieht die Schule die Auswahl.
+              </p>
             </div>
           </div>
-          <div className="rounded-lg bg-red-50 p-3">
-            <p className="text-xs font-bold text-red-800 mb-1.5">🚫 NoGo (optional):</p>
-            <div className="border-b border-text/30 h-5 mb-1" />
-            <div className="border-b border-text/30 h-5" />
+
+          {/* Backup-Eintragsbereich */}
+          <div className="border border-dashed border-border rounded-lg p-4 bg-bg/40">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-text-light mb-3">
+              Falls kein Smartphone griffbereit ist — Backup
+            </p>
+            <div className="mb-3">
+              <p className="text-xs font-bold text-emerald-800 mb-1.5">
+                💚 Wunschkinder (bis zu {maxWishes} ankreuzen):
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {students
+                  .filter((o) => o.id !== s.id)
+                  .map((o) => (
+                    <span
+                      key={o.id}
+                      className="rounded border border-text/20 bg-white px-2 py-0.5 text-[10px]"
+                    >
+                      ☐ {o.name}
+                    </span>
+                  ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-red-800 mb-1.5">
+                🚫 NoGo — lieber nicht zusammen (optional, Namen eintragen):
+              </p>
+              <div className="border-b border-text/30 h-5" />
+            </div>
           </div>
-          <p className="text-[9px] text-text-light mt-3 leading-relaxed">
+
+          <p className="text-[8px] text-text-light leading-relaxed mt-4">
             Lokale Verarbeitung im Browser der Schule, Löschung nach Abschluss
-            der Klassenbildung. Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO i. V. m. § 31 NSchG.
+            der Klassenbildung. Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO
+            i. V. m. § 31 NSchG. Onlineformular: kein Server-Upload, Daten
+            verbleiben im Browser.
           </p>
         </div>
       ))}
@@ -1612,6 +2379,18 @@ function ToggleRow({
 // STEP 4: Ergebnis
 // ════════════════════════════════════════════════════════════════════════
 
+type NotifyState =
+  | { stage: "idle" }
+  | { stage: "running" }
+  | {
+      stage: "done";
+      sent: number;
+      skipped: number;
+      smtpReady: boolean;
+      eligible: number;
+    }
+  | { stage: "error"; message: string };
+
 interface ErgebnisStepProps {
   result: ClassResult[] | null;
   score: ResultScore | null;
@@ -1629,6 +2408,8 @@ interface ErgebnisStepProps {
   runDistribution: () => void;
   distributing: boolean;
   downloadCSV: () => void;
+  notifyParents: () => void;
+  notifyState: NotifyState;
 }
 
 function ErgebnisStep(props: ErgebnisStepProps) {
@@ -1647,7 +2428,18 @@ function ErgebnisStep(props: ErgebnisStepProps) {
     runDistribution,
     distributing,
     downloadCSV,
+    notifyParents,
+    notifyState,
   } = props;
+
+  // Anzahl Schüler*innen mit Online-Anmeldung (für Notify-Button)
+  const onlineLinkedCount = result
+    ? result.reduce(
+        (n, c) =>
+          n + c.students.filter((s) => s.registrationId && s.sessionId).length,
+        0
+      )
+    : 0;
 
   if (!result) {
     return (
@@ -2068,6 +2860,74 @@ function ErgebnisStep(props: ErgebnisStepProps) {
           Drucken
         </button>
       </div>
+
+      {/* Notify-Bereich: nur wenn Online-Anmeldungen verknüpft sind */}
+      {onlineLinkedCount > 0 && (
+        <div className="rounded-xl bg-primary text-white p-5 print:hidden">
+          <div className="flex items-start gap-3">
+            <Mail className="h-5 w-5 text-accent shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent mb-1">
+                Online-Eltern benachrichtigen
+              </p>
+              <h4 className="text-base font-bold leading-tight mb-1">
+                Klassenzuteilung per E-Mail versenden
+              </h4>
+              <p className="text-xs text-white/80 leading-relaxed">
+                {onlineLinkedCount} Schüler*in
+                {onlineLinkedCount === 1 ? "" : "nen"} mit Online-Anmeldung
+                erkannt. Eltern, die bei der Anmeldung eine E-Mail-Adresse
+                hinterlegt haben, erhalten automatisch eine Rückmeldung mit
+                ihrer Klasse — inklusive Hinweis, dass sich Zuteilungen bis
+                Schuljahresbeginn noch ändern können.
+              </p>
+
+              {notifyState.stage === "done" && (
+                <div className="mt-3 rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs">
+                  <CheckCircle2 className="inline h-3.5 w-3.5 mr-1 text-emerald-300" aria-hidden="true" />
+                  <strong>{notifyState.sent}</strong> von {notifyState.eligible} E-Mails versendet
+                  {notifyState.skipped > 0 && (
+                    <>
+                      , <strong>{notifyState.skipped}</strong> übersprungen
+                    </>
+                  )}
+                  .
+                  {!notifyState.smtpReady && (
+                    <>
+                      {" "}
+                      <span className="text-amber-200">
+                        SMTP nicht konfiguriert – Klassen wurden in der DB
+                        gespeichert, aber keine Mails versendet.
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {notifyState.stage === "error" && (
+                <div className="mt-3 rounded-lg bg-red-500/20 border border-red-300/40 px-3 py-2 text-xs">
+                  <AlertTriangle className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                  {notifyState.message}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={notifyParents}
+              disabled={notifyState.stage === "running"}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent text-text px-4 py-2.5 text-sm font-bold hover:bg-accent-hover transition-colors disabled:opacity-50 shrink-0"
+            >
+              {notifyState.stage === "running" ? (
+                <>Sende…</>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  {onlineLinkedCount} Eltern informieren
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

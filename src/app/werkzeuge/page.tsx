@@ -25,6 +25,7 @@ import {
   GraduationCap,
   Network,
   CalendarClock,
+  Cloud,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 
@@ -47,6 +48,8 @@ interface Tool {
   title: string;
   description: string;
   available: boolean;
+  /** Tool unterstützt server-backed Online-Modus (mit DigiKI-Konto) */
+  cloudOption?: boolean;
 }
 
 interface Category {
@@ -156,8 +159,9 @@ const categories: Category[] = [
         icon: <Network className="h-7 w-7 text-primary" {...iconProps} />,
         title: "Klassenverteilung",
         description:
-          "Schüler*innen pädagogisch sinnvoll auf parallele Klassen verteilen – mit Wünschen, NoGo-Paaren, Geschwistern und Geschlechterbalance.",
+          "Schüler*innen pädagogisch sinnvoll auf parallele Klassen verteilen. Lokale Bedienung weiterhin möglich – für die neue Klassenbildung mit Eltern-Wünschen wird die Online-Anmeldung empfohlen.",
         available: true,
+        cloudOption: true,
       },
       {
         href: "/werkzeuge/schulleitungs-cockpit",
@@ -587,6 +591,19 @@ export default function WerkzeugePage() {
                                   aria-hidden="true"
                                 />
                                 Exp.
+                              </span>
+                            )}
+                            {tool.cloudOption && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white shadow-sm"
+                                title="Online-Modus mit DigiKI-Konto verfügbar – lokal weiterhin nutzbar"
+                              >
+                                <Cloud
+                                  className="h-2.5 w-2.5"
+                                  strokeWidth={2.4}
+                                  aria-hidden="true"
+                                />
+                                Online empfohlen
                               </span>
                             )}
                             <span className="text-[10px] font-mono font-bold text-text-light/70 tabular-nums">

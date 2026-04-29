@@ -238,7 +238,7 @@ export default function CockpitApp() {
   const naechster = upcoming[0];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 xl:gap-10">
+    <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 xl:gap-10 print:!grid-cols-1 print:!gap-0">
       {/* ╭─────── SIDEBAR ─────────╮ */}
       <aside className="space-y-5 print:hidden">
         {/* Schuljahr */}
@@ -386,7 +386,11 @@ export default function CockpitApp() {
       </aside>
 
       {/* ╭─────── HAUPTINHALT ───────╮ */}
-      <main className="min-w-0 space-y-6">
+      <main className="min-w-0 space-y-6 print:space-y-3">
+        {/* Druck-Titel: ersetzt sichtbar die ausgeblendete Tool-Hülle */}
+        <h1 className="hidden print:block text-xl font-bold text-primary border-b border-border pb-2 mb-2">
+          Schulleitungs-Cockpit · {data.schuljahr}
+        </h1>
         {/* Quick-Add */}
         <div className="rounded-xl bg-white border border-border p-4 md:p-5 shadow-sm print:hidden">
           <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
