@@ -96,7 +96,13 @@ export default function OnlineSessions({ defaultName, onImport }: Props) {
   }, [loadSessions]);
 
   const createSession = useCallback(
-    async (name: string, schoolName: string, maxWishes: number) => {
+    async (
+      name: string,
+      schoolName: string,
+      maxWishes: number,
+      contactName: string,
+      contactEmail: string
+    ) => {
       setCreating(true);
       try {
         const res = await fetch("/api/klassenbildung/session", {
@@ -106,6 +112,8 @@ export default function OnlineSessions({ defaultName, onImport }: Props) {
             name: name.trim(),
             school_name: schoolName.trim() || undefined,
             max_wishes: maxWishes,
+            contact_name: contactName.trim() || undefined,
+            contact_email: contactEmail.trim() || undefined,
           }),
         });
         if (res.status === 401) {
@@ -263,13 +271,34 @@ function CreateSessionForm({
   creating,
 }: {
   defaultName?: string;
-  onCreate: (n: string, s: string, m: number) => void;
+  onCreate: (
+    n: string,
+    s: string,
+    m: number,
+    contactName: string,
+    contactEmail: string
+  ) => void;
   creating: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(defaultName ?? "");
   const [schoolName, setSchoolName] = useState("");
   const [maxWishes, setMaxWishes] = useState(2);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [emailErr, setEmailErr] = useState(false);
+
+  const submit = () => {
+    setEmailErr(false);
+    if (
+      contactEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
+    ) {
+      setEmailErr(true);
+      return;
+    }
+    onCreate(name, schoolName, maxWishes, contactName, contactEmail);
+  };
 
   if (!open) {
     return (
@@ -310,11 +339,44 @@ function CreateSessionForm({
           className="w-full accent-primary"
         />
       </label>
+      <div className="rounded-lg border border-dashed border-border bg-bg/40 p-2.5 space-y-1.5 mt-1">
+        <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-text-light">
+          Ansprechperson für Eltern <span className="text-text-light/70 normal-case tracking-normal">(empfohlen, DSGVO)</span>
+        </p>
+        <input
+          type="text"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          placeholder="Name (z. B. Frau Müller, Schulleitung)"
+          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+        />
+        <input
+          type="email"
+          value={contactEmail}
+          onChange={(e) => {
+            setContactEmail(e.target.value);
+            if (emailErr) setEmailErr(false);
+          }}
+          placeholder="kontakt@schule.de"
+          inputMode="email"
+          autoComplete="email"
+          className={`w-full rounded-lg border bg-white px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-accent-strong outline-none ${
+            emailErr
+              ? "border-red-400 focus:border-red-500"
+              : "border-border focus:border-accent-strong"
+          }`}
+        />
+        {emailErr && (
+          <p className="text-[10px] text-red-700">
+            Keine gültige E-Mail-Adresse.
+          </p>
+        )}
+      </div>
       <div className="flex gap-2">
         <button
           type="button"
           disabled={!name.trim() || creating}
-          onClick={() => onCreate(name, schoolName, maxWishes)}
+          onClick={submit}
           className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent text-text px-3 py-2 text-xs font-bold disabled:opacity-40 hover:bg-accent-hover transition-colors"
         >
           {creating ? (

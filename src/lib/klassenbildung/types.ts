@@ -12,6 +12,8 @@ export interface KlassenbildungSession {
   max_wishes: number;
   notify_subject: string | null;
   notify_body: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +25,8 @@ export interface PublicSessionInfo {
   school_name: string | null;
   status: SessionStatus;
   max_wishes: number;
+  contact_name: string | null;
+  contact_email: string | null;
 }
 
 export interface KlassenbildungRegistration {

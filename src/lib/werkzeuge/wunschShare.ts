@@ -60,8 +60,14 @@ export interface WunschPayload {
   n: { id: string; name: string }[];
   /** max. Anzahl Wünsche */
   mw: number;
-  /** Schul-Hinweis / Klassenname (optional, nur Anzeige) */
+  /** Klassenname / Roster-Name (optional, nur Anzeige) */
   c?: string;
+  /** Schulname (optional) */
+  sn?: string;
+  /** Ansprechperson Name (optional) */
+  cn?: string;
+  /** Ansprechperson E-Mail (optional) */
+  ce?: string;
 }
 
 /** Antwort der Eltern an die Lehrkraft */
@@ -114,18 +120,29 @@ export function decodeResult(encoded: string): WunschResult | null {
 
 // ── Builder & Matcher für die Lehrkraft-Seite ────────────────────────
 
+export interface PrintContactInfo {
+  schoolName?: string;
+  contactName?: string;
+  contactEmail?: string;
+}
+
 export function buildPayloadForStudent(
   roster: ClassRoster,
   student: Student,
-  maxWishes: number
+  maxWishes: number,
+  contact: PrintContactInfo = {}
 ): WunschPayload {
-  return {
+  const payload: WunschPayload = {
     v: 1,
     s: shortId(student.id),
     n: roster.students.map((s) => ({ id: shortId(s.id), name: s.name })),
     mw: maxWishes,
     c: roster.name,
   };
+  if (contact.schoolName?.trim()) payload.sn = contact.schoolName.trim();
+  if (contact.contactName?.trim()) payload.cn = contact.contactName.trim();
+  if (contact.contactEmail?.trim()) payload.ce = contact.contactEmail.trim();
+  return payload;
 }
 
 /** Findet den passenden Student im Roster zum kurzen Result. */

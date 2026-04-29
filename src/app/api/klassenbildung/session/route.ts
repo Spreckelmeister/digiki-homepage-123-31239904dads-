@@ -57,6 +57,24 @@ export async function POST(req: NextRequest) {
     body.max_wishes <= 5
       ? Math.floor(body.max_wishes)
       : 2;
+  const contactName =
+    typeof body.contact_name === "string"
+      ? body.contact_name.trim().slice(0, 200) || null
+      : null;
+  const contactEmailRaw =
+    typeof body.contact_email === "string"
+      ? body.contact_email.trim().slice(0, 200) || null
+      : null;
+  if (
+    contactEmailRaw &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmailRaw)
+  ) {
+    return NextResponse.json(
+      { error: "invalid_contact_email" },
+      { status: 400 }
+    );
+  }
+  const contactEmail = contactEmailRaw ? contactEmailRaw.toLowerCase() : null;
 
   // Code generieren – im seltenen Konfliktfall einmal neu probieren
   let code = generateSessionCode();
@@ -79,6 +97,8 @@ export async function POST(req: NextRequest) {
       school_name: schoolName,
       max_wishes: maxWishes,
       status: "open",
+      contact_name: contactName,
+      contact_email: contactEmail,
     })
     .select("*")
     .single();

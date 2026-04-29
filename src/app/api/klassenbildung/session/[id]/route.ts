@@ -74,6 +74,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     patch.name = body.name.trim().slice(0, 120);
   if (typeof body.school_name === "string")
     patch.school_name = body.school_name.trim().slice(0, 200) || null;
+  if (typeof body.contact_name === "string")
+    patch.contact_name = body.contact_name.trim().slice(0, 200) || null;
+  if (typeof body.contact_email === "string") {
+    const trimmed = body.contact_email.trim().slice(0, 200);
+    if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      return NextResponse.json(
+        { error: "invalid_contact_email" },
+        { status: 400 }
+      );
+    }
+    patch.contact_email = trimmed ? trimmed.toLowerCase() : null;
+  }
   if (
     body.status === "open" ||
     body.status === "closed" ||

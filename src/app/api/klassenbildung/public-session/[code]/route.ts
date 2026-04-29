@@ -42,7 +42,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { data, error } = await supabase
     .from("klassenbildung_sessions")
-    .select("code, name, school_name, status, max_wishes")
+    .select(
+      "code, name, school_name, status, max_wishes, contact_name, contact_email"
+    )
     .eq("code", code.trim().toUpperCase())
     .maybeSingle();
 
@@ -59,6 +61,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     school_name: data.school_name,
     status: data.status,
     max_wishes: data.max_wishes,
+    contact_name: data.contact_name,
+    contact_email: data.contact_email,
   };
   return NextResponse.json({ session: info });
 }

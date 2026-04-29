@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Heart,
   Ban,
@@ -12,6 +13,7 @@ import {
   Plus,
   X,
   Mail,
+  UserCheck,
 } from "lucide-react";
 import type { PublicSessionInfo } from "@/lib/klassenbildung/types";
 
@@ -21,6 +23,7 @@ export default function AnmeldungForm({ code }: { code: string }) {
   const [stage, setStage] = useState<Stage>("loading");
   const [session, setSession] = useState<PublicSessionInfo | null>(null);
   const [errMsg, setErrMsg] = useState<string>("");
+  const [consent, setConsent] = useState(false);
 
   // Form state
   const [childName, setChildName] = useState("");
@@ -94,6 +97,12 @@ export default function AnmeldungForm({ code }: { code: string }) {
     if (!session) return;
     if (!childName.trim()) {
       setErrMsg("Bitte den Namen des Kindes angeben.");
+      return;
+    }
+    if (!consent) {
+      setErrMsg(
+        "Bitte die Datenschutzhinweise bestätigen, bevor Sie absenden."
+      );
       return;
     }
     setErrMsg("");
@@ -220,7 +229,7 @@ export default function AnmeldungForm({ code }: { code: string }) {
   if (!session) return null;
   return (
     <div className="min-h-screen bg-bg pb-32">
-      <div className="bg-primary text-white px-4 pt-8 pb-6">
+      <div className="bg-primary text-white px-4 pt-8 pb-16">
         <div className="mx-auto max-w-md">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
@@ -240,7 +249,7 @@ export default function AnmeldungForm({ code }: { code: string }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 -mt-4 space-y-5">
+      <div className="mx-auto max-w-md px-4 -mt-12 space-y-5 relative">
         {/* Kind */}
         <section className="rounded-2xl bg-white border border-border shadow-sm p-5 space-y-4">
           <h2 className="text-base font-bold text-primary">Über das Kind</h2>
@@ -385,15 +394,85 @@ export default function AnmeldungForm({ code }: { code: string }) {
           </Field>
         </section>
 
-        <div className="flex items-start gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-text leading-relaxed">
-          <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-          <p>
-            <strong>Datenschutz:</strong> Die Eingaben werden ausschließlich zur
-            Klassenbildung an die Schule übermittelt und nach Abschluss
-            gelöscht. Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO i. V. m.
-            § 31 NSchG.
+        {/* Ansprechperson – wenn von der Schule hinterlegt */}
+        {(session.contact_name || session.contact_email) && (
+          <section className="rounded-2xl bg-white border border-border shadow-sm p-5">
+            <h2 className="inline-flex items-center gap-2 text-base font-bold text-primary mb-1.5">
+              <UserCheck className="h-5 w-5" aria-hidden="true" />
+              Bei Rückfragen
+            </h2>
+            <p className="text-xs text-text-light mb-2 leading-relaxed">
+              Wenden Sie sich an die Ansprechperson Ihrer Schule:
+            </p>
+            <div className="text-sm text-text leading-relaxed">
+              {session.contact_name && (
+                <p className="font-bold">{session.contact_name}</p>
+              )}
+              {session.contact_email && (
+                <a
+                  href={`mailto:${session.contact_email}?subject=${encodeURIComponent(
+                    `Klassenanmeldung: ${session.name}`
+                  )}`}
+                  className="font-mono text-primary underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong break-all"
+                >
+                  {session.contact_email}
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* DSGVO-Zustimmung (Pflicht) */}
+        <section
+          className={`rounded-2xl bg-white border-2 p-5 transition-colors ${
+            consent ? "border-emerald-400" : "border-accent-strong/40"
+          }`}
+        >
+          <h2 className="text-base font-bold text-primary mb-2 inline-flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+            Datenschutz-Hinweis
+          </h2>
+          <p className="text-xs text-text leading-relaxed mb-3">
+            Die Eingaben werden ausschließlich zur Klassenbildung an{" "}
+            <strong>
+              {session.school_name ?? session.name ?? "die Schule"}
+            </strong>{" "}
+            übermittelt und nach Abschluss der Klassenbildung gelöscht.
+            Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO i. V. m. § 31 NSchG
+            sowie – bei Angabe einer E-Mail-Adresse zur Rückmeldung – Art. 6
+            Abs. 1 lit. a DSGVO (Einwilligung). Vollständige Hinweise unter{" "}
+            <Link
+              href="/datenschutz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong"
+            >
+              digiki-os.de/datenschutz
+            </Link>
+            .
           </p>
-        </div>
+          <label className="flex items-start gap-3 cursor-pointer rounded-lg p-2 -m-2 hover:bg-bg/40 transition-colors">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => {
+                setConsent(e.target.checked);
+                if (e.target.checked && errMsg) setErrMsg("");
+              }}
+              className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              required
+              aria-required="true"
+            />
+            <span className="text-sm text-text leading-snug">
+              Ich habe die Datenschutzhinweise zur Kenntnis genommen und
+              bin mit der zweckgebundenen Verarbeitung der oben gemachten
+              Angaben einverstanden.
+              <span className="block text-[11px] text-text-light mt-0.5">
+                Pflicht für den Versand
+              </span>
+            </span>
+          </label>
+        </section>
 
         {errMsg && (
           <div
@@ -404,6 +483,48 @@ export default function AnmeldungForm({ code }: { code: string }) {
             {errMsg}
           </div>
         )}
+
+        {/* Legal-Footer – Pflicht für DSGVO-konforme öffentliche Formulare */}
+        <footer className="pt-4 mt-2 border-t border-border text-center">
+          <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-text-light">
+            <li>
+              <Link
+                href="/impressum"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Impressum
+              </Link>
+            </li>
+            <li aria-hidden="true">·</li>
+            <li>
+              <Link
+                href="/datenschutz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Datenschutz
+              </Link>
+            </li>
+            <li aria-hidden="true">·</li>
+            <li>
+              <Link
+                href="/barrierefreiheit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Barrierefreiheit
+              </Link>
+            </li>
+          </ul>
+          <p className="text-[10px] text-text-light/70 mt-2 leading-relaxed">
+            Bereitgestellt über DigiKI – Digitalisierung &amp; KI an
+            Grundschulen Osnabrück.
+          </p>
+        </footer>
       </div>
 
       <div className="fixed bottom-0 inset-x-0 bg-white border-t border-border shadow-lg p-3 z-50">
@@ -411,11 +532,16 @@ export default function AnmeldungForm({ code }: { code: string }) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={stage === "submitting" || !childName.trim()}
+            disabled={stage === "submitting" || !childName.trim() || !consent}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-text px-4 py-4 text-base font-bold hover:bg-accent-hover transition-colors disabled:opacity-50"
           >
             {stage === "submitting" ? (
               <>Wird gesendet…</>
+            ) : !consent ? (
+              <>
+                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                Datenschutz bestätigen, dann senden
+              </>
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />

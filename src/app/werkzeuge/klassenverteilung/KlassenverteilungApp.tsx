@@ -58,6 +58,7 @@ import {
   encodePayload,
 } from "@/lib/werkzeuge/wunschShare";
 import OnlineSessions from "./OnlineSessions";
+import SetupWizard from "./SetupWizard";
 import type { KlassenbildungRegistration } from "@/lib/klassenbildung/types";
 import {
   exactNameMatch,
@@ -87,10 +88,12 @@ const DEFAULT_CONFIG: DistributionConfig = {
 interface PendingMatch {
   id: string;
   fromStudentId: string;
-  fromStudentName: string;
   category: "wish" | "noGo" | "sibling";
   rawName: string;
-  suggestions: NameSuggestion[];
+  // Bewusst KEINE Vorschläge gespeichert: Vorschläge werden im
+  // PendingMatchesPanel live aus der aktuellen Schülerliste berechnet,
+  // damit nachträglich hinzugefügte Schüler*innen automatisch als
+  // mögliche Treffer auftauchen.
 }
 
 interface ResultSnapshot {
@@ -133,6 +136,39 @@ export default function KlassenverteilungApp() {
   const [saveName, setSaveName] = useState("");
   const csvRef = useRef<HTMLInputElement>(null);
 
+  // ── Kontakt-Info für die Eltern-Druckformulare (lokal persistent,
+  //    damit die Lehrkraft sie nicht jedes Mal neu eintippen muss) ────
+  const [printSchoolName, setPrintSchoolName] = useState("");
+  const [printContactName, setPrintContactName] = useState("");
+  const [printContactEmail, setPrintContactEmail] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(
+      "digiki.klassenverteilung.printContact.v1"
+    );
+    if (!raw) return;
+    try {
+      const obj = JSON.parse(raw);
+      if (typeof obj?.schoolName === "string") setPrintSchoolName(obj.schoolName);
+      if (typeof obj?.contactName === "string") setPrintContactName(obj.contactName);
+      if (typeof obj?.contactEmail === "string") setPrintContactEmail(obj.contactEmail);
+    } catch {
+      /* noop */
+    }
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      "digiki.klassenverteilung.printContact.v1",
+      JSON.stringify({
+        schoolName: printSchoolName,
+        contactName: printContactName,
+        contactEmail: printContactEmail,
+      })
+    );
+  }, [printSchoolName, printContactName, printContactEmail]);
+
   useEffect(() => {
     setRosters(loadRosters());
     const unsub = subscribeRosters(() => setRosters(loadRosters()));
@@ -165,89 +201,112 @@ export default function KlassenverteilungApp() {
   const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
 
   // ── Import aus Online-Anmeldungen ────────────────────────────────
-  // Wandelt eine Liste Server-Registrations in lokale Students um.
-  // Exakte Namens-Treffer (case-/Umlaut-tolerant) werden direkt
-  // übernommen. Alles andere landet als „Pending Match" mit
-  // Vorschlägen vor der Lehrkraft.
+  // MERGE-Verhalten: bereits vorhandene lokale Schüler*innen bleiben
+  // erhalten. Neue Anmeldungen werden hinzugefügt. Bereits importierte
+  // Anmeldungen (gleiche registrationId) werden nicht doppelt angelegt.
+  //
+  // Pending-Matches werden APPEND-only — vorhandene Bestätigungen
+  // gehen durch erneuten Import nicht verloren. Auflösung erfolgt
+  // gegen die zusammengeführte Schülerliste, sodass auch zuvor
+  // manuell angelegte Kinder als Match in Frage kommen.
   const importFromRegistrations = useCallback(
     (
       sessionId: string,
       rosterName: string,
       registrations: KlassenbildungRegistration[]
     ) => {
-      // 1) Students bauen, jeder mit registrationId verknüpft
-      const newStudents: Student[] = registrations.map((r) =>
-        makeStudent({
-          name: r.child_name,
-          gender: (r.gender as "m" | "w" | "x" | null) ?? "x",
-          notes: r.notes ?? "",
-          prevClass: r.prev_class ?? "",
-          registrationId: r.id,
-          sessionId,
-        })
-      );
-
-      const candidates = newStudents.map((s) => ({ id: s.id, name: s.name }));
-      const pending: PendingMatch[] = [];
-
-      // Hilfs-ID für stabile Pending-Reihen, damit React korrekt key-t
-      let pIdx = 0;
-      const newPendingId = () => `pm-${Date.now()}-${pIdx++}`;
-
-      const resolve = (
-        fromStudent: Student,
-        names: string[],
-        category: "wish" | "noGo" | "sibling"
-      ): string[] => {
-        const matched: string[] = [];
-        for (const raw of names) {
-          const exact = exactNameMatch(raw, candidates);
-          if (exact && exact.id !== fromStudent.id) {
-            matched.push(exact.id);
-            continue;
-          }
-          // Selbst-Bezug → silently dropped (Eltern haben evtl. eigenes Kind genannt)
-          if (
-            exact &&
-            exact.id === fromStudent.id
-          ) {
-            continue;
-          }
-          // Kein exakter Treffer → Pending mit Vorschlägen
-          const suggestions = findNameMatches(raw, candidates).filter(
-            (s) => s.id !== fromStudent.id
-          );
-          pending.push({
-            id: newPendingId(),
-            fromStudentId: fromStudent.id,
-            fromStudentName: fromStudent.name,
-            category,
-            rawName: raw,
-            suggestions,
-          });
+      setStudents((prevStudents) => {
+        // 1) Welche Registrations sind schon lokal? (über registrationId)
+        const existingByRegId = new Map<string, Student>();
+        for (const s of prevStudents) {
+          if (s.registrationId) existingByRegId.set(s.registrationId, s);
         }
-        return matched;
-      };
 
-      const finalStudents = newStudents.map((s) => {
-        const r = registrations.find((x) => x.id === s.registrationId);
-        if (!r) return s;
-        return {
-          ...s,
-          wishes: resolve(s, r.wishes, "wish"),
-          noGo: resolve(s, r.no_go, "noGo"),
-          siblings: resolve(s, r.siblings, "sibling"),
+        // 2) Für jede neue Registration: entweder bestehenden Student
+        //    behalten oder neuen anlegen.
+        const importedStudents: Student[] = registrations.map((r) => {
+          const existing = existingByRegId.get(r.id);
+          if (existing) return existing;
+          return makeStudent({
+            name: r.child_name,
+            gender: (r.gender as "m" | "w" | "x" | null) ?? "x",
+            notes: r.notes ?? "",
+            prevClass: r.prev_class ?? "",
+            registrationId: r.id,
+            sessionId,
+          });
+        });
+
+        // 3) Vorhandene Schüler*innen ohne registrationId (= manuell
+        //    angelegt) bleiben unverändert. Neue Online-Schüler*innen
+        //    werden ans Ende angehängt.
+        const existingRegIds = new Set(existingByRegId.keys());
+        const onlyNewlyImported = importedStudents.filter(
+          (s) => !s.registrationId || !existingRegIds.has(s.registrationId)
+        );
+        const merged: Student[] = [...prevStudents, ...onlyNewlyImported];
+
+        // 4) Wishes/NoGo/Siblings auf Basis der ZUSAMMENGEFÜHRTEN
+        //    Schülerliste auflösen — auch manuell angelegte Kinder
+        //    können so als exakter Match dienen.
+        const candidates = merged.map((s) => ({ id: s.id, name: s.name }));
+
+        let pIdx = 0;
+        const makeId = () => `pm-${Date.now()}-${pIdx++}`;
+        const newPending: PendingMatch[] = [];
+
+        const resolve = (
+          fromStudent: Student,
+          names: string[],
+          category: "wish" | "noGo" | "sibling"
+        ): string[] => {
+          const matched: string[] = [];
+          for (const raw of names) {
+            const exact = exactNameMatch(raw, candidates);
+            if (exact && exact.id !== fromStudent.id) {
+              matched.push(exact.id);
+              continue;
+            }
+            if (exact && exact.id === fromStudent.id) continue;
+            // Kein exakter Treffer → Pending (Vorschläge live im UI)
+            newPending.push({
+              id: makeId(),
+              fromStudentId: fromStudent.id,
+              category,
+              rawName: raw,
+            });
+          }
+          return matched;
         };
+
+        // 5) Bei den NEUEN Imports die Wünsche aus der Registration auflösen
+        const finalStudents = merged.map((s) => {
+          if (existingRegIds.has(s.registrationId ?? "")) {
+            // Schon vorher importiert – unverändert lassen
+            return s;
+          }
+          const r = registrations.find((x) => x.id === s.registrationId);
+          if (!r) return s;
+          return {
+            ...s,
+            wishes: resolve(s, r.wishes, "wish"),
+            noGo: resolve(s, r.no_go, "noGo"),
+            siblings: resolve(s, r.siblings, "sibling"),
+          };
+        });
+
+        // Pending-Matches anhängen (nicht ersetzen)
+        setPendingMatches((prev) => [...prev, ...newPending]);
+        return finalStudents;
       });
 
-      // 4) In den lokalen Tool-State laden, Step auf Wünsche setzen
-      setActiveRosterId(null);
-      setStudents(finalStudents);
       setSaveName(rosterName);
+      // Result/History invalidieren, weil Schülerliste sich ändert
       setResult(null);
       setResultScore(null);
       setHistory([]);
-      setPendingMatches(pending);
+      // Roster-Bezug aufheben (gemischte Quelle: lokal + online)
+      setActiveRosterId(null);
       setStep("wuensche");
     },
     []
@@ -361,6 +420,8 @@ export default function KlassenverteilungApp() {
             siblings: s.siblings.filter((x) => x !== id),
           }))
       );
+      // Pending-Matches verwerfen, deren Ursprungs-Kind gelöscht wurde
+      setPendingMatches((prev) => prev.filter((m) => m.fromStudentId !== id));
       if (editingId === id) setEditingId(null);
     },
     [editingId]
@@ -752,8 +813,15 @@ export default function KlassenverteilungApp() {
 
   const studentCountWord = students.length === 1 ? "Schüler*in" : "Schüler*innen";
 
+  // Setup-Wizard: beim ersten Besuch zeigen, danach nur auf Wunsch
+  const [wizardForceOpen, setWizardForceOpen] = useState(false);
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6 xl:gap-10 print:!grid-cols-1 print:!gap-0">
+      <SetupWizard
+        forceOpen={wizardForceOpen}
+        onClose={() => setWizardForceOpen(false)}
+      />
       {/* ╭─────── SIDEBAR: Klassenliste & Steps ───────╮ */}
       <aside className="space-y-5 print:hidden">
         {/* Klassenliste-Picker */}
@@ -910,6 +978,14 @@ export default function KlassenverteilungApp() {
             kein Upload.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setWizardForceOpen(true)}
+          className="text-[11px] text-text-light hover:text-primary underline-offset-2 hover:underline transition-colors text-left"
+        >
+          Tutorial wieder anzeigen
+        </button>
       </aside>
 
       {/* ╭─────── HAUPTINHALT ───────╮ */}
@@ -979,6 +1055,12 @@ export default function KlassenverteilungApp() {
             pendingMatches={pendingMatches}
             acceptPending={acceptPending}
             dismissAllPending={dismissAllPending}
+            printSchoolName={printSchoolName}
+            setPrintSchoolName={setPrintSchoolName}
+            printContactName={printContactName}
+            setPrintContactName={setPrintContactName}
+            printContactEmail={printContactEmail}
+            setPrintContactEmail={setPrintContactEmail}
           />
         )}
 
@@ -1280,6 +1362,12 @@ interface WunschStepProps {
   pendingMatches: PendingMatch[];
   acceptPending: (id: string, targetStudentId: string | null) => void;
   dismissAllPending: () => void;
+  printSchoolName: string;
+  setPrintSchoolName: (v: string) => void;
+  printContactName: string;
+  setPrintContactName: (v: string) => void;
+  printContactEmail: string;
+  setPrintContactEmail: (v: string) => void;
 }
 
 function WunschStep(props: WunschStepProps) {
@@ -1298,6 +1386,12 @@ function WunschStep(props: WunschStepProps) {
     pendingMatches,
     acceptPending,
     dismissAllPending,
+    printSchoolName,
+    setPrintSchoolName,
+    printContactName,
+    setPrintContactName,
+    printContactEmail,
+    setPrintContactEmail,
   } = props;
   const [importInput, setImportInput] = useState("");
   const [importMsg, setImportMsg] = useState<{ ok: boolean; message: string } | null>(null);
@@ -1337,25 +1431,15 @@ function WunschStep(props: WunschStepProps) {
 
       {/* Eltern-Erfassung: Druckformulare + Code-Import */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-xl bg-white border border-border p-4 shadow-sm">
-          <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
-            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-            Eltern-Formulare drucken
-          </p>
-          <p className="text-xs text-text-light leading-relaxed mb-3">
-            Eine Seite pro Kind mit großem QR-Code zum Online-Ausfüllen am
-            Smartphone (kein Schneiden nötig).
-          </p>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            disabled={students.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-40"
-          >
-            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-            {students.length} Formular{students.length === 1 ? "" : "e"} drucken
-          </button>
-        </div>
+        <PrintCard
+          students={students}
+          schoolName={printSchoolName}
+          setSchoolName={setPrintSchoolName}
+          contactName={printContactName}
+          setContactName={setPrintContactName}
+          contactEmail={printContactEmail}
+          setContactEmail={setPrintContactEmail}
+        />
         <div className="rounded-xl bg-white border border-border p-4 shadow-sm">
           <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
             <ClipboardPaste className="h-3.5 w-3.5" aria-hidden="true" />
@@ -1568,7 +1652,14 @@ function WunschStep(props: WunschStepProps) {
     </div>
 
     {/* Druck-Vorlagen für Eltern – nur beim Drucken sichtbar */}
-    <PrintForms students={students} maxWishes={maxWishes} rosterName={rosterName} />
+    <PrintForms
+      students={students}
+      maxWishes={maxWishes}
+      rosterName={rosterName}
+      schoolName={printSchoolName}
+      contactName={printContactName}
+      contactEmail={printContactEmail}
+    />
     </>
   );
 }
@@ -1596,17 +1687,34 @@ function PendingMatchesPanel({
     return m;
   }, [students]);
 
+  // Vorschlags-Kandidaten = aktuelle Schülerliste. Wird sich ändern,
+  // wenn Lehrkraft nachträglich Schüler*innen ergänzt – Vorschläge
+  // werden dann automatisch neu berechnet.
+  const candidates = useMemo(
+    () => students.map((s) => ({ id: s.id, name: s.name })),
+    [students]
+  );
+
+  // Filter: Pending, deren fromStudent gar nicht mehr existiert,
+  // werden gar nicht erst angezeigt (Robustheit gegen Löschungen).
+  const validPending = useMemo(
+    () => pendingMatches.filter((p) => studentsById.has(p.fromStudentId)),
+    [pendingMatches, studentsById]
+  );
+
   // Gruppiere nach Eltern-Eingabe (Kind), damit zusammenhängende
   // Korrekturen visuell zusammenbleiben.
   const grouped = useMemo(() => {
     const map = new Map<string, PendingMatch[]>();
-    for (const p of pendingMatches) {
+    for (const p of validPending) {
       const arr = map.get(p.fromStudentId) ?? [];
       arr.push(p);
       map.set(p.fromStudentId, arr);
     }
     return Array.from(map.entries());
-  }, [pendingMatches]);
+  }, [validPending]);
+
+  if (validPending.length === 0) return null;
 
   return (
     <section
@@ -1643,8 +1751,8 @@ function PendingMatchesPanel({
             Eltern-Eingaben prüfen
           </p>
           <h3 className="text-lg md:text-xl font-bold text-primary leading-tight tracking-tight">
-            {pendingMatches.length} freie Eingabe
-            {pendingMatches.length === 1 ? "" : "n"} – Zuordnung bestätigen
+            {validPending.length} freie Eingabe
+            {validPending.length === 1 ? "" : "n"} – Zuordnung bestätigen
           </h3>
           <p className="text-xs text-text-light leading-relaxed mt-1.5 max-w-2xl">
             Eltern haben die folgenden Namen frei eingetippt. Ein eindeutiger
@@ -1709,6 +1817,7 @@ function PendingMatchesPanel({
                   <PendingRow
                     key={item.id}
                     item={item}
+                    candidates={candidates}
                     onAccept={(targetId) => acceptPending(item.id, targetId)}
                   />
                 ))}
@@ -1733,11 +1842,21 @@ function PendingMatchesPanel({
 
 function PendingRow({
   item,
+  candidates,
   onAccept,
 }: {
   item: PendingMatch;
+  candidates: { id: string; name: string }[];
   onAccept: (targetId: string | null) => void;
 }) {
+  // Vorschläge live aus aktueller Schülerliste — so kommen nachträglich
+  // angelegte Schüler*innen automatisch als mögliche Treffer dazu.
+  const suggestions = useMemo(() => {
+    return findNameMatches(item.rawName, candidates).filter(
+      (s) => s.id !== item.fromStudentId
+    );
+  }, [item.rawName, item.fromStudentId, candidates]);
+
   const catLabel =
     item.category === "wish"
       ? "möchte mit"
@@ -1764,9 +1883,9 @@ function PendingRow({
           „{item.rawName}"
         </span>
       </div>
-      {item.suggestions.length > 0 ? (
+      {suggestions.length > 0 ? (
         <div className="flex flex-wrap gap-2">
-          {item.suggestions.map((s) => (
+          {suggestions.map((s) => (
             <SuggestionChip
               key={s.id}
               suggestion={s}
@@ -1789,8 +1908,8 @@ function PendingRow({
               className="inline h-3.5 w-3.5 mr-1 text-amber-600"
               aria-hidden="true"
             />
-            Kein passendes Kind gefunden. Wahrscheinlich hat das gewünschte
-            Kind sich nicht angemeldet.
+            Noch kein passendes Kind. Sobald Sie diese*n Schüler*in manuell
+            anlegen, erscheint hier automatisch ein Vorschlag.
           </p>
           <button
             type="button"
@@ -1852,17 +1971,166 @@ function SuggestionChip({
 // Druckansicht: Eltern-Wunschzettel — eine ganze A4-Seite pro Kind.
 // Primärer CTA: QR-Code zum Online-Ausfüllen am Smartphone.
 // Backup unten: Papier-Checkboxen, falls kein Smartphone zur Hand.
+/**
+ * Sind für dieses Kind bereits Präferenzen erfasst (lokal oder online)?
+ * Solche Kinder bekommen kein Eltern-Druckformular mehr.
+ */
+function alreadyHasPreferences(s: Student): boolean {
+  return (
+    !!s.registrationId ||
+    s.wishes.length > 0 ||
+    s.noGo.length > 0 ||
+    s.siblings.length > 0
+  );
+}
+
+/**
+ * UI-Karte mit dem Druck-Button — informiert über automatisch
+ * ausgenommene Kinder und enthält ein einklappbares Feld für die
+ * Schul-Ansprechperson, die in jedem QR/Druckformular landet.
+ */
+function PrintCard({
+  students,
+  schoolName,
+  setSchoolName,
+  contactName,
+  setContactName,
+  contactEmail,
+  setContactEmail,
+}: {
+  students: Student[];
+  schoolName: string;
+  setSchoolName: (v: string) => void;
+  contactName: string;
+  setContactName: (v: string) => void;
+  contactEmail: string;
+  setContactEmail: (v: string) => void;
+}) {
+  const printable = students.filter((s) => !alreadyHasPreferences(s));
+  const excluded = students.length - printable.length;
+  const hasContact = !!(schoolName || contactName || contactEmail);
+  const [contactOpen, setContactOpen] = useState(hasContact);
+  return (
+    <div className="rounded-xl bg-white border border-border p-4 shadow-sm">
+      <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light mb-2">
+        <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+        Eltern-Formulare drucken
+      </p>
+      <p className="text-xs text-text-light leading-relaxed mb-3">
+        Eine A4-Seite pro Kind mit großem QR-Code für die Online-Erfassung
+        am Smartphone — kein Schneiden nötig.
+      </p>
+
+      {/* Kontakt-Block (einklappbar) */}
+      <div className="mb-3 rounded-lg border border-dashed border-border bg-bg/40">
+        <button
+          type="button"
+          onClick={() => setContactOpen((o) => !o)}
+          aria-expanded={contactOpen}
+          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-bg/60 transition-colors rounded-lg"
+        >
+          <span
+            aria-hidden="true"
+            className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+              hasContact ? "bg-emerald-500" : "bg-text-light/40"
+            }`}
+          />
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-light flex-1">
+            Schul-Ansprechperson{" "}
+            <span className="font-normal normal-case tracking-normal text-text-light/70">
+              {hasContact ? "· erfasst" : "· empfohlen"}
+            </span>
+          </span>
+          <span className="text-[10px] text-text-light">
+            {contactOpen ? "▲" : "▼"}
+          </span>
+        </button>
+        {contactOpen && (
+          <div className="px-3 pb-3 space-y-1.5 border-t border-border/60 pt-2">
+            <p className="text-[10px] text-text-light leading-relaxed mb-1">
+              Erscheint in jedem gedruckten Wunschzettel und auch in der
+              QR-Online-Maske, sodass Eltern wissen, wen sie ansprechen können.
+            </p>
+            <input
+              type="text"
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              placeholder="Schulname (z. B. Mustergrundschule)"
+              className="w-full rounded-md border border-border bg-white px-2 py-1.5 text-xs focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+            />
+            <input
+              type="text"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="Ansprechperson (z. B. Frau Müller)"
+              className="w-full rounded-md border border-border bg-white px-2 py-1.5 text-xs focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+            />
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="kontakt@schule.de"
+              autoComplete="email"
+              inputMode="email"
+              className="w-full rounded-md border border-border bg-white px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
+            />
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => window.print()}
+        disabled={printable.length === 0}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-40"
+      >
+        <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+        {printable.length} Formular{printable.length === 1 ? "" : "e"} drucken
+      </button>
+      {excluded > 0 && (
+        <p className="mt-2 text-[11px] text-text-light leading-relaxed">
+          <CheckCircle2
+            className="inline h-3 w-3 mr-1 text-emerald-600"
+            aria-hidden="true"
+          />
+          <strong className="text-text">{excluded}</strong> Kind
+          {excluded === 1 ? "" : "er"} übersprungen — Wünsche schon erfasst
+          oder Online-Anmeldung vorhanden.
+        </p>
+      )}
+      {printable.length === 0 && students.length > 0 && (
+        <p className="mt-2 text-[11px] text-emerald-700 leading-relaxed font-bold">
+          Alle Kinder haben bereits Präferenzen — keine Druckformulare nötig.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PrintForms({
   students,
   maxWishes,
   rosterName,
+  schoolName,
+  contactName,
+  contactEmail,
 }: {
   students: Student[];
   maxWishes: number;
   rosterName: string;
+  schoolName: string;
+  contactName: string;
+  contactEmail: string;
 }) {
   const [qrMap, setQrMap] = useState<Record<string, string>>({});
   const [origin, setOrigin] = useState("");
+
+  // Nur Kinder ohne Präferenzen werden gedruckt — alles andere wäre
+  // verschwendetes Papier (online angemeldet, Wünsche schon gesetzt).
+  const studentsToPrint = useMemo(
+    () => students.filter((s) => !alreadyHasPreferences(s)),
+    [students]
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -1882,8 +2150,12 @@ function PrintForms({
         createdAt: 0,
         updatedAt: 0,
       };
-      for (const s of students) {
-        const payload = buildPayloadForStudent(fakeRoster, s, maxWishes);
+      for (const s of studentsToPrint) {
+        const payload = buildPayloadForStudent(fakeRoster, s, maxWishes, {
+          schoolName,
+          contactName,
+          contactEmail,
+        });
         const url = `${origin}/werkzeuge/klassenverteilung/wunsch#p=${encodePayload(payload)}`;
         try {
           next[s.id] = await QRCode.toDataURL(url, {
@@ -1900,36 +2172,66 @@ function PrintForms({
     return () => {
       cancelled = true;
     };
-  }, [students, maxWishes, rosterName, origin]);
+  }, [
+    students,
+    studentsToPrint,
+    maxWishes,
+    rosterName,
+    origin,
+    schoolName,
+    contactName,
+    contactEmail,
+  ]);
+
+  if (studentsToPrint.length === 0) {
+    // Nichts zu drucken — keine Eltern-Formulare nötig.
+    return null;
+  }
 
   return (
     <div className="hidden print:block">
       <style>{`
         @media print {
           @page { margin: 1.4cm; }
-          body { background: white !important; }
-          .wunsch-form {
-            page-break-after: always;
-            break-after: page;
-            page-break-inside: avoid;
-            break-inside: avoid;
+          html, body { background: white !important; }
+          /* Verhindert, dass Grid-/Flex-Container der Eltern-Layouts
+             Page-Breaks der Druckformulare unterdrücken. */
+          .wunsch-print-host,
+          .wunsch-print-host > *,
+          .wunsch-form-wrapper {
+            display: block !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
           }
-          .wunsch-form:last-child {
-            page-break-after: auto;
-            break-after: auto;
+          .wunsch-form-wrapper {
+            /* Jede Karte beginnt auf einer NEUEN Seite (außer der ersten).
+               page-break-before ist robuster als after, wenn der Container
+               in einem Grid liegt. */
+            break-before: page;
+            page-break-before: always;
+          }
+          .wunsch-form-wrapper:first-child {
+            break-before: auto;
+            page-break-before: auto;
+          }
+          .wunsch-form {
+            display: block !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
-      {students.map((s) => (
+      <div className="wunsch-print-host">
+      {studentsToPrint.map((s) => (
+        <div key={s.id} className="wunsch-form-wrapper">
         <div
-          key={s.id}
           className="wunsch-form bg-white"
         >
           {/* Kopfzeile */}
           <div className="flex items-baseline justify-between border-b-2 border-primary pb-2 mb-6">
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] text-text-light">
-                DigiKI · Klassenbildung
+                {schoolName ? schoolName : "DigiKI · Klassenbildung"}
               </p>
               <p className="text-sm font-bold text-primary">Wunschzettel</p>
             </div>
@@ -2014,14 +2316,40 @@ function PrintForms({
             </div>
           </div>
 
-          <p className="text-[8px] text-text-light leading-relaxed mt-4">
+          {/* Kontakt + Legal Footer auf dem Druckbogen */}
+          <div className="mt-4 grid grid-cols-[1fr_auto] gap-4 pt-3 border-t border-text/15">
+            <div className="text-[9px] text-text leading-relaxed">
+              {(contactName || contactEmail) && (
+                <>
+                  <p className="text-[8px] uppercase tracking-[0.18em] text-text-light mb-0.5">
+                    Bei Rückfragen
+                  </p>
+                  {contactName && (
+                    <p className="font-bold text-text">{contactName}</p>
+                  )}
+                  {contactEmail && (
+                    <p className="font-mono text-text-light">{contactEmail}</p>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="text-[8px] text-text-light text-right leading-relaxed">
+              <p>digiki-os.de/impressum</p>
+              <p>digiki-os.de/datenschutz</p>
+              <p>digiki-os.de/barrierefreiheit</p>
+            </div>
+          </div>
+
+          <p className="text-[8px] text-text-light leading-relaxed mt-3">
             Lokale Verarbeitung im Browser der Schule, Löschung nach Abschluss
             der Klassenbildung. Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO
             i. V. m. § 31 NSchG. Onlineformular: kein Server-Upload, Daten
             verbleiben im Browser.
           </p>
         </div>
+        </div>
       ))}
+      </div>
     </div>
   );
 }

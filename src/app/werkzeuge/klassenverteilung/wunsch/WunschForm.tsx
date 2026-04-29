@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Heart,
   Ban,
@@ -13,6 +14,7 @@ import {
   ArrowRight,
   RotateCcw,
   Smartphone,
+  UserCheck,
 } from "lucide-react";
 import QRCode from "qrcode";
 import {
@@ -264,7 +266,7 @@ export default function WunschForm() {
   return (
     <div className="min-h-screen bg-bg pb-32">
       {/* Hero */}
-      <div className="bg-primary text-white px-4 pt-8 pb-6">
+      <div className="bg-primary text-white px-4 pt-8 pb-16">
         <div className="mx-auto max-w-md">
           <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2">
             <Smartphone className="h-3 w-3" aria-hidden="true" />
@@ -285,7 +287,7 @@ export default function WunschForm() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 -mt-4 space-y-5">
+      <div className="mx-auto max-w-md px-4 -mt-12 space-y-5 relative">
         {/* Wünsche */}
         <section className="rounded-2xl bg-white border-2 border-emerald-300 shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
@@ -392,14 +394,96 @@ export default function WunschForm() {
           </ul>
         </section>
 
+        {/* Schul-Ansprechperson */}
+        {(payload.cn || payload.ce || payload.sn) && (
+          <section className="rounded-2xl bg-white border border-border shadow-sm p-5">
+            <h2 className="inline-flex items-center gap-2 text-base font-bold text-primary mb-1.5">
+              <UserCheck className="h-5 w-5" aria-hidden="true" />
+              Bei Rückfragen
+            </h2>
+            <p className="text-xs text-text-light mb-2 leading-relaxed">
+              Wenden Sie sich an Ihre Schule:
+            </p>
+            <div className="text-sm text-text leading-relaxed">
+              {payload.sn && (
+                <p className="text-text-light text-xs">{payload.sn}</p>
+              )}
+              {payload.cn && <p className="font-bold">{payload.cn}</p>}
+              {payload.ce && (
+                <a
+                  href={`mailto:${payload.ce}?subject=${encodeURIComponent(
+                    `Klassen-Wunschzettel: ${self.name}`
+                  )}`}
+                  className="font-mono text-primary underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong break-all"
+                >
+                  {payload.ce}
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
         <div className="flex items-start gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-text leading-relaxed">
           <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
           <p>
             <strong>Datenschutz:</strong> Ihre Auswahl wird nirgendwo
             hochgeladen. Sie erzeugen am Ende einen kleinen Code, den Sie der
             Lehrkraft zurückgeben (per QR, E-Mail oder Abtippen).
+            Rechtsgrundlage: Art. 6 Abs. 1 lit. e DSGVO i. V. m. § 31 NSchG.
+            Ausführliche Hinweise unter{" "}
+            <Link
+              href="/datenschutz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong"
+            >
+              digiki-os.de/datenschutz
+            </Link>
+            .
           </p>
         </div>
+
+        {/* Legal-Footer */}
+        <footer className="pt-4 border-t border-border text-center">
+          <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-text-light">
+            <li>
+              <Link
+                href="/impressum"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Impressum
+              </Link>
+            </li>
+            <li aria-hidden="true">·</li>
+            <li>
+              <Link
+                href="/datenschutz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Datenschutz
+              </Link>
+            </li>
+            <li aria-hidden="true">·</li>
+            <li>
+              <Link
+                href="/barrierefreiheit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary underline-offset-2 hover:underline"
+              >
+                Barrierefreiheit
+              </Link>
+            </li>
+          </ul>
+          <p className="text-[10px] text-text-light/70 mt-2 leading-relaxed">
+            Bereitgestellt über DigiKI – Digitalisierung &amp; KI an
+            Grundschulen Osnabrück.
+          </p>
+        </footer>
       </div>
 
       {/* Sticky-Submit unten */}
