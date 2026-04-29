@@ -18,7 +18,6 @@ import {
   Undo2,
   Download,
   Printer,
-  ShieldCheck,
   Shuffle,
   ChevronRight,
   ChevronLeft,
@@ -38,6 +37,7 @@ import {
   loadRosters,
   makeRoster,
   makeStudent,
+  saveRosters,
   subscribeRosters,
   upsertRoster,
 } from "@/lib/werkzeuge/classRosters";
@@ -598,20 +598,161 @@ export default function KlassenverteilungApp() {
     [students, result]
   );
 
-  // ── Persistieren als Roster ──────────────────────────────────────
-  const persistRoster = useCallback(() => {
-    if (!saveName.trim() || students.length === 0) return;
-    const id = activeRosterId ?? makeRoster("temp").id;
-    const roster: ClassRoster = {
-      id,
-      name: saveName.trim(),
-      students,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    upsertRoster(roster);
-    setActiveRosterId(id);
-  }, [activeRosterId, saveName, students]);
+  // ── Persistieren der fertigen Klasseneinteilung ──────────────────
+  // Erst nach abgeschlossener Verteilung: jede Klasse aus dem Result
+  // wird als eigener Roster (Name = z. B. "1a") gespeichert. Falls
+  // gleichnamige Roster existieren (= Vorjahres-Klassen), wird die
+  // Lehrkraft via Modal um Konflikt-Auflösung gebeten.
+  type SavePlanItem = {
+    targetName: string;
+    classId: number;
+    students: Student[];
+  };
+  const [savePlan, setSavePlan] = useState<SavePlanItem[] | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  // Schwellwert: was ist der „letzte" Grundschul-Jahrgang?
+  // (Niedersachsen: 4 Klassen — danach Wechsel auf weiterführende Schule)
+  const PRIMARY_LAST_GRADE = 4;
+
+  const buildSavePlan = useCallback((): SavePlanItem[] | null => {
+    if (!result) return null;
+    return result.map((cls) => ({
+      targetName: formatClassLabel(cls.id, config.gradeLabel),
+      classId: cls.id,
+      students: cls.students.map((s) => ({ ...s })),
+    }));
+  }, [result, config.gradeLabel]);
+
+  /** Versucht eine Roster-Bezeichnung als „{Zahl}{Buchstabe}" zu parsen. */
+  const parseRosterGrade = useCallback(
+    (
+      name: string
+    ): { grade: number; suffix: string; original: string } | null => {
+      const m = name.trim().match(/^(\d+)([A-Za-zäöüß]*)$/);
+      if (!m) return null;
+      const grade = parseInt(m[1], 10);
+      if (!Number.isFinite(grade)) return null;
+      return { grade, suffix: m[2] ?? "", original: name };
+    },
+    []
+  );
+
+  const writeRosters = useCallback(
+    (items: SavePlanItem[], existingByName: Map<string, ClassRoster>) => {
+      let count = 0;
+      for (const item of items) {
+        const existing = existingByName.get(item.targetName);
+        const id = existing?.id ?? makeRoster("tmp").id;
+        upsertRoster({
+          id,
+          name: item.targetName,
+          students: item.students,
+          createdAt: existing?.createdAt ?? Date.now(),
+          updatedAt: Date.now(),
+        });
+        count++;
+      }
+      return count;
+    },
+    []
+  );
+
+  const advanceExistingRosters = useCallback(
+    (rosters: ClassRoster[]): { advanced: ClassRoster[]; graduated: ClassRoster[] } => {
+      const advanced: ClassRoster[] = [];
+      const graduated: ClassRoster[] = [];
+      for (const r of rosters) {
+        const parsed = parseRosterGrade(r.name);
+        if (!parsed) continue;
+        const newGrade = parsed.grade + 1;
+        const newName = `${newGrade}${parsed.suffix}`;
+        const updated: ClassRoster = {
+          ...r,
+          name: newName,
+          updatedAt: Date.now(),
+        };
+        if (newGrade > PRIMARY_LAST_GRADE) {
+          graduated.push(updated);
+        } else {
+          advanced.push(updated);
+        }
+      }
+      return { advanced, graduated };
+    },
+    [parseRosterGrade]
+  );
+
+  /** Trigger: prüft Konflikte und öffnet entweder Modal oder speichert direkt. */
+  const startSavePlan = useCallback(() => {
+    setSaveStatus(null);
+    const plan = buildSavePlan();
+    if (!plan || plan.length === 0) return;
+    setSavePlan(plan);
+  }, [buildSavePlan]);
+
+  /** Aktion „direkt speichern (überschreiben)" */
+  const saveDirect = useCallback(() => {
+    if (!savePlan) return;
+    const all = loadRosters();
+    const byName = new Map<string, ClassRoster>();
+    for (const r of all) byName.set(r.name, r);
+    const count = writeRosters(savePlan, byName);
+    setSaveStatus({
+      ok: true,
+      message: `${count} Klasse${count === 1 ? "" : "n"} gespeichert.`,
+    });
+    setSavePlan(null);
+  }, [savePlan, writeRosters]);
+
+  /** Aktion „bestehende um ein Jahr hochstufen, dann neue speichern" */
+  const saveWithAdvance = useCallback(
+    (alsoDeleteGraduated: boolean) => {
+      if (!savePlan) return;
+      const all = loadRosters();
+      const targetNames = new Set(savePlan.map((p) => p.targetName));
+      const conflictRosters = all.filter((r) => targetNames.has(r.name));
+      // Nur die KONFLIKT-Roster und (optional) andere passend-benannte
+      // Vorjahres-Roster hochstufen. Wir gehen pragmatisch vor und stufen
+      // alle Roster hoch, deren Name sich als „{Zahl}{Buchstabe}" parsen
+      // lässt — das deckt das übliche Schul-Setup.
+      const toAdvance = all.filter((r) => parseRosterGrade(r.name));
+      const { advanced, graduated } = advanceExistingRosters(toAdvance);
+
+      // Schritt 1: alle hochzustufenden Roster aktualisieren (oder löschen)
+      // Erst die alten (mit alten Namen) entfernen, damit kein Doppel-Eintrag
+      // mit dem neuen Namen existiert.
+      const idsToTouch = new Set(toAdvance.map((r) => r.id));
+      let cleaned = all.filter((r) => !idsToTouch.has(r.id));
+      // Hochgestufte hinzufügen
+      cleaned = [...advanced, ...cleaned];
+      // Abgängerklassen optional weglassen (= löschen)
+      if (!alsoDeleteGraduated) {
+        cleaned = [...graduated, ...cleaned];
+      }
+      saveRosters(cleaned);
+
+      // Schritt 2: neue Klassen schreiben (greifen jetzt auf freie Namen zu)
+      const byName = new Map<string, ClassRoster>();
+      for (const r of cleaned) byName.set(r.name, r);
+      const count = writeRosters(savePlan, byName);
+
+      setSaveStatus({
+        ok: true,
+        message: alsoDeleteGraduated
+          ? `${count} neue Klasse${count === 1 ? "" : "n"} gespeichert. ${conflictRosters.length} Vorjahres-Klassen hochgestuft, ${graduated.length} Abgängerklassen gelöscht.`
+          : `${count} neue Klasse${count === 1 ? "" : "n"} gespeichert. ${conflictRosters.length} Vorjahres-Klassen wurden hochgestuft.`,
+      });
+      setSavePlan(null);
+    },
+    [savePlan, advanceExistingRosters, parseRosterGrade, writeRosters]
+  );
+
+  const cancelSave = useCallback(() => {
+    setSavePlan(null);
+  }, []);
 
   // ── Eltern-Wunsch-Code übernehmen ────────────────────────────────
   // Decodiert einen Rück-Code und schreibt Wünsche/NoGo in den passenden
@@ -917,6 +1058,17 @@ export default function KlassenverteilungApp() {
         forceOpen={wizardForceOpen}
         onClose={() => setWizardForceOpen(false)}
       />
+      {savePlan && (
+        <SaveClassesModal
+          plan={savePlan}
+          existingRosters={rosters}
+          parseRosterGrade={parseRosterGrade}
+          primaryLastGrade={PRIMARY_LAST_GRADE}
+          onCancel={cancelSave}
+          onDirect={saveDirect}
+          onAdvance={saveWithAdvance}
+        />
+      )}
       {/* ╭─────── SIDEBAR: Klassenliste & Steps ───────╮ */}
       <aside className="space-y-5 print:hidden">
         {/* Klassenliste-Picker */}
@@ -1033,45 +1185,18 @@ export default function KlassenverteilungApp() {
           </ol>
         </nav>
 
-        {/* Speichern als Roster */}
-        <div className="rounded-xl bg-white border border-border p-4 shadow-sm space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
-            Als Klassenliste sichern
-          </p>
-          <input
-            type="text"
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            placeholder="z. B. Jahrgang 2026"
-            className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none"
-          />
-          <button
-            type="button"
-            onClick={persistRoster}
-            disabled={students.length === 0 || !saveName.trim()}
-            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
+        {/* Speichern erst nach abgeschlossener Verteilung — siehe Ergebnis-Schritt. */}
+        <div className="rounded-xl bg-white border border-dashed border-border p-3 text-[11px] text-text-light leading-relaxed">
+          <Save className="inline h-3.5 w-3.5 mr-1" aria-hidden="true" />
+          Klassen werden erst nach abgeschlossener Verteilung im Schritt
+          „Ergebnis" gespeichert. Sichtbar später auch in der{" "}
+          <Link
+            href="/werkzeuge/zufalls-auswahl"
+            className="text-primary underline decoration-accent-strong/40 underline-offset-2"
           >
-            <Save className="h-3.5 w-3.5" aria-hidden="true" />
-            Sichern
-          </button>
-          <p className="text-[11px] text-text-light leading-relaxed pt-1">
-            Sichtbar auch in der{" "}
-            <Link
-              href="/werkzeuge/zufalls-auswahl"
-              className="text-primary underline decoration-accent-strong/40 underline-offset-2"
-            >
-              Zufalls-Auswahl
-            </Link>
-            .
-          </p>
-        </div>
-
-        <div className="flex items-start gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-text leading-relaxed">
-          <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-          <p>
-            Alles bleibt lokal in diesem Browser. Kein Server, keine Konten,
-            kein Upload.
-          </p>
+            Zufalls-Auswahl
+          </Link>
+          .
         </div>
 
         <button
@@ -1206,6 +1331,9 @@ export default function KlassenverteilungApp() {
             notifyParents={notifyParents}
             notifyState={notifyState}
             gradeLabel={config.gradeLabel}
+            startSavePlan={startSavePlan}
+            saveStatus={saveStatus}
+            isSavePlanOpen={savePlan !== null}
           />
         )}
       </div>
@@ -2893,6 +3021,9 @@ interface ErgebnisStepProps {
   notifyParents: () => void;
   notifyState: NotifyState;
   gradeLabel: string;
+  startSavePlan: () => void;
+  saveStatus: { ok: boolean; message: string } | null;
+  isSavePlanOpen: boolean;
 }
 
 function ErgebnisStep(props: ErgebnisStepProps) {
@@ -2914,6 +3045,9 @@ function ErgebnisStep(props: ErgebnisStepProps) {
     notifyParents,
     notifyState,
     gradeLabel,
+    startSavePlan,
+    saveStatus,
+    isSavePlanOpen,
   } = props;
 
   // Anzahl Schüler*innen mit Eltern-E-Mail (Online-Session ODER
@@ -3421,6 +3555,351 @@ function ErgebnisStep(props: ErgebnisStepProps) {
           </div>
         </div>
       )}
+
+      {/* ── Klasseneinteilung speichern (eine Klassenliste pro Klasse) ── */}
+      <div className="rounded-xl bg-white border-2 border-primary/30 shadow-sm p-5 print:hidden">
+        <div className="flex items-start gap-3">
+          <Save className="h-5 w-5 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-light mb-1">
+              Verteilung speichern
+            </p>
+            <h4 className="text-base font-bold text-primary leading-tight mb-1">
+              Klassen als Klassenlisten anlegen
+            </h4>
+            <p className="text-xs text-text-light leading-relaxed">
+              Pro Klasse wird eine eigene Klassenliste gespeichert
+              {result && result.length > 0 && (
+                <>
+                  :{" "}
+                  {result.map((c, i) => (
+                    <span key={c.id}>
+                      <strong className="font-mono text-primary">
+                        {formatClassLabel(c.id, gradeLabel)}
+                      </strong>
+                      <span className="text-text-light/70">
+                        {" "}
+                        ({c.students.length})
+                      </span>
+                      {i < result.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </>
+              )}
+              . Sichtbar danach in der Sidebar und in der Zufalls-Auswahl.
+            </p>
+            {saveStatus && (
+              <p
+                className={`mt-2 text-xs leading-relaxed ${
+                  saveStatus.ok ? "text-emerald-700" : "text-red-700"
+                }`}
+                role="status"
+              >
+                {saveStatus.ok ? (
+                  <CheckCircle2
+                    className="inline h-3.5 w-3.5 mr-1"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <AlertTriangle
+                    className="inline h-3.5 w-3.5 mr-1"
+                    aria-hidden="true"
+                  />
+                )}
+                {saveStatus.message}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={startSavePlan}
+            disabled={isSavePlanOpen}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-white px-4 py-2.5 text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0"
+          >
+            <Save className="h-4 w-4" aria-hidden="true" />
+            Klassen speichern
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SaveClassesModal – Konflikt-Auflösung beim Speichern der Verteilung
+// ════════════════════════════════════════════════════════════════════════
+
+function SaveClassesModal({
+  plan,
+  existingRosters,
+  parseRosterGrade,
+  primaryLastGrade,
+  onCancel,
+  onDirect,
+  onAdvance,
+}: {
+  plan: { targetName: string; classId: number; students: Student[] }[];
+  existingRosters: ClassRoster[];
+  parseRosterGrade: (
+    name: string
+  ) => { grade: number; suffix: string; original: string } | null;
+  primaryLastGrade: number;
+  onCancel: () => void;
+  onDirect: () => void;
+  onAdvance: (alsoDeleteGraduated: boolean) => void;
+}) {
+  const targetNames = useMemo(
+    () => new Set(plan.map((p) => p.targetName)),
+    [plan]
+  );
+  const conflicts = useMemo(
+    () => existingRosters.filter((r) => targetNames.has(r.name)),
+    [existingRosters, targetNames]
+  );
+
+  // Welche bestehenden Roster sind „Vorjahres-Klassen" (passen ins Schema)?
+  const advancable = useMemo(
+    () => existingRosters.filter((r) => parseRosterGrade(r.name) !== null),
+    [existingRosters, parseRosterGrade]
+  );
+  // Wer würde nach +1 zur „Abgängerklasse"?
+  const wouldGraduate = useMemo(
+    () =>
+      advancable.filter((r) => {
+        const p = parseRosterGrade(r.name);
+        if (!p) return false;
+        return p.grade + 1 > primaryLastGrade;
+      }),
+    [advancable, parseRosterGrade, primaryLastGrade]
+  );
+
+  const [deleteGraduated, setDeleteGraduated] = useState(true);
+
+  // Kein Konflikt: speichern-Bestätigung kurz (eine Sekunde) und durchklicken
+  if (conflicts.length === 0) {
+    return (
+      <Modal onClose={onCancel} title="Klassen speichern">
+        <p className="text-sm text-text leading-relaxed mb-4">
+          {plan.length} Klasse{plan.length === 1 ? "" : "n"} werden neu
+          gespeichert:{" "}
+          {plan.map((p, i) => (
+            <span key={p.targetName}>
+              <strong className="font-mono text-primary">{p.targetName}</strong>
+              <span className="text-text-light/70"> ({p.students.length})</span>
+              {i < plan.length - 1 ? ", " : ""}
+            </span>
+          ))}
+          .
+        </p>
+        <p className="text-xs text-text-light leading-relaxed mb-4">
+          Bestehende Klassenlisten mit anderen Namen bleiben unverändert.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-bold text-text-light hover:bg-bg transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            onClick={onDirect}
+            className="rounded-lg bg-primary text-white px-4 py-2 text-sm font-bold hover:bg-primary/90 transition-colors"
+          >
+            <CheckCircle2
+              className="inline h-4 w-4 mr-1"
+              aria-hidden="true"
+            />
+            Speichern
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      onClose={onCancel}
+      title={`${conflicts.length} Klasse${conflicts.length === 1 ? "" : "n"} existieren bereits`}
+    >
+      <p className="text-sm text-text leading-relaxed mb-3">
+        Diese Namen sind bereits vergeben:{" "}
+        {conflicts.map((r, i) => (
+          <span key={r.id}>
+            <strong className="font-mono text-primary">{r.name}</strong>
+            {i < conflicts.length - 1 ? ", " : ""}
+          </span>
+        ))}
+        .
+      </p>
+      <p className="text-xs text-text-light leading-relaxed mb-5">
+        Wahrscheinlich die Verteilung vom letzten Schuljahr. Was möchten Sie
+        tun?
+      </p>
+
+      <div className="space-y-3">
+        {/* Option 1: Hochstufen */}
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-bold text-primary mb-1.5">
+            Bestehende Klassen um ein Jahr hochstufen
+          </p>
+          <p className="text-xs text-text-light leading-relaxed mb-3">
+            {advancable.length} Klassenliste
+            {advancable.length === 1 ? "" : "n"} werden umbenannt:{" "}
+            {advancable.slice(0, 5).map((r, i) => {
+              const p = parseRosterGrade(r.name);
+              if (!p) return null;
+              return (
+                <span key={r.id}>
+                  <span className="font-mono text-text">{r.name}</span>
+                  <span className="text-text-light/70"> → </span>
+                  <span className="font-mono text-primary">
+                    {p.grade + 1}
+                    {p.suffix}
+                  </span>
+                  {i < Math.min(advancable.length, 5) - 1 ? ", " : ""}
+                </span>
+              );
+            })}
+            {advancable.length > 5 && (
+              <span className="text-text-light/70">
+                {" "}
+                und {advancable.length - 5} weitere
+              </span>
+            )}
+            .
+          </p>
+          {wouldGraduate.length > 0 && (
+            <div className="rounded-lg bg-white border border-border p-3 mb-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteGraduated}
+                  onChange={(e) => setDeleteGraduated(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+                />
+                <span className="text-xs leading-relaxed">
+                  <strong className="text-text">
+                    Abgängerklassen löschen
+                  </strong>
+                  <span className="block text-text-light mt-0.5">
+                    {wouldGraduate.length} Klassenliste
+                    {wouldGraduate.length === 1 ? "" : "n"} würden in Jahrgang{" "}
+                    {primaryLastGrade + 1}+ landen (nicht mehr Grundschule):{" "}
+                    {wouldGraduate.map((r, i) => {
+                      const p = parseRosterGrade(r.name);
+                      if (!p) return null;
+                      return (
+                        <span key={r.id}>
+                          <span className="font-mono">
+                            {p.grade + 1}
+                            {p.suffix}
+                          </span>
+                          {i < wouldGraduate.length - 1 ? ", " : ""}
+                        </span>
+                      );
+                    })}
+                    . Empfehlung: löschen.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onAdvance(deleteGraduated)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-white px-4 py-2 text-sm font-bold hover:bg-primary/90 transition-colors"
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            Hochstufen + neue Klassen speichern
+          </button>
+        </div>
+
+        {/* Option 2: Überschreiben */}
+        <div className="rounded-xl border border-border bg-white p-4">
+          <p className="text-sm font-bold text-text mb-1.5">
+            Bestehende ersetzen
+          </p>
+          <p className="text-xs text-text-light leading-relaxed mb-3">
+            Die existierenden Klassen mit den genannten Namen werden{" "}
+            <strong>überschrieben</strong> — Schüler*innen aus dem alten
+            Eintrag gehen verloren. Andere Klassenlisten bleiben unverändert.
+          </p>
+          <button
+            type="button"
+            onClick={onDirect}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-bold text-text hover:bg-bg transition-colors"
+          >
+            Überschreiben
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-5 pt-4 border-t border-border">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-sm font-bold text-text-light hover:text-text underline-offset-2 hover:underline transition-colors"
+        >
+          Abbrechen
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function Modal({
+  onClose,
+  title,
+  children,
+}: {
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-3 py-4"
+    >
+      <button
+        type="button"
+        aria-label="Schließen"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+      <div
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        style={{
+          animation: "save-modal-in 240ms cubic-bezier(0.22,0.61,0.36,1) both",
+        }}
+      >
+        <div
+          aria-hidden="true"
+          className="h-1.5 bg-gradient-to-r from-primary via-primary-light to-accent"
+        />
+        <header className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-base font-bold text-primary">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="text-text-light hover:text-text rounded p-1"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </header>
+        <div className="px-5 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+      </div>
+      <style>{`
+        @keyframes save-modal-in {
+          from { opacity: 0; transform: translateY(8px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }
