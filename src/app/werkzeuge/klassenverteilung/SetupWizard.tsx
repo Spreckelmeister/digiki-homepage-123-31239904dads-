@@ -35,6 +35,22 @@ export default function SetupWizard({ forceOpen, onClose }: Props) {
   const [step, setStep] = useState(0);
 
   // Auth + State Discovery
+  // Open-Logic — läuft IMMER beim Mount, unabhängig vom Auth-Status.
+  // Erste Besucher (typischerweise nicht eingeloggt) sollen das Tutorial
+  // sehen, damit sie die Online-Funktionen überhaupt kennenlernen.
+  useEffect(() => {
+    if (forceOpen) {
+      setOpen(true);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const seen = window.localStorage.getItem(WIZARD_DONE_KEY) === "1";
+    if (!seen) setOpen(true);
+  }, [forceOpen]);
+
+  // Auth + Setup-Status separat ermitteln (für Step 2 + 3 Anpassung).
+  // Schlägt diese Discovery fehl, bleibt das Wizard trotzdem offen –
+  // es ist robust gegenüber 401/500/Netzwerkfehlern.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -46,6 +62,8 @@ export default function SetupWizard({ forceOpen, onClose }: Props) {
         if (cancelled) return;
         if (s.status === 401 || m.status === 401) {
           setAuth("anon");
+          setHasSession(false);
+          setHasSmtp(false);
           return;
         }
         setAuth("authed");
@@ -62,29 +80,17 @@ export default function SetupWizard({ forceOpen, onClose }: Props) {
           setHasSmtp(false);
         }
       } catch {
-        if (!cancelled) setAuth("anon");
+        if (!cancelled) {
+          setAuth("anon");
+          setHasSession(false);
+          setHasSmtp(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
-
-  // Open-Logic
-  useEffect(() => {
-    if (forceOpen) {
-      setOpen(true);
-      return;
-    }
-    if (typeof window === "undefined") return;
-    if (auth !== "authed") return;
-    if (hasSession === null || hasSmtp === null) return;
-    // Nur zeigen wenn noch nichts aufgesetzt ist UND Flag nicht da
-    const seen = window.localStorage.getItem(WIZARD_DONE_KEY) === "1";
-    if (!seen && !hasSession) {
-      setOpen(true);
-    }
-  }, [auth, hasSession, hasSmtp, forceOpen]);
 
   const close = () => {
     if (typeof window !== "undefined") {

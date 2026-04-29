@@ -2081,6 +2081,19 @@ function PendingRow({
     );
   }, [item.rawName, item.fromStudentId, candidates]);
 
+  // Auto-Übernahme bei eindeutigem 100%-Treffer.
+  // Greift sowohl beim ersten Render als auch wenn nachträglich ein Kind
+  // mit exakt passendem Namen ergänzt wird.
+  useEffect(() => {
+    if (suggestions.length === 0) return;
+    const top = suggestions[0];
+    if (top.score < 0.99) return;
+    // Optional: nur auto-akzeptieren, wenn der zweite Vorschlag deutlich
+    // schwächer ist (verhindert Auto-Confirm bei Mehrdeutigkeit).
+    if (suggestions.length > 1 && suggestions[1].score >= 0.99) return;
+    onAccept(top.id);
+  }, [suggestions, onAccept]);
+
   const catLabel =
     item.category === "wish"
       ? "möchte mit"
