@@ -38,12 +38,6 @@ export function OrganizationJsonLd() {
 export function EventsJsonLd() {
   const events = [
     {
-      name: "DigiKI Informationskonferenz – 4. Mai 2026",
-      startDate: "2026-05-04T15:30:00+02:00",
-      endDate: "2026-05-04T16:30:00+02:00",
-      url: "https://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET",
-    },
-    {
       name: "DigiKI Informationskonferenz – 8. Mai 2026",
       startDate: "2026-05-08T12:00:00+02:00",
       endDate: "2026-05-08T13:00:00+02:00",

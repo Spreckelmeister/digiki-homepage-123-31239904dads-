@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
+import InfoEventBanner from "@/components/InfoEventBanner";
 import { OrganizationJsonLd } from "@/components/JsonLd";
 import ConsentAnalytics from "@/components/ConsentAnalytics";
 
@@ -85,6 +86,7 @@ export default function RootLayout({
     <html lang="de" className={inter.className} data-scroll-behavior="smooth">
       <body className="min-h-screen flex flex-col">
         <OrganizationJsonLd />
+        <InfoEventBanner />
         <Header />
         <main id="main-content" className="flex-1">
           {children}

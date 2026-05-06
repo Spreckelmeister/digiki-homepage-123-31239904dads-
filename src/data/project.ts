@@ -249,20 +249,12 @@ export const newsItems = [
   },
   {
     id: "4",
-    title: "Informationskonferenzen: Jetzt teilnehmen",
-    date: "2026-05-04",
-    summary: "Lernen Sie DigiKI in einer unserer Online-Videokonferenzen per Microsoft Teams kennen und stellen Sie Ihre Fragen direkt an das Team.",
+    title: "Informationskonferenz: Jetzt teilnehmen",
+    date: "2026-05-08",
+    summary: "Lernen Sie DigiKI in einer Online-Videokonferenz per Microsoft Teams kennen und stellen Sie Ihre Fragen direkt an das Team.",
     slug: "onlinekonferenzen",
     type: "event" as const,
     dates: [
-      {
-        label: "Montag, 4. Mai 2026",
-        time: "15:30 Uhr",
-        joinUrl: "https://teams.microsoft.com/meet/39577880545452?p=oSRgpU19DXBOmrTEET",
-        meetingId: "395 778 805 454 52",
-        passcode: "v9Uj3Qz7",
-        icsUrl: "/downloads/digiki-infokonferenz-04-05-2026.ics",
-      },
       {
         label: "Freitag, 8. Mai 2026",
         time: "12:00 Uhr",

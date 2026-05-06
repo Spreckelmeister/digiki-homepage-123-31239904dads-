@@ -296,7 +296,7 @@ export default function HomePage() {
       </section>
 
       {/* Aktuelles */}
-      <section className="py-16 md:py-24" aria-labelledby="news-heading">
+      <section id="aktuelles" className="py-16 md:py-24 scroll-mt-24" aria-labelledby="news-heading">
         <AnimatedSection className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2
