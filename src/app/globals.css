@@ -39,6 +39,22 @@ body {
   animation: countUp 0.6s ease-out forwards;
 }
 
+/* Sanftes Hereingleiten der Hinweis-Leiste beim ersten Paint */
+@keyframes infoBannerReveal {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.info-banner {
+  animation: infoBannerReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-banner {
+    animation: none;
+  }
+}
+
 /* Focus-Styles für Barrierefreiheit – accent-strong (#AB7A0E) liefert
    ~4:1 Kontrast auf Weiß und bleibt gegen bg-primary (dunkles Teal) sichtbar.
    Erfüllt WCAG 1.4.11 Non-Text Contrast (3:1). */
