@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { X, ArrowRight } from "lucide-react";
 
@@ -16,6 +17,7 @@ function relativeLabel(daysUntil: number): string {
 }
 
 export default function InfoEventBanner() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [countdown, setCountdown] = useState<string | null>(null);
 
@@ -103,19 +105,34 @@ export default function InfoEventBanner() {
             <span className="text-text-light"> per Microsoft Teams</span>
           </p>
 
-          {/* CTA – schiebt sich rechts ans Ende */}
-          <Link
-            href="/#aktuelles"
-            className="group mt-0.5 inline-flex w-fit items-center gap-1.5 self-start text-[12.5px] font-bold tracking-wide text-primary transition-colors hover:text-accent-strong sm:ml-auto sm:mt-0 sm:self-auto"
-          >
-            <span className="border-b border-primary/40 pb-px transition-colors group-hover:border-accent-strong">
-              Jetzt anmelden
-            </span>
-            <ArrowRight
-              className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
-          </Link>
+          {/* CTA – auf der Startseite reines Anchor-Scrolling, sonst SPA-Nav */}
+          {pathname === "/" ? (
+            <a
+              href="#aktuelles"
+              className="group mt-0.5 inline-flex w-fit items-center gap-1.5 self-start text-[12.5px] font-bold tracking-wide text-primary transition-colors hover:text-accent-strong sm:ml-auto sm:mt-0 sm:self-auto"
+            >
+              <span className="border-b border-primary/40 pb-px transition-colors group-hover:border-accent-strong">
+                Jetzt anmelden
+              </span>
+              <ArrowRight
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </a>
+          ) : (
+            <Link
+              href="/#aktuelles"
+              className="group mt-0.5 inline-flex w-fit items-center gap-1.5 self-start text-[12.5px] font-bold tracking-wide text-primary transition-colors hover:text-accent-strong sm:ml-auto sm:mt-0 sm:self-auto"
+            >
+              <span className="border-b border-primary/40 pb-px transition-colors group-hover:border-accent-strong">
+                Jetzt anmelden
+              </span>
+              <ArrowRight
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+          )}
         </div>
       </div>
 

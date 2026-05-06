@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, CalendarDays, Quote, Clock } from "lucide-react";
+import { ArrowRight, ExternalLink, User, PenLine, Users2, BookOpen, Laptop, Quote, Clock } from "lucide-react";
 import StatCounter from "@/components/StatCounter";
 import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
@@ -307,51 +307,126 @@ export default function HomePage() {
             </h2>
           </div>
           {/* Event-Karten direkt unter der Überschrift */}
-          {newsItems.filter((i) => i.type === "event").map((item) => (
-            <article
-              key={item.id}
-              className="mb-8 rounded-xl overflow-hidden shadow-sm border border-border"
-            >
-              {/* Header */}
-              <div className="bg-primary px-6 py-5">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide bg-white/15 text-white rounded-full px-3 py-1 mb-3">
-                  <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
-                  Offene Informationsveranstaltung
-                </span>
-                <h3 className="text-xl font-bold text-white">{item.title}</h3>
-              </div>
+          {newsItems.filter((i) => i.type === "event").map((item) => {
+            const dates = "dates" in item && item.dates ? item.dates : [];
+            const cols =
+              dates.length === 1
+                ? "grid-cols-1"
+                : "grid-cols-1 md:grid-cols-2";
 
-              {/* Termine */}
-              {"dates" in item && item.dates && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
-                  {item.dates.map((d) => (
+            return (
+              <article
+                key={item.id}
+                className="mb-8 overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
+              >
+                {/* Header – dunkles Primary mit weichem Türkis-Lichtschein */}
+                <div className="relative isolate overflow-hidden bg-primary px-6 py-6 sm:px-8 sm:py-7">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                  >
                     <div
-                      key={d.label}
-                      className="bg-white p-6"
-                    >
-                      <p className="font-bold text-primary text-lg">{d.label}</p>
-                      <p className="text-text-light mb-4">{d.time}</p>
-                      <div className="mb-4">
-                        <a
-                          href={d.joinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Per Teams teilnehmen – ${d.label}, ${d.time}`}
-                          className="inline-flex items-center gap-1.5 bg-accent text-text rounded-lg px-4 py-2 text-sm font-semibold hover:bg-accent-hover transition-colors"
-                        >
-                          Per Teams teilnehmen
-                          <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                        </a>
-                      </div>
-                      <p className="text-xs text-text-light leading-relaxed">
-                        ID: {d.meetingId} · Passcode: {d.passcode}
-                      </p>
-                    </div>
-                  ))}
+                      className="absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl"
+                      style={{ background: "var(--color-primary-light)" }}
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.12] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white ring-1 ring-inset ring-white/10">
+                      <span
+                        className="relative flex h-1.5 w-1.5"
+                        aria-hidden="true"
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                      </span>
+                      Offene Informationsveranstaltung
+                    </span>
+                    <h3 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-white sm:text-[26px]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">
+                      {item.summary}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </article>
-          ))}
+
+                {/* Termine */}
+                {dates.length > 0 && (
+                  <div className={`grid gap-px bg-border ${cols}`}>
+                    {dates.map((d) => {
+                      const [weekday, datePart] = d.label.split(",");
+                      const timeNumber = d.time.replace(" Uhr", "");
+                      return (
+                        <div
+                          key={d.label}
+                          className="bg-white p-6 sm:p-8"
+                        >
+                          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+                            {/* Datum-„Stub" */}
+                            <div className="border-b border-border pb-6 sm:min-w-[180px] sm:border-b-0 sm:border-r sm:pb-0 sm:pr-8">
+                              <p className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-primary">
+                                {weekday?.trim()}
+                              </p>
+                              <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-text">
+                                {datePart?.trim() ?? d.label}
+                              </p>
+                              <div className="mt-5 flex items-baseline gap-2">
+                                <Clock
+                                  className="h-4 w-4 self-center text-primary-light"
+                                  aria-hidden="true"
+                                />
+                                <span className="text-3xl font-bold leading-none tabular-nums text-primary">
+                                  {timeNumber}
+                                </span>
+                                <span className="text-sm text-text-light">
+                                  Uhr
+                                </span>
+                              </div>
+                              <p className="mt-1.5 text-xs text-text-light">
+                                per Microsoft Teams
+                              </p>
+                            </div>
+
+                            {/* Aktion + Zugangsdaten */}
+                            <div className="flex flex-1 flex-col gap-4">
+                              <a
+                                href={d.joinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Per Teams teilnehmen – ${d.label}, ${d.time}`}
+                                className="group inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-bold text-text shadow-sm transition-all hover:bg-accent-hover hover:shadow-md"
+                              >
+                                Per Teams teilnehmen
+                                <ExternalLink
+                                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                                  aria-hidden="true"
+                                />
+                              </a>
+
+                              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-lg border border-border bg-bg px-4 py-3">
+                                <dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-light">
+                                  Meeting-ID
+                                </dt>
+                                <dd className="font-mono text-xs tabular-nums text-text">
+                                  {d.meetingId}
+                                </dd>
+                                <dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-light">
+                                  Passcode
+                                </dt>
+                                <dd className="font-mono text-xs text-text">
+                                  {d.passcode}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
+            );
+          })}
 
           {/* Reguläre News */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
