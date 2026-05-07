@@ -22,8 +22,13 @@ export default function InfoEventBanner() {
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
+    // Migration: ältere Versionen haben den Dismiss persistent in
+    // localStorage gespeichert. Eintrag einmalig entfernen, damit
+    // niemand dauerhaft ohne Erinnerung zurückbleibt.
+    localStorage.removeItem(STORAGE_KEY);
+
     if (new Date() > new Date(EVENT_END_ISO)) return;
-    if (localStorage.getItem(STORAGE_KEY) === "dismissed") return;
+    if (sessionStorage.getItem(STORAGE_KEY) === "dismissed") return;
 
     const now = new Date();
     const event = new Date(EVENT_DATE_ISO);
@@ -42,7 +47,7 @@ export default function InfoEventBanner() {
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "dismissed");
+    sessionStorage.setItem(STORAGE_KEY, "dismissed");
     setVisible(false);
   };
 

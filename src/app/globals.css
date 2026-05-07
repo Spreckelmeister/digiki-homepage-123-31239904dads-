@@ -98,6 +98,10 @@ select:focus-visible {
      damit die Reveal-Animation am tatsächlichen Layout-Standort stattfindet. */
   transform: translateY(calc(-100% - 1.5rem));
   opacity: 0;
+  /* pointer-events:none verhindert, dass die unsichtbare Pille Klicks/Taps
+     abfängt – z.B. im darüberliegenden Banner-Bereich auf Mobile. Tab-Fokus
+     funktioniert davon unabhängig weiter. */
+  pointer-events: none;
   box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   transition:
     transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
@@ -109,6 +113,7 @@ select:focus-visible {
 .skip-link:focus-visible {
   transform: translateY(0);
   opacity: 1;
+  pointer-events: auto;
   box-shadow:
     0 12px 28px -8px rgba(0, 99, 99, 0.4),
     0 4px 10px -2px rgba(0, 99, 99, 0.18);
