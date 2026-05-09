@@ -11,6 +11,7 @@ import CookieBanner from "@/components/CookieBanner";
 // import InfoEventBanner from "@/components/InfoEventBanner";
 import { OrganizationJsonLd } from "@/components/JsonLd";
 import ConsentAnalytics from "@/components/ConsentAnalytics";
+import GoogleReview from "@/components/GoogleReview";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://digiki-os.de";
 
@@ -98,6 +99,7 @@ export default function RootLayout({
         <Footer />
         <CookieBanner />
         <ConsentAnalytics />
+        <GoogleReview />
       </body>
     </html>
   );

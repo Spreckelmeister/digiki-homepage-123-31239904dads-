@@ -49,8 +49,31 @@ body {
   animation: infoBannerReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Google-Bewertungs-FAB: kommt nach 1.2s sanft von rechts unten rein,
+   damit er nicht mit dem Hero konkurriert. Sterne pulsieren extrem dezent
+   versetzt – dadurch wirkt der Knopf „lebendig", aber nicht aufdringlich. */
+@keyframes googleReviewReveal {
+  from { opacity: 0; transform: translate(40px, 16px) scale(0.92); }
+  to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes googleReviewStar {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(0.78); opacity: 0.55; }
+}
+
+.google-review-fab {
+  animation: googleReviewReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both;
+}
+
+.google-review-star {
+  animation: googleReviewStar 3.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .info-banner {
+  .info-banner,
+  .google-review-fab,
+  .google-review-star {
     animation: none;
   }
 }
