@@ -60,21 +60,50 @@ export default function GoogleReview() {
     return () => clearTimeout(t);
   }, [allowed]);
 
-  // Footer-Sichtbarkeit beobachten – sobald der Footer ins Viewport
-  // rutscht, ist der Ansprechpartner-Block gerade durchgescrollt.
-  // Dann FAB ausblenden, damit er Datenschutz/Barrierefreiheit-Links
-  // nicht überlappt.
+  // Scroll-basiertes Ausblenden, sobald der Footer kurz vor dem
+  // Eintauchen ins Viewport ist. Bewusst KEIN IntersectionObserver:
+  // auf iOS Safari verursacht das ein-/ausfahrende Adressleisten-
+  // Verhalten dort sonst flackernde Trigger und der FAB versteckt
+  // sich nicht zuverlässig.
   useEffect(() => {
     if (!allowed) return;
-    const footer = document.querySelector("footer");
-    if (!footer) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setAtFooter(entry.isIntersecting),
-      { rootMargin: "0px" },
-    );
-    observer.observe(footer);
-    return () => observer.disconnect();
+    let rafId: number | null = null;
+    let mounted = true;
+
+    const check = () => {
+      const footer = document.querySelector("footer");
+      if (!footer) {
+        setAtFooter(false);
+        return;
+      }
+      // offsetTop ist die ABSOLUTE Position vom Dokumentenanfang –
+      // unabhängig von Scrollposition oder Viewport-Höhen-Wechseln.
+      const footerTop = (footer as HTMLElement).offsetTop;
+      const viewportBottom = window.scrollY + window.innerHeight;
+      // 40px Puffer: ausblenden bereits kurz BEVOR der Footer ins
+      // Viewport rutscht – damit nichts überlappt.
+      setAtFooter(viewportBottom > footerTop - 40);
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId !== null || !mounted) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        check();
+      });
+    };
+
+    check();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
+
+    return () => {
+      mounted = false;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
   }, [allowed, pathname]);
 
   if (!allowed) return null;
