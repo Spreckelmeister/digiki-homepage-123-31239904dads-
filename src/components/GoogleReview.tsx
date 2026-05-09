@@ -60,11 +60,12 @@ export default function GoogleReview() {
     return () => clearTimeout(t);
   }, [allowed]);
 
-  // Scroll-basiertes Ausblenden, sobald der Footer kurz vor dem
-  // Eintauchen ins Viewport ist. Bewusst KEIN IntersectionObserver:
-  // auf iOS Safari verursacht das ein-/ausfahrende Adressleisten-
-  // Verhalten dort sonst flackernde Trigger und der FAB versteckt
-  // sich nicht zuverlässig.
+  // Sobald sich die Ansprechpartner-Karte dem Viewport nähert,
+  // FAB ausblenden – damit er die Karte und die Footer-Links nicht
+  // überlappt. Bewusst kein IntersectionObserver: auf iOS Safari führt
+  // das ein-/ausfahrende Adressleisten-Verhalten sonst zu flackernden
+  // Triggern. getBoundingClientRect liefert hier zuverlässig die
+  // tatsächliche Viewport-Position.
   useEffect(() => {
     if (!allowed) return;
 
@@ -72,18 +73,22 @@ export default function GoogleReview() {
     let mounted = true;
 
     const check = () => {
-      const footer = document.querySelector("footer");
-      if (!footer) {
+      if (!mounted) return;
+      // Priorität: Ansprechpartner-Karte → Kontakt-Section → Footer.
+      // So wird der FAB schon ausgeblendet, sobald der Nutzer in die
+      // Nähe der Ansprechpartner-Box kommt.
+      const target =
+        document.getElementById("ansprechpartner") ||
+        document.getElementById("kontakt") ||
+        document.querySelector("footer");
+      if (!target) {
         setAtFooter(false);
         return;
       }
-      // offsetTop ist die ABSOLUTE Position vom Dokumentenanfang –
-      // unabhängig von Scrollposition oder Viewport-Höhen-Wechseln.
-      const footerTop = (footer as HTMLElement).offsetTop;
-      const viewportBottom = window.scrollY + window.innerHeight;
-      // 40px Puffer: ausblenden bereits kurz BEVOR der Footer ins
-      // Viewport rutscht – damit nichts überlappt.
-      setAtFooter(viewportBottom > footerTop - 40);
+      const targetTop = target.getBoundingClientRect().top;
+      // Trigger 80px BEVOR das Ziel ins Viewport rutscht – das deckt
+      // die 500ms Fade-Animation bei normaler Scroll-Geschwindigkeit ab.
+      setAtFooter(targetTop < window.innerHeight + 80);
     };
 
     const onScrollOrResize = () => {

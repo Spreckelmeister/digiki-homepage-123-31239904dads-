@@ -52,7 +52,7 @@ export default function ContactSection() {
           </div>
 
           {/* Rechte Seite: Ansprechpartner + CTA-Karte */}
-          <div className="bg-white/10 rounded-xl p-8">
+          <div id="ansprechpartner" className="bg-white/10 rounded-xl p-8">
             <h3 className="text-lg font-semibold text-white mb-1">
               Ihr Ansprechpartner
             </h3>
