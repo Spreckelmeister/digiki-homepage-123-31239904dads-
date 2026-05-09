@@ -1,6 +1,19 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Star, ArrowUpRight } from "lucide-react";
 
 const REVIEW_URL = "https://g.page/r/CV8p1BBvVrmHEBM/review";
+
+/** Nur auf diesen Top-Level-Routen wird der Bewertungs-FAB gezeigt.
+ *  Exakter Vergleich – Unterseiten wie /fuer-schulen/antrag-... sind
+ *  bewusst ausgenommen, damit Formularseiten nichts ablenkt. */
+const ALLOWED_PATHS = new Set([
+  "/",
+  "/ueber-das-projekt",
+  "/fuer-schulen",
+]);
 
 /** Offizielles Google-„G" in den vier Markenfarben (#4285F4 / #34A853 /
  *  #FBBC05 / #EA4335). Wird unverändert wiedergegeben – das ist
@@ -35,52 +48,93 @@ function GoogleLogo({ className = "" }: { className?: string }) {
 }
 
 export default function GoogleReview() {
+  const pathname = usePathname();
+  const [revealed, setRevealed] = useState(false);
+  const [atFooter, setAtFooter] = useState(false);
+  const allowed = ALLOWED_PATHS.has(pathname);
+
+  // Verzögertes Einblenden, damit der FAB nicht mit dem Hero konkurriert
+  useEffect(() => {
+    if (!allowed) return;
+    const t = setTimeout(() => setRevealed(true), 1200);
+    return () => clearTimeout(t);
+  }, [allowed]);
+
+  // Footer-Sichtbarkeit beobachten – sobald der Footer ins Viewport
+  // rutscht, ist der Ansprechpartner-Block gerade durchgescrollt.
+  // Dann FAB ausblenden, damit er Datenschutz/Barrierefreiheit-Links
+  // nicht überlappt.
+  useEffect(() => {
+    if (!allowed) return;
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setAtFooter(entry.isIntersecting),
+      { rootMargin: "0px" },
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [allowed, pathname]);
+
+  if (!allowed) return null;
+
+  const visible = revealed && !atFooter;
+
   return (
-    <a
-      href={REVIEW_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="DigiKI auf Google bewerten (öffnet in neuem Tab)"
-      className="google-review-fab group fixed bottom-4 right-4 z-40 inline-flex items-center gap-2.5 rounded-full border border-border bg-white py-1.5 pl-2 pr-3 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl print:hidden sm:bottom-6 sm:right-6 sm:gap-3 sm:py-2 sm:pl-2.5 sm:pr-4"
+    <div
+      className={`fixed bottom-4 right-4 z-40 transition-all duration-500 ease-out print:hidden motion-reduce:transition-none sm:bottom-6 sm:right-6 ${
+        visible
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-6 opacity-0"
+      }`}
     >
-      {/* G-Logo mit weichem Glow auf Hover */}
-      <span
-        className="relative flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9"
-        aria-hidden="true"
+      <a
+        href={REVIEW_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="DigiKI auf Google bewerten (öffnet in neuem Tab)"
+        aria-hidden={!visible}
+        tabIndex={visible ? 0 : -1}
+        className="group inline-flex items-center gap-2.5 rounded-full border border-border bg-white py-1.5 pl-2 pr-3 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:gap-3 sm:py-2 sm:pl-2.5 sm:pr-4"
       >
         <span
-          className="absolute inset-0 rounded-full opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-60"
-          style={{
-            background:
-              "conic-gradient(from 90deg, #4285F4, #34A853, #FBBC05, #EA4335, #4285F4)",
-          }}
-        />
-        <GoogleLogo className="relative h-5 w-5 transition-transform duration-300 group-hover:scale-110 sm:h-[22px] sm:w-[22px]" />
-      </span>
-
-      {/* Sterne + Text */}
-      <span className="flex flex-col items-start gap-0.5 leading-tight">
-        <span
-          className="hidden items-center gap-[2px] sm:flex"
+          className="relative flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9"
           aria-hidden="true"
         >
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Star
-              key={i}
-              className="google-review-star h-[10px] w-[10px] fill-[#FBBC05] stroke-[#FBBC05]"
-              style={{ animationDelay: `${i * 0.12}s` }}
-            />
-          ))}
+          <span
+            className="absolute inset-0 rounded-full opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-60"
+            style={{
+              background:
+                "conic-gradient(from 90deg, #4285F4, #34A853, #FBBC05, #EA4335, #4285F4)",
+            }}
+          />
+          <GoogleLogo className="relative h-5 w-5 transition-transform duration-300 group-hover:scale-110 sm:h-[22px] sm:w-[22px]" />
         </span>
-        <span className="text-[12px] font-semibold tracking-tight text-text sm:text-[13px]">
-          Auf Google bewerten
-        </span>
-      </span>
 
-      <ArrowUpRight
-        className="h-3.5 w-3.5 text-text-light transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
-        aria-hidden="true"
-      />
-    </a>
+        <span className="flex flex-col items-start gap-0.5 leading-tight">
+          <span
+            className="hidden items-center gap-[2px] sm:flex"
+            aria-hidden="true"
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Star
+                key={i}
+                className="google-review-star h-[10px] w-[10px] fill-[#FBBC05] stroke-[#FBBC05]"
+                style={{ animationDelay: `${i * 0.12}s` }}
+              />
+            ))}
+          </span>
+          <span className="text-[12px] font-semibold tracking-tight text-text sm:text-[13px]">
+            Auf Google bewerten
+          </span>
+        </span>
+
+        <ArrowUpRight
+          className="h-3.5 w-3.5 text-text-light transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
+          aria-hidden="true"
+        />
+      </a>
+    </div>
   );
 }
