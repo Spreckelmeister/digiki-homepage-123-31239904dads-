@@ -232,7 +232,26 @@ export const faqItems = [
   },
 ];
 
-export const newsItems = [
+// Optionale Felder `type` + `dates` halten Platz für Info-Veranstaltungs-
+// Einträge, ohne dass aktuell ein solcher in der Liste sein muss.
+type NewsItem = {
+  id: string;
+  title: string;
+  date: string;
+  summary: string;
+  slug: string;
+  type?: "event";
+  dates?: Array<{
+    label: string;
+    time: string;
+    joinUrl: string;
+    meetingId: string;
+    passcode: string;
+    icsUrl: string;
+  }>;
+};
+
+export const newsItems: NewsItem[] = [
   {
     id: "1",
     title: "DigiKI-Projekt startet",
@@ -247,24 +266,27 @@ export const newsItems = [
     summary: "Ab dem 15. April startet die Online-Bestandsaufnahme an allen Grundschulen. Der kurze Fragebogen (ca. 10 Min.) hilft uns, die Angebote passgenau zu gestalten.",
     slug: "bestandsaufnahme",
   },
-  {
-    id: "4",
-    title: "Informationskonferenz: Jetzt teilnehmen",
-    date: "2026-05-08",
-    summary: "Lernen Sie DigiKI in einer Online-Videokonferenz per Microsoft Teams kennen und stellen Sie Ihre Fragen direkt an das Team.",
-    slug: "onlinekonferenzen",
-    type: "event" as const,
-    dates: [
-      {
-        label: "Freitag, 8. Mai 2026",
-        time: "12:00 Uhr",
-        joinUrl: "https://teams.microsoft.com/meet/32306686851328?p=zGyTsk1lwUEFPCqJPu",
-        meetingId: "323 066 868 513 28",
-        passcode: "FC2wn7CS",
-        icsUrl: "/downloads/digiki-infokonferenz-08-05-2026.ics",
-      },
-    ],
-  },
+  // Vergangene Info-Veranstaltung – Vorlage aufbewahrt für die nächste
+  // Veranstaltung. Bei neuem Termin: Datum/Uhrzeit/Teams-URL anpassen
+  // und den Block wieder einkommentieren.
+  // {
+  //   id: "4",
+  //   title: "Informationskonferenz: Jetzt teilnehmen",
+  //   date: "2026-05-08",
+  //   summary: "Lernen Sie DigiKI in einer Online-Videokonferenz per Microsoft Teams kennen und stellen Sie Ihre Fragen direkt an das Team.",
+  //   slug: "onlinekonferenzen",
+  //   type: "event" as const,
+  //   dates: [
+  //     {
+  //       label: "Freitag, 8. Mai 2026",
+  //       time: "12:00 Uhr",
+  //       joinUrl: "https://teams.microsoft.com/meet/32306686851328?p=zGyTsk1lwUEFPCqJPu",
+  //       meetingId: "323 066 868 513 28",
+  //       passcode: "FC2wn7CS",
+  //       icsUrl: "/downloads/digiki-infokonferenz-08-05-2026.ics",
+  //     },
+  //   ],
+  // },
   {
     id: "3",
     title: "Pilotschulung vor den Sommerferien",

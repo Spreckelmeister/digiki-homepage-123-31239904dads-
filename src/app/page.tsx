@@ -6,7 +6,11 @@ import FeatureCard from "@/components/FeatureCard";
 import ContactSection from "@/components/ContactSection";
 import AnimatedSection from "@/components/AnimatedSection";
 import { En } from "@/components/Lang";
-import { EventsJsonLd } from "@/components/JsonLd";
+// JSON-LD für Info-Veranstaltung – nach 8. Mai 2026 deaktiviert.
+// Bei neuer Veranstaltung: Termin in src/components/JsonLd.tsx
+// (events-Array in EventsJsonLd) aktualisieren und diesen Import
+// sowie die Verwendung unten wieder einkommentieren.
+// import { EventsJsonLd } from "@/components/JsonLd";
 import ProtectedImage from "@/components/ProtectedImage";
 import { blobImages } from "@/data/images.generated";
 import {
@@ -21,7 +25,7 @@ import {
 export default function HomePage() {
   return (
     <>
-      <EventsJsonLd />
+      {/* <EventsJsonLd /> */}
       {/* Hero Section */}
       <section className="relative bg-primary overflow-hidden">
         {/* Hintergrund-Muster */}
@@ -306,8 +310,12 @@ export default function HomePage() {
               Aktuelles
             </h2>
           </div>
-          {/* Event-Karten direkt unter der Überschrift */}
-          {newsItems.filter((i) => i.type === "event").map((item) => {
+          {/* Event-Karten direkt unter der Überschrift –
+              nach 8. Mai 2026 deaktiviert. Bei neuer Veranstaltung:
+              passenden Eintrag in src/data/project.ts (newsItems mit
+              type: "event") wieder ergänzen, dann unten `false` durch
+              `true` ersetzen. */}
+          {false && newsItems.filter((i) => i.type === "event").map((item) => {
             const dates = "dates" in item && item.dates ? item.dates : [];
             const cols =
               dates.length === 1

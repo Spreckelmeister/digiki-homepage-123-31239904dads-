@@ -4,7 +4,11 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
-import InfoEventBanner from "@/components/InfoEventBanner";
+// Info-Veranstaltungs-Banner – nach 8. Mai 2026 deaktiviert.
+// Bei neuer Veranstaltung: Termin-Konstanten in
+// src/components/InfoEventBanner.tsx anpassen und diesen Import
+// sowie die Verwendung unten wieder einkommentieren.
+// import InfoEventBanner from "@/components/InfoEventBanner";
 import { OrganizationJsonLd } from "@/components/JsonLd";
 import ConsentAnalytics from "@/components/ConsentAnalytics";
 
@@ -86,7 +90,7 @@ export default function RootLayout({
     <html lang="de" className={inter.className} data-scroll-behavior="smooth">
       <body className="min-h-screen flex flex-col">
         <OrganizationJsonLd />
-        <InfoEventBanner />
+        {/* <InfoEventBanner /> */}
         <Header />
         <main id="main-content" className="flex-1">
           {children}
