@@ -5,7 +5,7 @@ import CodeForm from "./CodeForm";
 export const metadata: Metadata = {
   title: "Code einlösen",
   description:
-    "Geben Sie den 6-stelligen Bestätigungscode aus der DigiKI-E-Mail ein.",
+    "Geben Sie den 8-stelligen Bestätigungscode aus der DigiKI-E-Mail ein.",
   robots: { index: false, follow: false },
 };
 

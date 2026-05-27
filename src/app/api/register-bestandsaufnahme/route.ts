@@ -281,6 +281,9 @@ export async function POST(request: NextRequest) {
     );
   }
   const confirmationUrl = linkData.properties.action_link;
+  // OTP für den Fall, dass Schul-/Firmennetzwerke den Link blockieren.
+  // Wird im Mail-Template als prominente Alternative dargestellt.
+  const otpCode = linkData.properties.email_otp ?? "";
 
   // ── Profil schreiben ───────────────────────────────────────────────────────
   const { error: profileError } = await adminSupabase.from("profiles").upsert(
@@ -418,7 +421,42 @@ export async function POST(request: NextRequest) {
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
       const emailSafe = escapeHtml(loginEmail);
       const confirmationUrlSafe = escapeHtml(confirmationUrl);
+      const otpCodeSafe = escapeHtml(otpCode);
+      const codeEinloesenUrl = `${siteUrl}/best-practice/code-einloesen?type=signup`;
+      const codeEinloesenUrlSafe = escapeHtml(codeEinloesenUrl);
       const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
+
+      // Code-Alternative nur einbauen, wenn Supabase tatsächlich eine OTP
+      // mitgeliefert hat – ansonsten leerer Block.
+      const codeAlternativeHtml = otpCode
+        ? `
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#FFF8E7;border:1px solid #F3D98A;border-radius:8px;margin:0 0 24px 0;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#8B6200;font-size:14px;">
+                      Der Button funktioniert nicht?
+                    </p>
+                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
+                      Manche Schul- oder Firmen-Netzwerke scannen E-Mail-Links
+                      automatisch und machen sie dadurch ungültig. Sie können
+                      Ihren Zugang stattdessen mit diesem Code bestätigen:
+                    </p>
+                    <p style="margin:0 0 12px 0;font-size:24px;font-weight:bold;letter-spacing:6px;
+                              color:#006363;font-family:Consolas,Courier New,monospace;text-align:center;
+                              background-color:#ffffff;border:1px solid #F3D98A;border-radius:6px;padding:12px 8px;">
+                      ${otpCodeSafe}
+                    </p>
+                    <p style="margin:0;color:#555555;font-size:13px;line-height:1.6;">
+                      Code eingeben unter:<br />
+                      <a href="${codeEinloesenUrlSafe}" style="color:#006363;font-weight:bold;">
+                        digiki-os.de/best-practice/code-einloesen
+                      </a>
+                    </p>
+                  </td>
+                </tr>
+              </table>`
+        : "";
 
       const html = `
 <!DOCTYPE html>
@@ -487,7 +525,7 @@ export async function POST(request: NextRequest) {
                   </td>
                 </tr>
               </table>
-
+${codeAlternativeHtml}
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
                 style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>

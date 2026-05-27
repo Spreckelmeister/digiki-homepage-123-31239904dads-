@@ -6,7 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { KeyRound, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type OtpMode = "signup" | "recovery" | "email_change";
+type OtpMode = "signup" | "recovery" | "email_change" | "magiclink";
 type Mode = OtpMode | "account_deletion";
 
 const MODE_LABELS: Record<Mode, string> = {
@@ -14,6 +14,11 @@ const MODE_LABELS: Record<Mode, string> = {
   recovery: "Passwort zurücksetzen",
   email_change: "E-Mail ändern",
   account_deletion: "Konto löschen",
+  // Magic-Link wird beim Admin-„Bestätigungs-Mail erneut senden"-Versand
+  // generiert (über generateLink({ type: "magiclink" })). Aus Nutzersicht ist
+  // das aber ebenfalls ein E-Mail-Bestätigungs-Vorgang – darum dasselbe
+  // Label, damit der Fallback-Hinweis unten nicht irritiert.
+  magiclink: "E-Mail bestätigen",
 };
 
 const MODE_REDIRECTS: Record<Mode, string> = {
@@ -21,12 +26,18 @@ const MODE_REDIRECTS: Record<Mode, string> = {
   recovery: "/best-practice/passwort-zuruecksetzen",
   email_change: "/best-practice/konto",
   account_deletion: "/konto-geloescht?status=ok",
+  magiclink: "/best-practice/datenbank",
 };
 
 // Account-Löschung läuft nicht über Supabase's verifyOtp, sondern über unsere
 // eigene API (stateless Token + DB-Lookup). Daher hier vom OTP-Fallback
 // ausgeschlossen.
-const OTP_MODES: OtpMode[] = ["signup", "recovery", "email_change"];
+const OTP_MODES: OtpMode[] = [
+  "signup",
+  "recovery",
+  "email_change",
+  "magiclink",
+];
 
 function parseMode(value: string | null): Mode {
   if (value === "recovery") return "recovery";
@@ -145,9 +156,15 @@ export default function CodeForm() {
         });
 
         if (!fallbackError) {
-          setError(
-            `Hinweis: Sie haben den Code für „${MODE_LABELS[fallbackType]}" eingegeben, nicht für „${MODE_LABELS[primaryType]}". Sie werden trotzdem richtig weitergeleitet …`,
-          );
+          // Nur einen Hinweis zeigen, wenn die Modi für den Nutzer auch
+          // unterschiedlich heißen. magiclink trägt dasselbe Label wie
+          // signup („E-Mail bestätigen") → kein irritierender Hinweis,
+          // einfach durchwinken.
+          if (MODE_LABELS[fallbackType] !== MODE_LABELS[primaryType]) {
+            setError(
+              `Hinweis: Sie haben den Code für „${MODE_LABELS[fallbackType]}" eingegeben, nicht für „${MODE_LABELS[primaryType]}". Sie werden trotzdem richtig weitergeleitet …`,
+            );
+          }
           setSuccess(true);
           setLoading(false);
           setTimeout(() => {

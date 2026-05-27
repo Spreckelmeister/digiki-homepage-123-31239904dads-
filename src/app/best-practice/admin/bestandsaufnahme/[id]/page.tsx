@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import BestandsaufnahmeStatusManager from "@/components/best-practice/BestandsaufnahmeStatusManager";
 import UserEmailManager from "@/components/best-practice/UserEmailManager";
+import ResendConfirmationButton from "@/components/best-practice/ResendConfirmationButton";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -45,6 +47,26 @@ export default async function BestandsaufnahmeDetailPage({
 
   if (!r) notFound();
 
+  // E-Mail-Bestätigungs-Status vom Supabase-Auth abfragen, damit wir den
+  // „Bestätigungs-Mail erneut senden"-Button nur bei Bedarf anzeigen.
+  // Admin-Client mit Service-Role-Key, weil auth.users via RLS sonst
+  // nicht erreichbar ist. Auth-Schutz dieser Seite besteht bereits via
+  // getCurrentProfile() oben + Middleware.
+  let emailConfirmedAt: string | null = null;
+  if (
+    r.user_id &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: userData } = await admin.auth.admin.getUserById(r.user_id);
+    emailConfirmedAt = userData?.user?.email_confirmed_at ?? null;
+  }
+
   return (
     <>
       {/* Hero */}
@@ -79,6 +101,17 @@ export default async function BestandsaufnahmeDetailPage({
             initialStatus={r.status}
             adminNotes={r.admin_notes ?? ""}
           />
+
+          {/* Bestätigungs-Mail erneut senden, wenn die Schule den Link nie
+              eingelöst hat. Bei bereits bestätigter Adresse zeigt die
+              Komponente stattdessen eine Bestätigungs-Info. */}
+          {r.user_id && r.contact_email && (
+            <ResendConfirmationButton
+              userId={r.user_id}
+              currentEmail={r.contact_email}
+              emailConfirmedAt={emailConfirmedAt}
+            />
+          )}
 
           {/* Login-E-Mail ändern (für Fälle wie NIBIS, bei denen keine Aktivierungsmail ankommt) */}
           {r.user_id && r.contact_email && (
