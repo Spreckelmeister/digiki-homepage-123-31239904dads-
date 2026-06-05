@@ -227,3 +227,35 @@ export function sortByTotal(buckets: Bucket[]): Bucket[] {
 export function nonEmpty(buckets: Bucket[]): Bucket[] {
   return buckets.filter((b) => b.total > 0);
 }
+
+/**
+ * Entfernt Mehrfach-Einreichungen derselben Schule. Erwartet Zeilen, die
+ * bereits nach created_at DESC sortiert sind – dann gewinnt automatisch
+ * die jüngste Einreichung pro Schule. Schulen ohne `school_name` werden
+ * unverändert übernommen.
+ *
+ * Schul-Namen werden für den Vergleich getrimmt, lowergecased und
+ * Mehrfach-Leerzeichen normalisiert. Damit zählen „GS Stüveschule" und
+ * „gs  stüveschule  " als dieselbe Schule.
+ */
+export function dedupeBySchool<
+  T extends { school_name: string | null },
+>(rows: T[]): { unique: T[]; duplicates: number } {
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  let duplicates = 0;
+  for (const row of rows) {
+    const raw = (row.school_name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    if (!raw) {
+      unique.push(row);
+      continue;
+    }
+    if (seen.has(raw)) {
+      duplicates++;
+      continue;
+    }
+    seen.add(raw);
+    unique.push(row);
+  }
+  return { unique, duplicates };
+}

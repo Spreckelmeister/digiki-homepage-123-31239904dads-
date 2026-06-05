@@ -11,6 +11,8 @@ import {
   Sparkles,
   GraduationCap,
   Database,
+  Download,
+  Layers,
 } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
@@ -22,6 +24,7 @@ import {
   countMulti,
   countSingle,
   countRating,
+  dedupeBySchool,
 } from "@/lib/bestandsaufnahme/aggregations";
 import {
   AI_CONCERN_OPTIONS,
@@ -71,14 +74,6 @@ const FMT_DATE = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
-const FMT_DATETIME = new Intl.DateTimeFormat("de-DE", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 const SECTIONS = [
   { id: "ueberblick", label: "Überblick", index: "01" },
   { id: "infrastruktur", label: "Infrastruktur", index: "02" },
@@ -122,7 +117,11 @@ export default async function AuswertungPage() {
     .not("school_name", "ilike", "%admin%")
     .order("created_at", { ascending: false });
 
-  const rows = (rawRows ?? []) as BestandsaufnahmeRow[];
+  const allRows = (rawRows ?? []) as BestandsaufnahmeRow[];
+  // Mehrfacheinreichungen derselben Schule zusammenfassen – nur die
+  // jüngste Einreichung gewinnt. Verhindert verzerrte Statistiken,
+  // wenn Schulen die Bestandsaufnahme mehrfach abschicken.
+  const { unique: rows, duplicates: duplicatesSkipped } = dedupeBySchool(allRows);
   const t = totals(rows);
 
   // Frühe Behandlung: Empty State wenn noch keine Daten vorliegen
@@ -205,7 +204,7 @@ export default async function AuswertungPage() {
   return (
     <>
       {/* ─────────────── HERO ─────────────── */}
-      <section className="relative bg-primary py-12 md:py-16 overflow-hidden">
+      <section className="relative bg-primary py-10 md:py-14 overflow-hidden">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
@@ -219,41 +218,60 @@ export default async function AuswertungPage() {
           className="pointer-events-none absolute -top-24 -right-32 h-80 w-80 rounded-full bg-primary-light/20 blur-3xl"
         />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div className="min-w-0">
-              <Link
-                href="/best-practice/admin/bestandsaufnahme"
-                className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                Zurück zur Übersicht
-              </Link>
-
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white mb-4">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                </span>
-                Live · {t.all} Antwort{t.all === 1 ? "" : "en"}
-              </div>
-
-              <h1 className="text-3xl md:text-5xl font-bold text-white leading-[1.05] tracking-tight">
-                Bestandsaufnahme
-                <br />
-                <span className="text-accent">Auswertung</span>
-              </h1>
-              <p className="text-base md:text-lg text-white/80 mt-3 max-w-2xl leading-relaxed">
-                Echtzeit-Auswertung der eingereichten Fragebögen aus Stadt und
-                Landkreis Osnabrück. Stand:{" "}
-                {lastSubmission ? FMT_DATETIME.format(new Date(lastSubmission)) : "–"}.
-              </p>
-
-              <AdminNav />
-            </div>
+          {/* Top-Leiste: Back-Link + AuthStatus klar getrennt */}
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/best-practice/admin/bestandsaufnahme"
+              className="flex w-fit items-center gap-1 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              Zurück zur Übersicht
+            </Link>
             <AuthStatus initialProfile={profile} />
           </div>
 
-          {/* Kompakte Headline-Zahlen in der Hero-Leiste */}
+          {/* Titelblock – Eyebrow, Headline, Live-Marker rechts */}
+          <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-8">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent">
+                Bestandsaufnahme · Auswertung
+              </p>
+              <h1 className="mt-2 text-3xl md:text-5xl font-bold text-white leading-[1.05] tracking-tight">
+                {t.all} Schulen,
+                <br />
+                <span className="text-accent">eine Datenbasis</span>
+              </h1>
+            </div>
+
+            {/* Live-Marker: rechts unten am Titel, eigenständige Block-Box –
+                überlappt nichts mehr mit dem Back-Link. */}
+            <div className="flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-white">
+              <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+              Live · {t.all} Schule{t.all === 1 ? "" : "n"}
+            </div>
+          </div>
+
+          {duplicatesSkipped > 0 && (
+            <p className="mt-3 inline-flex items-center gap-2 text-[12px] text-white/65">
+              <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>
+                <strong className="font-semibold text-white/85">
+                  {duplicatesSkipped}{" "}
+                  Mehrfacheinreichung{duplicatesSkipped === 1 ? "" : "en"}
+                </strong>{" "}
+                zusammengefasst – nur die jüngste Einreichung pro Schule fließt ein.
+              </span>
+            </p>
+          )}
+
+          <div className="mt-6">
+            <AdminNav />
+          </div>
+
+          {/* Kompakte Headline-Zahlen */}
           <div className="relative mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
             <HeroStat
               icon={<Database className="h-3.5 w-3.5" />}
@@ -280,6 +298,37 @@ export default async function AuswertungPage() {
               sub="von 5"
               accent="text-accent"
             />
+          </div>
+
+          {/* Download-CTA – Markdown-Export für KI-gestützte Weiterverarbeitung */}
+          <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 border border-white/15"
+              >
+                <Download className="h-4 w-4 text-accent" />
+              </span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
+                  Export
+                </p>
+                <p className="text-sm text-white/85">
+                  Vollständiger Bericht als Markdown – ideal als Input für ein KI-Modell.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/api/admin/bestandsaufnahme/export-markdown"
+              download
+              className="group inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-text shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-md"
+            >
+              <Download
+                className="h-4 w-4 transition-transform group-hover:translate-y-0.5"
+                aria-hidden="true"
+              />
+              Daten als Markdown herunterladen
+            </a>
           </div>
         </div>
       </section>
@@ -317,11 +366,17 @@ export default async function AuswertungPage() {
             index="01"
             eyebrow="Überblick"
             title="Stichprobe & zentrale Kennzahlen"
-            body={`${t.all} valide Antwort${t.all === 1 ? "" : "en"} · ${t.stadt} aus der Stadt Osnabrück · ${t.land} aus dem Landkreis. Die folgenden Auswertungen fassen den aktuellen Datenstand zusammen.`}
+            body={
+              `${t.all} Schule${t.all === 1 ? "" : "n"} · ${t.stadt} aus der Stadt Osnabrück · ${t.land} aus dem Landkreis.` +
+              (duplicatesSkipped > 0
+                ? ` ${duplicatesSkipped} Mehrfacheinreichung${duplicatesSkipped === 1 ? "" : "en"} wurden zusammengefasst – nur die jüngste Antwort pro Schule fließt ein.`
+                : "") +
+              " Die folgenden Auswertungen aktualisieren sich automatisch mit jeder neuen Einreichung."
+            }
           />
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <KPI label="Antworten" value={t.all} sub={`${t.stadt} Stadt · ${t.land} Land`} />
+            <KPI label="Schulen" value={t.all} sub={`${t.stadt} Stadt · ${t.land} Land`} />
             <KPI
               label="Ø WLAN Stadt"
               value={avgWlan.stadt !== null ? `${avgWlan.stadt.toFixed(1)}` : "–"}
@@ -381,11 +436,14 @@ export default async function AuswertungPage() {
           </div>
 
           <Insight>
-            <strong>Beobachtung:</strong> Die Selbsteinschätzung des
-            Digitalisierungsgrads weicht häufig deutlich von der WLAN- und
-            Support-Bewertung ab – Schulen mit guter Infrastruktur erkennen
-            tendenziell mehr Lücken. Die Werte oben aktualisieren sich
-            automatisch mit jeder neuen Einreichung.
+            <strong>Aktuelle Beobachtung:</strong> Die Schulen schätzen ihren
+            eigenen Digitalisierungsgrad im Schnitt mit{" "}
+            <strong>{fmtAvg(avgDigi.all)} / 5</strong> ein – während die
+            harten Infrastruktur-Indikatoren bei{" "}
+            <strong>WLAN {fmtAvg(avgWlan.all)} / 5</strong> und{" "}
+            <strong>Tech-Support {fmtAvg(avgSupport.all)} / 5</strong> liegen.
+            Schulen mit besserer Infrastruktur identifizieren tendenziell mehr
+            Lücken – die Selbstwahrnehmung wird dort kritischer.
           </Insight>
 
           {/* ════════ §2 INFRASTRUKTUR ════════ */}
@@ -893,8 +951,15 @@ export default async function AuswertungPage() {
           <p className="text-[11px] text-text-light text-center pt-8 border-t border-border">
             Datenbasis · {t.all} Schule{t.all === 1 ? "" : "n"} ·
             {" "}
-            {t.stadt} Stadt Osnabrück · {t.land} Landkreis Osnabrück · Stand
-            {" "}
+            {t.stadt} Stadt Osnabrück · {t.land} Landkreis Osnabrück ·
+            {duplicatesSkipped > 0 && (
+              <>
+                {" "}
+                {duplicatesSkipped} Mehrfacheinreichung
+                {duplicatesSkipped === 1 ? "" : "en"} zusammengefasst ·
+              </>
+            )}
+            {" "}letzte Einreichung am{" "}
             {lastSubmission ? FMT_DATE.format(new Date(lastSubmission)) : "–"} ·
             {" "}automatisch generiert aus den eingereichten Fragebögen
           </p>
