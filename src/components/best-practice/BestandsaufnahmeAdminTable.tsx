@@ -19,6 +19,7 @@ import {
   matchSqlLike,
   serializeFilterParams,
 } from "@/lib/bestandsaufnahme/filters";
+import ResendQuickAction from "./ResendQuickAction";
 
 type Row = {
   id: string;
@@ -549,6 +550,12 @@ export default function BestandsaufnahmeAdminTable({
                           >
                             <Download className="h-3.5 w-3.5" aria-hidden="true" />
                           </a>
+                          {isUnconfirmed && selected.user_id && (
+                            <ResendQuickAction
+                              userId={selected.user_id}
+                              schoolName={g.schoolName}
+                            />
+                          )}
                           <Link
                             href={`/best-practice/admin/bestandsaufnahme/${selected.id}`}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
@@ -628,6 +635,12 @@ export default function BestandsaufnahmeAdminTable({
                     >
                       <Download className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
+                    {isUnconfirmed && selected.user_id && (
+                      <ResendQuickAction
+                        userId={selected.user_id}
+                        schoolName={g.schoolName}
+                      />
+                    )}
                   </div>
                 </div>
               );
