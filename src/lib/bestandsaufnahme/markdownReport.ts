@@ -1,10 +1,19 @@
 /**
- * Erzeugt einen ausführlichen, KI-freundlichen Markdown-Bericht aus den
- * aggregierten Bestandsaufnahme-Daten. Saubere Hierarchie, klare Tabellen
- * und absolute Zahlen – damit ein LLM die Daten ohne Kontextverlust
- * weiterverarbeiten kann.
+ * Erzeugt KI-freundliche Markdown-Berichte aus den Bestandsaufnahme-Daten.
+ * Drei Varianten:
+ *  - aggregierter Dashboard-Bericht (generateMarkdownReport)
+ *  - einzelne Schule mit allen Antworten (generateSingleBestandsaufnahmeMarkdown)
+ *  - Sammel-Bericht aller Schulen (generateAllBestandsaufnahmenMarkdown)
+ *
+ * Saubere Hierarchie, klare Tabellen, absolute Zahlen – damit ein LLM
+ * die Daten ohne Kontextverlust weiterverarbeiten kann.
  */
-import type { Bucket, Totals, Average } from "./aggregations";
+import type {
+  Bucket,
+  Totals,
+  Average,
+  BestandsaufnahmeRow,
+} from "./aggregations";
 
 export interface ReportData {
   generatedAt: Date;
@@ -342,4 +351,215 @@ _Erzeugt am ${FMT_DATETIME.format(d.generatedAt)} aus den eingereichten Fragebö
     claude,
     gaps,
   ].join("\n");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Einzelne Bestandsaufnahme: ALLE Antworten einer Schule als Markdown
+// ═══════════════════════════════════════════════════════════════════════
+
+function listOrDash(values: string[] | null | undefined, other?: string | null): string {
+  const arr = [...(values ?? []), ...(other ? [`Sonstiges: ${other}`] : [])];
+  if (arr.length === 0) return "_keine Angabe_";
+  return arr.map((v) => `- ${v}`).join("\n");
+}
+
+function valOrDash(v: string | number | null | undefined): string {
+  if (v === null || v === undefined || v === "") return "_keine Angabe_";
+  return String(v);
+}
+
+function rating(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "_keine Angabe_";
+  return `${v} / 5`;
+}
+
+function freeText(v: string | null | undefined): string {
+  if (!v || !v.trim()) return "_keine Angabe_";
+  // In einem Blockquote, damit Mehrzeilentexte sich klar abheben.
+  return v
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+}
+
+export function generateSingleBestandsaufnahmeMarkdown(
+  r: BestandsaufnahmeRow,
+  opts: { allVersions?: BestandsaufnahmeRow[]; index?: number } = {},
+): string {
+  const title = r.school_name ?? "(ohne Schulnamen)";
+  const submittedAt = FMT_DATE_ISO.format(new Date(r.created_at));
+
+  const versionsBlock =
+    opts.allVersions && opts.allVersions.length > 1
+      ? `
+> **Hinweis:** Diese Schule hat **${opts.allVersions.length} Bestandsaufnahmen** eingereicht.
+> Die hier gezeigten Antworten stammen vom ${submittedAt} (Einreichung-ID \`${r.id}\`).
+> Weitere Versionen: ${opts.allVersions
+          .filter((v) => v.id !== r.id)
+          .map((v) => FMT_DATE_ISO.format(new Date(v.created_at)))
+          .join(", ")}.
+`
+      : "";
+
+  return `# Bestandsaufnahme — ${title}
+
+| Metadatum | Wert |
+|---|---|
+| **Einreichung** | ${submittedAt} |
+| **Einreichung-ID** | \`${r.id}\` |
+| **Status (intern)** | ${valOrDash(r.status)} |
+| **Schul-Standort** | ${valOrDash(r.school_location)} |
+| **Ausfüllende Person** | ${valOrDash(r.contact_person)} |
+| **Funktion** | ${r.respondent_role === "Sonstiges" && r.respondent_role_other ? `Sonstiges: ${r.respondent_role_other}` : valOrDash(r.respondent_role)} |
+| **Schulleitung** | ${valOrDash(r.principal_name)} |
+| **Kontakt** | ${valOrDash(r.contact_email)}${r.contact_phone ? ` · ${r.contact_phone}` : ""} |
+${versionsBlock}
+## Teil A — Allgemeine Angaben
+
+- **Name der Schule:** ${valOrDash(r.school_name)}
+- **Standort:** ${valOrDash(r.school_location)}
+- **Anzahl Schüler/innen:** ${valOrDash(r.student_count)}
+- **Anzahl Lehrkräfte:** ${valOrDash(r.teacher_count)}
+- **Startchancen-Schule:** ${valOrDash(r.is_startchancen_school)}
+- **DaZ-Anteil:** ${valOrDash(r.daz_share)}
+
+## Teil B — Technische Ausstattung
+
+**Verfügbare Endgeräte**
+${listOrDash(r.devices, r.devices_other)}
+
+- **Tablets / iPads (Anzahl):** ${valOrDash(r.tablet_count)}
+- **WLAN-Bewertung:** ${rating(r.wlan_rating)}
+- **Zufriedenheit Tech-Support:** ${rating(r.support_satisfaction)}
+
+**Digitale Infrastruktur**
+${listOrDash(r.infrastructure, r.infrastructure_other)}
+
+**Herausforderungen**
+${listOrDash(r.challenges, r.challenges_other)}
+
+## Teil C — Aktueller Stand der Digitalisierung
+
+- **Digitalisierungsgrad (Selbsteinschätzung):** ${rating(r.digitization_level)}
+- **Nutzungshäufigkeit digitaler Medien:** ${valOrDash(r.usage_frequency)}
+- **Medienkonzept:** ${valOrDash(r.media_concept)}
+- **Medienverantwortliche/r:** ${valOrDash(r.media_responsible)}
+
+**Digitale Tools im Einsatz**
+${listOrDash(r.tools_used, r.tools_used_other)}
+
+**Digitale Förderdiagnostik**
+${listOrDash(r.diagnostic_tools, r.diagnostic_tools_other)}
+
+## Teil D — Künstliche Intelligenz
+
+- **KI-Nutzung im Kollegium:** ${valOrDash(r.ai_usage)}
+- **KI-Kompetenzniveau:** ${rating(r.ai_competence)}
+
+**KI wofür genutzt**
+${listOrDash(r.ai_purposes, r.ai_purposes_other)}
+
+**Konkrete KI-Tools**
+${listOrDash(r.ai_tools_used, r.ai_tools_other)}
+
+**Bedenken gegenüber KI**
+${listOrDash(r.ai_concerns, r.ai_concerns_other)}
+
+**Bisherige KI-Fortbildungen**
+${listOrDash(r.ai_trainings, r.ai_trainings_other)}
+
+## Teil E — Fortbildungsbedarf
+
+**Top-Themen (max. 5)**
+${listOrDash(r.training_needs, r.training_needs_other)}
+
+**Bevorzugte Formate**
+${listOrDash(r.training_format)}
+
+**Geeignete Zeiten**
+${listOrDash(r.training_times)}
+
+- **Erwartete Teilnehmerzahl:** ${valOrDash(r.participation_count)}
+- **Interesse Vorreiter-Schule:** ${valOrDash(r.pioneer_interest)}
+
+## Teil F — Best Practices
+
+- **Gelungene Beispiele vorhanden:** ${valOrDash(r.has_best_practice)}
+- **Bereitschaft zur Weitergabe:** ${valOrDash(r.share_practice)}
+
+**Beschreibung**
+${freeText(r.best_practice_description)}
+
+## Teil G — Unterstützungsbedarf
+
+**Gewünschte Unterstützung (max. 3)**
+${listOrDash(r.support_needs)}
+
+**Gewünschte Software-Lizenzen**
+${listOrDash(r.software_licenses, r.software_licenses_other)}
+
+- **Studentische Unterstützung:** ${valOrDash(r.student_support)}
+- **Zeit für Tools:** ${valOrDash(r.time_for_tools)}
+
+## Teil H — Offene Rückmeldung
+
+**Wünsche an das Projekt DigiKI**
+${freeText(r.project_wishes)}
+
+**Weitere Anmerkungen**
+${freeText(r.additional_notes)}
+
+${r.admin_notes ? `\n## Interne Admin-Notizen\n${freeText(r.admin_notes)}\n` : ""}
+---
+_Eingereicht ${submittedAt}${opts.index !== undefined ? ` · Schule ${opts.index + 1}` : ""}._
+`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Alle Bestandsaufnahmen als Sammel-Markdown – jede Schule mit Vollexport
+// ═══════════════════════════════════════════════════════════════════════
+
+export function generateAllBestandsaufnahmenMarkdown(params: {
+  generatedAt: Date;
+  uniqueSchools: BestandsaufnahmeRow[];
+  duplicatesByKey: Map<string, BestandsaufnahmeRow[]>;
+}): string {
+  const { generatedAt, uniqueSchools, duplicatesByKey } = params;
+  const totalSubmissions = Array.from(duplicatesByKey.values()).reduce(
+    (sum, arr) => sum + arr.length,
+    0,
+  );
+
+  const stadt = uniqueSchools.filter((s) => s.school_location === "Stadt Osnabrück").length;
+  const land = uniqueSchools.filter((s) => s.school_location === "Landkreis Osnabrück").length;
+
+  const header = `# Bestandsaufnahmen — Sammel-Export (alle Schulen)
+
+> **KI-freundliches Format.** Dieser Sammel-Bericht enthält die vollständigen
+> Antworten ALLER teilnehmenden Schulen. Mehrfacheinreichungen derselben
+> Schule sind als Versionen gruppiert – pro Schule erscheint jeweils die
+> jüngste Antwort als Hauptblock, ältere Versionen werden nur referenziert.
+
+| Metadatum | Wert |
+|---|---|
+| **Generiert am** | ${FMT_DATE_ISO.format(generatedAt)} |
+| **Schulen gesamt (eindeutig)** | ${uniqueSchools.length} |
+| **Stadt Osnabrück** | ${stadt} |
+| **Landkreis Osnabrück** | ${land} |
+| **Eingegangene Einreichungen** | ${totalSubmissions} |
+| **Mehrfacheinreichungen** | ${totalSubmissions - uniqueSchools.length} |
+
+---
+`;
+
+  const schoolBlocks = uniqueSchools.map((row, i) => {
+    const key = (row.school_name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    const allVersions = duplicatesByKey.get(key) ?? [row];
+    return generateSingleBestandsaufnahmeMarkdown(row, {
+      allVersions,
+      index: i,
+    });
+  });
+
+  return header + schoolBlocks.join("\n---\n");
 }

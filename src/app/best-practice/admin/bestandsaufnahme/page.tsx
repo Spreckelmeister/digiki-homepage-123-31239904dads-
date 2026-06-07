@@ -19,7 +19,11 @@ export default async function BestandsaufnahmeAdminPage() {
   const { data: responses } = await supabase
     .from("bestandsaufnahme_responses")
     .select(
-      "id, school_name, school_location, student_count, respondent_role, status, created_at"
+      // Zusätzlich zu den Display-Spalten holen wir die Filter-Felder
+      // (share_practice, pioneer_interest, has_best_practice,
+      // student_support, ai_usage), damit die Vorauswahlen unter der
+      // Suchleiste tatsächlich filtern können.
+      "id, school_name, school_location, student_count, respondent_role, status, created_at, share_practice, pioneer_interest, has_best_practice, student_support, ai_usage"
     )
     .not("school_name", "ilike", "%test%")
     .not("school_name", "ilike", "%admin%")

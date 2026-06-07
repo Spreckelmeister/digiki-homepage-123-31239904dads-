@@ -61,6 +61,17 @@ export interface BestandsaufnahmeRow {
   student_support: string | null;
   time_for_tools: string | null;
 
+  project_wishes: string | null;
+  additional_notes: string | null;
+
+  contact_person: string | null;
+  principal_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+
+  status: string | null;
+  admin_notes: string | null;
+
   created_at: string;
 }
 

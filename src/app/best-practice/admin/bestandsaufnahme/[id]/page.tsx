@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
@@ -87,7 +87,20 @@ export default async function BestandsaufnahmeDetailPage({
               <p className="text-lg text-white/70 mt-1">{r.school_name}</p>
               <AdminNav />
             </div>
-            <AuthStatus initialProfile={profile} />
+            <div className="flex flex-col items-stretch gap-3 md:items-end">
+              <AuthStatus initialProfile={profile} />
+              <a
+                href={`/api/admin/bestandsaufnahme/${r.id}/export-markdown`}
+                download
+                className="group inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white/15 hover:shadow-md"
+              >
+                <Download
+                  className="h-4 w-4 transition-transform group-hover:translate-y-0.5"
+                  aria-hidden="true"
+                />
+                Diese Bestandsaufnahme als Markdown
+              </a>
+            </div>
           </div>
         </div>
       </section>
