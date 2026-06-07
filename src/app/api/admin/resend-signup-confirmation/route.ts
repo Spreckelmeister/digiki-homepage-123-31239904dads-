@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     console.error(
       "[resend-signup-confirmation] generateLink error:",
       linkError?.message,
@@ -130,7 +130,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const confirmationUrl = linkData.properties.action_link;
+  // WICHTIG: NICHT `action_link` verwenden – Supabase's eingebaute
+  // Verify-Route würde nach Erfolg zur "Site URL" (Startseite) zurück-
+  // redirecten, wenn unsere redirectTo nicht in der Allowlist steht.
+  // Stattdessen bauen wir die URL zu unserer eigenen Callback-Route,
+  // die token_hash + type direkt verifiziert.
+  const tokenHash = linkData.properties.hashed_token;
+  const nextPath = "/best-practice/datenbank";
+  const confirmationUrl =
+    `${siteUrl}/auth/callback` +
+    `?token_hash=${encodeURIComponent(tokenHash)}` +
+    `&type=magiclink` +
+    `&next=${encodeURIComponent(nextPath)}`;
   const otpCode = linkData.properties.email_otp ?? "";
 
   // SMTP-Konfiguration prüfen

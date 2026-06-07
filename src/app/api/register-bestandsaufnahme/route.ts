@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     console.error(
       "[register-bestandsaufnahme] generateLink error:",
       linkError?.message
@@ -280,7 +280,19 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-  const confirmationUrl = linkData.properties.action_link;
+  // Wir bauen den Bestätigungs-Link bewusst SELBST – nicht `action_link`
+  // verwenden! Supabase's eingebaute Verify-Route würde sonst nach
+  // erfolgreichem Token-Check zur "Site URL" (https://digiki-os.de)
+  // redirecten, wenn unsere `redirectTo` nicht in der Allowlist steht.
+  // Mit `token_hash` + unserer eigenen /auth/callback-Route haben wir
+  // die volle Kontrolle über den Ziel-Redirect (-> /best-practice/datenbank).
+  const tokenHash = linkData.properties.hashed_token;
+  const nextPath = "/best-practice/datenbank";
+  const confirmationUrl =
+    `${siteUrl}/auth/callback` +
+    `?token_hash=${encodeURIComponent(tokenHash)}` +
+    `&type=signup` +
+    `&next=${encodeURIComponent(nextPath)}`;
   // OTP für den Fall, dass Schul-/Firmennetzwerke den Link blockieren.
   // Wird im Mail-Template als prominente Alternative dargestellt.
   const otpCode = linkData.properties.email_otp ?? "";
