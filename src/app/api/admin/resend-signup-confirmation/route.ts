@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
+import { getResendCooldown } from "@/lib/auth/resendCooldown";
 
 function escapeHtml(str: string): string {
   return str
@@ -93,6 +94,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "E-Mail bereits bestätigt" },
       { status: 400 },
+    );
+  }
+
+  // 24-Stunden-Sperre prüfen: solange der Link aus der vorherigen Mail noch
+  // gültig ist, soll nicht erneut versendet werden, damit die Schule nicht
+  // mehrfach kontaktiert wird. Quelle der Wahrheit ist
+  // user_metadata.last_confirmation_resend_at (vom Server hier gesetzt).
+  const existingMeta =
+    (userData.user.user_metadata ?? {}) as Record<string, unknown>;
+  const lastResendIso =
+    typeof existingMeta.last_confirmation_resend_at === "string"
+      ? existingMeta.last_confirmation_resend_at
+      : null;
+  const cooldown = getResendCooldown(lastResendIso);
+  if (cooldown) {
+    return NextResponse.json(
+      {
+        error: `Eine neue Bestätigungs-Mail kann erst in ${cooldown.formatted} versendet werden – der Link aus der vorherigen Mail ist noch ${cooldown.formatted} gültig. So vermeiden wir, dass die Schule mehrfach kontaktiert wird.`,
+        cooldownRemainingMs: cooldown.remainingMs,
+        nextAvailableAt: cooldown.nextAvailableAt,
+      },
+      { status: 429 },
     );
   }
 
@@ -357,6 +380,24 @@ ${codeAlternativeHtml}
       subject: "Bitte E-Mail bestätigen – DigiKI (erneute Zustellung)",
       html,
     });
+
+    // Cooldown-Stempel im user_metadata aktualisieren – dient als Quelle
+    // der Wahrheit für die 24h-Sperre, sowohl serverseitig (Re-Check) als
+    // auch clientseitig (UI-Anzeige „verfügbar in X").
+    try {
+      await admin.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          ...existingMeta,
+          last_confirmation_resend_at: new Date().toISOString(),
+        },
+      });
+    } catch (metaErr) {
+      // Metadata-Fehler darf den Erfolg nicht blockieren – Mail ist raus.
+      console.error(
+        "[resend-signup-confirmation] metadata update failed:",
+        metaErr,
+      );
+    }
   } catch (emailErr) {
     console.error(
       "[resend-signup-confirmation] mail error:",

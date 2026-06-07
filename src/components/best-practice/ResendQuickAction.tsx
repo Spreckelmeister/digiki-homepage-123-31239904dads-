@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Check, MailWarning, RefreshCw, Send } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Clock3, MailWarning, RefreshCw, Send } from "lucide-react";
+import { getResendCooldown, formatCooldown } from "@/lib/auth/resendCooldown";
 
 interface Props {
   userId: string;
   schoolName: string;
+  /** ISO-Zeitstempel des letzten Resend – `null` wenn noch nie versendet. */
+  lastResendAt: string | null;
 }
 
 type State = "idle" | "sending" | "success" | "error";
@@ -13,15 +16,38 @@ type State = "idle" | "sending" | "success" | "error";
 /**
  * Kompakter Icon-Button für die Tabellen-Zeile. Triggert dieselbe
  * /api/admin/resend-signup-confirmation-Route wie der große Button im
- * Detail – nur mit kompakter Inline-Rückmeldung (Spinner → Häkchen →
- * zurück zu Idle).
+ * Detail – nur mit kompakter Inline-Rückmeldung und 24h-Sperre.
  */
-export default function ResendQuickAction({ userId, schoolName }: Props) {
+export default function ResendQuickAction({
+  userId,
+  schoolName,
+  lastResendAt,
+}: Props) {
   const [state, setState] = useState<State>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Lokaler Versand-Zeitstempel – überschreibt nach einem erfolgreichen
+  // Send-Klick den vom Server gelieferten Wert, ohne dass die Seite
+  // neu geladen werden muss.
+  const [localLastResend, setLocalLastResend] = useState<string | null>(
+    lastResendAt,
+  );
+
+  // Cooldown jede Minute aktualisieren, damit der Tooltip live tickt.
+  // Beim Erreichen der 24h fällt der Button automatisch in den Idle-State.
+  const [cooldownTick, setCooldownTick] = useState(0);
+  useEffect(() => {
+    if (!localLastResend) return;
+    const i = window.setInterval(() => setCooldownTick((v) => v + 1), 60_000);
+    return () => window.clearInterval(i);
+  }, [localLastResend]);
+
+  const cooldown = getResendCooldown(localLastResend);
+  // cooldownTick wird hier nur als Re-Render-Trigger gelesen
+  void cooldownTick;
+  const isLocked = cooldown !== null && state === "idle";
 
   async function handleClick() {
-    if (state === "sending") return;
+    if (state === "sending" || isLocked) return;
     setState("sending");
     setErrorMsg(null);
     try {
@@ -32,25 +58,54 @@ export default function ResendQuickAction({ userId, schoolName }: Props) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Sonderfall 429: Server hat 24h-Sperre durchgesetzt – Stempel
+        // lokal auf den eigenen Server-Wert setzen, damit der Button
+        // direkt in den Cooldown geht.
+        if (res.status === 429 && typeof json.nextAvailableAt === "string") {
+          const inferredLast = new Date(
+            new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+          ).toISOString();
+          setLocalLastResend(inferredLast);
+        }
         setState("error");
         setErrorMsg(
           typeof json.error === "string" ? json.error : "Versand fehlgeschlagen.",
         );
-        // Nach 4s auto-reset, damit Admin erneut versuchen kann
-        window.setTimeout(() => setState("idle"), 4000);
+        window.setTimeout(() => setState("idle"), 4500);
         return;
       }
+      // Erfolg: lokalen Cooldown sofort setzen
+      setLocalLastResend(new Date().toISOString());
       setState("success");
       window.setTimeout(() => setState("idle"), 2200);
     } catch {
       setState("error");
       setErrorMsg("Netzwerkfehler.");
-      window.setTimeout(() => setState("idle"), 4000);
+      window.setTimeout(() => setState("idle"), 4500);
     }
   }
 
+  const baseClass =
+    "inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all";
+
+  // ── Cooldown-Zustand ─────────────────────────────────────────────
+  if (isLocked && cooldown) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-label={`Resend gesperrt – wieder möglich in ${cooldown.formatted}`}
+        title={`Bestätigungs-Mail wurde bereits versendet – neuer Versand erst in ${cooldown.formatted} möglich (Link aus voriger Mail ist noch gültig).`}
+        className={`${baseClass} cursor-not-allowed border-border bg-bg text-text-light/60`}
+      >
+        <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+    );
+  }
+
+  // ── Aktive Zustände (idle / sending / success / error) ──────────
   const titleByState: Record<State, string> = {
-    idle: `Bestätigungs-Mail an „${schoolName}" erneut senden`,
+    idle: `Bestätigungs-Mail an „${schoolName}" senden`,
     sending: "Wird versendet …",
     success: `Bestätigungs-Mail an „${schoolName}" verschickt`,
     error: errorMsg ?? "Versand fehlgeschlagen.",
@@ -71,7 +126,7 @@ export default function ResendQuickAction({ userId, schoolName }: Props) {
       aria-label={titleByState[state]}
       aria-live="polite"
       title={titleByState[state]}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${classByState[state]}`}
+      className={`${baseClass} ${classByState[state]}`}
     >
       {state === "sending" && (
         <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -88,3 +143,7 @@ export default function ResendQuickAction({ userId, schoolName }: Props) {
     </button>
   );
 }
+
+// Re-export für Konsumenten, die die formatierte Cooldown-Zeit direkt
+// brauchen (z.B. ResendConfirmationButton im Detail).
+export { formatCooldown };

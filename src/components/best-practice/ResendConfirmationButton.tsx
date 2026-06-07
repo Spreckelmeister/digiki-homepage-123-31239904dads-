@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MailWarning, RefreshCw, Clock3 } from "lucide-react";
+import { Clock3, MailWarning, RefreshCw } from "lucide-react";
+import { getResendCooldown } from "@/lib/auth/resendCooldown";
 
 interface Props {
   userId: string;
   currentEmail: string;
   emailConfirmedAt: string | null;
+  /** ISO-Zeitstempel des letzten Resend – `null` wenn noch nie versendet. */
+  lastResendAt: string | null;
 }
+
+const FMT_LONG = new Intl.DateTimeFormat("de-DE", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 export default function ResendConfirmationButton({
   userId,
   currentEmail,
   emailConfirmedAt,
+  lastResendAt,
 }: Props) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
@@ -22,11 +34,27 @@ export default function ResendConfirmationButton({
     text: string;
   } | null>(null);
 
-  // Hat der Nutzer seinen Account schon bestätigt, zeigen wir nichts an –
-  // der Admin braucht hier dann keine Aktion.
+  // Lokaler Resend-Zeitstempel überschreibt den Server-Wert nach einem
+  // erfolgreichen Klick, ohne dass die Seite neu geladen werden muss.
+  const [localLastResend, setLocalLastResend] = useState<string | null>(
+    lastResendAt,
+  );
+
+  // Cooldown jede Minute neu berechnen, damit „verfügbar in X" live tickt.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!localLastResend) return;
+    const i = window.setInterval(() => setTick((v) => v + 1), 60_000);
+    return () => window.clearInterval(i);
+  }, [localLastResend]);
+
   if (emailConfirmedAt) return null;
 
+  const cooldown = getResendCooldown(localLastResend);
+  const isLocked = cooldown !== null;
+
   async function handleResend() {
+    if (isLocked) return;
     setSending(true);
     setMessage(null);
     try {
@@ -37,6 +65,13 @@ export default function ResendConfirmationButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Server hat die 24h-Sperre durchgesetzt – lokal nachziehen
+        if (res.status === 429 && typeof json.nextAvailableAt === "string") {
+          const inferredLast = new Date(
+            new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+          ).toISOString();
+          setLocalLastResend(inferredLast);
+        }
         setMessage({
           type: "err",
           text:
@@ -46,6 +81,7 @@ export default function ResendConfirmationButton({
         });
         return;
       }
+      setLocalLastResend(new Date().toISOString());
       setMessage({
         type: "ok",
         text: `Neue Bestätigungs-Mail an ${currentEmail} verschickt – mit 8-stelligem Code und 24-Stunden-Hinweis.`,
@@ -91,26 +127,61 @@ export default function ResendConfirmationButton({
           bei – für den Fall, dass das Schul-Netzwerk Links blockiert.
         </p>
 
-        <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-1.5 text-[12px] text-text-light">
-          <Clock3 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-          <span>
-            Link &amp; Code sind nach Versand{" "}
-            <strong className="text-text">24 Stunden gültig</strong>.
-          </span>
-        </div>
+        {/* Cooldown-Hinweis ODER 24h-Info-Pille */}
+        {isLocked && cooldown ? (
+          <div className="mt-4 inline-flex items-start gap-2 rounded-lg border border-border bg-bg px-3.5 py-2.5 text-[12.5px] text-text-light">
+            <Clock3
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <span>
+              Eine Bestätigungs-Mail wurde bereits versendet
+              {localLastResend && (
+                <>
+                  {" "}
+                  (zuletzt am{" "}
+                  <strong className="text-text">
+                    {FMT_LONG.format(new Date(localLastResend))}
+                  </strong>{" "}
+                  Uhr)
+                </>
+              )}
+              . Der Link aus dieser Mail ist noch{" "}
+              <strong className="text-text">{cooldown.formatted}</strong>{" "}
+              gültig – aus Rücksicht auf die Schule sperren wir einen weiteren
+              Versand bis dahin.
+            </span>
+          </div>
+        ) : (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-1.5 text-[12px] text-text-light">
+            <Clock3 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            <span>
+              Link &amp; Code sind nach Versand{" "}
+              <strong className="text-text">24 Stunden gültig</strong>.
+            </span>
+          </div>
+        )}
 
         <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={handleResend}
-            disabled={sending}
-            className="group inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            disabled={sending || isLocked}
+            className="group inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:bg-text-light/30 disabled:text-white/70 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
-            <RefreshCw
-              className={`h-4 w-4 ${sending ? "animate-spin" : "transition-transform group-hover:rotate-180"}`}
-              aria-hidden="true"
-            />
-            {sending ? "Wird versendet..." : "Bestätigungs-Mail erneut senden"}
+            {isLocked ? (
+              <Clock3 className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RefreshCw
+                className={`h-4 w-4 ${sending ? "animate-spin" : "transition-transform group-hover:rotate-180"}`}
+                aria-hidden="true"
+              />
+            )}
+            {sending
+              ? "Wird versendet..."
+              : isLocked && cooldown
+                ? `Erneut möglich in ${cooldown.formatted}`
+                : "Bestätigungs-Mail erneut senden"}
           </button>
 
           {message && (

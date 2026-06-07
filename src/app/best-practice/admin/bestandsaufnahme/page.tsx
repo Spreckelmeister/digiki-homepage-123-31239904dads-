@@ -35,11 +35,13 @@ export default async function BestandsaufnahmeAdminPage() {
   const neuCount = rows.filter((r) => r.status === "neu").length;
   const gelesenCount = rows.filter((r) => r.status === "gelesen").length;
 
-  // E-Mail-Bestätigungs-Status für alle eingereichten Schulen aufschlüsseln.
-  // Wir nutzen den Service-Role-Key, weil auth.users über RLS nicht
-  // erreichbar ist. Die Map wird an die Tabelle gereicht, damit der
-  // Filter „E-Mail noch nicht bestätigt" client-seitig funktioniert.
+  // E-Mail-Bestätigungs-Status + Resend-Cooldown-Stempel für alle
+  // eingereichten Schulen aufschlüsseln. Wir nutzen den Service-Role-Key,
+  // weil auth.users über RLS nicht erreichbar ist. Beide Maps werden an
+  // die Tabelle gereicht: emailConfirmedEntries für den „nicht bestätigt"-
+  // Filter, lastResendEntries für die 24h-Sperre der Quick-Action-Buttons.
   const emailConfirmedEntries: [string, string | null][] = [];
+  const lastResendEntries: [string, string | null][] = [];
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.SUPABASE_SERVICE_ROLE_KEY &&
@@ -61,9 +63,14 @@ export default async function BestandsaufnahmeAdminPage() {
           .filter((id): id is string => typeof id === "string"),
       );
       for (const u of usersData?.users ?? []) {
-        if (wantedIds.has(u.id)) {
-          emailConfirmedEntries.push([u.id, u.email_confirmed_at ?? null]);
-        }
+        if (!wantedIds.has(u.id)) continue;
+        emailConfirmedEntries.push([u.id, u.email_confirmed_at ?? null]);
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+        const lastResend =
+          typeof meta.last_confirmation_resend_at === "string"
+            ? meta.last_confirmation_resend_at
+            : null;
+        lastResendEntries.push([u.id, lastResend]);
       }
     } catch (err) {
       console.error("[bestandsaufnahme-admin] listUsers failed:", err);
@@ -159,6 +166,7 @@ export default async function BestandsaufnahmeAdminPage() {
           <BestandsaufnahmeAdminTable
             rows={rows}
             emailConfirmedEntries={emailConfirmedEntries}
+            lastResendEntries={lastResendEntries}
           />
         </div>
       </section>

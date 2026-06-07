@@ -188,11 +188,15 @@ function VersionPicker({
 export default function BestandsaufnahmeAdminTable({
   rows,
   emailConfirmedEntries,
+  lastResendEntries,
 }: {
   rows: Row[];
   /** Tupel-Liste statt Map, weil Server Components keine Map-Props
    *  serialisieren können. Wird unten zu einer echten Map rehydriert. */
   emailConfirmedEntries?: [string, string | null][];
+  /** Letzter Versandzeitstempel pro user_id, für die 24h-Sperre des
+   *  Resend-Buttons. */
+  lastResendEntries?: [string, string | null][];
 }) {
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<Set<FilterId>>(new Set());
@@ -200,10 +204,14 @@ export default function BestandsaufnahmeAdminTable({
     () => new Map(),
   );
 
-  // Map aus den Server-Entries rekonstruieren (memoisiert)
+  // Maps aus den Server-Entries rekonstruieren (memoisiert)
   const emailConfirmedMap = useMemo(
     () => new Map(emailConfirmedEntries ?? []),
     [emailConfirmedEntries],
+  );
+  const lastResendMap = useMemo(
+    () => new Map(lastResendEntries ?? []),
+    [lastResendEntries],
   );
 
   const groups = useMemo(() => groupBySchool(rows), [rows]);
@@ -554,6 +562,9 @@ export default function BestandsaufnahmeAdminTable({
                             <ResendQuickAction
                               userId={selected.user_id}
                               schoolName={g.schoolName}
+                              lastResendAt={
+                                lastResendMap.get(selected.user_id) ?? null
+                              }
                             />
                           )}
                           <Link
@@ -639,6 +650,9 @@ export default function BestandsaufnahmeAdminTable({
                       <ResendQuickAction
                         userId={selected.user_id}
                         schoolName={g.schoolName}
+                        lastResendAt={
+                          lastResendMap.get(selected.user_id) ?? null
+                        }
                       />
                     )}
                   </div>

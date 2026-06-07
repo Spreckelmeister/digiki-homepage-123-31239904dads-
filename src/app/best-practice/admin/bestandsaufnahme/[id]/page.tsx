@@ -47,12 +47,12 @@ export default async function BestandsaufnahmeDetailPage({
 
   if (!r) notFound();
 
-  // E-Mail-Bestätigungs-Status vom Supabase-Auth abfragen, damit wir den
-  // „Bestätigungs-Mail erneut senden"-Button nur bei Bedarf anzeigen.
-  // Admin-Client mit Service-Role-Key, weil auth.users via RLS sonst
-  // nicht erreichbar ist. Auth-Schutz dieser Seite besteht bereits via
-  // getCurrentProfile() oben + Middleware.
+  // E-Mail-Bestätigungs-Status + letzten Resend-Zeitstempel vom
+  // Supabase-Auth abfragen. Beides braucht der Resend-Button, um sich
+  // korrekt anzuzeigen (Sichtbarkeit + 24h-Sperre). Admin-Client mit
+  // Service-Role-Key, weil auth.users via RLS nicht erreichbar ist.
   let emailConfirmedAt: string | null = null;
+  let lastResendAt: string | null = null;
   if (
     r.user_id &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -65,6 +65,13 @@ export default async function BestandsaufnahmeDetailPage({
     );
     const { data: userData } = await admin.auth.admin.getUserById(r.user_id);
     emailConfirmedAt = userData?.user?.email_confirmed_at ?? null;
+    const meta = (userData?.user?.user_metadata ?? {}) as Record<
+      string,
+      unknown
+    >;
+    if (typeof meta.last_confirmation_resend_at === "string") {
+      lastResendAt = meta.last_confirmation_resend_at;
+    }
   }
 
   return (
@@ -123,6 +130,7 @@ export default async function BestandsaufnahmeDetailPage({
               userId={r.user_id}
               currentEmail={r.contact_email}
               emailConfirmedAt={emailConfirmedAt}
+              lastResendAt={lastResendAt}
             />
           )}
 
