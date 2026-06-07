@@ -549,15 +549,9 @@ export default function BestandsaufnahmeAdminTable({
                       </td>
                       <td className="px-4 py-3 text-right align-top">
                         <div className="inline-flex items-center gap-1.5">
-                          <a
-                            href={`/api/admin/bestandsaufnahme/${selected.id}/export-markdown`}
-                            download
-                            title="Diese Bestandsaufnahme als Markdown"
-                            aria-label="Als Markdown herunterladen"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-text-light transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-                          >
-                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                          </a>
+                          {/* Resend zuerst (links vom Download), damit Download
+                              und Ansehen über alle Zeilen hinweg vertikal in
+                              derselben Spalte bleiben. */}
                           {isUnconfirmed && selected.user_id && (
                             <ResendQuickAction
                               userId={selected.user_id}
@@ -567,6 +561,15 @@ export default function BestandsaufnahmeAdminTable({
                               }
                             />
                           )}
+                          <a
+                            href={`/api/admin/bestandsaufnahme/${selected.id}/export-markdown`}
+                            download
+                            title="Diese Bestandsaufnahme als Markdown"
+                            aria-label="Als Markdown herunterladen"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-text-light transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                          >
+                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                          </a>
                           <Link
                             href={`/best-practice/admin/bestandsaufnahme/${selected.id}`}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
