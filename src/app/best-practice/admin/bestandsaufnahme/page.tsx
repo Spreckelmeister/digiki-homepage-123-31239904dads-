@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart2, LineChart, ArrowRight } from "lucide-react";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
@@ -22,8 +23,9 @@ export default async function BestandsaufnahmeAdminPage() {
       // Zusätzlich zu den Display-Spalten holen wir die Filter-Felder
       // (share_practice, pioneer_interest, has_best_practice,
       // student_support, ai_usage), damit die Vorauswahlen unter der
-      // Suchleiste tatsächlich filtern können.
-      "id, school_name, school_location, student_count, respondent_role, status, created_at, share_practice, pioneer_interest, has_best_practice, student_support, ai_usage"
+      // Suchleiste tatsächlich filtern können. user_id brauchen wir
+      // für die Verknüpfung mit dem E-Mail-Bestätigungs-Status.
+      "id, user_id, school_name, school_location, student_count, respondent_role, status, created_at, share_practice, pioneer_interest, has_best_practice, student_support, ai_usage"
     )
     .not("school_name", "ilike", "%test%")
     .not("school_name", "ilike", "%admin%")
@@ -32,6 +34,41 @@ export default async function BestandsaufnahmeAdminPage() {
   const rows = responses || [];
   const neuCount = rows.filter((r) => r.status === "neu").length;
   const gelesenCount = rows.filter((r) => r.status === "gelesen").length;
+
+  // E-Mail-Bestätigungs-Status für alle eingereichten Schulen aufschlüsseln.
+  // Wir nutzen den Service-Role-Key, weil auth.users über RLS nicht
+  // erreichbar ist. Die Map wird an die Tabelle gereicht, damit der
+  // Filter „E-Mail noch nicht bestätigt" client-seitig funktioniert.
+  const emailConfirmedEntries: [string, string | null][] = [];
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    rows.length > 0
+  ) {
+    try {
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const { data: usersData } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      const wantedIds = new Set(
+        rows
+          .map((r) => r.user_id)
+          .filter((id): id is string => typeof id === "string"),
+      );
+      for (const u of usersData?.users ?? []) {
+        if (wantedIds.has(u.id)) {
+          emailConfirmedEntries.push([u.id, u.email_confirmed_at ?? null]);
+        }
+      }
+    } catch (err) {
+      console.error("[bestandsaufnahme-admin] listUsers failed:", err);
+    }
+  }
 
   return (
     <>
@@ -119,7 +156,10 @@ export default async function BestandsaufnahmeAdminPage() {
             </div>
           </div>
 
-          <BestandsaufnahmeAdminTable rows={rows} />
+          <BestandsaufnahmeAdminTable
+            rows={rows}
+            emailConfirmedEntries={emailConfirmedEntries}
+          />
         </div>
       </section>
     </>
