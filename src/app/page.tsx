@@ -21,8 +21,32 @@ import {
   funders,
   newsItems,
 } from "@/data/project";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+// Statistik-Zahlen werden alle 10 Min neu aus der DB geholt – frisch genug
+// für eine Live-Anzeige, ohne den Cache pro Request zu sprengen.
+export const revalidate = 600;
+
+async function getParticipatingSchoolCount(): Promise<number | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("count_participating_schools");
+    if (error || typeof data !== "number") return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export default async function HomePage() {
+  const liveSchoolCount = await getParticipatingSchoolCount();
+  // Wenn die RPC verfügbar ist UND eine sinnvolle Zahl liefert, zeigen wir
+  // die Live-Zahl. Sonst Fallback auf den projektweit hinterlegten Wert.
+  const dynamicStats = stats.map((s) =>
+    s.label === "Grundschulen" && liveSchoolCount && liveSchoolCount > 0
+      ? { ...s, value: String(liveSchoolCount), description: "teilnehmend" }
+      : s,
+  );
   return (
     <>
       {/* <EventsJsonLd /> */}
@@ -93,7 +117,7 @@ export default function HomePage() {
       <section className="bg-white py-12 border-b border-border" aria-label="Projekt in Zahlen">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {stats.map((stat) => (
+            {dynamicStats.map((stat) => (
               <StatCounter
                 key={stat.label}
                 value={stat.value}
