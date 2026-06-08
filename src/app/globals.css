@@ -29,6 +29,25 @@ body {
   background-color: var(--color-bg);
 }
 
+/* Eingabe-Cursor (Caret) und Text in Formularfeldern immer dunkel,
+   unabhängig davon, ob ein Eltern-Container `text-white` setzt.
+   Verhindert den „unsichtbaren Cursor"-Effekt in Inputs auf
+   weißem/hellem Hintergrund. */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  color: var(--color-text);
+  caret-color: var(--color-text);
+}
+
+/* Placeholder darf weiterhin gedämpft sein – wird in Tailwind ohnehin
+   per `placeholder:`-Variante gesteuert; hier als Sicherheitsnetz. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-light);
+  opacity: 0.55;
+}
+
 /* Animierte Zahlen */
 @keyframes countUp {
   from { opacity: 0; transform: translateY(20px); }
