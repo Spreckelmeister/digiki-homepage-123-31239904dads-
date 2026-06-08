@@ -3,6 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getBestandsaufnahmePrefill,
+  getLockedFieldsFromPrefill,
+} from "@/lib/bestandsaufnahme/getPrefill";
 import StudentAssistantForm from "@/components/forms/StudentAssistantForm";
 
 export const metadata: Metadata = {
@@ -22,6 +26,9 @@ export default async function AntragHilfskraeftePage() {
   if (!user) {
     redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
   }
+
+  const prefill = await getBestandsaufnahmePrefill(user.id);
+  const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
 
   return (
     <>
@@ -48,7 +55,11 @@ export default async function AntragHilfskraeftePage() {
       {/* Form */}
       <section className="py-12 md:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <StudentAssistantForm lockedEmail={user.email ?? ""} />
+          <StudentAssistantForm
+            lockedEmail={user.email ?? ""}
+            prefillFromBSA={prefill}
+            lockedFromBSA={lockedFromBSA}
+          />
         </div>
       </section>
     </>

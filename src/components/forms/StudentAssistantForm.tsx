@@ -2,10 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Send } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  CalendarClock,
+  HelpingHand,
+  Send,
+  ServerCog,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
 import FormSuccess from "./FormSuccess";
+import FormSection from "./FormSection";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 
@@ -39,11 +49,21 @@ interface StudentAppData {
   has_school_server: boolean;
 }
 
+interface BestandsaufnahmePrefill {
+  school_name?: string;
+  principal_name?: string;
+  contact_person?: string;
+  phone?: string;
+  teacher_count?: string;
+}
+
 export default function StudentAssistantForm({
   editMode = false,
   initialData,
   recordId,
   lockedEmail,
+  prefillFromBSA,
+  lockedFromBSA,
 }: {
   editMode?: boolean;
   initialData?: StudentAppData;
@@ -51,20 +71,25 @@ export default function StudentAssistantForm({
   /** Konto-E-Mail aus dem Server-Component. Wenn gesetzt, wird das
    *  E-Mail-Feld als gesperrte Anzeige gerendert. */
   lockedEmail?: string;
+  /** Aus der jüngsten Bestandsaufnahme der Schule vor-ausgefüllte Felder. */
+  prefillFromBSA?: BestandsaufnahmePrefill | null;
+  /** Liste der Felder, die durch BSA-Prefill gesperrt werden. */
+  lockedFromBSA?: string[];
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
   const [schoolInfo, setSchoolInfo] = useState({
-    school_name:    initialData?.school_name    ?? "",
+    school_name:    initialData?.school_name    ?? prefillFromBSA?.school_name    ?? "",
     school_street:  initialData?.school_street  ?? "",
     school_plz:     initialData?.school_plz     ?? "",
     school_city:    initialData?.school_city     ?? "",
-    principal_name: initialData?.principal_name ?? "",
-    contact_person: initialData?.contact_person ?? "",
-    phone:          initialData?.phone          ?? "",
-    // lockedEmail hat Vorrang – sonst initialData (Edit) oder leer
-    email:          lockedEmail ?? initialData?.email ?? "",
-    teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
+    principal_name: initialData?.principal_name ?? prefillFromBSA?.principal_name ?? "",
+    contact_person: initialData?.contact_person ?? prefillFromBSA?.contact_person ?? "",
+    phone:          initialData?.phone          ?? prefillFromBSA?.phone          ?? "",
+    email:          lockedEmail                 ?? initialData?.email             ?? "",
+    teacher_count:  initialData?.teacher_count != null
+      ? String(initialData.teacher_count)
+      : prefillFromBSA?.teacher_count ?? "",
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
@@ -297,39 +322,78 @@ export default function StudentAssistantForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {!editMode && HoneypotField}
+
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-          {error}
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm"
+        >
+          <AlertCircle
+            className="mt-0.5 h-5 w-5 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-bold">Antrag konnte nicht gesendet werden</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
         </div>
       )}
 
       {!editMode && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-          Im Rahmen des Projekts DigiKI können Grundschulen in Stadt und Landkreis
-          Osnabrück kostenlos studentische Hilfskräfte beantragen, die bei der
-          Einrichtung digitaler Tools, technischem Support und der
-          Materialerstellung unterstützen.
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 md:p-6">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-light/15 blur-3xl"
+          />
+          <div className="relative flex items-start gap-4">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+                Kostenfrei für Grundschulen
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-text-light">
+                Im Rahmen des Projekts DigiKI können Grundschulen in Stadt und
+                Landkreis Osnabrück kostenlos studentische Hilfskräfte
+                beantragen, die bei der Einrichtung digitaler Tools,
+                technischem Support und der Materialerstellung unterstützen.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* 1. Schulinfo */}
-      <SchoolInfoFields
-        values={schoolInfo}
-        onChange={handleSchoolInfoChange}
-        inputClass={inputClass}
-        lockedEmail={lockedEmail}
-      />
+      {/* ════════ §1 SCHULE ════════ */}
+      <FormSection
+        index="01"
+        eyebrow="Schule"
+        title="Wer beantragt?"
+        body="Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        icon={<Building2 className="h-3 w-3" />}
+      >
+        <SchoolInfoFields
+          values={schoolInfo}
+          onChange={handleSchoolInfoChange}
+          inputClass={inputClass}
+          lockedEmail={lockedEmail}
+          lockedFromBestandsaufnahme={lockedFromBSA}
+        />
+      </FormSection>
 
-      {/* 2. Gewünschte Unterstützung */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          2. Gewünschte Unterstützung
-        </legend>
-        <p className="text-sm text-text-light mb-4">
-          Bitte kreuzen Sie die gewünschten Tätigkeitsbereiche an:
-        </p>
+      {/* ════════ §2 UNTERSTÜTZUNG ════════ */}
+      <FormSection
+        index="02"
+        eyebrow="Unterstützung"
+        title="Wo brauchen Sie Hilfe?"
+        body="Bitte kreuzen Sie die gewünschten Tätigkeitsbereiche an – Sie können auch mehrere wählen. Im Freitextfeld unten können Sie Ihren Bedarf konkretisieren."
+        icon={<HelpingHand className="h-3 w-3" />}
+      >
         <div className="space-y-3">
           <label className={checkboxLabel}>
             <input
@@ -398,10 +462,10 @@ export default function StudentAssistantForm({
             </span>
           </label>
         </div>
-        <div className="mt-4">
+        <div>
           <label
             htmlFor="support_explanation"
-            className="block text-sm font-medium text-text mb-1.5"
+            className="mb-1.5 block text-sm font-medium text-text"
           >
             Erläuterung / konkreter Bedarf
           </label>
@@ -411,17 +475,20 @@ export default function StudentAssistantForm({
             value={supportExplanation}
             onChange={(e) => setSupportExplanation(e.target.value)}
             className={inputClass + " resize-y"}
-            placeholder="Beschreiben Sie Ihren konkreten Bedarf..."
+            placeholder="Beschreiben Sie Ihren konkreten Bedarf …"
           />
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* 3. Zeitraum & Umfang */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          3. Gewünschter Zeitraum &amp; Umfang
-        </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ════════ §3 ZEITRAUM ════════ */}
+      <FormSection
+        index="03"
+        eyebrow="Zeitraum"
+        title="Wann und wie viel?"
+        body="Damit wir Ihnen passende studentische Kräfte vermitteln können, brauchen wir Ihren Wunsch-Beginn, die Dauer und ein ungefähres Wochenpensum."
+        icon={<CalendarClock className="h-3 w-3" />}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label
               htmlFor="start_date"
@@ -472,7 +539,7 @@ export default function StudentAssistantForm({
           <div>
             <label
               htmlFor="preferred_days"
-              className="block text-sm font-medium text-text mb-1.5"
+              className="mb-1.5 block text-sm font-medium text-text"
             >
               Bevorzugte Tage
             </label>
@@ -486,16 +553,16 @@ export default function StudentAssistantForm({
             />
           </div>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* 4. Technische Voraussetzungen */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          4. Technische Voraussetzungen an der Schule
-        </legend>
-        <p className="text-sm text-text-light mb-4">
-          Bitte geben Sie an, welche Ausstattung vorhanden ist:
-        </p>
+      {/* ════════ §4 INFRASTRUKTUR ════════ */}
+      <FormSection
+        index="04"
+        eyebrow="Infrastruktur"
+        title="Was steht vor Ort?"
+        body="Damit die studentische Kraft direkt loslegen kann, hilft uns ein kurzer Überblick über die vorhandene Ausstattung an Ihrer Schule."
+        icon={<ServerCog className="h-3 w-3" />}
+      >
         <div className="space-y-3">
           <label className={checkboxLabel}>
             <input
@@ -556,65 +623,76 @@ export default function StudentAssistantForm({
             </span>
           </label>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* Einwilligungen – nur im normalen Modus */}
+      {/* ════════ §5 EINWILLIGUNGEN ════════ */}
       {!editMode && (
-        <fieldset className="space-y-3">
-          <legend className="text-lg font-semibold text-primary mb-4">
-            Einwilligungen
-          </legend>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              required
-              checked={privacyConsent}
-              onChange={(e) => setPrivacyConsent(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
-              <Link
-                href="/datenschutz"
-                target="_blank"
-                className="underline text-primary hover:text-primary/80"
-              >
-                Datenschutzerklärung
-              </Link>{" "}
-              zu. *
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              required
-              checked={truthConsent}
-              onChange={(e) => setTruthConsent(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
-            </span>
-          </label>
-        </fieldset>
+        <FormSection
+          index="05"
+          eyebrow="Einwilligungen"
+          title="Datenschutz bestätigen"
+          body="Damit wir Ihren Antrag rechtssicher bearbeiten können, brauchen wir kurz Ihre Bestätigung."
+          icon={<ShieldCheck className="h-3 w-3" />}
+        >
+          <div className="space-y-3">
+            <label className={checkboxLabel}>
+              <input
+                type="checkbox"
+                required
+                checked={privacyConsent}
+                onChange={(e) => setPrivacyConsent(e.target.checked)}
+                className={checkboxInput}
+              />
+              <span className="text-sm text-text">
+                Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+                <Link
+                  href="/datenschutz"
+                  target="_blank"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  Datenschutzerklärung
+                </Link>{" "}
+                zu. *
+              </span>
+            </label>
+            <label className={checkboxLabel}>
+              <input
+                type="checkbox"
+                required
+                checked={truthConsent}
+                onChange={(e) => setTruthConsent(e.target.checked)}
+                className={checkboxInput}
+              />
+              <span className="text-sm text-text">
+                Ich bestätige, dass alle gemachten Angaben der Wahrheit
+                entsprechen. *
+              </span>
+            </label>
+          </div>
+        </FormSection>
       )}
 
-      {/* Submit */}
-      <div className="pt-4 border-t border-border">
+      {/* ════════ Submit ════════ */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
+          className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-bold text-text shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-md disabled:cursor-wait disabled:opacity-50"
         >
-          <Send className="w-5 h-5" aria-hidden="true" />
+          <Send
+            className={`h-4 w-4 ${loading ? "animate-pulse" : "transition-transform group-hover:translate-x-0.5"}`}
+            aria-hidden="true"
+          />
           {loading
-            ? (editMode ? "Wird gespeichert..." : "Wird eingereicht...")
-            : (editMode ? "Änderungen speichern" : "Antrag einreichen")}
+            ? editMode
+              ? "Wird gespeichert …"
+              : "Wird eingereicht …"
+            : editMode
+              ? "Änderungen speichern"
+              : "Antrag einreichen"}
         </button>
         {!editMode && (
-          <p className="mt-3 text-xs text-text-light">
-            * Pflichtfelder.
-          </p>
+          <p className="text-xs text-text-light">* Pflichtfelder.</p>
         )}
       </div>
     </form>

@@ -2,11 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Send } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  ClipboardCheck,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ToolSelection } from "@/lib/types";
 import SchoolInfoFields from "./SchoolInfoFields";
 import FormSuccess from "./FormSuccess";
+import FormSection from "./FormSection";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 
@@ -51,11 +60,21 @@ interface ToolAppData {
   it_infrastructure_meets_requirements: boolean;
 }
 
+interface BestandsaufnahmePrefill {
+  school_name?: string;
+  principal_name?: string;
+  contact_person?: string;
+  phone?: string;
+  teacher_count?: string;
+}
+
 export default function ToolLicenseForm({
   editMode = false,
   initialData,
   recordId,
   lockedEmail,
+  prefillFromBSA,
+  lockedFromBSA,
 }: {
   editMode?: boolean;
   initialData?: ToolAppData;
@@ -63,20 +82,27 @@ export default function ToolLicenseForm({
   /** Vom Server-Component übergebene Konto-E-Mail. Wenn gesetzt, wird das
    *  E-Mail-Feld als gesperrte Anzeige gerendert. */
   lockedEmail?: string;
+  /** Aus der jüngsten Bestandsaufnahme der Schule vor-ausgefüllte Felder. */
+  prefillFromBSA?: BestandsaufnahmePrefill | null;
+  /** Liste der Felder, die durch BSA-Prefill gesperrt werden. */
+  lockedFromBSA?: string[];
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
   const [schoolInfo, setSchoolInfo] = useState({
-    school_name:    initialData?.school_name    ?? "",
+    // Beim NEU-Antrag haben Prefill-Werte Vorrang vor leer; im Edit-Modus
+    // gewinnen initialData (gespeicherte Werte).
+    school_name:    initialData?.school_name    ?? prefillFromBSA?.school_name    ?? "",
     school_street:  initialData?.school_street  ?? "",
     school_plz:     initialData?.school_plz     ?? "",
     school_city:    initialData?.school_city     ?? "",
-    principal_name: initialData?.principal_name ?? "",
-    contact_person: initialData?.contact_person ?? "",
-    phone:          initialData?.phone          ?? "",
-    // lockedEmail hat Vorrang – sonst initialData (Edit) oder leer
-    email:          lockedEmail ?? initialData?.email ?? "",
-    teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
+    principal_name: initialData?.principal_name ?? prefillFromBSA?.principal_name ?? "",
+    contact_person: initialData?.contact_person ?? prefillFromBSA?.contact_person ?? "",
+    phone:          initialData?.phone          ?? prefillFromBSA?.phone          ?? "",
+    email:          lockedEmail                 ?? initialData?.email             ?? "",
+    teacher_count:  initialData?.teacher_count != null
+      ? String(initialData.teacher_count)
+      : prefillFromBSA?.teacher_count ?? "",
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
@@ -345,55 +371,93 @@ export default function ToolLicenseForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {!editMode && HoneypotField}
+
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-          {error}
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm"
+        >
+          <AlertCircle
+            className="mt-0.5 h-5 w-5 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-bold">Antrag konnte nicht gesendet werden</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
         </div>
       )}
 
       {!editMode && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-          Dank der Förderung durch die Stiftungen und Klaus Hellmann können
-          Grundschulen in Stadt und Landkreis Osnabrück kostenlose Lizenzen für
-          ausgewählte, DSGVO-konforme Lern-Tools beantragen. Alle Tools sind auf
-          ihren pädagogischen Nutzen geprüft und auf die Bedürfnisse von
-          Grundschulen abgestimmt.
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 md:p-6">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-light/15 blur-3xl"
+          />
+          <div className="relative flex items-start gap-4">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+                Kostenfrei für Grundschulen
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-text-light">
+                Dank der Förderung durch die Stiftungen und Klaus Hellmann
+                können Grundschulen in Stadt und Landkreis Osnabrück
+                kostenlose Lizenzen für ausgewählte, DSGVO-konforme Lern-Tools
+                beantragen. Alle Tools sind auf ihren pädagogischen Nutzen
+                geprüft und auf die Bedürfnisse von Grundschulen abgestimmt.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* 1. Schulinfo */}
-      <SchoolInfoFields
-        values={schoolInfo}
-        onChange={handleSchoolInfoChange}
-        inputClass={inputClass}
-        lockedEmail={lockedEmail}
-      />
+      {/* ════════ §1 SCHULE ════════ */}
+      <FormSection
+        index="01"
+        eyebrow="Schule"
+        title="Wer beantragt?"
+        body="Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        icon={<Building2 className="h-3 w-3" />}
+      >
+        <SchoolInfoFields
+          values={schoolInfo}
+          onChange={handleSchoolInfoChange}
+          inputClass={inputClass}
+          lockedEmail={lockedEmail}
+          lockedFromBestandsaufnahme={lockedFromBSA}
+        />
+      </FormSection>
 
-      {/* 2. Tool-Auswahl */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          2. Gewünschte Tool-Lizenzen
-        </legend>
-        <p className="text-sm text-text-light mb-4">
-          Bitte wählen Sie die gewünschten Tools aus und geben Sie die benötigte
-          Anzahl an Lizenzen an:
-        </p>
-        <div className="space-y-6">
+      {/* ════════ §2 TOOLS ════════ */}
+      <FormSection
+        index="02"
+        eyebrow="Tool-Lizenzen"
+        title="Was möchten Sie einsetzen?"
+        body="Wählen Sie aus den geprüften, DSGVO-konformen Tools und geben Sie an, wie viele Lizenzen Sie pro Tool benötigen."
+        icon={<ClipboardCheck className="h-3 w-3" />}
+      >
+        <div className="space-y-5">
           {toolSelections.map((category, catIndex) => (
             <div
               key={category.category}
-              className="bg-bg rounded-xl p-4 border border-border"
+              className="rounded-xl border border-border bg-bg p-4"
             >
-              <h3 className="text-sm font-semibold text-primary mb-3">
+              <h3 className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-primary">
                 {category.category}
               </h3>
               <div className="space-y-2">
                 {category.tools.map((tool, toolIndex) => (
                   <div
                     key={toolIndex}
-                    className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-2"
+                    className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_140px]"
                   >
                     <input
                       type="text"
@@ -413,7 +477,7 @@ export default function ToolLicenseForm({
                           catIndex,
                           toolIndex,
                           "license_count",
-                          e.target.value
+                          e.target.value,
                         )
                       }
                       className={inputClass}
@@ -425,10 +489,11 @@ export default function ToolLicenseForm({
             </div>
           ))}
         </div>
-        <div className="mt-4">
+
+        <div>
           <label
             htmlFor="additional_tools"
-            className="block text-sm font-medium text-text mb-1.5"
+            className="mb-1.5 block text-sm font-medium text-text"
           >
             Weitere gewünschte Tools
           </label>
@@ -438,21 +503,24 @@ export default function ToolLicenseForm({
             value={additionalTools}
             onChange={(e) => setAdditionalTools(e.target.value)}
             className={inputClass + " resize-y"}
-            placeholder="Falls Sie weitere Tools benötigen, die nicht aufgelistet sind..."
+            placeholder="Falls Sie weitere Tools benötigen, die nicht aufgelistet sind …"
           />
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* 3. Geplanter Einsatz */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          3. Geplanter Einsatz
-        </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      {/* ════════ §3 EINSATZ ════════ */}
+      <FormSection
+        index="03"
+        eyebrow="Einsatz"
+        title="Wie soll's eingesetzt werden?"
+        body="Damit wir den passenden Lizenz-Umfang und Schulungsbedarf einschätzen können – kurz angegeben, in welchen Klassen, Fächern und ab wann."
+        icon={<Target className="h-3 w-3" />}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label
               htmlFor="grade_levels"
-              className="block text-sm font-medium text-text mb-1.5"
+              className="mb-1.5 block text-sm font-medium text-text"
             >
               Klassenstufen
             </label>
@@ -468,7 +536,7 @@ export default function ToolLicenseForm({
           <div>
             <label
               htmlFor="subjects"
-              className="block text-sm font-medium text-text mb-1.5"
+              className="mb-1.5 block text-sm font-medium text-text"
             >
               Fächer / Bereiche
             </label>
@@ -482,10 +550,11 @@ export default function ToolLicenseForm({
             />
           </div>
         </div>
-        <div className="mb-4">
+
+        <div>
           <label
             htmlFor="start_date_tool"
-            className="block text-sm font-medium text-text mb-1.5"
+            className="mb-1.5 block text-sm font-medium text-text"
           >
             Geplanter Beginn
           </label>
@@ -497,10 +566,11 @@ export default function ToolLicenseForm({
             className={inputClass + " max-w-[250px]"}
           />
         </div>
+
         <div>
           <label
             htmlFor="usage_description"
-            className="block text-sm font-medium text-text mb-1.5"
+            className="mb-1.5 block text-sm font-medium text-text"
           >
             Kurze Beschreibung des geplanten Einsatzes
           </label>
@@ -510,16 +580,19 @@ export default function ToolLicenseForm({
             value={usageDescription}
             onChange={(e) => setUsageDescription(e.target.value)}
             className={inputClass + " resize-y"}
-            placeholder="Beschreiben Sie, wie Sie die Tools im Unterricht einsetzen möchten..."
+            placeholder="Beschreiben Sie kurz, wie Sie die Tools im Unterricht einsetzen möchten …"
           />
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* 4. Datenschutz */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          4. Datenschutz
-        </legend>
+      {/* ════════ §4 DATENSCHUTZ ════════ */}
+      <FormSection
+        index="04"
+        eyebrow="Datenschutz"
+        title="Bestätigungen"
+        body="Damit der Tool-Einsatz rechtssicher startet, brauchen wir noch ein paar Bestätigungen Ihrer Schule."
+        icon={<ShieldCheck className="h-3 w-3" />}
+      >
         <div className="space-y-3">
           <label className={checkboxLabel}>
             <input
@@ -571,7 +644,7 @@ export default function ToolLicenseForm({
                   <Link
                     href="/datenschutz"
                     target="_blank"
-                    className="underline text-primary hover:text-primary/80"
+                    className="text-primary underline hover:text-primary/80"
                   >
                     Datenschutzerklärung
                   </Link>{" "}
@@ -587,30 +660,36 @@ export default function ToolLicenseForm({
                   className={checkboxInput}
                 />
                 <span className="text-sm text-text">
-                  Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
+                  Ich bestätige, dass alle gemachten Angaben der Wahrheit
+                  entsprechen. *
                 </span>
               </label>
             </>
           )}
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* Submit */}
-      <div className="pt-4 border-t border-border">
+      {/* ════════ Submit ════════ */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
+          className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-bold text-text shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-md disabled:cursor-wait disabled:opacity-50"
         >
-          <Send className="w-5 h-5" aria-hidden="true" />
+          <Send
+            className={`h-4 w-4 ${loading ? "animate-pulse" : "transition-transform group-hover:translate-x-0.5"}`}
+            aria-hidden="true"
+          />
           {loading
-            ? (editMode ? "Wird gespeichert..." : "Wird eingereicht...")
-            : (editMode ? "Änderungen speichern" : "Antrag einreichen")}
+            ? editMode
+              ? "Wird gespeichert …"
+              : "Wird eingereicht …"
+            : editMode
+              ? "Änderungen speichern"
+              : "Antrag einreichen"}
         </button>
         {!editMode && (
-          <p className="mt-3 text-xs text-text-light">
-            * Pflichtfelder.
-          </p>
+          <p className="text-xs text-text-light">* Pflichtfelder.</p>
         )}
       </div>
     </form>
