@@ -5,8 +5,8 @@ import AdminNav from "@/components/best-practice/AdminNav";
 import BulkMailingTool from "@/components/best-practice/BulkMailingTool";
 
 export const metadata: Metadata = {
-  title: "Admin – Mailing",
-  description: "Bulk-Mailings an alle DigiKI-Accounts versenden.",
+  title: "Admin – E-Mails",
+  description: "E-Mails an alle DigiKI-Accounts versenden.",
   robots: { index: false, follow: false },
 };
 
@@ -28,10 +28,10 @@ export default async function AdminMailingsPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                Mailing
+                E-Mails
               </h1>
               <p className="text-lg text-white/70">
-                HTML-Mailings an alle registrierten DigiKI-Accounts versenden.
+                HTML-E-Mails an alle registrierten DigiKI-Accounts versenden.
               </p>
               <AdminNav />
             </div>

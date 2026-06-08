@@ -28,7 +28,7 @@ const tabs = [
       path.startsWith("/best-practice/admin/bestandsaufnahme"),
   },
   {
-    label: "Mailing",
+    label: "E-Mails",
     href: "/best-practice/admin/mailings",
     icon: Mail,
     match: (path: string) => path.startsWith("/best-practice/admin/mailings"),
