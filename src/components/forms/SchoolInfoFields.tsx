@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { Info, MapPin, ChevronDown } from "lucide-react";
 import LockedFieldDisplay from "./LockedFieldDisplay";
 import {
   useAddressAutocomplete,
@@ -93,6 +93,66 @@ export default function SchoolInfoFields({
     onChange("school_city", suggestion.city);
     clearAddressSuggestions();
     setShowAddressSuggestions(false);
+  }
+
+  // ── Auto-Vorschlag für die Schul-Adresse ──────────────────────────────────
+  // Wenn der Schulname schon feststeht (z.B. weil er aus der Bestandsaufnahme
+  // gesperrt übernommen wurde) und die Adresse noch leer ist, fragen wir
+  // Nominatim einmalig nach der Schule und schlagen die gefundene Adresse vor.
+  // Der Nutzer kann den Vorschlag manuell editieren oder eine Alternative wählen.
+  const addressEmpty =
+    !values.school_street.trim() &&
+    !values.school_plz.trim() &&
+    !values.school_city.trim();
+  const {
+    suggestions: schoolMatches,
+    isLoading: schoolMatchesLoading,
+  } = useSchoolAutocomplete(
+    addressEmpty && values.school_name.trim().length >= 3
+      ? values.school_name
+      : "",
+  );
+  const validSchoolMatches = schoolMatches.filter(
+    (s) => s.street && s.plz && s.city,
+  );
+  const [autoSuggestedAddress, setAutoSuggestedAddress] = useState<{
+    street: string;
+    plz: string;
+    city: string;
+  } | null>(null);
+  const [showAddressAlternatives, setShowAddressAlternatives] = useState(false);
+
+  useEffect(() => {
+    if (autoSuggestedAddress) return;
+    if (!addressEmpty) return;
+    if (validSchoolMatches.length === 0) return;
+    const top = validSchoolMatches[0];
+    onChange("school_street", top.street);
+    onChange("school_plz", top.plz);
+    onChange("school_city", top.city);
+    setAutoSuggestedAddress({
+      street: top.street,
+      plz: top.plz,
+      city: top.city,
+    });
+    // onChange ändert sich mit jedem Render – wäre ein Endlos-Loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validSchoolMatches, addressEmpty, autoSuggestedAddress]);
+
+  // Vorschlags-Badge nur zeigen, solange die Felder dem Vorschlag entsprechen.
+  // Sobald der Nutzer manuell editiert, blenden wir den Hinweis aus.
+  const addressMatchesSuggestion =
+    autoSuggestedAddress !== null &&
+    values.school_street.trim() === autoSuggestedAddress.street &&
+    values.school_plz.trim() === autoSuggestedAddress.plz &&
+    values.school_city.trim() === autoSuggestedAddress.city;
+
+  function applyAlternativeAddress(s: SchoolSuggestion) {
+    onChange("school_street", s.street);
+    onChange("school_plz", s.plz);
+    onChange("school_city", s.city);
+    setAutoSuggestedAddress({ street: s.street, plz: s.plz, city: s.city });
+    setShowAddressAlternatives(false);
   }
 
   return (
@@ -190,6 +250,88 @@ export default function SchoolInfoFields({
               Suche Schulen...
             </div>
           )}
+        </div>
+      )}
+
+      {/* Auto-Adress-Vorschlag aus Nominatim, falls Schulname schon bekannt */}
+      {(addressMatchesSuggestion || schoolMatchesLoading) && (
+        <div className="rounded-lg border border-primary-light/30 bg-primary-light/5 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                {schoolMatchesLoading && !addressMatchesSuggestion
+                  ? "Adresse wird gesucht…"
+                  : "Adressvorschlag aus OpenStreetMap"}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-text-light">
+                Wir haben die Adresse anhand des Schulnamens automatisch ausgefüllt.
+                Bitte <strong className="font-semibold text-text">kurz prüfen</strong> und
+                bei Bedarf korrigieren.
+              </p>
+              {validSchoolMatches.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowAddressAlternatives((v) => !v)
+                  }
+                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                  aria-expanded={showAddressAlternatives}
+                >
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${
+                      showAddressAlternatives ? "rotate-180" : ""
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {showAddressAlternatives
+                    ? "Alternativen ausblenden"
+                    : `Andere Adresse wählen (${validSchoolMatches.length - 1} weitere)`}
+                </button>
+              )}
+              {showAddressAlternatives && validSchoolMatches.length > 1 && (
+                <ul className="mt-3 space-y-1.5">
+                  {validSchoolMatches.map((s, i) => {
+                    const isCurrent =
+                      autoSuggestedAddress?.street === s.street &&
+                      autoSuggestedAddress?.plz === s.plz &&
+                      autoSuggestedAddress?.city === s.city;
+                    return (
+                      <li key={i}>
+                        <button
+                          type="button"
+                          onClick={() => applyAlternativeAddress(s)}
+                          disabled={isCurrent}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-[13px] transition-colors ${
+                            isCurrent
+                              ? "border-primary/40 bg-primary/5 text-primary cursor-default"
+                              : "border-border bg-white hover:border-primary/40 hover:bg-primary-light/10"
+                          }`}
+                        >
+                          <span className="block font-medium text-text">
+                            {s.street}
+                          </span>
+                          <span className="block text-[12px] text-text-light">
+                            {s.plz} {s.city}
+                            {isCurrent && (
+                              <span className="ml-2 text-primary">
+                                (aktuell ausgewählt)
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
