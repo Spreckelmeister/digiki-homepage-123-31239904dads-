@@ -56,8 +56,8 @@ export default async function BestPracticeEinreichenPage() {
       </section>
 
       {/* Form */}
-      <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <section className="bg-bg py-12 md:py-16">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <BestPracticeVorlageForm
             lockedEmail={user.email ?? ""}
             prefillFromBSA={

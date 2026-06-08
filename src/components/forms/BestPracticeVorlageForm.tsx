@@ -272,7 +272,7 @@ export default function BestPracticeVorlageForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {HoneypotField}
 
       {error && (
@@ -292,23 +292,23 @@ export default function BestPracticeVorlageForm({
       )}
 
       {/* Intro-Karte – Onboarding mit Editorial-Stil */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 md:p-6">
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-6 shadow-sm md:p-8">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-light/15 blur-3xl"
+          className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-primary-light/15 blur-3xl"
         />
-        <div className="relative flex items-start gap-4">
+        <div className="relative flex items-start gap-5">
           <span
             aria-hidden="true"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
           >
-            <Sparkles className="h-5 w-5" />
+            <Sparkles className="h-6 w-6" />
           </span>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+          <div className="flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-accent-strong">
               In etwa 15 Minuten
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-text-light">
+            <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-text-light">
               Erzählen Sie kurz und konkret, was bei Ihnen gut funktioniert hat
               – andere Schulen profitieren direkt davon. Pflichtfelder sind mit
               * markiert; alles andere ist optional.
@@ -326,26 +326,30 @@ export default function BestPracticeVorlageForm({
         icon={<Info className="h-3 w-3" />}
       >
         {anyBSALocked && (
-          <div className="flex items-start gap-3 rounded-lg border border-primary-light/30 bg-primary-light/5 px-4 py-3 text-[13px] leading-relaxed text-text">
-            <Info
-              className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+          <div className="flex items-start gap-4 rounded-xl border border-primary-light/30 bg-primary-light/5 p-5">
+            <span
               aria-hidden="true"
-            />
-            <p>
-              <strong className="text-primary">
-                Aus Ihrer Bestandsaufnahme übernommen.
-              </strong>{" "}
-              Felder mit „Aus Bestandsaufnahme" sind hier gesperrt, damit Ihre
-              Angaben über alle Einreichungen konsistent bleiben. Änderungen
-              können Sie jederzeit selbst in Ihrer{" "}
-              <Link
-                href="/best-practice/meine-bestandsaufnahme/bearbeiten"
-                className="text-primary underline underline-offset-2 hover:text-primary/80"
-              >
-                Bestandsaufnahme aktualisieren
-              </Link>
-              &nbsp;– von dort werden die Werte hier automatisch übernommen.
-            </p>
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
+              <Info className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+                Aus Ihrer Bestandsaufnahme übernommen
+              </p>
+              <p className="mt-2 text-[14px] leading-relaxed text-text-light">
+                Felder mit „Aus Bestandsaufnahme" sind gesperrt, damit Ihre
+                Angaben über alle Einreichungen konsistent bleiben. Änderungen
+                können Sie jederzeit selbst in Ihrer{" "}
+                <Link
+                  href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                  className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  Bestandsaufnahme aktualisieren
+                </Link>
+                &nbsp;– von dort werden die Werte hier automatisch übernommen.
+              </p>
+            </div>
           </div>
         )}
 

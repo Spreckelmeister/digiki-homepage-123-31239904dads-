@@ -373,7 +373,7 @@ export default function ToolLicenseForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {!editMode && HoneypotField}
 
       {error && (
@@ -393,23 +393,23 @@ export default function ToolLicenseForm({
       )}
 
       {!editMode && (
-        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 md:p-6">
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-6 shadow-sm md:p-8">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-light/15 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-primary-light/15 blur-3xl"
           />
-          <div className="relative flex items-start gap-4">
+          <div className="relative flex items-start gap-5">
             <span
               aria-hidden="true"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
             >
-              <Sparkles className="h-5 w-5" />
+              <Sparkles className="h-6 w-6" />
             </span>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+            <div className="flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-accent-strong">
                 Kostenfrei für Grundschulen
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-text-light">
+              <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-text-light">
                 Dank der Förderung durch die Stiftungen und Klaus Hellmann
                 können Grundschulen in Stadt und Landkreis Osnabrück
                 kostenlose Lizenzen für ausgewählte, DSGVO-konforme Lern-Tools

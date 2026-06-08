@@ -99,27 +99,31 @@ export default function SchoolInfoFields({
     <div className="space-y-4">
       {/* Prefill-Hinweis, wenn etwas aus der Bestandsaufnahme übernommen wurde */}
       {anyBSALocked && (
-        <div className="flex items-start gap-3 rounded-lg border border-primary-light/30 bg-primary-light/5 px-4 py-3 text-[13px] leading-relaxed text-text">
-          <Info
-            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+        <div className="flex items-start gap-4 rounded-xl border border-primary-light/30 bg-primary-light/5 p-5">
+          <span
             aria-hidden="true"
-          />
-          <p>
-            <strong className="text-primary">
-              Aus Ihrer Bestandsaufnahme übernommen.
-            </strong>{" "}
-            Felder mit „Aus Bestandsaufnahme" sind hier gesperrt, damit Ihre
-            Angaben über alle Einreichungen konsistent bleiben. Änderungen
-            (z.&nbsp;B. neue Schulleitung) können Sie jederzeit selbst in
-            Ihrer{" "}
-            <Link
-              href="/best-practice/meine-bestandsaufnahme/bearbeiten"
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Bestandsaufnahme aktualisieren
-            </Link>
-            &nbsp;– von dort werden die Werte hier automatisch übernommen.
-          </p>
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Info className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+              Aus Ihrer Bestandsaufnahme übernommen
+            </p>
+            <p className="mt-2 text-[14px] leading-relaxed text-text-light">
+              Felder mit „Aus Bestandsaufnahme" sind gesperrt, damit Ihre
+              Angaben über alle Einreichungen konsistent bleiben. Änderungen
+              (z.&nbsp;B. neue Schulleitung) können Sie jederzeit selbst in
+              Ihrer{" "}
+              <Link
+                href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Bestandsaufnahme aktualisieren
+              </Link>
+              &nbsp;– von dort werden die Werte hier automatisch übernommen.
+            </p>
+          </div>
         </div>
       )}
 
