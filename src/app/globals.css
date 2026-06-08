@@ -50,6 +50,21 @@ textarea::placeholder {
   opacity: 0.62;
 }
 
+/* Code-Editor mit dunklem Hintergrund (z.B. Admin-Mailing-Tool).
+   Klasse-Spezifität überstimmt die generische textarea-Regel oben,
+   damit Text + Cursor + Placeholder hell statt dunkel gerendert werden. */
+textarea.editor-dark,
+input.editor-dark {
+  color: #A7F3D0;
+  caret-color: #A7F3D0;
+  background-color: #0F1E1E;
+}
+textarea.editor-dark::placeholder,
+input.editor-dark::placeholder {
+  color: #A7F3D0;
+  opacity: 0.35;
+}
+
 /* Animierte Zahlen */
 @keyframes countUp {
   from { opacity: 0; transform: translateY(20px); }
