@@ -262,7 +262,9 @@ export default function StudentAssistantForm({
     "w-4 h-4 rounded border-border text-accent focus:ring-accent-strong";
 
   if (isAdmin === null) return null;
-  if (isAdmin === true) return (
+  // Admins dürfen keine NEUEN Anträge einreichen, dürfen aber existierende
+  // im Edit-Modus (z.B. aus dem Admin-Bereich) bearbeiten.
+  if (isAdmin === true && !editMode) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können keine Anträge einreichen.
     </div>
