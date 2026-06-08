@@ -37,19 +37,12 @@ export default function BackButton({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // History muss mehr als nur den aktuellen Eintrag haben UND der
-    // Referrer muss aus derselben Origin kommen – sonst würden wir
-    // den User aus der App rauswerfen oder eine "Zurück geht ins
-    // Leere"-Erfahrung schaffen.
-    if (window.history.length <= 1) return;
-    if (!document.referrer) return;
-    try {
-      const ref = new URL(document.referrer);
-      if (ref.origin === window.location.origin) {
-        setCanGoBack(true);
-      }
-    } catch {
-      // Ungültiger Referrer → Fallback bleibt
+    // history.length > 1 = es gibt einen Eintrag, zu dem wir zurück können.
+    // (document.referrer hilft hier nicht, weil Next.js bei Link-Navigation
+    // den Referrer nicht aktualisiert – router.back() nutzt die echte
+    // Browser-History, die das aber korrekt abbildet.)
+    if (window.history.length > 1) {
+      setCanGoBack(true);
     }
   }, []);
 

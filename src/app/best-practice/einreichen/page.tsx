@@ -41,8 +41,8 @@ export default async function BestPracticeEinreichenPage() {
       <section className="bg-primary py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <BackButton
-            fallbackHref="/best-practice"
-            fallbackLabel="Zurück zu Best Practice"
+            fallbackHref="/best-practice/datenbank"
+            fallbackLabel="Zurück zu meinen Einreichungen"
             className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
           />
           <h1 className="text-3xl md:text-4xl font-bold text-white">
