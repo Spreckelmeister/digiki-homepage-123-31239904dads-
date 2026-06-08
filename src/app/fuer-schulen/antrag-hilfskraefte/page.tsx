@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import StudentAssistantForm from "@/components/forms/StudentAssistantForm";
 
 export const metadata: Metadata = {
@@ -10,7 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/fuer-schulen/antrag-hilfskraefte" },
 };
 
-export default function AntragHilfskraeftePage() {
+const PAGE_PATH = "/fuer-schulen/antrag-hilfskraefte";
+
+export default async function AntragHilfskraeftePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
+  }
+
   return (
     <>
       {/* Hero */}
@@ -36,7 +48,7 @@ export default function AntragHilfskraeftePage() {
       {/* Form */}
       <section className="py-12 md:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <StudentAssistantForm />
+          <StudentAssistantForm lockedEmail={user.email ?? ""} />
         </div>
       </section>
     </>

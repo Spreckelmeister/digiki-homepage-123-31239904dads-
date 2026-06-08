@@ -43,10 +43,14 @@ export default function StudentAssistantForm({
   editMode = false,
   initialData,
   recordId,
+  lockedEmail,
 }: {
   editMode?: boolean;
   initialData?: StudentAppData;
   recordId?: string;
+  /** Konto-E-Mail aus dem Server-Component. Wenn gesetzt, wird das
+   *  E-Mail-Feld als gesperrte Anzeige gerendert. */
+  lockedEmail?: string;
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
@@ -58,7 +62,8 @@ export default function StudentAssistantForm({
     principal_name: initialData?.principal_name ?? "",
     contact_person: initialData?.contact_person ?? "",
     phone:          initialData?.phone          ?? "",
-    email:          initialData?.email          ?? "",
+    // lockedEmail hat Vorrang – sonst initialData (Edit) oder leer
+    email:          lockedEmail ?? initialData?.email ?? "",
     teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
@@ -314,6 +319,7 @@ export default function StudentAssistantForm({
         values={schoolInfo}
         onChange={handleSchoolInfoChange}
         inputClass={inputClass}
+        lockedEmail={lockedEmail}
       />
 
       {/* 2. Gewünschte Unterstützung */}

@@ -55,10 +55,14 @@ export default function ToolLicenseForm({
   editMode = false,
   initialData,
   recordId,
+  lockedEmail,
 }: {
   editMode?: boolean;
   initialData?: ToolAppData;
   recordId?: string;
+  /** Vom Server-Component übergebene Konto-E-Mail. Wenn gesetzt, wird das
+   *  E-Mail-Feld als gesperrte Anzeige gerendert. */
+  lockedEmail?: string;
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
@@ -70,7 +74,8 @@ export default function ToolLicenseForm({
     principal_name: initialData?.principal_name ?? "",
     contact_person: initialData?.contact_person ?? "",
     phone:          initialData?.phone          ?? "",
-    email:          initialData?.email          ?? "",
+    // lockedEmail hat Vorrang – sonst initialData (Edit) oder leer
+    email:          lockedEmail ?? initialData?.email ?? "",
     teacher_count:  initialData?.teacher_count != null ? String(initialData.teacher_count) : "",
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
@@ -363,6 +368,7 @@ export default function ToolLicenseForm({
         values={schoolInfo}
         onChange={handleSchoolInfoChange}
         inputClass={inputClass}
+        lockedEmail={lockedEmail}
       />
 
       {/* 2. Tool-Auswahl */}

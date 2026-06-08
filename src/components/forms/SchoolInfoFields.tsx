@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
+import { Lock, ShieldCheck } from "lucide-react";
 import {
   useAddressAutocomplete,
   type AddressSuggestion,
@@ -25,13 +27,19 @@ interface SchoolInfoFieldsProps {
   };
   onChange: (field: string, value: string) => void;
   inputClass: string;
+  /** Wenn gesetzt, wird das E-Mail-Feld als gesperrte Anzeige gerendert –
+   *  der Wert kommt aus dem angemeldeten Account und kann nur unter
+   *  "Mein Konto" geändert werden. */
+  lockedEmail?: string;
 }
 
 export default function SchoolInfoFields({
   values,
   onChange,
   inputClass,
+  lockedEmail,
 }: SchoolInfoFieldsProps) {
+  const isLocked = Boolean(lockedEmail);
   // School name autocomplete
   const {
     suggestions: schoolSuggestions,
@@ -286,20 +294,70 @@ export default function SchoolInfoFields({
             >
               E-Mail *
             </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={values.email}
-              onChange={(e) => onChange("email", e.target.value)}
-              className={inputClass}
-              placeholder="schule@example.de"
-            />
-            <p className="mt-1.5 text-xs text-text-light">
-              Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
-              <a href="/best-practice/datenbank" className="underline underline-offset-2 hover:text-primary transition-colors">Best-Practice-Datenbank</a>,
-              um dort den vollständigen Bearbeitungsstatus einsehen zu können.
-            </p>
+            {isLocked ? (
+              <>
+                {/* Locked display: sieht klar wie ein „Locked Field" aus,
+                    nicht wie ein bearbeitbares Input. Der Hidden-Input
+                    sorgt dafür, dass der Wert beim Submit mitgeschickt wird,
+                    falls native Form-Submission verwendet würde. */}
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-sm font-medium text-text">
+                      {values.email}
+                    </p>
+                  </div>
+                  <span
+                    title="Aus angemeldetem Konto übernommen"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green-700"
+                  >
+                    <ShieldCheck className="h-2.5 w-2.5" aria-hidden="true" />
+                    Aus Konto
+                  </span>
+                </div>
+                <input id="email" type="hidden" value={values.email} readOnly />
+                <p className="mt-1.5 text-xs text-text-light">
+                  Wird automatisch aus Ihrem Konto übernommen, damit Sie Ihre
+                  Einreichung später unter „Meine Einreichungen" wiederfinden.
+                  Änderbar unter{" "}
+                  <Link
+                    href="/best-practice/konto"
+                    className="underline underline-offset-2 hover:text-primary transition-colors"
+                  >
+                    Mein Konto
+                  </Link>
+                  .
+                </p>
+              </>
+            ) : (
+              <>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={values.email}
+                  onChange={(e) => onChange("email", e.target.value)}
+                  className={inputClass}
+                  placeholder="schule@example.de"
+                />
+                <p className="mt-1.5 text-xs text-text-light">
+                  Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
+                  <a
+                    href="/best-practice/datenbank"
+                    className="underline underline-offset-2 hover:text-primary transition-colors"
+                  >
+                    Best-Practice-Datenbank
+                  </a>
+                  , um dort den vollständigen Bearbeitungsstatus einsehen zu
+                  können.
+                </p>
+              </>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

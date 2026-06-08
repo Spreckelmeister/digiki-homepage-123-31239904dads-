@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import BestPracticeVorlageForm from "@/components/forms/BestPracticeVorlageForm";
 
 export const metadata: Metadata = {
@@ -10,7 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/best-practice/einreichen" },
 };
 
-export default function BestPracticeEinreichenPage() {
+const PAGE_PATH = "/best-practice/einreichen";
+
+export default async function BestPracticeEinreichenPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
+  }
+
   return (
     <>
       {/* Hero */}
@@ -36,7 +48,7 @@ export default function BestPracticeEinreichenPage() {
       {/* Form */}
       <section className="py-12 md:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <BestPracticeVorlageForm />
+          <BestPracticeVorlageForm lockedEmail={user.email ?? ""} />
         </div>
       </section>
     </>

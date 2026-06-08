@@ -2,38 +2,34 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, FileText, Users, Wrench, ChevronRight, ShieldCheck, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  FileText,
+  LogIn,
+  Pencil,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
 
-// ── Typen: Basis-Ansicht (anonym) ────────────────────────────
-interface BestPracticeResult {
+// ── Typen: Voll-Ansicht (eingeloggt) ─────────────────────────
+interface BestPracticeFullResult {
   id: string;
   title: string;
   school_name: string;
   published: boolean;
   created_at: string;
-}
-interface ApplicationResult {
-  id: string;
-  school_name: string;
-  status: ApplicationStatus;
-  created_at: string;
-}
-interface BasicResult {
-  best_practices: BestPracticeResult[];
-  student_apps: ApplicationResult[];
-  tool_apps: ApplicationResult[];
-}
-
-// ── Typen: Voll-Ansicht (eingeloggt) ─────────────────────────
-interface BestPracticeFullResult extends BestPracticeResult {
+  updated_at: string;
   subject: string;
   grade_level: string;
   tools_used: string[];
   contact_person: string | null;
-  updated_at: string;
 }
 interface StudentAppFullResult {
   id: string;
@@ -101,6 +97,46 @@ interface FullResult {
   tool_apps: ToolAppFullResult[];
 }
 
+// ── Quick-Action-Konfiguration ───────────────────────────────
+
+type QuickActionTone = "accent" | "primary" | "teal";
+
+const QUICK_ACTIONS: Array<{
+  id: string;
+  href: string;
+  title: string;
+  body: string;
+  icon: React.ReactNode;
+  tone: QuickActionTone;
+}> = [
+  {
+    id: "tool-lizenzen",
+    href: "/fuer-schulen/antrag-tool-lizenzen",
+    title: "Tool-Lizenzen beantragen",
+    body: "Kostenlose, stiftungsfinanzierte Lizenzen für DSGVO-konforme Lern-Tools.",
+    icon: <Wrench className="h-5 w-5" />,
+    tone: "primary",
+  },
+  {
+    id: "hilfskraefte",
+    href: "/fuer-schulen/antrag-hilfskraefte",
+    title: "Studentische Hilfskräfte",
+    body: "Unterstützung bei Einrichtung, Onboarding und Tech-Support.",
+    icon: <Users className="h-5 w-5" />,
+    tone: "teal",
+  },
+  {
+    id: "best-practice",
+    href: "/best-practice/einreichen",
+    title: "Best Practice einreichen",
+    body: "Erfahrungen aus dem Unterricht für andere Schulen dokumentieren.",
+    icon: <Sparkles className="h-5 w-5" />,
+    tone: "accent",
+  },
+];
+
+// ── Helfer ───────────────────────────────────────────────────
+
 const APP_STATUS_CONFIG: Record<ApplicationStatus, { label: string; className: string }> = {
   neu:            { label: "Neu – wird geprüft", className: "bg-yellow-100 text-yellow-700" },
   in_bearbeitung: { label: "In Bearbeitung",      className: "bg-blue-100   text-blue-700"   },
@@ -157,80 +193,114 @@ function AdminNoteBox({ note }: { note: string | null }) {
   );
 }
 
+function QuickActionCard({
+  href,
+  title,
+  body,
+  icon,
+  tone,
+  loginRedirect,
+}: {
+  href: string;
+  title: string;
+  body: string;
+  icon: React.ReactNode;
+  tone: QuickActionTone;
+  /** Wenn gesetzt: Link führt zuerst über die Login-Seite mit
+   *  redirect-Param zurück zur Ziel-URL. */
+  loginRedirect: boolean;
+}) {
+  const finalHref = loginRedirect
+    ? `/best-practice/login?redirect=${encodeURIComponent(href)}`
+    : href;
+
+  const toneStyles = {
+    primary: {
+      iconBg: "bg-primary/10 text-primary",
+      border: "hover:border-primary/40",
+      arrow: "text-primary",
+    },
+    teal: {
+      iconBg: "bg-primary-light/15 text-primary",
+      border: "hover:border-primary-light/50",
+      arrow: "text-primary",
+    },
+    accent: {
+      iconBg: "bg-accent/15 text-accent-strong",
+      border: "hover:border-accent-strong/40",
+      arrow: "text-accent-strong",
+    },
+  }[tone];
+
+  return (
+    <Link
+      href={finalHref}
+      className={`group relative flex h-full flex-col rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${toneStyles.border}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${toneStyles.iconBg}`}
+      >
+        {icon}
+      </span>
+      <h4 className="mt-4 text-base font-bold text-primary">{title}</h4>
+      <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-text-light">
+        {body}
+      </p>
+      <span
+        className={`mt-4 inline-flex items-center gap-1.5 text-sm font-bold ${toneStyles.arrow}`}
+      >
+        {loginRedirect ? "Erst anmelden" : "Jetzt starten"}
+        <ArrowRight
+          className="h-4 w-4 transition-transform group-hover:translate-x-1"
+          aria-hidden="true"
+        />
+      </span>
+    </Link>
+  );
+}
+
+// ════════ Haupt-Component ════════════════════════════════════
 
 export default function MySubmissions() {
-  const isAdmin                             = useIsAdmin();
-  const [email, setEmail]                   = useState("");
-  const [loggedInEmail, setLoggedInEmail]   = useState<string | null>(null);
-  const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState("");
-  const [basicResult, setBasicResult]       = useState<BasicResult | null>(null);
-  const [fullResult, setFullResult]         = useState<FullResult | null>(null);
-  const [searched, setSearched]             = useState(false);
+  const isAdmin = useIsAdmin();
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
+  // null = noch nicht geprüft; "" = nicht eingeloggt; string = eingeloggt
+  const [authState, setAuthState] = useState<"loading" | "in" | "out">(
+    "loading",
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fullResult, setFullResult] = useState<FullResult | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deletingId, setDeletingId]           = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Auto-fill E-Mail wenn eingeloggt
+  // Login-Status prüfen und ggf. Einreichungen laden
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email) {
-        setLoggedInEmail(data.user.email.toLowerCase());
-        setEmail(data.user.email);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user?.email) {
+        setAuthState("out");
+        return;
       }
+      setLoggedInEmail(data.user.email.toLowerCase());
+      setAuthState("in");
+      // Auto-Load der Einreichungen
+      setLoading(true);
+      const { data: result, error: rpcError } = await supabase.rpc(
+        "get_my_submissions_full",
+      );
+      setLoading(false);
+      if (rpcError) {
+        setError("Einreichungen konnten nicht geladen werden.");
+        return;
+      }
+      setFullResult(result as FullResult);
     });
   }, []);
 
   // Admins nicht anzeigen
   if (isAdmin === true) return null;
-
-  const isOwner =
-    loggedInEmail !== null &&
-    email.trim().toLowerCase() === loggedInEmail;
-
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (loggedInEmail === null) {
-      setError("Sie müssen eingeloggt sein, um Ihre Einreichungen abzurufen.");
-      return;
-    }
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes("@")) {
-      setError("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    setBasicResult(null);
-    setFullResult(null);
-
-    const supabase = createClient();
-
-    if (isOwner) {
-      // Eingeloggt + eigene E-Mail → volle Details via Session
-      const { data, error: rpcError } = await supabase.rpc("get_my_submissions_full");
-      setLoading(false);
-      setSearched(true);
-      if (rpcError) {
-        setError("Fehler bei der Abfrage. Bitte versuchen Sie es erneut.");
-        return;
-      }
-      setFullResult(data as FullResult);
-    } else {
-      // Anonym / andere E-Mail → Basis-Status
-      const { data, error: rpcError } = await supabase.rpc(
-        "get_submissions_by_email",
-        { search_email: trimmed }
-      );
-      setLoading(false);
-      setSearched(true);
-      if (rpcError) {
-        setError("Fehler bei der Abfrage. Bitte versuchen Sie es erneut.");
-        return;
-      }
-      setBasicResult(data as BasicResult);
-    }
-  }
 
   async function handleDelete(type: "student" | "tool", id: string) {
     setDeletingId(id);
@@ -246,7 +316,6 @@ export default function MySubmissions() {
       setError("Löschen fehlgeschlagen. Bitte versuchen Sie es erneut.");
       return;
     }
-    // Remove from local state
     setFullResult((prev) => {
       if (!prev) return prev;
       return {
@@ -258,146 +327,111 @@ export default function MySubmissions() {
   }
 
   const totalCount = fullResult
-    ? fullResult.best_practices.length + fullResult.student_apps.length + fullResult.tool_apps.length
-    : basicResult
-    ? basicResult.best_practices.length + basicResult.student_apps.length + basicResult.tool_apps.length
+    ? fullResult.best_practices.length +
+      fullResult.student_apps.length +
+      fullResult.tool_apps.length
     : 0;
+  const isLoggedIn = authState === "in";
 
   return (
     <div className="mt-16 border-t border-border pt-12">
-      <div className="flex items-center gap-3 mb-2">
-        <Search className="w-5 h-5 text-primary" aria-hidden="true" />
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="mb-2 flex items-center gap-3">
+        <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
         <h2 className="text-2xl font-bold text-primary">Meine Einreichungen</h2>
       </div>
-      <p className="text-text-light mb-6 max-w-2xl">
-        Geben Sie die E-Mail-Adresse ein, die Sie beim Einreichen verwendet haben,
-        um den aktuellen Status Ihrer Anträge und Best-Practice-Beiträge zu sehen.
+      <p className="mb-8 max-w-2xl text-text-light">
+        {isLoggedIn
+          ? "Hier sehen Sie alle Einreichungen Ihres Kontos und können direkt eine neue starten."
+          : "Melden Sie sich an, um Anträge zu stellen und den Status Ihrer Einreichungen zu sehen."}
       </p>
-      {loggedInEmail && isOwner && (
-        <p className="inline-flex items-center gap-1.5 mb-6 text-green-700 font-medium text-sm bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-          <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
-          Eingeloggt – volle Details verfügbar
+
+      {/* ── Quick-Action-Karten ───────────────────────────── */}
+      <div className="mb-10">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+          Neue Einreichung starten
         </p>
-      )}
-      {loggedInEmail && !isOwner && !isAdmin && email.trim() !== "" && (
-        <p className="inline-flex items-center gap-1.5 mb-6 text-yellow-700 font-medium text-sm bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-          <span aria-hidden="true">⚠️</span>
-          Fremde E-Mail – nur Status verfügbar (volle Details nur mit Ihrer Account-E-Mail{" "}
-          <strong>{loggedInEmail}</strong>)
-        </p>
-      )}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {QUICK_ACTIONS.map((a) => (
+            <QuickActionCard
+              key={a.id}
+              href={a.href}
+              title={a.title}
+              body={a.body}
+              icon={a.icon}
+              tone={a.tone}
+              loginRedirect={!isLoggedIn}
+            />
+          ))}
+        </div>
+        {!isLoggedIn && (
+          <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-text-light">
+            <LogIn className="h-3 w-3" aria-hidden="true" />
+            Sie werden zuerst zur Anmeldung geleitet und nach erfolgreichem Login
+            direkt zum Formular weitergeleitet.
+          </p>
+        )}
+      </div>
 
-      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-lg mb-8">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="ihre@schule.de"
-          required
-          className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
-          aria-label="E-Mail-Adresse für Statusabfrage"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60"
-        >
-          <Search className="w-4 h-4" aria-hidden="true" />
-          {loading ? "Suche …" : "Status abfragen"}
-        </button>
-      </form>
-
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-
-      {searched && totalCount === 0 && (
-        <div className="bg-bg rounded-xl p-6 text-center text-text-light text-sm border border-border">
-          Keine Einreichungen für diese E-Mail-Adresse gefunden.
+      {/* ── Login-Hinweis (wenn nicht eingeloggt) ─────────── */}
+      {authState === "out" && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              >
+                <LogIn className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-bold text-primary">
+                  Anmelden für laufende Einreichungen
+                </p>
+                <p className="mt-1 text-sm text-text-light">
+                  Nach der Anmeldung sehen Sie hier den Status Ihrer Anträge und
+                  Best-Practice-Beiträge – inklusive vollständiger Details.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/best-practice/login"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
+            >
+              <LogIn className="h-4 w-4" aria-hidden="true" />
+              Zur Anmeldung
+            </Link>
+          </div>
         </div>
       )}
 
-      {/* ── Basis-Ansicht (anonym / andere E-Mail) ───────────── */}
-      {basicResult && totalCount > 0 && (
-        <div className="space-y-8">
-          {basicResult.best_practices.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Best-Practice-Beiträge ({basicResult.best_practices.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                {basicResult.best_practices.map((bp) => (
-                  <div key={bp.id} className="bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-text text-sm">{bp.title}</p>
-                      <p className="text-xs text-text-light mt-0.5">
-                        {bp.school_name} · Eingereicht am {formatDate(bp.created_at)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <PublishedBadge published={bp.published} />
-                      {bp.published && (
-                        <Link
-                          href={`/best-practice/datenbank/${bp.id}`}
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                        >
-                          Ansehen <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          {basicResult.student_apps.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Anträge: Studentische Hilfskräfte ({basicResult.student_apps.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                {basicResult.student_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-text text-sm">{app.school_name}</p>
-                      <p className="text-xs text-text-light mt-0.5">Eingereicht am {formatDate(app.created_at)}</p>
-                    </div>
-                    <StatusBadge status={app.status} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          {basicResult.tool_apps.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Wrench className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Anträge: Tool-Lizenzen ({basicResult.tool_apps.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                {basicResult.tool_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-text text-sm">{app.school_name}</p>
-                      <p className="text-xs text-text-light mt-0.5">Eingereicht am {formatDate(app.created_at)}</p>
-                    </div>
-                    <StatusBadge status={app.status} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+      {/* ── Ladezustand ───────────────────────────────────── */}
+      {isLoggedIn && loading && (
+        <div className="rounded-xl border border-border bg-white p-6 text-center text-sm text-text-light">
+          Einreichungen werden geladen …
         </div>
       )}
 
-      {/* ── Voll-Ansicht (eingeloggt, eigene E-Mail) ─────────── */}
-      {fullResult && totalCount > 0 && (
+      {/* ── Fehler ────────────────────────────────────────── */}
+      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+      {/* ── Keine Einreichungen ───────────────────────────── */}
+      {isLoggedIn && !loading && fullResult && totalCount === 0 && (
+        <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-light">
+          Noch keine Einreichungen vorhanden – starten Sie oben Ihre erste!
+        </div>
+      )}
+
+      {/* ── Voll-Ansicht (eingeloggt) ─────────────────────── */}
+      {isLoggedIn && fullResult && totalCount > 0 && (
+        <div className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+          <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {totalCount} {totalCount === 1 ? "Einreichung" : "Einreichungen"} unter{" "}
+          <strong>{loggedInEmail}</strong> gefunden
+        </div>
+      )}
+
+      {isLoggedIn && fullResult && totalCount > 0 && (
         <div className="space-y-8">
           {fullResult.best_practices.length > 0 && (
             <section>
@@ -681,9 +715,9 @@ export default function MySubmissions() {
               </div>
             </section>
           )}
-
         </div>
       )}
     </div>
   );
 }
+

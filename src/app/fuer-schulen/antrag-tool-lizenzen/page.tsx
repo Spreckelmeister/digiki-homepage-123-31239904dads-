@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import ToolLicenseForm from "@/components/forms/ToolLicenseForm";
 
 export const metadata: Metadata = {
@@ -10,7 +12,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/fuer-schulen/antrag-tool-lizenzen" },
 };
 
-export default function AntragToolLizenzenPage() {
+const PAGE_PATH = "/fuer-schulen/antrag-tool-lizenzen";
+
+export default async function AntragToolLizenzenPage() {
+  // Auth-Guard: Einreichungen nur für angemeldete Nutzer:innen.
+  // Beim Login wird hierher zurückgeleitet (?redirect=…).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
+  }
+
   return (
     <>
       {/* Hero */}
@@ -36,7 +50,7 @@ export default function AntragToolLizenzenPage() {
       {/* Form */}
       <section className="py-12 md:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <ToolLicenseForm />
+          <ToolLicenseForm lockedEmail={user.email ?? ""} />
         </div>
       </section>
     </>
