@@ -2,11 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, Send, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarRange,
+  CheckCheck,
+  HeartHandshake,
+  Info,
+  Lightbulb,
+  ListChecks,
+  Send,
+  Sparkles,
+  Star,
+  Target,
+  Wrench,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { VorlageData } from "@/lib/types";
 import RatingScale from "./RatingScale";
 import FormSuccess from "./FormSuccess";
+import FormSection from "./FormSection";
+import LockedFieldDisplay from "./LockedFieldDisplay";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 
@@ -31,22 +46,38 @@ const RATING_RECOMMENDATION = [
   "Nein",
 ];
 
+interface BestPracticePrefill {
+  school_name?: string;
+  contact_person?: string;
+}
+
 export default function BestPracticeVorlageForm({
   lockedEmail,
+  prefillFromBSA,
+  lockedFromBSA,
 }: {
-  /** Konto-E-Mail aus dem Server-Component. Wenn gesetzt, wird das
-   *  E-Mail-Feld als gesperrte Anzeige gerendert. */
   lockedEmail?: string;
+  prefillFromBSA?: BestPracticePrefill | null;
+  lockedFromBSA?: string[];
 } = {}) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
-  // 1. Allgemeine Angaben
-  const [schoolName, setSchoolName] = useState("");
+
+  // 1. Kontext
+  const [schoolName, setSchoolName] = useState(
+    prefillFromBSA?.school_name ?? "",
+  );
   const [location, setLocation] = useState("");
-  const [contactPerson, setContactPerson] = useState("");
+  const [contactPerson, setContactPerson] = useState(
+    prefillFromBSA?.contact_person ?? "",
+  );
   const [contactEmail, setContactEmail] = useState(lockedEmail ?? "");
   const [date, setDate] = useState("");
   const isEmailLocked = Boolean(lockedEmail);
+  const lockedFields = new Set(lockedFromBSA ?? []);
+  const isSchoolNameLocked = lockedFields.has("school_name");
+  const isContactPersonLocked = lockedFields.has("contact_person");
+  const anyBSALocked = isSchoolNameLocked || isContactPersonLocked;
 
   // 2. Projekt auf einen Blick
   const [title, setTitle] = useState("");
@@ -136,21 +167,18 @@ export default function BestPracticeVorlageForm({
       setSuccess(true);
       return;
     }
-
     if (!consent) {
-      setError(
-        "Bitte wählen Sie eine Option zur Veröffentlichung aus."
-      );
+      setError("Bitte wählen Sie eine Option zur Veröffentlichung aus.");
       return;
     }
-
     if (!ratingImplementation || !ratingStudents || !ratingRecommendation) {
       setError("Bitte füllen Sie alle drei Schnellbewertungen aus.");
       return;
     }
-
     if (!privacyConsent || !truthConsent) {
-      setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
+      setError(
+        "Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.",
+      );
       return;
     }
 
@@ -183,7 +211,6 @@ export default function BestPracticeVorlageForm({
       .join("\n\n");
 
     const content = buildMarkdownContent();
-
     const supabase = createClient();
 
     const { error: insertError } = await supabase
@@ -208,7 +235,9 @@ export default function BestPracticeVorlageForm({
 
     if (insertError) {
       console.error("Insert error:", insertError.message);
-      setError("Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+      setError(
+        "Beim Einreichen ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+      );
       setLoading(false);
       return;
     }
@@ -218,14 +247,15 @@ export default function BestPracticeVorlageForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border px-4 py-3 text-sm focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors";
+    "w-full rounded-lg border border-border bg-white px-4 py-3 text-sm outline-none transition-all focus:border-accent-strong focus:ring-2 focus:ring-accent-strong placeholder:text-text-light/55";
 
   if (isAdmin === null) return null;
-  if (isAdmin === true) return (
-    <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
-      Admin-Accounts können keine Einreichungen vornehmen.
-    </div>
-  );
+  if (isAdmin === true)
+    return (
+      <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
+        Admin-Accounts können keine Einreichungen vornehmen.
+      </div>
+    );
 
   if (success) {
     return (
@@ -238,30 +268,96 @@ export default function BestPracticeVorlageForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {HoneypotField}
+
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-          {error}
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm"
+        >
+          <AlertCircle
+            className="mt-0.5 h-5 w-5 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-bold">Beitrag konnte nicht eingereicht werden</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
         </div>
       )}
 
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-sm text-text-light">
-        Bitte füllen Sie diese Vorlage möglichst vollständig aus, damit andere
-        Grundschulen von Ihren Erfahrungen profitieren können.
+      {/* Intro-Karte – Onboarding mit Editorial-Stil */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 md:p-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-light/15 blur-3xl"
+        />
+        <div className="relative flex items-start gap-4">
+          <span
+            aria-hidden="true"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-strong">
+              In etwa 15 Minuten
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-text-light">
+              Erzählen Sie kurz und konkret, was bei Ihnen gut funktioniert hat
+              – andere Schulen profitieren direkt davon. Pflichtfelder sind mit
+              * markiert; alles andere ist optional.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* 1. Allgemeine Angaben */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          1. Allgemeine Angaben
-        </legend>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ════════ §1 KONTEXT ════════ */}
+      <FormSection
+        index="01"
+        eyebrow="Kontext"
+        title="Wer reicht den Beitrag ein?"
+        body="Diese Angaben helfen uns, Ihren Beitrag richtig zuzuordnen. Schule und Ansprechperson übernehmen wir – sofern vorhanden – automatisch aus Ihrer Bestandsaufnahme."
+        icon={<Info className="h-3 w-3" />}
+      >
+        {anyBSALocked && (
+          <div className="flex items-start gap-3 rounded-lg border border-primary-light/30 bg-primary-light/5 px-4 py-3 text-[13px] leading-relaxed text-text">
+            <Info
+              className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <p>
+              <strong className="text-primary">
+                Aus Ihrer Bestandsaufnahme übernommen.
+              </strong>{" "}
+              Felder mit „Aus Bestandsaufnahme" sind hier gesperrt, damit Ihre
+              Angaben über alle Einreichungen konsistent bleiben. Änderungen
+              können Sie jederzeit selbst in Ihrer{" "}
+              <Link
+                href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Bestandsaufnahme aktualisieren
+              </Link>
+              &nbsp;– von dort werden die Werte hier automatisch übernommen.
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {isSchoolNameLocked ? (
+            <LockedFieldDisplay
+              htmlFor="bp_school_name"
+              label="Schulname *"
+              value={schoolName}
+              source="bestandsaufnahme"
+            />
+          ) : (
             <div>
               <label
                 htmlFor="bp_school_name"
-                className="block text-sm font-medium text-text mb-1.5"
+                className="mb-1.5 block text-sm font-medium text-text"
               >
                 Schulname *
               </label>
@@ -275,28 +371,39 @@ export default function BestPracticeVorlageForm({
                 placeholder="z.B. Grundschule Eversburg"
               />
             </div>
-            <div>
-              <label
-                htmlFor="bp_location"
-                className="block text-sm font-medium text-text mb-1.5"
-              >
-                Ort
-              </label>
-              <input
-                id="bp_location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className={inputClass}
-                placeholder="z.B. Osnabrück"
-              />
-            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="bp_location"
+              className="mb-1.5 block text-sm font-medium text-text"
+            >
+              Ort
+            </label>
+            <input
+              id="bp_location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className={inputClass}
+              placeholder="z.B. Osnabrück"
+            />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {isContactPersonLocked ? (
+            <LockedFieldDisplay
+              htmlFor="bp_contact"
+              label="Kontaktperson *"
+              value={contactPerson}
+              source="bestandsaufnahme"
+            />
+          ) : (
             <div>
               <label
                 htmlFor="bp_contact"
-                className="block text-sm font-medium text-text mb-1.5"
+                className="mb-1.5 block text-sm font-medium text-text"
               >
                 Kontaktperson (Vor- und Nachname) *
               </label>
@@ -309,511 +416,510 @@ export default function BestPracticeVorlageForm({
                 className={inputClass}
               />
             </div>
+          )}
+
+          {isEmailLocked ? (
+            <LockedFieldDisplay
+              htmlFor="bp_email"
+              label="E-Mail *"
+              value={contactEmail}
+              source="konto"
+              mono
+              hint={
+                <>
+                  Wird aus Ihrem Konto übernommen. Änderbar unter{" "}
+                  <Link
+                    href="/best-practice/konto"
+                    className="underline underline-offset-2 hover:text-primary transition-colors"
+                  >
+                    Mein Konto
+                  </Link>
+                  .
+                </>
+              }
+            />
+          ) : (
             <div>
               <label
                 htmlFor="bp_email"
-                className="block text-sm font-medium text-text mb-1.5"
+                className="mb-1.5 block text-sm font-medium text-text"
               >
                 E-Mail *
               </label>
-              {isEmailLocked ? (
-                <>
-                  <div className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-                    >
-                      <Lock className="h-3.5 w-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-sm font-medium text-text">
-                        {contactEmail}
-                      </p>
-                    </div>
-                    <span
-                      title="Aus angemeldetem Konto übernommen"
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green-700"
-                    >
-                      <ShieldCheck className="h-2.5 w-2.5" aria-hidden="true" />
-                      Aus Konto
-                    </span>
-                  </div>
-                  <input
-                    id="bp_email"
-                    type="hidden"
-                    value={contactEmail}
-                    readOnly
-                  />
-                  <p className="mt-1.5 text-xs text-text-light">
-                    Wird automatisch aus Ihrem Konto übernommen, damit Sie Ihre
-                    Einreichung später unter „Meine Einreichungen"
-                    wiederfinden. Änderbar unter{" "}
-                    <Link
-                      href="/best-practice/konto"
-                      className="underline underline-offset-2 hover:text-primary transition-colors"
-                    >
-                      Mein Konto
-                    </Link>
-                    .
-                  </p>
-                </>
-              ) : (
-                <>
-                  <input
-                    id="bp_email"
-                    type="email"
-                    required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    className={inputClass}
-                    placeholder="name@schule.de"
-                  />
-                  <p className="mt-1.5 text-xs text-text-light">
-                    Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
-                    <a
-                      href="/best-practice/datenbank"
-                      className="underline underline-offset-2 hover:text-primary transition-colors"
-                    >
-                      Best-Practice-Datenbank
-                    </a>
-                    , um dort den vollständigen Bearbeitungsstatus einsehen zu
-                    können.
-                  </p>
-                </>
-              )}
+              <input
+                id="bp_email"
+                type="email"
+                required
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                className={inputClass}
+                placeholder="name@schule.de"
+              />
             </div>
-          </div>
-          <div className="max-w-[250px]">
-            <label
-              htmlFor="bp_date"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Datum
-            </label>
-            <input
-              id="bp_date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+          )}
         </div>
-      </fieldset>
 
-      {/* 2. Projekt auf einen Blick */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          2. Das Projekt auf einen Blick
-        </legend>
-        <p className="text-sm text-text-light mb-4">
-          Kurze Zusammenfassung, damit andere sofort verstehen, worum es geht.
-        </p>
-        <div className="space-y-4">
+        <div className="max-w-[250px]">
+          <label
+            htmlFor="bp_date"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Datum
+          </label>
+          <input
+            id="bp_date"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §2 PROJEKT AUF EINEN BLICK ════════ */}
+      <FormSection
+        index="02"
+        eyebrow="Projekt"
+        title="Worum geht es?"
+        body="Kurze Zusammenfassung, damit andere sofort verstehen, was Sie gemacht haben."
+        icon={<Target className="h-3 w-3" />}
+      >
+        <div>
+          <label
+            htmlFor="bp_title"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Projekttitel *
+          </label>
+          <input
+            id="bp_title"
+            type="text"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={inputClass}
+            placeholder="z.B. Leseförderung mit KI-Vorlesehilfe"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div>
             <label
-              htmlFor="bp_title"
-              className="block text-sm font-medium text-text mb-1.5"
+              htmlFor="bp_subject"
+              className="mb-1.5 block text-sm font-medium text-text"
             >
-              Projekttitel *
+              Fach / Fächer *
             </label>
             <input
-              id="bp_title"
+              id="bp_subject"
               type="text"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
               className={inputClass}
-              placeholder="z.B. Leseförderung mit KI-Vorlesehilfe"
+              placeholder="z.B. Deutsch, Sachunterricht"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="bp_subject"
-                className="block text-sm font-medium text-text mb-1.5"
-              >
-                Fach / Fächer *
-              </label>
-              <input
-                id="bp_subject"
-                type="text"
-                required
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className={inputClass}
-                placeholder="z.B. Deutsch, Sachunterricht"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="bp_grade"
-                className="block text-sm font-medium text-text mb-1.5"
-              >
-                Klasse
-              </label>
-              <select
-                id="bp_grade"
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(e.target.value)}
-                className={inputClass + " bg-white"}
-              >
-                <option value="1-2">Klasse 1-2</option>
-                <option value="3-4">Klasse 3-4</option>
-                <option value="1-4">Klasse 1-4 (jahrgangsübergreifend)</option>
-              </select>
+          <div>
+            <label
+              htmlFor="bp_grade"
+              className="mb-1.5 block text-sm font-medium text-text"
+            >
+              Klasse
+            </label>
+            <div className="flex gap-1.5 rounded-lg border border-border bg-bg p-1">
+              {[
+                { value: "1-2", label: "1–2" },
+                { value: "3-4", label: "3–4" },
+                { value: "1-4", label: "alle" },
+              ].map((g) => {
+                const active = gradeLevel === g.value;
+                return (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setGradeLevel(g.value)}
+                    className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition-all ${
+                      active
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-text-light hover:text-primary"
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="bp_timeframe"
-                className="block text-sm font-medium text-text mb-1.5"
-              >
-                Zeitraum
-              </label>
-              <input
-                id="bp_timeframe"
-                type="text"
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
-                className={inputClass}
-                placeholder="z.B. November 2025 – Januar 2026"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="bp_tool"
-                className="block text-sm font-medium text-text mb-1.5"
-              >
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div>
+            <label
+              htmlFor="bp_timeframe"
+              className="mb-1.5 block text-sm font-medium text-text"
+            >
+              Zeitraum
+            </label>
+            <input
+              id="bp_timeframe"
+              type="text"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              className={inputClass}
+              placeholder="z.B. November 2025 – Januar 2026"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="bp_tool"
+              className="mb-1.5 block text-sm font-medium text-text"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Wrench
+                  className="h-3.5 w-3.5 text-primary"
+                  aria-hidden="true"
+                />
                 Eingesetztes Tool *
+              </span>
+            </label>
+            <input
+              id="bp_tool"
+              type="text"
+              required
+              value={toolUsed}
+              onChange={(e) => setToolUsed(e.target.value)}
+              className={inputClass}
+              placeholder="z.B. Antolin, Fiete.ai, Book Creator"
+            />
+          </div>
+        </div>
+      </FormSection>
+
+      {/* ════════ §3 WARUM ════════ */}
+      <FormSection
+        index="03"
+        eyebrow="Motivation"
+        title="Warum dieses Projekt?"
+        body="Was war die Ausgangssituation und welches Ziel hatten Sie sich gesteckt? Das hilft anderen Schulen einzuordnen, ob Ihr Ansatz auch für sie passt."
+        icon={<Lightbulb className="h-3 w-3" />}
+      >
+        <div>
+          <label
+            htmlFor="bp_ausgangslage"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Ausgangslage – Was war die Herausforderung? *
+          </label>
+          <textarea
+            id="bp_ausgangslage"
+            required
+            rows={3}
+            value={ausgangslage}
+            onChange={(e) => setAusgangslage(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="z.B. unterschiedliche Leseniveaus, wenig Motivation …"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bp_ziel"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Ziel – Was wollten Sie erreichen? *
+          </label>
+          <textarea
+            id="bp_ziel"
+            required
+            rows={3}
+            value={ziel}
+            onChange={(e) => setZiel(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="z.B. individuelles Üben, Kinder motivieren, Lehrkraft entlasten …"
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §4 DURCHFÜHRUNG ════════ */}
+      <FormSection
+        index="04"
+        eyebrow="Durchführung"
+        title="So haben wir es gemacht"
+        body="Beschreiben Sie kurz, was vorab nötig war und wie eine typische Unterrichtsstunde aussah."
+        icon={<CalendarRange className="h-3 w-3" />}
+      >
+        <div>
+          <label
+            htmlFor="bp_vorbereitung"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Vorbereitung – Was musste vorab organisiert werden?
+          </label>
+          <textarea
+            id="bp_vorbereitung"
+            rows={3}
+            value={vorbereitung}
+            onChange={(e) => setVorbereitung(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Geräte, Zugänge, Regeln für die Kinder …"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bp_ablauf"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Ablauf im Unterricht – Wie lief eine typische Stunde ab?
+          </label>
+          <textarea
+            id="bp_ablauf"
+            rows={4}
+            value={ablauf}
+            onChange={(e) => setAblauf(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Beschreiben Sie eine typische Unterrichtsstunde mit dem Tool …"
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §5 ERFAHRUNGEN ════════ */}
+      <FormSection
+        index="05"
+        eyebrow="Erfahrungen"
+        title="Was haben wir gelernt?"
+        body="Ehrlich und konkret – auch (und vor allem) das, was nicht so gut lief, ist für andere wertvoll."
+        icon={<HeartHandshake className="h-3 w-3" />}
+      >
+        <div>
+          <label
+            htmlFor="bp_positiv"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Das hat gut geklappt
+          </label>
+          <textarea
+            id="bp_positiv"
+            rows={3}
+            value={erfahrungenPositiv}
+            onChange={(e) => setErfahrungenPositiv(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Positive Erfahrungen, Reaktionen der Kinder …"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bp_negativ"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Das war schwierig
+          </label>
+          <textarea
+            id="bp_negativ"
+            rows={3}
+            value={erfahrungenNegativ}
+            onChange={(e) => setErfahrungenNegativ(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Technik-Probleme, Kinder brauchten viel Hilfe …"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bp_verbesserungen"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Das würden wir beim nächsten Mal anders machen
+          </label>
+          <textarea
+            id="bp_verbesserungen"
+            rows={3}
+            value={verbesserungen}
+            onChange={(e) => setVerbesserungen(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Verbesserungsideen, Tipps für die nächste Runde …"
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §6 BEWERTUNG ════════ */}
+      <FormSection
+        index="06"
+        eyebrow="Schnellbewertung"
+        title="Wie war's unterm Strich?"
+        body="Drei kurze Klick-Bewertungen – das macht Ihren Beitrag in der Datenbank sofort vergleichbar mit anderen."
+        icon={<Star className="h-3 w-3" />}
+      >
+        <RatingScale
+          label="Wie einfach war die Umsetzung?"
+          options={RATING_IMPLEMENTATION}
+          value={ratingImplementation}
+          onChange={setRatingImplementation}
+        />
+        <RatingScale
+          label="Wie kamen die Kinder damit zurecht?"
+          options={RATING_STUDENTS}
+          value={ratingStudents}
+          onChange={setRatingStudents}
+        />
+        <RatingScale
+          label="Würden Sie das Tool weiterempfehlen?"
+          options={RATING_RECOMMENDATION}
+          value={ratingRecommendation}
+          onChange={setRatingRecommendation}
+        />
+      </FormSection>
+
+      {/* ════════ §7 TIPPS ════════ */}
+      <FormSection
+        index="07"
+        eyebrow="Tipps"
+        title="Was geben Sie anderen mit?"
+        body="Top-Tipps und nützliche Links sind für andere Grundschulen Gold wert."
+        icon={<ListChecks className="h-3 w-3" />}
+      >
+        <div>
+          <label
+            htmlFor="bp_tipps"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Ihre Top-Tipps
+          </label>
+          <textarea
+            id="bp_tipps"
+            rows={4}
+            value={tipps}
+            onChange={(e) => setTipps(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="Was würden Sie anderen Grundschulen empfehlen?"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="bp_links"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Hilfreiche Links / Materialien (optional)
+          </label>
+          <textarea
+            id="bp_links"
+            rows={2}
+            value={links}
+            onChange={(e) => setLinks(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="z.B. Links zu Erklärvideos, Arbeitsblättern, Anleitungen …"
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §8 VERÖFFENTLICHUNG ════════ */}
+      <FormSection
+        index="08"
+        eyebrow="Veröffentlichung"
+        title="Wie soll's weitergehen?"
+        body="Sie entscheiden, ob und wie wir Ihre Best Practice in der öffentlichen Datenbank zeigen dürfen."
+        icon={<CheckCheck className="h-3 w-3" />}
+      >
+        <div className="space-y-2">
+          {[
+            {
+              value: "ja_alles",
+              title: "Ja, mit allen Angaben",
+              hint: "Schulname und Kontaktperson dürfen veröffentlicht werden.",
+            },
+            {
+              value: "ja_anonym",
+              title: "Ja, aber anonymisiert",
+              hint: "Ohne Schulname und Kontaktperson – nur der Inhalt wird gezeigt.",
+            },
+            {
+              value: "nein",
+              title: "Nur intern",
+              hint: "Nicht in der öffentlichen Datenbank, nur fürs Projekt-Team.",
+            },
+          ].map((opt) => {
+            const active = consent === opt.value;
+            return (
+              <label
+                key={opt.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all ${
+                  active
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-white hover:border-primary/30 hover:bg-bg"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="consent"
+                  value={opt.value}
+                  checked={active}
+                  onChange={() =>
+                    setConsent(opt.value as "ja_alles" | "ja_anonym" | "nein")
+                  }
+                  className="mt-0.5 h-4 w-4 text-primary focus:ring-accent-strong"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-text">
+                    {opt.title}
+                  </span>
+                  <span className="mt-0.5 block text-[12.5px] text-text-light">
+                    {opt.hint}
+                  </span>
+                </span>
               </label>
-              <input
-                id="bp_tool"
-                type="text"
-                required
-                value={toolUsed}
-                onChange={(e) => setToolUsed(e.target.value)}
-                className={inputClass}
-                placeholder="z.B. Antolin, Fiete.ai, Book Creator"
-              />
-            </div>
-          </div>
+            );
+          })}
         </div>
-      </fieldset>
 
-      {/* 3. Warum dieses Projekt? */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          3. Warum dieses Projekt?
-        </legend>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="bp_ausgangslage"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Ausgangslage – Was war die Herausforderung? *
-            </label>
-            <textarea
-              id="bp_ausgangslage"
+        <div className="space-y-3 pt-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
               required
-              rows={3}
-              value={ausgangslage}
-              onChange={(e) => setAusgangslage(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="z.B. unterschiedliche Leseniveaus, wenig Motivation ..."
+              checked={privacyConsent}
+              onChange={(e) => setPrivacyConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent-strong"
             />
-          </div>
-          <div>
-            <label
-              htmlFor="bp_ziel"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Ziel – Was wollten Sie erreichen? *
-            </label>
-            <textarea
-              id="bp_ziel"
+            <span className="text-sm text-text">
+              Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+              <Link
+                href="/datenschutz"
+                target="_blank"
+                className="text-primary underline hover:text-primary/80"
+              >
+                Datenschutzerklärung
+              </Link>{" "}
+              zu. *
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
               required
-              rows={3}
-              value={ziel}
-              onChange={(e) => setZiel(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="z.B. individuelles Üben, Kinder motivieren, Lehrkraft entlasten ..."
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 4. Durchführung */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          4. So haben wir es gemacht
-        </legend>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="bp_vorbereitung"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Vorbereitung – Was musste vorab organisiert werden?
-            </label>
-            <textarea
-              id="bp_vorbereitung"
-              rows={3}
-              value={vorbereitung}
-              onChange={(e) => setVorbereitung(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Geräte, Zugänge, Regeln für die Kinder ..."
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="bp_ablauf"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Ablauf im Unterricht – Wie lief eine typische Stunde ab?
-            </label>
-            <textarea
-              id="bp_ablauf"
-              rows={4}
-              value={ablauf}
-              onChange={(e) => setAblauf(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Beschreiben Sie eine typische Unterrichtsstunde mit dem Tool..."
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 5. Erfahrungen */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          5. Unsere Erfahrungen
-        </legend>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="bp_positiv"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Das hat gut geklappt
-            </label>
-            <textarea
-              id="bp_positiv"
-              rows={3}
-              value={erfahrungenPositiv}
-              onChange={(e) => setErfahrungenPositiv(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Positive Erfahrungen, Reaktionen der Kinder ..."
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="bp_negativ"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Das war schwierig
-            </label>
-            <textarea
-              id="bp_negativ"
-              rows={3}
-              value={erfahrungenNegativ}
-              onChange={(e) => setErfahrungenNegativ(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Technik-Probleme, Kinder brauchten viel Hilfe ..."
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="bp_verbesserungen"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Das würden wir beim nächsten Mal anders machen
-            </label>
-            <textarea
-              id="bp_verbesserungen"
-              rows={3}
-              value={verbesserungen}
-              onChange={(e) => setVerbesserungen(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Verbesserungsideen, Tipps ..."
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 6. Schnellbewertung */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          6. Schnellbewertung
-        </legend>
-        <p className="text-sm text-text-light mb-4">
-          Einfach anklicken.
-        </p>
-        <div className="space-y-6">
-          <RatingScale
-            label="Wie einfach war die Umsetzung?"
-            options={RATING_IMPLEMENTATION}
-            value={ratingImplementation}
-            onChange={setRatingImplementation}
-          />
-          <RatingScale
-            label="Wie kamen die Kinder damit zurecht?"
-            options={RATING_STUDENTS}
-            value={ratingStudents}
-            onChange={setRatingStudents}
-          />
-          <RatingScale
-            label="Würden Sie das Tool weiterempfehlen?"
-            options={RATING_RECOMMENDATION}
-            value={ratingRecommendation}
-            onChange={setRatingRecommendation}
-          />
-        </div>
-      </fieldset>
-
-      {/* 7. Tipps */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          7. Tipps für andere Grundschulen
-        </legend>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="bp_tipps"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Ihre Top-Tipps
-            </label>
-            <textarea
-              id="bp_tipps"
-              rows={4}
-              value={tipps}
-              onChange={(e) => setTipps(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="Was würden Sie anderen Grundschulen empfehlen?"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="bp_links"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Hilfreiche Links / Materialien (optional)
-            </label>
-            <textarea
-              id="bp_links"
-              rows={2}
-              value={links}
-              onChange={(e) => setLinks(e.target.value)}
-              className={inputClass + " resize-y"}
-              placeholder="z.B. Links zu Erklärvideos, Arbeitsblättern, Anleitungen ..."
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 8. Einverständnis */}
-      <fieldset>
-        <legend className="text-lg font-semibold text-primary mb-4">
-          8. Einverständnis zur Veröffentlichung
-        </legend>
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="consent"
-              value="ja_alles"
-              checked={consent === "ja_alles"}
-              onChange={() => setConsent("ja_alles")}
-              className="w-4 h-4 text-accent focus:ring-accent-strong"
+              checked={truthConsent}
+              onChange={(e) => setTruthConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent-strong"
             />
             <span className="text-sm text-text">
-              Ja, diese Best Practice darf veröffentlicht werden.
-            </span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="consent"
-              value="ja_anonym"
-              checked={consent === "ja_anonym"}
-              onChange={() => setConsent("ja_anonym")}
-              className="w-4 h-4 text-accent focus:ring-accent-strong"
-            />
-            <span className="text-sm text-text">
-              Ja, aber nur anonymisiert (ohne Schulname / Kontaktperson).
-            </span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="consent"
-              value="nein"
-              checked={consent === "nein"}
-              onChange={() => setConsent("nein")}
-              className="w-4 h-4 text-accent focus:ring-accent-strong"
-            />
-            <span className="text-sm text-text">
-              Nein, nur zur internen Nutzung.
+              Ich bestätige, dass alle gemachten Angaben der Wahrheit
+              entsprechen. *
             </span>
           </label>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* Einwilligungen */}
-      <fieldset className="space-y-3">
-        <legend className="text-lg font-semibold text-primary mb-4">
-          Einwilligungen
-        </legend>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            required
-            checked={privacyConsent}
-            onChange={(e) => setPrivacyConsent(e.target.checked)}
-            className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
-          />
-          <span className="text-sm text-text">
-            Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
-            <Link
-              href="/datenschutz"
-              target="_blank"
-              className="underline text-primary hover:text-primary/80"
-            >
-              Datenschutzerklärung
-            </Link>{" "}
-            zu. *
-          </span>
-        </label>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            required
-            checked={truthConsent}
-            onChange={(e) => setTruthConsent(e.target.checked)}
-            className="w-4 h-4 rounded border-border text-accent focus:ring-accent-strong"
-          />
-          <span className="text-sm text-text">
-            Ich bestätige, dass alle gemachten Angaben der Wahrheit entsprechen. *
-          </span>
-        </label>
-      </fieldset>
-
-      {/* Submit */}
-      <div className="pt-4 border-t border-border">
+      {/* ════════ Submit ════════ */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
+          className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-bold text-text shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-md disabled:cursor-wait disabled:opacity-50"
         >
-          <Send className="w-5 h-5" aria-hidden="true" />
-          {loading ? "Wird eingereicht..." : "Best Practice einreichen"}
+          <Send
+            className={`h-4 w-4 ${loading ? "animate-pulse" : "transition-transform group-hover:translate-x-0.5"}`}
+            aria-hidden="true"
+          />
+          {loading ? "Wird eingereicht …" : "Best Practice einreichen"}
         </button>
-        <p className="mt-3 text-xs text-text-light">
-          * Pflichtfelder.
-        </p>
+        <p className="text-xs text-text-light">* Pflichtfelder.</p>
       </div>
     </form>
   );

@@ -96,17 +96,17 @@ export default function SchoolInfoFields({
             <strong className="text-primary">
               Aus Ihrer Bestandsaufnahme übernommen.
             </strong>{" "}
-            Die mit „Aus Bestandsaufnahme" markierten Felder wurden automatisch
-            ausgefüllt und sind hier gesperrt – das vermeidet abweichende
-            Schreibweisen zwischen Ihren Einreichungen. Sollte sich etwas
-            geändert haben (z.&nbsp;B. Schulleitung), melden Sie sich kurz bei{" "}
-            <a
-              href="mailto:krafft@osnabrueck.de"
+            Felder mit „Aus Bestandsaufnahme" sind hier gesperrt, damit Ihre
+            Angaben über alle Einreichungen konsistent bleiben. Änderungen
+            (z.&nbsp;B. neue Schulleitung) können Sie jederzeit selbst in
+            Ihrer{" "}
+            <Link
+              href="/best-practice/meine-bestandsaufnahme/bearbeiten"
               className="text-primary underline underline-offset-2 hover:text-primary/80"
             >
-              krafft@osnabrueck.de
-            </a>
-            .
+              Bestandsaufnahme aktualisieren
+            </Link>
+            &nbsp;– von dort werden die Werte hier automatisch übernommen.
           </p>
         </div>
       )}
