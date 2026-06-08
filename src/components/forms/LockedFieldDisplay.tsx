@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Lock, Pencil, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Lock, ShieldCheck } from "lucide-react";
 
 interface LockedFieldDisplayProps {
   htmlFor: string;
@@ -14,14 +14,13 @@ interface LockedFieldDisplayProps {
 }
 
 /**
- * Zeigt ein Eingabefeld als „gesperrt" an – statt eines bearbeitbaren
- * Inputs erscheint der Wert in einer eigenen Karte mit Lock-Icon und
- * einem Badge, das die Quelle benennt („Aus Konto" / „Aus Bestandsaufnahme").
+ * Zeigt ein Eingabefeld als „gesperrt" an – als kleine Info-Karte mit
+ * klarer visueller Hierarchie:
+ *   Zeile 1 (Meta):   kleines Lock + Quell-Badge
+ *   Zeile 2 (Wert):   groß, semibold, scannbarer Hauptinhalt
+ *   Zeile 3 (Aktion): dezenter „in BSA/Konto bearbeiten"-Link
  *
- * Werte werden BEWUSST groß und in Mono-Font angezeigt, damit auch
- * ungewöhnliche Zeichen (etwa von Test-Eingaben) sofort sichtbar sind
- * – und ein „Bearbeiten in der Bestandsaufnahme"-Link erlaubt einen
- * 1-Klick-Wechsel zur Korrektur.
+ * Damit ist der WERT der Star – nicht das Lock-Icon oder das Badge.
  */
 export default function LockedFieldDisplay({
   htmlFor,
@@ -31,23 +30,19 @@ export default function LockedFieldDisplay({
   hint,
   mono,
 }: LockedFieldDisplayProps) {
+  const isEmpty = !value || !value.trim();
   const sourceLabel =
     source === "konto" ? "Aus Konto" : "Aus Bestandsaufnahme";
-  const badgeClass =
-    source === "konto"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : "border-primary-light/30 bg-primary-light/10 text-primary";
-  const isEmpty = !value || !value.trim();
-
-  // Edit-Ziel: Konto vs. Bestandsaufnahme
   const editHref =
     source === "konto"
       ? "/best-practice/konto"
       : "/best-practice/meine-bestandsaufnahme/bearbeiten";
   const editLabel =
-    source === "konto" ? "in Konto-Einstellungen" : "in Bestandsaufnahme";
+    source === "konto"
+      ? "in Konto-Einstellungen bearbeiten"
+      : "in Bestandsaufnahme bearbeiten";
 
-  // Defensiver Fallback: wenn doch mal ein leeres Locked-Feld hier landet
+  // ── Edge-Case: kein Wert vorhanden ──────────────────────────────
   if (isEmpty) {
     return (
       <div>
@@ -57,31 +52,49 @@ export default function LockedFieldDisplay({
         >
           {label}
         </label>
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <span
-            aria-hidden="true"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700"
-          >
-            <AlertCircle className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm text-amber-900">
-              In Ihrer Bestandsaufnahme noch nicht angegeben.
-            </p>
-            <p className="mt-0.5 text-[12px] text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700"
+            >
+              <AlertCircle className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Noch nicht in Bestandsaufnahme angegeben
+              </p>
+              <p className="mt-0.5 text-[13px] text-amber-800">
+                Sie können den Wert in einem Klick nachtragen.
+              </p>
               <Link
                 href={editHref}
-                className="underline underline-offset-2 hover:text-amber-900"
+                className="mt-3 inline-flex items-center gap-1 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
               >
-                Jetzt nachtragen
+                Jetzt in Bestandsaufnahme nachtragen
+                <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
               </Link>
-            </p>
+            </div>
           </div>
         </div>
         <input id={htmlFor} type="hidden" value="" readOnly />
       </div>
     );
   }
+
+  // ── Normaler Fall: Wert vorhanden ───────────────────────────────
+  const sourceMeta =
+    source === "konto"
+      ? {
+          dotClass: "bg-emerald-500",
+          textClass: "text-emerald-700",
+          tooltip: "Aus angemeldetem Konto übernommen",
+        }
+      : {
+          dotClass: "bg-primary",
+          textClass: "text-primary",
+          tooltip: "Aus Ihrer Bestandsaufnahme übernommen",
+        };
 
   return (
     <div>
@@ -91,47 +104,50 @@ export default function LockedFieldDisplay({
       >
         {label}
       </label>
-      <div className="rounded-lg border border-border bg-bg">
-        <div className="flex items-center gap-3 px-4 py-3">
+      <div className="group relative overflow-hidden rounded-xl border border-primary/15 bg-gradient-to-br from-bg to-primary-light/[0.04] shadow-sm transition-all hover:border-primary/25 hover:shadow-md">
+        {/* Zeile 1: Quell-Indikator + Lock-Icon */}
+        <div className="flex items-center justify-between px-4 pt-3">
           <span
-            aria-hidden="true"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+            title={sourceMeta.tooltip}
+            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${sourceMeta.textClass}`}
           >
-            <Lock className="h-3.5 w-3.5" />
-          </span>
-          {/* Wert prominent + in Mono-Font, damit auch kurze/ungewöhnliche
-              Zeichen klar erkennbar sind statt visuell unterzugehen. */}
-          <div className="min-w-0 flex-1">
-            <p
-              className={`truncate text-[15px] font-semibold text-text ${
-                mono ? "font-mono" : "font-mono"
-              }`}
-            >
-              {value}
-            </p>
-          </div>
-          <span
-            title={
-              source === "konto"
-                ? "Aus angemeldetem Konto übernommen"
-                : "Aus Ihrer Bestandsaufnahme übernommen"
-            }
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeClass}`}
-          >
-            <ShieldCheck className="h-2.5 w-2.5" aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              className={`inline-block h-1.5 w-1.5 rounded-full ${sourceMeta.dotClass}`}
+            />
+            <ShieldCheck className="h-3 w-3" aria-hidden="true" />
             {sourceLabel}
           </span>
-        </div>
-        {/* Inline-Edit-Link: kurzer Weg zur Korrektur in der BSA */}
-        <div className="flex items-center justify-end border-t border-border/60 px-4 py-1.5">
-          <Link
-            href={editHref}
-            className="inline-flex items-center gap-1 text-[11px] text-text-light transition-colors hover:text-primary"
+          <span
+            aria-hidden="true"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/8 text-primary/70"
           >
-            <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
-            Wert {editLabel} bearbeiten
-          </Link>
+            <Lock className="h-3 w-3" />
+          </span>
         </div>
+
+        {/* Zeile 2: Der WERT – prominent, groß, klar */}
+        <div className="px-4 pb-3 pt-1.5">
+          <p
+            className={`break-words text-lg font-semibold leading-snug text-text ${
+              mono ? "font-mono text-base" : ""
+            }`}
+          >
+            {value}
+          </p>
+        </div>
+
+        {/* Zeile 3: dezenter Edit-Link */}
+        <Link
+          href={editHref}
+          className="flex items-center justify-end gap-1 border-t border-primary/10 bg-white/60 px-4 py-2 text-[11px] font-medium text-text-light transition-colors hover:bg-white hover:text-primary"
+        >
+          <span>{editLabel}</span>
+          <ArrowUpRight
+            className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </Link>
       </div>
       <input id={htmlFor} type="hidden" value={value} readOnly />
       {hint && <p className="mt-1.5 text-xs text-text-light">{hint}</p>}

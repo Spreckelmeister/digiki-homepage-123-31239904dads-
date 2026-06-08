@@ -3,12 +3,14 @@
  * extrahiert daraus die Felder, die in den Antrags-Formularen
  * vor-ausgefüllt + gesperrt werden können.
  *
- * Felder, die NICHT in der BSA stehen (Adresse, Schüler:innenzahl als
- * Range-String), bleiben editierbar.
+ * Strategie: nutzt GENAU dieselbe RPC `get_my_bestandsaufnahme` wie
+ * die BSA-Bearbeiten-Seite (`/best-practice/meine-bestandsaufnahme/bearbeiten`).
+ * Damit ist garantiert, dass wir dieselben Werte sehen, die der User
+ * dort beim Editieren sieht.
  *
- * Strategie: nutzt den Service-Role-Admin-Client direkt – umgeht damit
- * RLS und alle möglichen RPC-Eigenheiten. Auth-Schutz besteht durch
- * den User-Session-Lookup vorab.
+ * Falls die RPC nichts liefert (z.B. weil sie aus irgendeinem Grund
+ * fehlschlägt oder die BSA nicht gefunden wird), greift ein Fallback
+ * via Admin-Service-Role auf die Tabelle direkt zu.
  */
 
 import { createClient as createAdminClient } from "@supabase/supabase-js";
@@ -22,79 +24,94 @@ export interface BestandsaufnahmePrefill {
   teacher_count?: string;
 }
 
+type RawBSA = {
+  school_name?: string | null;
+  principal_name?: string | null;
+  contact_person?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  teacher_count?: number | null;
+};
+
 export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePrefill | null> {
-  // Erst: User über Session identifizieren
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    console.log(
-      "[getBestandsaufnahmePrefill] Kein eingeloggter User – kein Prefill.",
-    );
-    return null;
-  }
 
-  // Dann: BSA via Admin-Client (Service-Role) holen. Match per user_id
-  // ODER per contact_email (gleiche Logik wie die get_my_bestandsaufnahme-
-  // RPC), damit auch ältere BSAs ohne user_id-Link gefunden werden.
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    console.error(
-      "[getBestandsaufnahmePrefill] Service-Role-Key oder Supabase-URL fehlen.",
-    );
-    return null;
-  }
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } },
+  // 1) Primärer Weg: dieselbe RPC, die auch die BSA-Bearbeiten-Seite
+  //    nutzt. Damit ist garantiert, dass wir dieselben Werte sehen.
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "get_my_bestandsaufnahme",
   );
 
-  const emailLower = user.email?.toLowerCase() ?? "";
-  const { data, error } = await admin
-    .from("bestandsaufnahme_responses")
-    .select(
-      "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, user_id, created_at",
-    )
-    .or(
-      `user_id.eq.${user.id}${emailLower ? `,contact_email.ilike.${emailLower}` : ""}`,
-    )
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  if (rpcError) {
     console.error(
-      "[getBestandsaufnahmePrefill] admin query error:",
-      error.message,
+      "[getBestandsaufnahmePrefill] rpc error:",
+      rpcError.message,
     );
-    return null;
   }
-  if (!data) {
+
+  let raw: RawBSA | null = (rpcData as RawBSA | null) ?? null;
+
+  // 2) Fallback: falls die RPC nichts geliefert hat, direkt mit Service-
+  //    Role anfragen (umgeht RLS). User-ID + Email-Match wie in der RPC.
+  if (!raw) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (
+      user &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+
+      // Erst via user_id, dann via contact_email als Fallback
+      const byUserId = await admin
+        .from("bestandsaufnahme_responses")
+        .select(
+          "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count",
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      raw = byUserId.data as RawBSA | null;
+
+      if (!raw && user.email) {
+        const byEmail = await admin
+          .from("bestandsaufnahme_responses")
+          .select(
+            "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count",
+          )
+          .ilike("contact_email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        raw = byEmail.data as RawBSA | null;
+      }
+    }
+  }
+
+  if (!raw) {
     console.log(
-      `[getBestandsaufnahmePrefill] Keine BSA gefunden für user_id=${user.id} / email=${emailLower}`,
+      "[getBestandsaufnahmePrefill] Keine BSA gefunden (RPC + Fallback leer).",
     );
     return null;
   }
 
-  // Klares Diagnose-Log: zeigt rohe DB-Werte (inkl. NULL/empty) für
-  // jedes prefill-relevante Feld. Bei „komische Zeichen"-Reports kann
-  // man hier sofort sehen, was wirklich in der DB steht.
-  console.log(
-    `[getBestandsaufnahmePrefill] BSA-Treffer für ${emailLower}:`,
-    {
-      school_name: JSON.stringify(data.school_name),
-      principal_name: JSON.stringify(data.principal_name),
-      contact_person: JSON.stringify(data.contact_person),
-      contact_phone: JSON.stringify(data.contact_phone),
-      teacher_count: data.teacher_count,
-      matched_by_user_id: data.user_id === user.id,
-      matched_by_email: data.contact_email?.toLowerCase() === emailLower,
-    },
-  );
+  // Diagnose-Log: zeigt die Rohwerte aus der DB. Bei „komische Zeichen"
+  // im UI sieht man hier sofort, was tatsächlich gespeichert ist.
+  console.log("[getBestandsaufnahmePrefill] rohe DB-Werte:", {
+    school_name: JSON.stringify(raw.school_name),
+    principal_name: JSON.stringify(raw.principal_name),
+    contact_person: JSON.stringify(raw.contact_person),
+    contact_phone: JSON.stringify(raw.contact_phone),
+    teacher_count: raw.teacher_count,
+  });
 
   // Strings trimmen und leere Werte konsequent zu undefined machen.
   const cleanStr = (v: string | null | undefined): string | undefined => {
@@ -104,26 +121,26 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
   };
 
   return {
-    school_name: cleanStr(data.school_name),
-    principal_name: cleanStr(data.principal_name),
-    contact_person: cleanStr(data.contact_person),
-    phone: cleanStr(data.contact_phone),
+    school_name: cleanStr(raw.school_name),
+    principal_name: cleanStr(raw.principal_name),
+    contact_person: cleanStr(raw.contact_person),
+    phone: cleanStr(raw.contact_phone),
     teacher_count:
-      data.teacher_count != null && data.teacher_count > 0
-        ? String(data.teacher_count)
+      raw.teacher_count != null && raw.teacher_count > 0
+        ? String(raw.teacher_count)
         : undefined,
   };
 }
 
 /** Hilfsfunktion: gibt true zurück, wenn der Wert „plausibel" ist –
- *  d.h. nicht-leer, mindestens 2 Zeichen, enthält mindestens ein
- *  Buchstaben- oder Ziffernzeichen. Damit fischen wir auch Werte wie
- *  "·", ".", " - " etc. heraus, die zwar technisch ein Wert sind,
- *  aber offensichtlich keine echten Stammdaten. */
+ *  d.h. nicht-leer und enthält mindestens ein Buchstaben- oder
+ *  Ziffernzeichen. Damit fischen wir reine Punctuation-Werte
+ *  („·", ".", " - " etc.) heraus, akzeptieren aber auch einzelne
+ *  Ziffern (z.B. teacher_count = 2). */
 function hasContent(value: string | undefined): boolean {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
-  if (trimmed.length < 2) return false;
+  if (trimmed.length === 0) return false;
   return /[\p{L}\p{N}]/u.test(trimmed);
 }
 
