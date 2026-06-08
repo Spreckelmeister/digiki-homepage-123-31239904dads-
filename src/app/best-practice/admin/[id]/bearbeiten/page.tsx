@@ -37,25 +37,45 @@ export default async function BearbeitenPage({ params }: PageProps) {
 
   return (
     <>
-      {/* Hero */}
-      <section className="bg-primary py-12 md:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Hero – schlankere Variante der neu-Seite, gleiche Designsprache */}
+      <section className="relative overflow-hidden bg-primary py-10 md:py-14">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, #ffffff 0 1px, transparent 1px 28px), repeating-linear-gradient(90deg, #ffffff 0 1px, transparent 1px 28px)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -right-32 h-72 w-72 rounded-full bg-primary-light/20 blur-3xl"
+        />
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/best-practice/admin"
-            className="inline-flex items-center gap-1 text-sm text-blue-200 hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Zurück zum Admin-Bereich
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-white">
-            Beitrag bearbeiten
-          </h1>
+          <div className="mt-6">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent">
+              Best Practice · Bearbeiten
+            </p>
+            <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight text-white md:text-4xl">
+              {practice.title}
+            </h1>
+            <p className="mt-2 text-sm text-white/70">
+              {practice.school_name}
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Form */}
-      <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <section className="bg-bg py-10 md:py-14">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <BestPracticeForm initialData={practice} />
         </div>
       </section>
