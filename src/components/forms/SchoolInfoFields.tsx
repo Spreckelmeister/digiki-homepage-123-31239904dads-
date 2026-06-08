@@ -12,6 +12,7 @@ import {
   useSchoolAutocomplete,
   type SchoolSuggestion,
 } from "./useSchoolAutocomplete";
+import { usePlzCityLookup } from "./usePlzCityLookup";
 
 interface SchoolInfoFieldsProps {
   values: {
@@ -154,6 +155,38 @@ export default function SchoolInfoFields({
     setAutoSuggestedAddress({ street: s.street, plz: s.plz, city: s.city });
     setShowAddressAlternatives(false);
   }
+
+  // ── PLZ → Ort-Auto-Ergänzung ───────────────────────────────────────────────
+  // Fallback, falls die Nominatim-Schul-Suche oben nichts gefunden hat:
+  // sobald der Nutzer eine 5-stellige PLZ eingibt UND der Ort leer ist,
+  // ergänzen wir den Ort automatisch via Nominatim. Sobald der Nutzer den
+  // Ort selbst tippt, fassen wir ihn nicht mehr an.
+  const { city: plzResolvedCity } = usePlzCityLookup(values.school_plz);
+  useEffect(() => {
+    if (!plzResolvedCity) return;
+    if (values.school_city.trim().length > 0) return;
+    onChange("school_city", plzResolvedCity);
+    // onChange ist eine neue Referenz pro Render – nicht in die Deps aufnehmen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plzResolvedCity]);
+
+  // ── Straße → PLZ + Ort-Auto-Ergänzung ──────────────────────────────────────
+  // Sobald der Nutzer eine Straße tippt und der Autocomplete liefert
+  // einen Top-Treffer mit PLZ und Ort, übernehmen wir beides automatisch –
+  // aber NUR, wenn diese Felder noch leer sind. So bleibt eine vorhandene
+  // (z.B. aus dem Schulnamen vorausgefüllte) Adresse unangetastet.
+  // Die Suggestions kommen aus `useAddressAutocomplete(values.school_street)`
+  // (oben bereits aktiv).
+  useEffect(() => {
+    if (values.school_plz.trim().length > 0) return;
+    if (values.school_city.trim().length > 0) return;
+    if (values.school_street.trim().length < 5) return;
+    const first = addressSuggestions.find((s) => s.plz && s.city);
+    if (!first) return;
+    onChange("school_plz", first.plz);
+    onChange("school_city", first.city);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressSuggestions]);
 
   return (
     <div className="space-y-4">

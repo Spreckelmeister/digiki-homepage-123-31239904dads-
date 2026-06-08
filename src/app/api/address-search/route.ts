@@ -47,18 +47,33 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Zwei Modi:
+  //   1) `?q=…`               – Freitext-Suche (Straße + Ort)
+  //   2) `?postalcode=…`      – strukturierte Suche nur per PLZ
+  //                             (für PLZ→Ort-Auto-Ergänzung)
   const q = request.nextUrl.searchParams.get("q");
-  if (!q || q.length < 3 || q.length > 100) {
-    return NextResponse.json([]);
-  }
+  const postalcode = request.nextUrl.searchParams.get("postalcode");
 
   const params = new URLSearchParams({
-    q,
     format: "json",
     addressdetails: "1",
     countrycodes: "de",
     limit: "5",
   });
+
+  if (postalcode) {
+    if (!/^\d{5}$/.test(postalcode)) {
+      return NextResponse.json([]);
+    }
+    params.set("postalcode", postalcode);
+  } else if (q) {
+    if (q.length < 3 || q.length > 100) {
+      return NextResponse.json([]);
+    }
+    params.set("q", q);
+  } else {
+    return NextResponse.json([]);
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
