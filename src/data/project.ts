@@ -227,10 +227,9 @@ export const participationOptions = [
       "Auch für einzelne Lehrkräfte",
       "Keine Voranmeldung als Schule nötig",
     ],
-    cta: "Bald verfügbar",
-    ctaHref: "#kontakt",
+    cta: "Termine ansehen",
+    ctaHref: "#kos-fortbildungen",
     featured: false,
-    disabled: true, // Hier wird der Button deaktiviert
   },
 ];
 
