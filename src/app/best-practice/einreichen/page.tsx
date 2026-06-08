@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BestPracticeVorlageForm from "@/components/forms/BestPracticeVorlageForm";
+import BackButton from "@/components/BackButton";
 
 export const metadata: Metadata = {
   title: "Best Practice einreichen - DigiKI",
@@ -28,13 +27,11 @@ export default async function BestPracticeEinreichenPage() {
       {/* Hero */}
       <section className="bg-primary py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/best-practice"
+          <BackButton
+            fallbackHref="/best-practice"
+            fallbackLabel="Zurück zu Best Practice"
             className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            Zurück zu Best Practice
-          </Link>
+          />
           <h1 className="text-3xl md:text-4xl font-bold text-white">
             Best Practice einreichen
           </h1>

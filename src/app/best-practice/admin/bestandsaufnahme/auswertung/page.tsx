@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 import {
-  ArrowLeft,
   Activity,
   Building2,
   Trees,
@@ -220,13 +220,11 @@ export default async function AuswertungPage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Top-Leiste: Back-Link + AuthStatus klar getrennt */}
           <div className="flex items-center justify-between gap-4">
-            <Link
-              href="/best-practice/admin/bestandsaufnahme"
+            <BackButton
+              fallbackHref="/best-practice/admin/bestandsaufnahme"
+              fallbackLabel="Zurück zur Übersicht"
               className="flex w-fit items-center gap-1 text-sm text-white/70 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              Zurück zur Übersicht
-            </Link>
+            />
             <AuthStatus initialProfile={profile} />
           </div>
 
@@ -1205,13 +1203,11 @@ function EmptyState({ profile }: { profile: Awaited<ReturnType<typeof getCurrent
     <>
       <section className="bg-primary py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/best-practice/admin/bestandsaufnahme"
+          <BackButton
+            fallbackHref="/best-practice/admin/bestandsaufnahme"
+            fallbackLabel="Zurück zur Übersicht"
             className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            Zurück zur Übersicht
-          </Link>
+          />
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white">

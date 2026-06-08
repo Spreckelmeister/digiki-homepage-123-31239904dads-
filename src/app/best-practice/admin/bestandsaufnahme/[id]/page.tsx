@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
-import Link from "next/link";
+import { Download } from "lucide-react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
@@ -8,6 +7,7 @@ import AdminNav from "@/components/best-practice/AdminNav";
 import BestandsaufnahmeStatusManager from "@/components/best-practice/BestandsaufnahmeStatusManager";
 import UserEmailManager from "@/components/best-practice/UserEmailManager";
 import ResendConfirmationButton from "@/components/best-practice/ResendConfirmationButton";
+import BackButton from "@/components/BackButton";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -81,13 +81,11 @@ export default async function BestandsaufnahmeDetailPage({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <Link
-                href="/best-practice/admin/bestandsaufnahme"
+              <BackButton
+                fallbackHref="/best-practice/admin/bestandsaufnahme"
+                fallbackLabel="Zurück zur Übersicht"
                 className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                Zurück zur Übersicht
-              </Link>
+              />
               <h1 className="text-2xl md:text-3xl font-bold text-white">
                 Bestandsaufnahme
               </h1>

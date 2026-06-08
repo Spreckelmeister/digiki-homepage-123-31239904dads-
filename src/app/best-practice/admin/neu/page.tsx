@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft, Lightbulb, Sparkles, Users } from "lucide-react";
+import { Lightbulb, Sparkles, Users } from "lucide-react";
 import BestPracticeForm from "@/components/best-practice/BestPracticeForm";
+import BackButton from "@/components/BackButton";
 
 export const metadata: Metadata = {
   title: "Neuer Beitrag - Best Practice Admin",
@@ -35,13 +35,11 @@ export default function NeuPage() {
         />
 
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/best-practice/admin"
+          <BackButton
+            fallbackHref="/best-practice/admin"
+            fallbackLabel="Zurück zum Admin-Bereich"
             className="inline-flex items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Zurück zum Admin-Bereich
-          </Link>
+          />
 
           <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto] md:items-end">
             <div>

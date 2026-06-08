@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
   ChevronRight,
   FileText,
+  Inbox,
   LogIn,
   Pencil,
-  ShieldCheck,
   Sparkles,
   Trash2,
   Users,
@@ -18,7 +18,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
 
-// ── Typen: Voll-Ansicht (eingeloggt) ─────────────────────────
+// ════════ Types ══════════════════════════════════════════════
+
 interface BestPracticeFullResult {
   id: string;
   title: string;
@@ -34,70 +35,38 @@ interface BestPracticeFullResult {
 interface StudentAppFullResult {
   id: string;
   school_name: string;
-  school_street: string | null;
-  school_plz: string | null;
-  school_city: string | null;
-  principal_name: string | null;
   contact_person: string;
-  phone: string | null;
-  email: string;
-  teacher_count: number | null;
-  student_count: number | null;
+  status: ApplicationStatus;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  start_date: string | null;
+  hours_per_week: string | null;
   support_technical_setup: boolean;
   support_onboarding: boolean;
   support_tech_support: boolean;
   support_material_creation: boolean;
   support_classroom: boolean;
   support_other: boolean;
-  support_explanation: string | null;
-  start_date: string | null;
-  duration: string | null;
-  hours_per_week: string | null;
-  preferred_days: string | null;
-  has_wifi: boolean;
-  has_devices: boolean;
-  device_count: number | null;
-  has_interactive_displays: boolean;
-  has_school_server: boolean;
-  status: ApplicationStatus;
-  admin_notes: string | null;
-  created_at: string;
-  updated_at: string;
 }
 interface ToolAppFullResult {
   id: string;
   school_name: string;
-  school_street: string | null;
-  school_plz: string | null;
-  school_city: string | null;
-  principal_name: string | null;
   contact_person: string;
-  phone: string | null;
-  email: string;
-  teacher_count: number | null;
-  student_count: number | null;
-  tool_selections: ToolSelection[];
-  additional_tools: string | null;
-  grade_levels: string | null;
-  subjects: string | null;
-  start_date: string | null;
-  usage_description: string | null;
-  privacy_concept_exists: boolean;
-  parental_consent: boolean;
-  it_infrastructure_meets_requirements: boolean;
   status: ApplicationStatus;
   admin_notes: string | null;
   created_at: string;
   updated_at: string;
+  tool_selections: ToolSelection[];
+  start_date: string | null;
 }
 interface FullResult {
-  email: string;
   best_practices: BestPracticeFullResult[];
   student_apps: StudentAppFullResult[];
   tool_apps: ToolAppFullResult[];
 }
 
-// ── Quick-Action-Konfiguration ───────────────────────────────
+// ════════ Quick-Action-Karten oben ═══════════════════════════
 
 type QuickActionTone = "accent" | "primary" | "teal";
 
@@ -135,64 +104,6 @@ const QUICK_ACTIONS: Array<{
   },
 ];
 
-// ── Helfer ───────────────────────────────────────────────────
-
-const APP_STATUS_CONFIG: Record<ApplicationStatus, { label: string; className: string }> = {
-  neu:            { label: "Neu – wird geprüft", className: "bg-yellow-100 text-yellow-700" },
-  in_bearbeitung: { label: "In Bearbeitung",      className: "bg-blue-100   text-blue-700"   },
-  genehmigt:      { label: "Genehmigt",           className: "bg-green-100  text-green-700"  },
-  abgelehnt:      { label: "Abgelehnt",           className: "bg-red-100    text-red-700"    },
-};
-
-function StatusBadge({ status }: { status: ApplicationStatus }) {
-  const cfg = APP_STATUS_CONFIG[status] ?? APP_STATUS_CONFIG.neu;
-  return (
-    <span className={`inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium ${cfg.className}`}>
-      {cfg.label}
-    </span>
-  );
-}
-
-function PublishedBadge({ published }: { published: boolean }) {
-  return published ? (
-    <span className="inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">
-      Veröffentlicht
-    </span>
-  ) : (
-    <span className="inline-flex text-xs px-2.5 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700">
-      Eingereicht – wird geprüft
-    </span>
-  );
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
-  return (
-    <div>
-      <span className="text-xs font-semibold text-text">{label}: </span>
-      <span className="text-xs text-text-light">{value}</span>
-    </div>
-  );
-}
-
-function AdminNoteBox({ note }: { note: string | null }) {
-  if (!note) return null;
-  return (
-    <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
-      <p className="text-xs font-semibold text-blue-700 mb-1">Rückmeldung der Projektkoordination:</p>
-      <p className="text-xs text-blue-800 whitespace-pre-wrap">{note}</p>
-    </div>
-  );
-}
-
 function QuickActionCard({
   href,
   title,
@@ -206,15 +117,12 @@ function QuickActionCard({
   body: string;
   icon: React.ReactNode;
   tone: QuickActionTone;
-  /** Wenn gesetzt: Link führt zuerst über die Login-Seite mit
-   *  redirect-Param zurück zur Ziel-URL. */
   loginRedirect: boolean;
 }) {
   const finalHref = loginRedirect
     ? `/best-practice/login?redirect=${encodeURIComponent(href)}`
     : href;
-
-  const toneStyles = {
+  const t = {
     primary: {
       iconBg: "bg-primary/10 text-primary",
       border: "hover:border-primary/40",
@@ -222,7 +130,7 @@ function QuickActionCard({
     },
     teal: {
       iconBg: "bg-primary-light/15 text-primary",
-      border: "hover:border-primary-light/50",
+      border: "hover:border-primary-light/55",
       arrow: "text-primary",
     },
     accent: {
@@ -231,15 +139,14 @@ function QuickActionCard({
       arrow: "text-accent-strong",
     },
   }[tone];
-
   return (
     <Link
       href={finalHref}
-      className={`group relative flex h-full flex-col rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${toneStyles.border}`}
+      className={`group relative flex h-full flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${t.border}`}
     >
       <span
         aria-hidden="true"
-        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${toneStyles.iconBg}`}
+        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${t.iconBg}`}
       >
         {icon}
       </span>
@@ -248,7 +155,7 @@ function QuickActionCard({
         {body}
       </p>
       <span
-        className={`mt-4 inline-flex items-center gap-1.5 text-sm font-bold ${toneStyles.arrow}`}
+        className={`mt-4 inline-flex items-center gap-1.5 text-sm font-bold ${t.arrow}`}
       >
         {loginRedirect ? "Erst anmelden" : "Jetzt starten"}
         <ArrowRight
@@ -260,12 +167,273 @@ function QuickActionCard({
   );
 }
 
+// ════════ Helfer ═════════════════════════════════════════════
+
+const APP_STATUS_CONFIG: Record<
+  ApplicationStatus,
+  { label: string; className: string; dot: string }
+> = {
+  neu:            { label: "Neu – wird geprüft", className: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-400" },
+  in_bearbeitung: { label: "In Bearbeitung",     className: "bg-blue-50  text-blue-800  border-blue-200",  dot: "bg-blue-500"  },
+  genehmigt:      { label: "Genehmigt",          className: "bg-green-50 text-green-800 border-green-200", dot: "bg-emerald-500" },
+  abgelehnt:      { label: "Abgelehnt",          className: "bg-red-50   text-red-800   border-red-200",   dot: "bg-red-500"   },
+};
+
+function StatusPill({ status }: { status: ApplicationStatus }) {
+  const cfg = APP_STATUS_CONFIG[status] ?? APP_STATUS_CONFIG.neu;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${cfg.className}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-block h-1.5 w-1.5 rounded-full ${cfg.dot}`}
+      />
+      {cfg.label}
+    </span>
+  );
+}
+
+function PublishedPill({ published }: { published: boolean }) {
+  return published ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-800">
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+      Veröffentlicht
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
+      Eingereicht – wird geprüft
+    </span>
+  );
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("de-DE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function CategoryHeader({
+  icon,
+  title,
+  count,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  count: number;
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <span
+        aria-hidden="true"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
+      >
+        {icon}
+      </span>
+      <h3 className="text-base font-bold text-primary">{title}</h3>
+      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-[11px] font-bold tabular-nums text-primary">
+        {count}
+      </span>
+    </div>
+  );
+}
+
+function AdminNoteBox({ note }: { note: string | null }) {
+  if (!note) return null;
+  return (
+    <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2.5">
+      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">
+        Rückmeldung
+      </p>
+      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-blue-900">
+        {note}
+      </p>
+    </div>
+  );
+}
+
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex rounded-full bg-bg px-2 py-0.5 text-[11px] text-text-light">
+      {children}
+    </span>
+  );
+}
+
+// ════════ Submission-Karten ══════════════════════════════════
+
+function BestPracticeCard({ bp }: { bp: BestPracticeFullResult }) {
+  return (
+    <article className="rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text">{bp.title}</p>
+          <p className="mt-0.5 text-xs text-text-light">
+            {bp.school_name} · Eingereicht am {formatDate(bp.created_at)}
+            {bp.updated_at !== bp.created_at &&
+              ` · zuletzt aktualisiert ${formatDate(bp.updated_at)}`}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <PublishedPill published={bp.published} />
+          {bp.published && (
+            <Link
+              href={`/best-practice/datenbank/${bp.id}`}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary transition-colors hover:text-primary/80"
+            >
+              Ansehen
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {bp.subject && <MetaChip>Fach: {bp.subject}</MetaChip>}
+        {bp.grade_level && <MetaChip>Klasse: {bp.grade_level}</MetaChip>}
+        {bp.tools_used?.length > 0 && (
+          <MetaChip>Tools: {bp.tools_used.join(", ")}</MetaChip>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ApplicationCard({
+  app,
+  type,
+  onDelete,
+  isDeleting,
+  isConfirmingDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  detailText,
+}: {
+  app: StudentAppFullResult | ToolAppFullResult;
+  type: "hilfskraefte" | "tool-lizenzen";
+  onDelete: () => void;
+  isDeleting: boolean;
+  isConfirmingDelete: boolean;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
+  detailText?: string;
+}) {
+  const canEdit = app.status === "neu";
+  const editHref =
+    type === "hilfskraefte"
+      ? `/best-practice/meine-einreichungen/hilfskraefte/${app.id}/bearbeiten`
+      : `/best-practice/meine-einreichungen/tool-lizenzen/${app.id}/bearbeiten`;
+
+  return (
+    <article className="rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text">{app.school_name}</p>
+          <p className="mt-0.5 text-xs text-text-light">
+            Eingereicht am {formatDate(app.created_at)}
+            {app.updated_at !== app.created_at &&
+              ` · zuletzt aktualisiert ${formatDate(app.updated_at)}`}
+          </p>
+        </div>
+        <StatusPill status={app.status} />
+      </div>
+
+      {detailText && (
+        <p className="mt-3 text-[12.5px] leading-relaxed text-text-light">
+          {detailText}
+        </p>
+      )}
+
+      <AdminNoteBox note={app.admin_notes} />
+
+      {canEdit && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          {!isConfirmingDelete ? (
+            <>
+              <Link
+                href={editHref}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-all hover:-translate-y-0.5 hover:bg-primary hover:text-white hover:shadow-sm"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Bearbeiten
+              </Link>
+              <button
+                type="button"
+                onClick={onConfirmDelete}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:-translate-y-0.5 hover:bg-red-600 hover:text-white hover:shadow-sm"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Löschen
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-red-700">
+                Wirklich löschen?
+              </span>
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? "…" : "Ja, löschen"}
+              </button>
+              <button
+                type="button"
+                onClick={onCancelDelete}
+                className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium transition-colors hover:bg-bg"
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+// Helper: kompakte Kurz-Beschreibung der Application-Wünsche
+function studentAppShort(app: StudentAppFullResult): string {
+  const wishes: string[] = [];
+  if (app.support_technical_setup) wishes.push("Tech-Setup");
+  if (app.support_onboarding) wishes.push("Onboarding");
+  if (app.support_tech_support) wishes.push("Tech-Support");
+  if (app.support_material_creation) wishes.push("Materialerstellung");
+  if (app.support_classroom) wishes.push("Unterrichtsbegleitung");
+  if (app.support_other) wishes.push("Sonstiges");
+  const parts: string[] = [];
+  if (wishes.length > 0) parts.push(`Gewünscht: ${wishes.join(", ")}`);
+  if (app.hours_per_week) parts.push(`${app.hours_per_week}/Woche`);
+  if (app.start_date) parts.push(`ab ${formatDate(app.start_date)}`);
+  return parts.join(" · ");
+}
+
+function toolAppShort(app: ToolAppFullResult): string {
+  const total = app.tool_selections.reduce(
+    (sum, cat) =>
+      sum + cat.tools.reduce((t, x) => t + (x.license_count || 0), 0),
+    0,
+  );
+  const cats = app.tool_selections
+    .filter((c) => c.tools.some((t) => t.name))
+    .map((c) => c.category)
+    .join(", ");
+  const parts: string[] = [];
+  if (total > 0) parts.push(`${total} Lizenzen`);
+  if (cats) parts.push(cats);
+  if (app.start_date) parts.push(`ab ${formatDate(app.start_date)}`);
+  return parts.join(" · ");
+}
+
 // ════════ Haupt-Component ════════════════════════════════════
 
 export default function MySubmissions() {
   const isAdmin = useIsAdmin();
-  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
-  // null = noch nicht geprüft; "" = nicht eingeloggt; string = eingeloggt
   const [authState, setAuthState] = useState<"loading" | "in" | "out">(
     "loading",
   );
@@ -275,17 +443,14 @@ export default function MySubmissions() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Login-Status prüfen und ggf. Einreichungen laden
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user?.email) {
+      if (!data.user) {
         setAuthState("out");
         return;
       }
-      setLoggedInEmail(data.user.email.toLowerCase());
       setAuthState("in");
-      // Auto-Load der Einreichungen
       setLoading(true);
       const { data: result, error: rpcError } = await supabase.rpc(
         "get_my_submissions_full",
@@ -299,12 +464,12 @@ export default function MySubmissions() {
     });
   }, []);
 
-  // Admins nicht anzeigen
   if (isAdmin === true) return null;
 
   async function handleDelete(type: "student" | "tool", id: string) {
     setDeletingId(id);
-    const route = type === "student" ? "/api/delete-student-app" : "/api/delete-tool-app";
+    const route =
+      type === "student" ? "/api/delete-student-app" : "/api/delete-tool-app";
     const res = await fetch(route, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -334,19 +499,24 @@ export default function MySubmissions() {
   const isLoggedIn = authState === "in";
 
   return (
-    <div className="mt-16 border-t border-border pt-12">
+    <section className="mt-16 border-t border-border pt-12">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="mb-2 flex items-center gap-3">
-        <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
+        <Inbox className="h-5 w-5 text-primary" aria-hidden="true" />
         <h2 className="text-2xl font-bold text-primary">Meine Einreichungen</h2>
+        {isLoggedIn && fullResult && totalCount > 0 && (
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold tabular-nums text-white">
+            {totalCount}
+          </span>
+        )}
       </div>
       <p className="mb-8 max-w-2xl text-text-light">
         {isLoggedIn
-          ? "Hier sehen Sie alle Einreichungen Ihres Kontos und können direkt eine neue starten."
+          ? "Alle Anträge und Best-Practice-Beiträge Ihres Kontos – inklusive Status und Rückmeldungen des Projekt-Teams."
           : "Melden Sie sich an, um Anträge zu stellen und den Status Ihrer Einreichungen zu sehen."}
       </p>
 
-      {/* ── Quick-Action-Karten ───────────────────────────── */}
+      {/* ── Quick-Actions ──────────────────────────────────── */}
       <div className="mb-10">
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
           Neue Einreichung starten
@@ -367,15 +537,15 @@ export default function MySubmissions() {
         {!isLoggedIn && (
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-text-light">
             <LogIn className="h-3 w-3" aria-hidden="true" />
-            Sie werden zuerst zur Anmeldung geleitet und nach erfolgreichem Login
-            direkt zum Formular weitergeleitet.
+            Sie werden zuerst zur Anmeldung geleitet und nach erfolgreichem
+            Login direkt zum Formular weitergeleitet.
           </p>
         )}
       </div>
 
-      {/* ── Login-Hinweis (wenn nicht eingeloggt) ─────────── */}
+      {/* ── Login-Hinweis ──────────────────────────────────── */}
       {authState === "out" && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <span
@@ -386,11 +556,11 @@ export default function MySubmissions() {
               </span>
               <div>
                 <p className="font-bold text-primary">
-                  Anmelden für laufende Einreichungen
+                  Laufende Einreichungen einsehen
                 </p>
                 <p className="mt-1 text-sm text-text-light">
-                  Nach der Anmeldung sehen Sie hier den Status Ihrer Anträge und
-                  Best-Practice-Beiträge – inklusive vollständiger Details.
+                  Nach der Anmeldung sehen Sie hier den Status Ihrer Anträge
+                  und Best-Practice-Beiträge.
                 </p>
               </div>
             </div>
@@ -405,72 +575,47 @@ export default function MySubmissions() {
         </div>
       )}
 
-      {/* ── Ladezustand ───────────────────────────────────── */}
+      {/* ── Ladezustand (Skeleton-Karten) ──────────────────── */}
       {isLoggedIn && loading && (
-        <div className="rounded-xl border border-border bg-white p-6 text-center text-sm text-text-light">
-          Einreichungen werden geladen …
+        <div className="space-y-3">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl border border-border bg-white"
+            />
+          ))}
         </div>
       )}
 
       {/* ── Fehler ────────────────────────────────────────── */}
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
-      {/* ── Keine Einreichungen ───────────────────────────── */}
+      {/* ── Empty State ───────────────────────────────────── */}
       {isLoggedIn && !loading && fullResult && totalCount === 0 && (
-        <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-light">
-          Noch keine Einreichungen vorhanden – starten Sie oben Ihre erste!
+        <div className="rounded-2xl border border-dashed border-border bg-bg/40 px-6 py-10 text-center">
+          <p className="text-sm text-text-light">
+            Noch keine Einreichungen vorhanden — starten Sie oben Ihre erste!
+          </p>
         </div>
       )}
 
-      {/* ── Voll-Ansicht (eingeloggt) ─────────────────────── */}
+      {/* ── Liste ─────────────────────────────────────────── */}
       {isLoggedIn && fullResult && totalCount > 0 && (
-        <div className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
-          <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {totalCount} {totalCount === 1 ? "Einreichung" : "Einreichungen"} unter{" "}
-          <strong>{loggedInEmail}</strong> gefunden
-        </div>
-      )}
-
-      {isLoggedIn && fullResult && totalCount > 0 && (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {fullResult.best_practices.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Best-Practice-Beiträge ({fullResult.best_practices.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+              <CategoryHeader
+                icon={<FileText className="h-4 w-4" />}
+                title="Best-Practice-Beiträge"
+                count={fullResult.best_practices.length}
+              />
+              <div className="space-y-3">
                 {fullResult.best_practices.map((bp) => (
-                  <div key={bp.id} className="bg-white px-5 py-5">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                      <div>
-                        <p className="font-semibold text-text">{bp.title}</p>
-                        <p className="text-xs text-text-light mt-0.5">
-                          {bp.school_name} · Eingereicht am {formatDate(bp.created_at)}
-                          {bp.updated_at !== bp.created_at && ` · Aktualisiert am ${formatDate(bp.updated_at)}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <PublishedBadge published={bp.published} />
-                        {bp.published && (
-                          <Link
-                            href={`/best-practice/datenbank/${bp.id}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                          >
-                            Ansehen <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      <DetailField label="Fach" value={bp.subject} />
-                      <DetailField label="Klassenstufe" value={bp.grade_level} />
-                      <DetailField label="Eingesetztes Tool" value={bp.tools_used?.join(", ")} />
-                      <DetailField label="Ansprechperson" value={bp.contact_person} />
-                    </div>
-                  </div>
+                  <BestPracticeCard key={bp.id} bp={bp} />
                 ))}
               </div>
             </section>
@@ -478,116 +623,24 @@ export default function MySubmissions() {
 
           {fullResult.student_apps.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Anträge: Studentische Hilfskräfte ({fullResult.student_apps.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+              <CategoryHeader
+                icon={<Users className="h-4 w-4" />}
+                title="Anträge: Studentische Hilfskräfte"
+                count={fullResult.student_apps.length}
+              />
+              <div className="space-y-3">
                 {fullResult.student_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-5 space-y-4">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-text">{app.school_name}</p>
-                        <p className="text-xs text-text-light mt-0.5">
-                          Eingereicht am {formatDate(app.created_at)}
-                          {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        <StatusBadge status={app.status} />
-                        {app.status === "neu" && confirmDeleteId !== app.id && (
-                          <Link
-                            href={`/best-practice/meine-einreichungen/hilfskraefte/${app.id}/bearbeiten`}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Bearbeiten
-                          </Link>
-                        )}
-                        {app.status === "neu" && confirmDeleteId !== app.id && (
-                          <button
-                            onClick={() => setConfirmDeleteId(app.id)}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-600 hover:text-white transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Löschen
-                          </button>
-                        )}
-                        {confirmDeleteId === app.id && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-red-700 font-medium">Wirklich löschen?</span>
-                            <button
-                              onClick={() => handleDelete("student", app.id)}
-                              disabled={deletingId === app.id}
-                              className="text-xs font-semibold bg-red-600 text-white rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === app.id ? "…" : "Ja, löschen"}
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-bg transition-colors"
-                            >
-                              Abbrechen
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Schule */}
-                    <div>
-                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Schule</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        <DetailField label="Adresse" value={[app.school_street, app.school_plz && app.school_city ? `${app.school_plz} ${app.school_city}` : null].filter(Boolean).join(", ")} />
-                        <DetailField label="Schulleitung" value={app.principal_name} />
-                        <DetailField label="Ansprechperson" value={app.contact_person} />
-                        <DetailField label="E-Mail" value={app.email} />
-                        <DetailField label="Telefon" value={app.phone} />
-                        <DetailField label="Lehrkräfte" value={app.teacher_count} />
-                        <DetailField label="Schüler/innen" value={app.student_count} />
-                      </div>
-                    </div>
-                    {/* Gewünschte Unterstützung */}
-                    <div>
-                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Gewünschte Unterstützung</p>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {[
-                          app.support_technical_setup && "Technische Einrichtung",
-                          app.support_onboarding && "Onboarding Lehrkräfte",
-                          app.support_tech_support && "Technischer Support",
-                          app.support_material_creation && "Materialerstellung",
-                          app.support_classroom && "Unterrichtsbegleitung",
-                          app.support_other && "Sonstiges",
-                        ].filter(Boolean).map((label) => (
-                          <span key={String(label)} className="inline-flex rounded-full bg-primary/5 px-2.5 py-0.5 text-xs text-primary">{String(label)}</span>
-                        ))}
-                      </div>
-                      <DetailField label="Erläuterung" value={app.support_explanation} />
-                    </div>
-                    {/* Zeitraum & Infrastruktur */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      <DetailField label="Startdatum" value={app.start_date ? formatDate(app.start_date) : null} />
-                      <DetailField label="Dauer" value={app.duration} />
-                      <DetailField label="Std. / Woche" value={app.hours_per_week} />
-                      <DetailField label="Bevorzugte Tage" value={app.preferred_days} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Technische Ausstattung</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          app.has_wifi && "WLAN vorhanden",
-                          app.has_devices && (app.device_count ? `Geräte: ${app.device_count}` : "Geräte vorhanden"),
-                          app.has_interactive_displays && "Interaktive Displays",
-                          app.has_school_server && "Schulserver",
-                        ].filter(Boolean).map((label) => (
-                          <span key={String(label)} className="inline-flex rounded-full bg-primary/5 px-2.5 py-0.5 text-xs text-primary">{String(label)}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <AdminNoteBox note={app.admin_notes} />
-                  </div>
+                  <ApplicationCard
+                    key={app.id}
+                    app={app}
+                    type="hilfskraefte"
+                    detailText={studentAppShort(app)}
+                    isConfirmingDelete={confirmDeleteId === app.id}
+                    isDeleting={deletingId === app.id}
+                    onConfirmDelete={() => setConfirmDeleteId(app.id)}
+                    onCancelDelete={() => setConfirmDeleteId(null)}
+                    onDelete={() => handleDelete("student", app.id)}
+                  />
                 ))}
               </div>
             </section>
@@ -595,129 +648,30 @@ export default function MySubmissions() {
 
           {fullResult.tool_apps.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Wrench className="w-4 h-4 text-primary" aria-hidden="true" />
-                <h3 className="text-base font-semibold text-primary">
-                  Anträge: Tool-Lizenzen ({fullResult.tool_apps.length})
-                </h3>
-              </div>
-              <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+              <CategoryHeader
+                icon={<Wrench className="h-4 w-4" />}
+                title="Anträge: Tool-Lizenzen"
+                count={fullResult.tool_apps.length}
+              />
+              <div className="space-y-3">
                 {fullResult.tool_apps.map((app) => (
-                  <div key={app.id} className="bg-white px-5 py-5 space-y-4">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-text">{app.school_name}</p>
-                        <p className="text-xs text-text-light mt-0.5">
-                          Eingereicht am {formatDate(app.created_at)}
-                          {app.updated_at !== app.created_at && ` · Aktualisiert am ${formatDate(app.updated_at)}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        <StatusBadge status={app.status} />
-                        {app.status === "neu" && confirmDeleteId !== app.id && (
-                          <Link
-                            href={`/best-practice/meine-einreichungen/tool-lizenzen/${app.id}/bearbeiten`}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-all"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Bearbeiten
-                          </Link>
-                        )}
-                        {app.status === "neu" && confirmDeleteId !== app.id && (
-                          <button
-                            onClick={() => setConfirmDeleteId(app.id)}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-600 hover:text-white transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Löschen
-                          </button>
-                        )}
-                        {confirmDeleteId === app.id && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-red-700 font-medium">Wirklich löschen?</span>
-                            <button
-                              onClick={() => handleDelete("tool", app.id)}
-                              disabled={deletingId === app.id}
-                              className="text-xs font-semibold bg-red-600 text-white rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === app.id ? "…" : "Ja, löschen"}
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-bg transition-colors"
-                            >
-                              Abbrechen
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Schule */}
-                    <div>
-                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Schule</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        <DetailField label="Adresse" value={[app.school_street, app.school_plz && app.school_city ? `${app.school_plz} ${app.school_city}` : null].filter(Boolean).join(", ")} />
-                        <DetailField label="Schulleitung" value={app.principal_name} />
-                        <DetailField label="Ansprechperson" value={app.contact_person} />
-                        <DetailField label="E-Mail" value={app.email} />
-                        <DetailField label="Telefon" value={app.phone} />
-                        <DetailField label="Lehrkräfte" value={app.teacher_count} />
-                        <DetailField label="Schüler/innen" value={app.student_count} />
-                      </div>
-                    </div>
-                    {/* Tools */}
-                    {app.tool_selections?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Beantragte Tools</p>
-                        <div className="space-y-0.5">
-                          {app.tool_selections.flatMap((cat) =>
-                            cat.tools.filter((t) => t.name).map((t, i) => (
-                              <p key={`${cat.category}-${i}`} className="text-xs text-text-light">
-                                {cat.category}: <strong className="text-text">{t.name}</strong> ({t.license_count} Lizenzen)
-                              </p>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {app.additional_tools && (
-                      <DetailField label="Weitere gewünschte Tools" value={app.additional_tools} />
-                    )}
-                    {/* Einsatz */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      <DetailField label="Klassenstufen" value={app.grade_levels} />
-                      <DetailField label="Fächer / Bereiche" value={app.subjects} />
-                      <DetailField label="Geplanter Beginn" value={app.start_date ? formatDate(app.start_date) : null} />
-                    </div>
-                    {app.usage_description && (
-                      <div>
-                        <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1">Einsatzbeschreibung</p>
-                        <p className="text-sm text-text whitespace-pre-wrap p-3 bg-bg rounded-lg">{app.usage_description}</p>
-                      </div>
-                    )}
-                    {/* Datenschutz */}
-                    <div>
-                      <p className="text-xs font-semibold text-text-light uppercase tracking-wider mb-1.5">Datenschutz</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          app.privacy_concept_exists && "Datenschutzkonzept vorhanden",
-                          app.parental_consent && "Elterneinwilligung liegt vor",
-                          app.it_infrastructure_meets_requirements && "IT-Infrastruktur erfüllt Anforderungen",
-                        ].filter(Boolean).map((label) => (
-                          <span key={String(label)} className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs text-green-700">{String(label)}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <AdminNoteBox note={app.admin_notes} />
-                  </div>
+                  <ApplicationCard
+                    key={app.id}
+                    app={app}
+                    type="tool-lizenzen"
+                    detailText={toolAppShort(app)}
+                    isConfirmingDelete={confirmDeleteId === app.id}
+                    isDeleting={deletingId === app.id}
+                    onConfirmDelete={() => setConfirmDeleteId(app.id)}
+                    onCancelDelete={() => setConfirmDeleteId(null)}
+                    onDelete={() => handleDelete("tool", app.id)}
+                  />
                 ))}
               </div>
             </section>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
-

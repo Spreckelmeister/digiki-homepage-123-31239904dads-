@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, BookOpen, Wrench } from "lucide-react";
+import { Calendar, MapPin, BookOpen, Wrench } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import MarkdownContent from "@/components/best-practice/MarkdownContent";
@@ -63,13 +63,11 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <Link
-                href="/best-practice/datenbank"
+              <BackButton
+                fallbackHref="/best-practice/datenbank"
+                fallbackLabel="Zurück zur Datenbank"
                 className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                Zurück zur Datenbank
-              </Link>
+              />
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
                 {practice.title}
               </h1>
@@ -163,13 +161,11 @@ export default async function BestPracticeDetailPage({ params }: PageProps) {
 
           {/* Back Link */}
           <div className="mt-12 pt-8 border-t border-border">
-            <Link
-              href="/best-practice/datenbank"
+            <BackButton
+              fallbackHref="/best-practice/datenbank"
+              fallbackLabel="Zurück zur Datenbank"
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              Zurück zur Datenbank
-            </Link>
+            />
           </div>
         </div>
       </section>

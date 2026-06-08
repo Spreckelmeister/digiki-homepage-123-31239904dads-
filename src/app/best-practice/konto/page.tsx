@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
+import BackButton from "@/components/BackButton";
 import MyEmailChanger from "@/components/best-practice/MyEmailChanger";
 import MyPasswordChanger from "@/components/best-practice/MyPasswordChanger";
 import MyAccountDeleter from "@/components/best-practice/MyAccountDeleter";
@@ -31,13 +30,11 @@ export default async function KontoPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <Link
-                href="/best-practice/datenbank"
+              <BackButton
+                fallbackHref="/best-practice/datenbank"
+                fallbackLabel="Zurück zur Datenbank"
                 className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                Zurück zur Datenbank
-              </Link>
+              />
               <h1 className="text-3xl md:text-4xl font-bold text-white">
                 Mein Konto
               </h1>
