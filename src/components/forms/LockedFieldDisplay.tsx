@@ -33,10 +33,23 @@ export default function LockedFieldDisplay({
   const isEmpty = !value || !value.trim();
   const sourceLabel =
     source === "konto" ? "Aus Konto" : "Aus Bestandsaufnahme";
+  // Mappt die snake_case-IDs der Formulare auf die camelCase-Anchor-Namen
+  // im Bestandsaufnahme-Formular, damit der "Bearbeiten"-Link direkt
+  // zum richtigen Eingabefeld scrollen kann.
+  const bsaAnchorMap: Record<string, string> = {
+    school_name: "schoolName",
+    principal_name: "principalName",
+    contact_person: "contactPerson",
+    phone: "contactPhone",
+    teacher_count: "teacherCount",
+  };
+  const bsaAnchor = bsaAnchorMap[htmlFor];
   const editHref =
     source === "konto"
       ? "/best-practice/konto"
-      : "/best-practice/meine-bestandsaufnahme/bearbeiten";
+      : bsaAnchor
+        ? `/best-practice/meine-bestandsaufnahme/bearbeiten?focus=${bsaAnchor}`
+        : "/best-practice/meine-bestandsaufnahme/bearbeiten";
   const editLabel =
     source === "konto"
       ? "in Konto-Einstellungen bearbeiten"

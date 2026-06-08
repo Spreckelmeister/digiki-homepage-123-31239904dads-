@@ -358,6 +358,11 @@ const TextArea = memo(function TextArea({
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface BestandsaufnahmeData {
   id: string;
+  // Stammdaten der Schule, die auch beim Bearbeiten editiert werden können.
+  // E-Mail + Passwort sind bewusst NICHT hier – die laufen über den Account.
+  contact_person: string | null;
+  principal_name: string | null;
+  contact_phone: string | null;
   school_name: string;
   school_location: string | null;
   student_count: string | null;
@@ -520,11 +525,18 @@ export default function BestandsaufnahmeForm({
   const [projectWishes, setProjectWishes] = useState(initialData?.project_wishes ?? "");
   const [additionalNotes, setAdditionalNotes] = useState(initialData?.additional_notes ?? "");
 
-  // ── Account-Daten (Login für Best-Practice-Datenbank) ────────────────────────
-  const [contactPerson, setContactPerson] = useState("");
-  const [principalName, setPrincipalName] = useState("");
+  // ── Kontaktdaten (auch im Edit-Modus änderbar) ────────────────────────────
+  const [contactPerson, setContactPerson] = useState(
+    initialData?.contact_person ?? "",
+  );
+  const [principalName, setPrincipalName] = useState(
+    initialData?.principal_name ?? "",
+  );
+  const [contactPhone, setContactPhone] = useState(
+    initialData?.contact_phone ?? "",
+  );
+  // E-Mail + Passwort gehören zur Account-Erstellung (nur Registrierung).
   const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -588,6 +600,50 @@ export default function BestandsaufnahmeForm({
     return () => window.clearTimeout(id);
   }, [stepError, errorFocusId]);
 
+  // Edit-Modus: ?focus=<anchor> in der URL → zu dem Feld springen und es
+  // kurz aufleuchten lassen, damit der Nutzer es sofort findet. Alle aktuell
+  // verlinkten Felder liegen in Step 0; das Mapping ist trotzdem zentral,
+  // falls künftig auch Felder anderer Steps angesprungen werden sollen.
+  useEffect(() => {
+    if (!editMode) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const focusAnchor = params.get("focus");
+    if (!focusAnchor) return;
+
+    const anchorToStep: Record<string, number> = {
+      schoolName: 0,
+      teacherCount: 0,
+      principalName: 0,
+      contactPerson: 0,
+      contactPhone: 0,
+    };
+    const targetStep = anchorToStep[focusAnchor] ?? 0;
+    if (targetStep !== step) setStep(targetStep);
+
+    // Nach dem Render-Tick scrollen + Highlight setzen.
+    const t = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-field-anchor="${focusAnchor}"]`,
+      ) as HTMLElement | null;
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("field-highlight");
+      const input = el.querySelector(
+        "input, textarea, select",
+      ) as HTMLElement | null;
+      input?.focus({ preventScroll: true });
+      // Highlight nach Animationsende wieder entfernen, damit ein erneuter
+      // Aufruf (z.B. nach Browser-Back) das Feld erneut aufleuchten lässt.
+      const remove = setTimeout(() => {
+        el.classList.remove("field-highlight");
+      }, 2600);
+      return () => clearTimeout(remove);
+    }, 80);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode]);
+
   // Beim Erreichen des Account-Steps gezielt das Ansprechpartner-Feld fokussieren.
   // Der Browser versucht sonst per Autofill auf das Telefon-Feld zu springen –
   // daher mehrfach versuchen, um gegen verzögertes Autofill zu gewinnen.
@@ -626,6 +682,9 @@ export default function BestandsaufnahmeForm({
         if (respondentRole === "Sonstiges" && !respondentRoleOther.trim()) {
           return err("Bitte spezifizieren Sie die Rolle unter 'Sonstiges' (Frage 7).");
         }
+        if (!principalName.trim()) return err("Bitte geben Sie den Namen der Schulleitung an (Frage 8).", "principalName");
+        if (!contactPerson.trim()) return err("Bitte geben Sie den Namen der Ansprechperson an (Frage 9).", "contactPerson");
+        if (!contactPhone.trim()) return err("Bitte geben Sie eine Telefonnummer an (Frage 10).", "contactPhone");
         break;
       case 1: // Teil B
         if (devices.length === 0) return err("Bitte wählen Sie mindestens ein Endgerät (Frage 8).");
@@ -711,10 +770,7 @@ export default function BestandsaufnahmeForm({
         if (!truthConsent) return err("Bitte bestätigen Sie die Richtigkeit Ihrer Angaben.");
         break;
       case 8: // Account
-        if (!contactPerson.trim()) return err("Bitte geben Sie den Namen des Ansprechpartners an.", "contactPerson");
-        if (!principalName.trim()) return err("Bitte geben Sie den Namen der Schulleitung an.", "principalName");
         if (!contactEmail.trim() || !contactEmail.includes("@")) return err("Bitte geben Sie eine gültige E-Mail-Adresse an.", "contactEmail");
-        if (!contactPhone.trim()) return err("Bitte geben Sie eine Telefonnummer an.", "contactPhone");
         if (password.length < 8) return err("Das Passwort muss mindestens 8 Zeichen lang sein.", "password");
         if (password !== passwordConfirm) return err("Die Passwörter stimmen nicht überein.", "passwordConfirm");
         break;
@@ -797,6 +853,9 @@ export default function BestandsaufnahmeForm({
           schoolLocation,
           studentCount,
           teacherCount: teacherCount || null,
+          principalName: principalName || null,
+          contactPerson: contactPerson || null,
+          contactPhone: contactPhone || null,
           isStartchancen,
           dazShare,
           respondentRole: respondentRole || null,
@@ -1023,7 +1082,7 @@ export default function BestandsaufnahmeForm({
           <div className="space-y-7">
             <SectionHeading icon="🏫" title="Teil A: Allgemeine Angaben" />
 
-            <div className="relative">
+            <div className="relative" data-field-anchor="schoolName">
               <FieldLabel required htmlFor="schoolName">1. Name der Schule</FieldLabel>
               <input
                 id="schoolName"
@@ -1085,7 +1144,7 @@ export default function BestandsaufnahmeForm({
                 options={["unter 150", "150–300", "300–450", "über 450"]} />
             </div>
 
-            <div>
+            <div data-field-anchor="teacherCount">
               <FieldLabel required htmlFor="teacherCount">4. Anzahl der Lehrkräfte (inkl. Teilzeit)</FieldLabel>
               <TextInput id="teacherCount" type="number" value={teacherCount} onChange={setTeacherCount} min={1} placeholder="z. B. 18" />
             </div>
@@ -1109,6 +1168,61 @@ export default function BestandsaufnahmeForm({
               {respondentRole === "Sonstiges" && (
                 <OtherInput value={respondentRoleOther} onChange={setRespondentRoleOther} />
               )}
+            </div>
+
+            {/* Kontaktdaten – auch im Edit-Modus änderbar. Diese Werte
+                werden in andere Formulare (Anträge, Best Practice) als
+                vor-ausgefüllte und gesperrte Felder übernommen. */}
+            <div className="rounded-xl border border-primary-light/30 bg-primary-light/5 p-5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+                Kontaktdaten
+              </p>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-light">
+                Diese Angaben werden automatisch in Ihre Anträge und
+                Best-Practice-Einreichungen übernommen – damit Sie sie nicht
+                mehrfach eingeben müssen.
+              </p>
+
+              <div className="mt-5 space-y-5">
+                <div data-field-anchor="principalName">
+                  <FieldLabel required htmlFor="principalName">
+                    8. Name der Schulleitung
+                  </FieldLabel>
+                  <TextInput
+                    id="principalName"
+                    value={principalName}
+                    onChange={setPrincipalName}
+                    placeholder="z. B. Thomas Müller"
+                  />
+                </div>
+
+                <div data-field-anchor="contactPerson">
+                  <FieldLabel required htmlFor="contactPerson">
+                    9. Ansprechperson für DigiKI (Name, Funktion)
+                  </FieldLabel>
+                  <TextInput
+                    id="contactPerson"
+                    value={contactPerson}
+                    onChange={setContactPerson}
+                    placeholder="z. B. Maria Mustermann, IT-Beauftragte"
+                    autoComplete="name"
+                  />
+                </div>
+
+                <div data-field-anchor="contactPhone">
+                  <FieldLabel required htmlFor="contactPhone">
+                    10. Telefonnummer (für Rückfragen)
+                  </FieldLabel>
+                  <TextInput
+                    id="contactPhone"
+                    type="tel"
+                    value={contactPhone}
+                    onChange={setContactPhone}
+                    placeholder="z. B. 0541 12345"
+                    autoComplete="tel"
+                  />
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1604,18 +1718,6 @@ export default function BestandsaufnahmeForm({
             </div>
 
             <div>
-              <FieldLabel required htmlFor="contactPerson">Name des Ansprechpartners / der Ansprechpartnerin</FieldLabel>
-              <TextInput id="contactPerson" value={contactPerson} onChange={setContactPerson}
-                placeholder="z. B. Maria Mustermann" autoFocus autoComplete="name" />
-            </div>
-
-            <div>
-              <FieldLabel required htmlFor="principalName">Name der Schulleitung</FieldLabel>
-              <TextInput id="principalName" value={principalName} onChange={setPrincipalName}
-                placeholder="z. B. Thomas Müller" />
-            </div>
-
-            <div>
               <FieldLabel required htmlFor="contactEmail">E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
                 placeholder="ihre.email@schule.de" autoComplete="email" />
@@ -1628,12 +1730,6 @@ export default function BestandsaufnahmeForm({
                   </span>
                 </p>
               )}
-            </div>
-
-            <div>
-              <FieldLabel required htmlFor="contactPhone">Telefonnummer</FieldLabel>
-              <TextInput id="contactPhone" type="tel" value={contactPhone} onChange={setContactPhone}
-                placeholder="z. B. 0541 12345" required autoComplete="tel" />
             </div>
 
             <div>
