@@ -455,9 +455,17 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
               onChange={(e) => setHtml(e.target.value)}
               rows={14}
               spellCheck={false}
-              placeholder='<p>Hallo,</p>\n<p>Ihr Text hier …</p>'
-              className="w-full rounded-lg border border-border bg-[#0F1E1E] px-4 py-3 font-mono text-[13px] leading-relaxed text-emerald-100 placeholder:text-emerald-100/30 caret-emerald-200 focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
-              style={{ minHeight: 320 }}
+              placeholder="<p>Hallo,</p>&#10;<p>Ihr Text hier …</p>"
+              className="w-full rounded-lg border border-border px-4 py-3 font-mono text-[13px] leading-relaxed focus:ring-2 focus:ring-accent-strong focus:border-accent-strong outline-none transition-colors"
+              // Inline-Style nötig: globale CSS-Regel (siehe globals.css)
+              // setzt color auf den dunklen Default-Text, was auf unserem
+              // dunklen Editor-Hintergrund unsichtbar wäre.
+              style={{
+                minHeight: 320,
+                backgroundColor: "#0F1E1E",
+                color: "#A7F3D0",
+                caretColor: "#A7F3D0",
+              }}
             />
             <p className="mt-1.5 text-xs text-text-light">
               Inline-Styles verwenden (kein {`<style>`}-Block). Maximal 600px breit
