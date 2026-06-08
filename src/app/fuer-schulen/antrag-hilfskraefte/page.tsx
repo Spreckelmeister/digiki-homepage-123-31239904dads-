@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/fuer-schulen/antrag-hilfskraefte" },
 };
 
+// Kein Caching – Prefill aus der BSA soll immer aktuell sein.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const PAGE_PATH = "/fuer-schulen/antrag-hilfskraefte";
 
 export default async function AntragHilfskraeftePage() {
@@ -26,7 +30,7 @@ export default async function AntragHilfskraeftePage() {
     redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
   }
 
-  const prefill = await getBestandsaufnahmePrefill(user.id);
+  const prefill = await getBestandsaufnahmePrefill();
   const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
 
   return (

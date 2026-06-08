@@ -62,9 +62,21 @@ export default function SchoolInfoFields({
   const addressBlurRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isEmailLocked = Boolean(lockedEmail);
-  const isBSALocked = (field: string) =>
-    lockedFromBestandsaufnahme.includes(field);
-  const anyBSALocked = lockedFromBestandsaufnahme.length > 0;
+  // Lock nur dann anzeigen, wenn das Feld AUCH einen Wert hat. Sollte
+  // sich aus irgendeinem Grund (Race-Condition, stale Cache, leere BSA)
+  // ein gelocktes Feld ohne Wert ergeben, fallen wir auf das normale
+  // editierbare Input zurück, damit der Nutzer nicht festhängt.
+  const hasValue = (field: keyof typeof values) => {
+    const v = values[field];
+    return typeof v === "string" && v.trim().length > 0;
+  };
+  const isBSALocked = (field: keyof typeof values) =>
+    lockedFromBestandsaufnahme.includes(field) && hasValue(field);
+  const anyBSALocked =
+    lockedFromBestandsaufnahme.length > 0 &&
+    lockedFromBestandsaufnahme.some((f) =>
+      hasValue(f as keyof typeof values),
+    );
 
   function handleSelectSchool(suggestion: SchoolSuggestion) {
     onChange("school_name", suggestion.name);

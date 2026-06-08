@@ -75,8 +75,12 @@ export default function BestPracticeVorlageForm({
   const [date, setDate] = useState("");
   const isEmailLocked = Boolean(lockedEmail);
   const lockedFields = new Set(lockedFromBSA ?? []);
-  const isSchoolNameLocked = lockedFields.has("school_name");
-  const isContactPersonLocked = lockedFields.has("contact_person");
+  // Lock nur anzeigen, wenn das Feld wirklich einen Wert hat – sonst
+  // fallback auf editierbares Input, damit der Nutzer nicht festhängt.
+  const isSchoolNameLocked =
+    lockedFields.has("school_name") && schoolName.trim().length > 0;
+  const isContactPersonLocked =
+    lockedFields.has("contact_person") && contactPerson.trim().length > 0;
   const anyBSALocked = isSchoolNameLocked || isContactPersonLocked;
 
   // 2. Projekt auf einen Blick

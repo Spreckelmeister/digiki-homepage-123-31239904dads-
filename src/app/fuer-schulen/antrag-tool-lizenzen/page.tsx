@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/fuer-schulen/antrag-tool-lizenzen" },
 };
 
+// Kein Caching – Prefill aus der BSA soll immer aktuell sein, sobald
+// der Nutzer dort etwas geändert hat.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const PAGE_PATH = "/fuer-schulen/antrag-tool-lizenzen";
 
 export default async function AntragToolLizenzenPage() {
@@ -31,7 +36,7 @@ export default async function AntragToolLizenzenPage() {
   // Auto-fill aus der jüngsten Bestandsaufnahme dieser Schule – damit
   // Schulname, Schulleitung, Ansprechperson, Telefon und Lehrkräfte-Zahl
   // konsistent sind und nicht erneut eingegeben werden müssen.
-  const prefill = await getBestandsaufnahmePrefill(user.id);
+  const prefill = await getBestandsaufnahmePrefill();
   const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
 
   return (

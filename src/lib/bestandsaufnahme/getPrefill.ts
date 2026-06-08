@@ -5,6 +5,10 @@
  *
  * Felder, die NICHT in der BSA stehen (Adresse, Schüler:innenzahl als
  * Range-String), bleiben editierbar.
+ *
+ * Wichtig: Wir nutzen die existierende RPC `get_my_bestandsaufnahme`
+ * (security-definer), weil die Tabelle bestandsaufnahme_responses RLS
+ * hat und direkte SELECTs aus User-Session deshalb leer zurückkommen.
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -17,24 +21,30 @@ export interface BestandsaufnahmePrefill {
   teacher_count?: string;
 }
 
-export async function getBestandsaufnahmePrefill(
-  userId: string,
-): Promise<BestandsaufnahmePrefill | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("bestandsaufnahme_responses")
-    .select(
-      "school_name, principal_name, contact_person, contact_phone, teacher_count",
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+type RpcBSA = {
+  school_name?: string | null;
+  principal_name?: string | null;
+  contact_person?: string | null;
+  contact_phone?: string | null;
+  teacher_count?: number | null;
+};
 
+export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePrefill | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_my_bestandsaufnahme");
+
+  if (error) {
+    console.error(
+      "[getBestandsaufnahmePrefill] rpc error:",
+      error.message,
+    );
+    return null;
+  }
   if (!data) return null;
 
-  // Strings trimmen und leere Werte konsequent zu undefined machen –
-  // damit auch versehentliche "  "-Strings nicht als Lock auftauchen.
+  const r = data as RpcBSA;
+
+  // Strings trimmen und leere Werte konsequent zu undefined machen.
   const cleanStr = (v: string | null | undefined): string | undefined => {
     if (typeof v !== "string") return undefined;
     const trimmed = v.trim();
@@ -42,13 +52,13 @@ export async function getBestandsaufnahmePrefill(
   };
 
   return {
-    school_name: cleanStr(data.school_name),
-    principal_name: cleanStr(data.principal_name),
-    contact_person: cleanStr(data.contact_person),
-    phone: cleanStr(data.contact_phone),
+    school_name: cleanStr(r.school_name),
+    principal_name: cleanStr(r.principal_name),
+    contact_person: cleanStr(r.contact_person),
+    phone: cleanStr(r.contact_phone),
     teacher_count:
-      data.teacher_count != null && data.teacher_count > 0
-        ? String(data.teacher_count)
+      r.teacher_count != null && r.teacher_count > 0
+        ? String(r.teacher_count)
         : undefined,
   };
 }
@@ -61,11 +71,7 @@ function hasContent(value: string | undefined): boolean {
 
 /** Liefert die Liste der Feldnamen, die effektiv aus der BSA übernommen
  *  werden (nicht-leere Werte). Wird an SchoolInfoFields gereicht, damit
- *  die entsprechenden Eingabefelder als gesperrt gerendert werden.
- *
- *  Leere Strings, NULL und reine Whitespace-Werte werden bewusst NICHT
- *  gelockt – sonst sieht der Nutzer ein gesperrtes Feld ohne Inhalt
- *  und kann es weder ausfüllen noch korrigieren. */
+ *  die entsprechenden Eingabefelder als gesperrt gerendert werden. */
 export function getLockedFieldsFromPrefill(
   prefill: BestandsaufnahmePrefill | null,
 ): string[] {

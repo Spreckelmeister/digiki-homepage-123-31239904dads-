@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/best-practice/einreichen" },
 };
 
+// Kein Caching – Prefill aus der BSA soll immer aktuell sein.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const PAGE_PATH = "/best-practice/einreichen";
 
 export default async function BestPracticeEinreichenPage() {
@@ -28,7 +32,7 @@ export default async function BestPracticeEinreichenPage() {
 
   // BSA-Prefill für Schulname + Kontaktperson – konsistent mit den
   // Antragsformularen.
-  const prefill = await getBestandsaufnahmePrefill(user.id);
+  const prefill = await getBestandsaufnahmePrefill();
   const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
 
   return (
