@@ -40,12 +40,14 @@ select {
   caret-color: var(--color-text);
 }
 
-/* Placeholder darf weiterhin gedämpft sein – wird in Tailwind ohnehin
-   per `placeholder:`-Variante gesteuert; hier als Sicherheitsnetz. */
+/* Placeholder etwas dunkler als der Browser-Default, damit sie auch auf
+   leicht getönten Hintergründen (z.B. Tool-Kategorie-Karten) noch klar
+   lesbar sind. Bleibt weiterhin sichtbar gedämpft, damit der Unterschied
+   zu echtem Eingabe-Text bestehen bleibt. WCAG-konform (>= 4.5:1). */
 input::placeholder,
 textarea::placeholder {
-  color: var(--color-text-light);
-  opacity: 0.55;
+  color: var(--color-text);
+  opacity: 0.62;
 }
 
 /* Animierte Zahlen */

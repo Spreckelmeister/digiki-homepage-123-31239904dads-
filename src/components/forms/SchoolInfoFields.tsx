@@ -523,18 +523,6 @@ export default function SchoolInfoFields({
             value={values.email}
             source="konto"
             mono
-            hint={
-              <>
-                Wird aus Ihrem Konto übernommen. Änderbar unter{" "}
-                <Link
-                  href="/best-practice/konto"
-                  className="underline underline-offset-2 hover:text-primary transition-colors"
-                >
-                  Mein Konto
-                </Link>
-                .
-              </>
-            }
           />
         ) : (
           <div>
