@@ -34,19 +34,30 @@ export async function PUT(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Verify record exists, belongs to this user's email, and status is "neu"
-  const { data: existing } = await admin
+  // Admin-Status prüfen – Admins dürfen JEDEN Antrag bearbeiten (egal
+  // welcher Status, egal welcher Owner). Normale Nutzer:innen nur ihre
+  // eigenen mit Status "neu".
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const isAdmin = profile?.role?.toLowerCase() === "admin";
+
+  const existingQuery = admin
     .from("applications_tool_licenses")
     .select("id, status")
-    .eq("id", recordId)
-    .ilike("email", user.email ?? "")
-    .maybeSingle();
+    .eq("id", recordId);
+  if (!isAdmin) {
+    existingQuery.ilike("email", user.email ?? "");
+  }
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (!existing) {
     return NextResponse.json({ error: "Datensatz nicht gefunden" }, { status: 404 });
   }
 
-  if (existing.status !== "neu") {
+  if (!isAdmin && existing.status !== "neu") {
     return NextResponse.json(
       { error: "Nur Anträge mit Status 'neu' können bearbeitet werden." },
       { status: 403 }

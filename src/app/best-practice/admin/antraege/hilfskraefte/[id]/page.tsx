@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
@@ -56,7 +58,19 @@ export default async function HilfskraefteDetailPage({ params }: PageProps) {
               <p className="text-lg text-white/70 mt-1">{app.school_name}</p>
               <AdminNav />
             </div>
-            <AuthStatus initialProfile={profile} />
+            <div className="flex flex-col items-stretch gap-3 md:items-end">
+              <AuthStatus initialProfile={profile} />
+              <Link
+                href={`/best-practice/admin/antraege/hilfskraefte/${app.id}/bearbeiten`}
+                className="group inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-bold text-text shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-md"
+              >
+                <Pencil
+                  className="h-4 w-4 transition-transform group-hover:rotate-12"
+                  aria-hidden="true"
+                />
+                Antrag bearbeiten
+              </Link>
+            </div>
           </div>
         </div>
       </section>
