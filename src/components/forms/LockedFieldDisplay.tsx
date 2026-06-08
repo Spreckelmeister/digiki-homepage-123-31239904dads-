@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, ShieldCheck, AlertCircle } from "lucide-react";
+import { AlertCircle, Lock, Pencil, ShieldCheck } from "lucide-react";
 
 interface LockedFieldDisplayProps {
   htmlFor: string;
@@ -18,9 +18,10 @@ interface LockedFieldDisplayProps {
  * Inputs erscheint der Wert in einer eigenen Karte mit Lock-Icon und
  * einem Badge, das die Quelle benennt („Aus Konto" / „Aus Bestandsaufnahme").
  *
- * Edge case: kommt ein leerer Wert an (sollte durch die Prefill-Logik
- * vorher abgefangen werden, aber zur Sicherheit), zeigt die Karte einen
- * deutlich erkennbaren Hinweis mit Link zum Nachtragen.
+ * Werte werden BEWUSST groß und in Mono-Font angezeigt, damit auch
+ * ungewöhnliche Zeichen (etwa von Test-Eingaben) sofort sichtbar sind
+ * – und ein „Bearbeiten in der Bestandsaufnahme"-Link erlaubt einen
+ * 1-Klick-Wechsel zur Korrektur.
  */
 export default function LockedFieldDisplay({
   htmlFor,
@@ -38,9 +39,15 @@ export default function LockedFieldDisplay({
       : "border-primary-light/30 bg-primary-light/10 text-primary";
   const isEmpty = !value || !value.trim();
 
-  // Defensiver Fallback: wenn doch mal ein leeres Locked-Feld hier landet,
-  // zeigen wir einen sichtbaren „Wert fehlt – jetzt nachtragen"-Hinweis
-  // statt eines verwirrenden leeren Locks.
+  // Edit-Ziel: Konto vs. Bestandsaufnahme
+  const editHref =
+    source === "konto"
+      ? "/best-practice/konto"
+      : "/best-practice/meine-bestandsaufnahme/bearbeiten";
+  const editLabel =
+    source === "konto" ? "in Konto-Einstellungen" : "in Bestandsaufnahme";
+
+  // Defensiver Fallback: wenn doch mal ein leeres Locked-Feld hier landet
   if (isEmpty) {
     return (
       <div>
@@ -63,10 +70,10 @@ export default function LockedFieldDisplay({
             </p>
             <p className="mt-0.5 text-[12px] text-amber-800">
               <Link
-                href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                href={editHref}
                 className="underline underline-offset-2 hover:text-amber-900"
               >
-                Jetzt in der Bestandsaufnahme nachtragen
+                Jetzt nachtragen
               </Link>
             </p>
           </div>
@@ -84,33 +91,47 @@ export default function LockedFieldDisplay({
       >
         {label}
       </label>
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
-        <span
-          aria-hidden="true"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-        >
-          <Lock className="h-3.5 w-3.5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p
-            className={`truncate text-sm font-medium text-text ${
-              mono ? "font-mono" : ""
-            }`}
+      <div className="rounded-lg border border-border bg-bg">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <span
+            aria-hidden="true"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
           >
-            {value}
-          </p>
+            <Lock className="h-3.5 w-3.5" />
+          </span>
+          {/* Wert prominent + in Mono-Font, damit auch kurze/ungewöhnliche
+              Zeichen klar erkennbar sind statt visuell unterzugehen. */}
+          <div className="min-w-0 flex-1">
+            <p
+              className={`truncate text-[15px] font-semibold text-text ${
+                mono ? "font-mono" : "font-mono"
+              }`}
+            >
+              {value}
+            </p>
+          </div>
+          <span
+            title={
+              source === "konto"
+                ? "Aus angemeldetem Konto übernommen"
+                : "Aus Ihrer Bestandsaufnahme übernommen"
+            }
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeClass}`}
+          >
+            <ShieldCheck className="h-2.5 w-2.5" aria-hidden="true" />
+            {sourceLabel}
+          </span>
         </div>
-        <span
-          title={
-            source === "konto"
-              ? "Aus angemeldetem Konto übernommen"
-              : "Aus Ihrer Bestandsaufnahme übernommen"
-          }
-          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeClass}`}
-        >
-          <ShieldCheck className="h-2.5 w-2.5" aria-hidden="true" />
-          {sourceLabel}
-        </span>
+        {/* Inline-Edit-Link: kurzer Weg zur Korrektur in der BSA */}
+        <div className="flex items-center justify-end border-t border-border/60 px-4 py-1.5">
+          <Link
+            href={editHref}
+            className="inline-flex items-center gap-1 text-[11px] text-text-light transition-colors hover:text-primary"
+          >
+            <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
+            Wert {editLabel} bearbeiten
+          </Link>
+        </div>
       </div>
       <input id={htmlFor} type="hidden" value={value} readOnly />
       {hint && <p className="mt-1.5 text-xs text-text-light">{hint}</p>}

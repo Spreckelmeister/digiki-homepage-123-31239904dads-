@@ -40,9 +40,23 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
     );
     return null;
   }
-  if (!data) return null;
+  if (!data) {
+    console.log("[getBestandsaufnahmePrefill] rpc returned null (keine BSA)");
+    return null;
+  }
 
   const r = data as RpcBSA;
+
+  // Debug-Log: in den Server-Logs zeigt sich, welche Rohwerte die RPC
+  // tatsächlich liefert. Hilfreich, falls in der UI „komische Zeichen"
+  // auftauchen – dann steht hier, was real in der DB ist.
+  console.log("[getBestandsaufnahmePrefill] rpc raw:", {
+    school_name: JSON.stringify(r.school_name),
+    principal_name: JSON.stringify(r.principal_name),
+    contact_person: JSON.stringify(r.contact_person),
+    contact_phone: JSON.stringify(r.contact_phone),
+    teacher_count: r.teacher_count,
+  });
 
   // Strings trimmen und leere Werte konsequent zu undefined machen.
   const cleanStr = (v: string | null | undefined): string | undefined => {
@@ -63,10 +77,18 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
   };
 }
 
-/** Hilfsfunktion: gibt true zurück, wenn der Wert ein echter, nicht-leerer
- *  String ist (auch nicht reines Whitespace). */
+/** Hilfsfunktion: gibt true zurück, wenn der Wert „plausibel" ist –
+ *  d.h. nicht-leer, mindestens 2 Zeichen, enthält mindestens ein
+ *  Buchstaben- oder Ziffernzeichen. Damit fischen wir auch Werte wie
+ *  "·", ".", " - " etc. heraus, die zwar technisch ein Wert sind,
+ *  aber offensichtlich keine echten Stammdaten. */
 function hasContent(value: string | undefined): boolean {
-  return typeof value === "string" && value.trim().length > 0;
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 2) return false;
+  // Mindestens ein alphanumerisches Zeichen (\p{L} = Buchstabe in
+  // beliebiger Sprache, \p{N} = Ziffer)
+  return /[\p{L}\p{N}]/u.test(trimmed);
 }
 
 /** Liefert die Liste der Feldnamen, die effektiv aus der BSA übernommen
