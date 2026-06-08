@@ -9,6 +9,43 @@ export const projectData = {
   projectLeadAddress: "Bierstraße 20, 49074 Osnabrück",
 };
 
+// ── KOS-Fortbildungen ──────────────────────────────────────────────────────
+// Termine werden vom Kompetenzzentrum Osnabrück (KOS) ausgeschrieben.
+// Datum bewusst als ISO (YYYY-MM-DD), damit Sortierung & Vergleich einfach
+// bleiben; die UI formatiert sie zu "TT. Monat JJJJ" um.
+export interface KosFortbildungTermin {
+  kursNr: string;
+  /** Start-Datum als ISO 8601 (YYYY-MM-DD). */
+  start: string;
+  /** Volle Anmelde-URL zum NLC-Eintrag. */
+  anmeldungUrl: string;
+}
+
+export const kosFortbildungen: {
+  schulleitung: KosFortbildungTermin[];
+  lehrkraefte: KosFortbildungTermin[];
+} = {
+  schulleitung: [
+    { kursNr: "KOS.2638.166", start: "2026-09-14", anmeldungUrl: "https://nlc.info/app/edb/event/55355" },
+    { kursNr: "KOS.2639.169", start: "2026-09-22", anmeldungUrl: "https://nlc.info/app/edb/event/55356" },
+    { kursNr: "KOS.2645.172", start: "2026-11-02", anmeldungUrl: "https://nlc.info/app/edb/event/55357" },
+    { kursNr: "KOS.2646.175", start: "2026-11-10", anmeldungUrl: "https://nlc.info/app/edb/event/55358" },
+    { kursNr: "KOS.2648.178", start: "2026-11-23", anmeldungUrl: "https://nlc.info/app/edb/event/55361" },
+  ],
+  lehrkraefte: [
+    { kursNr: "KOS.2637.164", start: "2026-09-07", anmeldungUrl: "https://nlc.info/app/edb/event/55362" },
+    { kursNr: "KOS.2637.165", start: "2026-09-08", anmeldungUrl: "https://nlc.info/app/edb/event/55363" },
+    { kursNr: "KOS.2638.167", start: "2026-09-15", anmeldungUrl: "https://nlc.info/app/edb/event/55364" },
+    { kursNr: "KOS.2639.168", start: "2026-09-21", anmeldungUrl: "https://nlc.info/app/edb/event/55365" },
+    { kursNr: "KOS.2644.170", start: "2026-10-26", anmeldungUrl: "https://nlc.info/app/edb/event/55367" },
+    { kursNr: "KOS.2644.171", start: "2026-10-27", anmeldungUrl: "https://nlc.info/app/edb/event/55368" },
+    { kursNr: "KOS.2645.173", start: "2026-11-03", anmeldungUrl: "https://nlc.info/app/edb/event/55370" },
+    { kursNr: "KOS.2646.174", start: "2026-11-09", anmeldungUrl: "https://nlc.info/app/edb/event/55371" },
+    { kursNr: "KOS.2647.176", start: "2026-11-16", anmeldungUrl: "https://nlc.info/app/edb/event/55372" },
+    { kursNr: "KOS.2647.177", start: "2026-11-17", anmeldungUrl: "https://nlc.info/app/edb/event/55373" },
+  ],
+};
+
 export const stats = [
   { value: "300+", label: "Lehrkräfte", description: "werden geschult" },
   { value: "18", label: "Monate", description: "Projektlaufzeit" },

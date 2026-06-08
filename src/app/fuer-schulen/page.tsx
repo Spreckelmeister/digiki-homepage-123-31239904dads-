@@ -5,6 +5,7 @@ import Accordion from "@/components/Accordion";
 import StatCounter from "@/components/StatCounter";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import ContactSection from "@/components/ContactSection";
+import KosFortbildungenSection from "@/components/KosFortbildungenSection";
 import ProtectedImage from "@/components/ProtectedImage";
 import { En } from "@/components/Lang";
 import { projectData, participationOptions, faqItems } from "@/data/project";
@@ -287,6 +288,9 @@ export default function FuerSchulenPage() {
           </div>
         </div>
       </section>
+
+      {/* KOS-Fortbildungstermine */}
+      <KosFortbildungenSection />
 
       {/* Online-Formulare */}
       <section
