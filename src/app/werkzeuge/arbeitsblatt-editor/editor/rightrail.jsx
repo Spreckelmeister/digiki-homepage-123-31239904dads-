@@ -61,9 +61,9 @@ import { Icon } from "./icons";
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {FONTS.map(f => (
           <button key={f.id} onClick={() => onChange(f.id)}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", border: "1.5px solid " + (value === f.id ? "var(--teal)" : "var(--line)"),
+            style={{ display: "flex", alignItems: "center", gap: 16, padding: "8px 12px", border: "1.5px solid " + (value === f.id ? "var(--teal)" : "var(--line)"),
                      borderRadius: 10, background: value === f.id ? "var(--teal-50)" : "#fff", cursor: "pointer", textAlign: "left" }}>
-            <span className={f.css} style={{ fontSize: 22, width: 40, color: "var(--ink)" }}>{f.sample}</span>
+            <span className={f.css} style={{ fontSize: 22, width: 56, flex: "none", color: "var(--ink)", overflow: "hidden", whiteSpace: "nowrap" }}>{f.sample}</span>
             <span style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{f.label}</div>
               <div style={{ fontSize: 11, color: "var(--muted)" }}>{f.note}</div>

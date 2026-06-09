@@ -96,7 +96,11 @@ export const EDITOR_CSS = `
 /* Worksheet-Inhaltsschriften */
 .abe-scope .font-grundschrift { font-family: "Andika", "Inter", sans-serif; }
 .abe-scope .font-druck        { font-family: "Atkinson Hyperlegible", "Andika", sans-serif; }
-.abe-scope .font-schreib      { font-family: "Edu NSW ACT Foundation", "Caveat", cursive; }
+/* Verbundene Schreibschrift: Caveat ist eine echte verbundene Handschrift
+   (gleichmäßige Verbindungen). Edu NSW (Foundation) ist unverbunden und
+   erzeugt sonst komische Lücken – daher nur als Fallback. Verbindungs-
+   Features (Kontextligaturen) aktiviert, kein zusätzliches Tracking. */
+.abe-scope .font-schreib      { font-family: "Caveat", "Edu NSW ACT Foundation", cursive; letter-spacing: 0; font-kerning: normal; font-feature-settings: "calt" 1, "liga" 1, "clig" 1; }
 
 /* Scrollbars */
 .abe-scope .scroll::-webkit-scrollbar { width: 10px; height: 10px; }
