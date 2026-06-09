@@ -17,14 +17,15 @@ const OPS: { op: Op; name: string }[] = [
 const EXAMPLES: Record<Op, [number, number][]> = {
   "+": [[367, 558], [4825, 1396], [28, 57]],
   "−": [[623, 358], [5002, 1847], [84, 29]],
-  "·": [[34, 27], [128, 6], [46, 53]],
+  "·": [[458, 9], [34, 27], [256, 7]],
   ":": [[156, 4], [7384, 6], [945, 7]],
 };
 
 const SPEEDS = [
-  { label: "Langsam", ms: 2400 },
-  { label: "Normal", ms: 1600 },
-  { label: "Schnell", ms: 950 },
+  { label: "Sehr langsam", ms: 4200 },
+  { label: "Langsam", ms: 3000 },
+  { label: "Normal", ms: 2100 },
+  { label: "Zügig", ms: 1300 },
 ];
 
 const rint = (lo: number, hi: number) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
@@ -48,7 +49,7 @@ export default function SchriftlichesRechnenApp() {
   const [err, setErr] = useState("");
   const [phase, setPhase] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1600);
+  const [speed, setSpeed] = useState(3000);
   const [fullscreen, setFullscreen] = useState(false);
   const [ws, setWs] = useState<{ a: number; b: number; r: string }[] | null>(null);
 

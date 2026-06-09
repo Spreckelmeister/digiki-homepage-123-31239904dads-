@@ -73,7 +73,7 @@ export const SR_CSS = `
   font-size: calc(var(--sr-cell) * 0.34); color: var(--gold-deep); font-weight: 800;
 }
 /* „Schreib“-Einblendung der frisch erscheinenden Ziffer */
-.sr-scope .sr-cell.appear { animation: sr-write .42s cubic-bezier(.2,.9,.3,1.2) both; }
+.sr-scope .sr-cell.appear { animation: sr-write .55s cubic-bezier(.2,.9,.3,1.2) both; }
 @keyframes sr-write {
   0%   { opacity:0; transform: translateY(6px) scale(.6) rotate(-4deg); }
   60%  { opacity:1; transform: translateY(0) scale(1.08) rotate(1deg); }

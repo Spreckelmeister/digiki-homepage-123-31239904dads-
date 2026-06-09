@@ -91,69 +91,68 @@ function buildSub(a, b) {
   return { op: "−", a: A, b: B, result: String(Number(a) - Number(b)), cols, rows: 4, cells, rules, steps };
 }
 
-// ---------------- Multiplikation ----------------
+// ---------------- Multiplikation (schriftlich, mit Stellenwert-Teilprodukten) ----------------
+// Layout wie im Heft: beide Faktoren nebeneinander, Strich, dann Teilprodukte
+// „mit den Nullen“ (z. B. 458·9 → 3600, 450, 72), Strich, dann spaltenweise Summe.
 function buildMul(a, b) {
   const A = String(a), B = String(b);
-  const da = A.split("").map(Number);
-  const dbDigits = B.split("").map(Number);       // links→rechts
-  const k = dbDigits.length;
+  // Multiplikand = mehr Stellen (wird nach Stellenwert zerlegt); Multiplikator = die andere Zahl
+  const mc = A.length >= B.length ? A : B;
+  const ml = A.length >= B.length ? Number(b) : Number(a);
+  const mlStr = String(ml);
+  const D = mc.split("").map(Number);
+  const Llen = mc.length;
   const product = Number(a) * Number(b);
-  const PW = String(product).length;
-  // Teilprodukte (pro b-Ziffer, von rechts), inkl. Linksverschiebung
+  // Teilprodukte: pro Stelle des Multiplikanden (höchste zuerst), Stelle·Multiplikator
   const partials = [];
-  for (let j = 0; j < k; j++) {
-    const bd = dbDigits[k - 1 - j];               // j=0 → Einerziffer von b
-    const val = Number(a) * bd;
-    partials.push({ bd, val, shift: j });
+  for (let idx = 0; idx < Llen; idx++) {
+    const d = D[idx];
+    const p = Llen - 1 - idx;            // Stellen-Exponent (0 = Einer)
+    if (d === 0) continue;               // 0-Teilprodukt überspringen
+    partials.push({ d, p, factor: d * Math.pow(10, p), val: d * Math.pow(10, p) * ml });
   }
-  const multi = k > 1;
-  // Spaltenbreite: so breit wie nötig (Produkt oder breitestes verschobenes Teilprodukt)
-  let maxDigitCols = PW;
-  for (const pp of partials) maxDigitCols = Math.max(maxDigitCols, String(pp.val).length + pp.shift);
-  const cols = 1 + maxDigitCols;
-  const colOf = (p) => cols - 1 - p;              // p=0 → ganz rechts
+  const single = partials.length <= 1;
+  let R = String(product).length;
+  for (const pp of partials) R = Math.max(R, String(pp.val).length);
+  const leftW = mlStr.length + 1;        // Multiplikator-Ziffern + „·“
+  const cols = leftW + R;
+  const Rcol = (place) => cols - 1 - place;   // place 0 = Einer ganz rechts
   const cells = [], rules = [], steps = [];
-  // Faktoren
-  for (let p = 0; p < A.length; p++) cells.push({ r: 1, c: colOf(A.length - 1 - p), ch: String(da[A.length - 1 - p]), kind: "op", step: 0 });
-  // korrektur: einfacher rechtsbündig setzen
-  cells.length = 0;
-  da.forEach((d, idx) => cells.push({ r: 1, c: cols - A.length + idx, ch: String(d), kind: "op", step: 0 }));
-  dbDigits.forEach((d, idx) => cells.push({ r: 2, c: cols - B.length + idx, ch: String(d), kind: "op", step: 0 }));
-  cells.push({ r: 2, c: 0, ch: "·", kind: "oper", step: 0 });
-  rules.push({ r: 3, c0: 0, c1: cols - 1, step: 0 });
-  let step = 1;
-  let row = 3;
-  const partialRows = [];
-  partials.forEach((pp, j) => {
-    const pv = String(pp.val).split("").map(Number);
-    const startP = pp.shift;                       // niedrigste Stelle dieses Teilprodukts
-    // reveal Ziffern rechts→links
-    pv.slice().reverse().forEach((d, q) => {
-      cells.push({ r: row, c: colOf(startP + q), ch: String(d), kind: multi ? "partial" : "res", step });
-    });
-    const bd = pp.bd;
-    const shiftTxt = pp.shift > 0 ? ` (${pp.shift} Stelle${pp.shift > 1 ? "n" : ""} nach links)` : "";
-    steps.push({ text: `${A} · ${bd} = ${pp.val}${shiftTxt}.`, focus: { r0: row, r1: row, c0: colOf(startP + pv.length - 1), c1: colOf(startP) } });
-    partialRows.push(row);
+  const PLACE2 = ["Einer", "Zehner", "Hunderter", "Tausender", "Zehntausender", "Hunderttausender", "Millionen"];
+  // Faktorzeile (r=1): Multiplikator links, „·“, Multiplikand rechtsbündig im R-Block
+  for (let i = 0; i < mlStr.length; i++) cells.push({ r: 1, c: i, ch: mlStr[i], kind: "op", step: 0 });
+  cells.push({ r: 1, c: mlStr.length, ch: "·", kind: "oper", step: 0 });
+  for (let i = 0; i < Llen; i++) { const place = Llen - 1 - i; cells.push({ r: 1, c: Rcol(place), ch: String(D[i]), kind: "op", step: 0 }); }
+  rules.push({ r: 2, c0: leftW, c1: cols - 1, step: 0 });
+  let step = 1, row = 2;
+  partials.forEach((pp) => {
+    const vs = String(pp.val);
+    for (let t = 0; t < vs.length; t++) { const place = vs.length - 1 - t; cells.push({ r: row, c: Rcol(place), ch: vs[t], kind: single ? "res" : "partial", step }); }
+    const placeTxt = pp.p > 0 ? ` (${pp.d} ${PLACE2[pp.p]})` : "";
+    const zerosTxt = pp.p > 0 ? ` Die ${pp.p === 1 ? "Null" : pp.p + " Nullen"} mitschreiben.` : "";
+    steps.push({ text: `${pp.factor} · ${ml} = ${pp.val}${placeTxt}.${zerosTxt}`, focus: { r0: row, r1: row, c0: Rcol(vs.length - 1), c1: Rcol(0) } });
     row++; step++;
   });
-  // Summe der Teilprodukte (nur bei mehrstelligem b)
-  if (multi) {
-    cells.push({ r: row - partials.length, c: 0, ch: "", kind: "noop", step: 0 }); // platzhalter
-    rules.push({ r: row, c0: 0, c1: cols - 1, step });
-    // Spaltenaddition der Teilprodukte
-    const colVals = new Array(maxDigitCols).fill(0);
-    partials.forEach((pp) => { const pv = String(pp.val).split("").map(Number); pv.slice().reverse().forEach((d, q) => { colVals[pp.shift + q] += d; }); });
-    let carry = 0; const sumDigits = [];
-    for (let p = 0; p < maxDigitCols; p++) { const s = colVals[p] + carry; sumDigits[p] = s % 10; carry = Math.floor(s / 10); }
-    let cc = carry, extra = 0; const totalCols2 = maxDigitCols;
+  if (!single) {
+    const sumRule = step;
+    rules.push({ r: row, c0: leftW, c1: cols - 1, step: sumRule });
+    const colVals = new Array(R).fill(0);
+    partials.forEach((pp) => { const vs = String(pp.val).split("").map(Number); vs.slice().reverse().forEach((d, q) => { colVals[q] += d; }); });
     const resRow = row;
-    let s2 = step;
-    for (let p = 0; p < totalCols2; p++) {
-      cells.push({ r: resRow, c: colOf(p), ch: String(sumDigits[p]), kind: "res", step: s2 });
+    cells.push({ r: resRow, c: 0, ch: "+", kind: "oper", step: sumRule });
+    let carry = 0;
+    for (let p = 0; p < R; p++) {
+      const s = colVals[p] + carry;
+      const digit = s % 10, cout = Math.floor(s / 10);
+      cells.push({ r: resRow, c: Rcol(p), ch: String(digit), kind: "res", step });
+      if (cout > 0) cells.push({ r: 0, c: Rcol(p + 1), ch: String(cout), kind: "carry", sup: true, step });
+      const ds = partials.map((pp) => { const vs = String(pp.val); const q = vs.length - 1 - p; return q >= 0 ? +vs[q] : 0; });
+      const addStr = ds.join(" + ") + (carry > 0 ? ` + ${carry}` : "");
+      const outTxt = cout > 0 ? ` Schreibe ${digit}, merke ${cout}.` : ` Schreibe ${digit}.`;
+      steps.push({ text: `${PLACE2[p]} addieren: ${addStr} = ${s}.${outTxt}`, focus: { r0: 0, r1: resRow, c0: Rcol(p), c1: Rcol(p) } });
+      carry = cout; step++;
     }
-    steps.push({ text: `Zum Schluss die Teilprodukte addieren: ${partials.map((p) => p.val * Math.pow(10, p.shift)).join(" + ")} = ${product}.`, focus: { r0: resRow, r1: resRow, c0: 1, c1: cols - 1 } });
-    step = s2 + 1; row = resRow + 1;
+    row = resRow + 1;
   }
   return { op: "·", a: A, b: B, result: String(product), cols, rows: row, cells, rules, steps };
 }
