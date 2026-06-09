@@ -22,54 +22,26 @@ export default function ZahlenStrasseApp() {
     };
   }, []);
 
+  // „Vollbild" bewusst als CSS-Overlay (fixe Position), NICHT über die
+  // Fullscreen-API: iPadOS beendet echtes Vollbild sonst per Wischgeste
+  // (z. B. beim Malen mit dem Apple Pencil). So ist der Modus ausschließlich
+  // über den Button beendbar. Solange aktiv, wird der Seiten-Scroll gesperrt.
   useEffect(() => {
-    const onFs = () =>
-      setFullscreen(
-        !!(document.fullscreenElement ||
-          (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement)
-      );
-    document.addEventListener("fullscreenchange", onFs);
-    document.addEventListener("webkitfullscreenchange", onFs);
+    if (!fullscreen) return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("fullscreenchange", onFs);
-      document.removeEventListener("webkitfullscreenchange", onFs);
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
     };
-  }, []);
+  }, [fullscreen]);
 
-  const toggleFullscreen = () => {
-    const el = rootRef.current as
-      | (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void })
-      | null;
-    if (!el) return;
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element;
-      webkitExitFullscreen?: () => Promise<void> | void;
-    };
-    if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
-      const req = el.requestFullscreen || el.webkitRequestFullscreen;
-      if (req) {
-        try {
-          const p = req.call(el);
-          if (p && typeof (p as Promise<void>).catch === "function")
-            (p as Promise<void>).catch(() => {});
-        } catch {
-          /* ignore */
-        }
-      }
-    } else {
-      const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
-      if (exit) {
-        try {
-          exit.call(doc);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  };
+  const toggleFullscreen = () => setFullscreen((v) => !v);
 
   return (
-    <div className="zs-scope" ref={rootRef}>
+    <div className={"zs-scope" + (fullscreen ? " zs-fullscreen" : "")} ref={rootRef}>
       <style dangerouslySetInnerHTML={{ __html: ZS_CSS }} />
 
       <button

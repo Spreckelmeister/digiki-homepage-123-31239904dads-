@@ -132,27 +132,22 @@ export default function App() {
   const stackRef = useRef(null);
   const [fullscreen, setFullscreen] = useState(false);
 
-  // ---- Vollbild (Fullscreen-API) für mehr Arbeitsfläche ----
-  const toggleFullscreen = () => {
-    const el = scopeRef.current; if (!el) return;
-    const doc = document;
-    if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
-      const req = el.requestFullscreen || el.webkitRequestFullscreen;
-      if (req) { try { const p = req.call(el); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-    } else {
-      const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
-      if (exit) { try { exit.call(doc); } catch (e) {} }
-    }
-  };
+  // ---- Vollbild: bewusst als CSS-Overlay (fixe Position), NICHT über die
+  // Fullscreen-API. iPadOS beendet echtes Vollbild sonst per Wischgeste
+  // (z. B. beim Schreiben mit dem Apple Pencil). So ist Vollbild nur über den
+  // Button beendbar. Solange aktiv, wird der Seiten-Scroll gesperrt. ----
+  const toggleFullscreen = () => setFullscreen(v => !v);
   useEffect(() => {
-    const onFs = () => setFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
-    document.addEventListener("fullscreenchange", onFs);
-    document.addEventListener("webkitfullscreenchange", onFs);
+    if (!fullscreen) return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("fullscreenchange", onFs);
-      document.removeEventListener("webkitfullscreenchange", onFs);
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
     };
-  }, []);
+  }, [fullscreen]);
 
   // ---- Auf schmalen Geräten die A4-Seite initial einpassen ----
   useEffect(() => {
@@ -362,7 +357,7 @@ export default function App() {
   };
 
   return (
-    <div className="abe-scope" ref={scopeRef}>
+    <div className={"abe-scope" + (fullscreen ? " abe-fullscreen" : "")} ref={scopeRef}>
       <style dangerouslySetInnerHTML={{ __html: EDITOR_CSS }} />
       <div className={"app" + (preview ? " preview" : "")}>
       <TopBar doc={doc} onTitle={v => commit(p => ({ ...p, title: v }), false)} undo={undo} redo={redo}

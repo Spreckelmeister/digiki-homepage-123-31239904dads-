@@ -126,11 +126,17 @@ export const EDITOR_CSS = `
   position: relative;
 }
 
-/* Vollbild – Editor füllt den ganzen Bildschirm, Karte wird randlos */
-.abe-scope:fullscreen { width: 100vw; height: 100vh; background: var(--bg); padding: 0; overflow: hidden; }
-.abe-scope:fullscreen .app { height: 100vh; border: none; border-radius: 0; box-shadow: none; }
-.abe-scope:-webkit-full-screen { width: 100vw; height: 100vh; background: var(--bg); padding: 0; overflow: hidden; }
-.abe-scope:-webkit-full-screen .app { height: 100vh; border: none; border-radius: 0; box-shadow: none; }
+/* „Vollbild" als CSS-Overlay (kein OS-Vollbild) – nur per Button beendbar,
+   keine versehentliche Wischgeste (Apple Pencil) beendet es. */
+.abe-scope.abe-fullscreen {
+  position: fixed; inset: 0; z-index: 9999;
+  width: 100vw; height: 100vh; height: 100dvh;
+  background: var(--bg); padding: 0; overflow: hidden;
+}
+.abe-scope.abe-fullscreen .app {
+  height: 100vh; height: 100dvh;
+  border: none; border-radius: 0; box-shadow: none;
+}
 
 /* Generic helpers */
 .abe-scope .row { display: flex; align-items: center; }
@@ -281,6 +287,8 @@ export const EDITOR_CSS = `
    Print: nur das Arbeitsblatt, ohne Website- & Editor-Chrome
    ============================================================ */
 @media print {
+  /* Falls im (CSS-)Vollbild gedruckt wird: Overlay-Positionierung aufheben. */
+  .abe-scope.abe-fullscreen { position: static !important; height: auto !important; overflow: visible !important; }
   /* margin:0 → randloses A4; die Seiten-Ränder kommen aus dem Blatt-Padding
      selbst. Unterdrückt zugleich die Browser-Kopf-/Fußzeilen (URL, Datum). */
   @page { size: A4; margin: 0; }

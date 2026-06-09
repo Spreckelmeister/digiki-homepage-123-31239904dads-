@@ -174,9 +174,15 @@ export const ZS_CSS = `
 .zs-scope .zs-fs:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--soft); }
 .zs-scope .zs-fs:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-/* Vollbild: Spielfläche füllt den Bildschirm, vertikal zentriert */
-.zs-scope:fullscreen { border-radius: 0; border: none; box-shadow: none; justify-content: center; min-height: 100vh; padding: 26px 16px; }
-.zs-scope:-webkit-full-screen { border-radius: 0; border: none; box-shadow: none; justify-content: center; min-height: 100vh; padding: 26px 16px; }
+/* „Vollbild" als CSS-Overlay (kein OS-Vollbild) – nur per Button beendbar,
+   keine versehentliche Wischgeste (Apple Pencil) beendet es. */
+.zs-scope.zs-fullscreen {
+  position: fixed; inset: 0; z-index: 9999;
+  width: 100vw; height: 100vh; height: 100dvh; max-height: 100dvh;
+  border-radius: 0; border: none; box-shadow: none;
+  overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  justify-content: flex-start; padding: 22px 16px 30px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .zs-scope .btn, .zs-scope .num-btn, .zs-scope .toast, .zs-scope .prog-fill, .zs-scope .reset-all, .zs-scope .zs-fs { transition: none; }
