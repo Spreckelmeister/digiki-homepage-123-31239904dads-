@@ -36,16 +36,22 @@ function buildAdd(a, b) {
   for (let p = 0; p < W; p++) {
     const i = W - 1 - p;
     const s = da[i] + db[i] + carry[p];
-    cells.push({ r: 3, c: colOf(p), ch: String(res[p]), kind: "res", step });
-    if (carry[p + 1] > 0) cells.push({ r: 0, c: colOf(p + 1), ch: String(carry[p + 1]), kind: "carry", sup: true, step });
+    const cOut = carry[p + 1], col = colOf(p);
+    // Schritt: Spalte addieren, Ergebnisziffer schreiben
+    cells.push({ r: 3, c: col, ch: String(res[p]), kind: "res", step });
     const inTxt = carry[p] > 0 ? ` + ${carry[p]} (Übertrag)` : "";
-    const outTxt = carry[p + 1] > 0 ? ` Schreibe ${res[p]}, merke ${carry[p + 1]}.` : ` Schreibe ${res[p]}.`;
-    steps.push({ text: `${PLACE[p]}: ${da[i]} + ${db[i]}${inTxt} = ${s}.${outTxt}`, focus: { r0: 0, r1: 3, c0: colOf(p), c1: colOf(p) } });
+    steps.push({ text: `${PLACE[p]}: ${da[i]} + ${db[i]}${inTxt} = ${s}. Schreibe die ${res[p]}.`, focus: { r0: 0, r1: 3, c0: col, c1: col } });
     step++;
+    // Eigener Übertrags-Schritt: kleine 1 über die nächste Spalte (erklärt)
+    if (cOut > 0 && p < W - 1) {
+      cells.push({ r: 0, c: colOf(p + 1), ch: String(cOut), kind: "carry", sup: true, step });
+      steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cOut} kommt klein über die nächste Spalte (${PLACE[p + 1]}).`, focus: { r0: 0, r1: 0, c0: colOf(p + 1), c1: colOf(p + 1) } });
+      step++;
+    }
   }
   if (finalCarry) {
     cells.push({ r: 3, c: colOf(W), ch: String(finalCarry), kind: "res", step });
-    steps.push({ text: `Der letzte Übertrag ${finalCarry} kommt ganz nach vorne.`, focus: { r0: 0, r1: 3, c0: colOf(W), c1: colOf(W) } });
+    steps.push({ text: `Ganz vorne bleibt noch der Übertrag ${finalCarry} – er wird die erste Ziffer des Ergebnisses.`, focus: { r0: 0, r1: 3, c0: colOf(W), c1: colOf(W) } });
     step++;
   }
   return { op: "+", a: A, b: B, result: String(Number(a) + Number(b)), cols, rows: 4, cells, rules, steps };
@@ -156,13 +162,19 @@ function buildMul(a, b) {
     for (let p = 0; p < R; p++) {
       const s = colVals[p] + carry;
       const digit = s % 10, cout = Math.floor(s / 10);
+      // Schritt: Spalte der Teilprodukte addieren, Ergebnisziffer schreiben
       cells.push({ r: resRow, c: Rcol(p), ch: String(digit), kind: "res", step });
-      if (cout > 0) cells.push({ r: 0, c: Rcol(p + 1), ch: String(cout), kind: "carry", sup: true, step });
       const ds = partials.map((pp) => { const vs = String(pp.val); const q = vs.length - 1 - p; return q >= 0 ? +vs[q] : 0; });
-      const addStr = ds.join(" + ") + (carry > 0 ? ` + ${carry}` : "");
-      const outTxt = cout > 0 ? ` Schreibe ${digit}, merke ${cout}.` : ` Schreibe ${digit}.`;
-      steps.push({ text: `${PLACE2[p]} addieren: ${addStr} = ${s}.${outTxt}`, focus: { r0: 0, r1: resRow, c0: Rcol(p), c1: Rcol(p) } });
-      carry = cout; step++;
+      const addStr = ds.join(" + ") + (carry > 0 ? ` + ${carry} (Übertrag)` : "");
+      steps.push({ text: `${PLACE2[p]} addieren: ${addStr} = ${s}. Schreibe die ${digit}.`, focus: { r0: 0, r1: resRow, c0: Rcol(p), c1: Rcol(p) } });
+      step++;
+      // Eigener Übertrags-Schritt: kleine Zahl über die nächste Spalte (erklärt)
+      if (cout > 0 && p < R - 1) {
+        cells.push({ r: 0, c: Rcol(p + 1), ch: String(cout), kind: "carry", sup: true, step });
+        steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cout} kommt klein über die nächste Spalte (${PLACE2[p + 1]}).`, focus: { r0: 0, r1: 0, c0: Rcol(p + 1), c1: Rcol(p + 1) } });
+        step++;
+      }
+      carry = cout;
     }
     row = resRow + 1;
   }
