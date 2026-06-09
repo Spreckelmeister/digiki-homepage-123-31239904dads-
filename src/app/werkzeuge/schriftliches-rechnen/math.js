@@ -28,33 +28,34 @@ function buildAdd(a, b) {
   const cols = 1 + digitCols;          // col 0 = Operator
   const colOf = (p) => cols - 1 - p;   // p=0 → Einer ganz rechts
   const cells = [], rules = [], steps = [];
-  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 1, c: colOf(p), ch: String(da[i]), kind: "op", step: 0 }); }
-  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 2, c: colOf(p), ch: String(db[i]), kind: "op", step: 0 }); }
-  cells.push({ r: 2, c: 0, ch: "+", kind: "oper", step: 0 });
-  rules.push({ r: 3, c0: 0, c1: cols - 1, step: 0 });
+  // Zeilen: 0 = oberer Summand, 1 = unterer Summand + „+“, Strich r2, 2 = Ergebnis
+  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 0, c: colOf(p), ch: String(da[i]), kind: "op", step: 0 }); }
+  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 1, c: colOf(p), ch: String(db[i]), kind: "op", step: 0 }); }
+  cells.push({ r: 1, c: 0, ch: "+", kind: "oper", step: 0 });
+  rules.push({ r: 2, c0: 0, c1: cols - 1, step: 0 });
   let step = 1;
   for (let p = 0; p < W; p++) {
     const i = W - 1 - p;
     const s = da[i] + db[i] + carry[p];
     const cOut = carry[p + 1], col = colOf(p);
     // Schritt: Spalte addieren, Ergebnisziffer schreiben
-    cells.push({ r: 3, c: col, ch: String(res[p]), kind: "res", step });
+    cells.push({ r: 2, c: col, ch: String(res[p]), kind: "res", step });
     const inTxt = carry[p] > 0 ? ` + ${carry[p]} (Übertrag)` : "";
-    steps.push({ text: `${PLACE[p]}: ${da[i]} + ${db[i]}${inTxt} = ${s}. Schreibe die ${res[p]}.`, focus: { r0: 0, r1: 3, c0: col, c1: col } });
+    steps.push({ text: `${PLACE[p]}: ${da[i]} + ${db[i]}${inTxt} = ${s}. Schreibe die ${res[p]}.`, focus: { r0: 0, r1: 2, c0: col, c1: col } });
     step++;
-    // Eigener Übertrags-Schritt: kleine 1 über die nächste Spalte (erklärt)
+    // Eigener Übertrags-Schritt: kleine Zahl UNTEN unter die nächste Spalte (erklärt)
     if (cOut > 0 && p < W - 1) {
-      cells.push({ r: 0, c: colOf(p + 1), ch: String(cOut), kind: "carry", sup: true, step });
-      steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cOut} kommt klein über die nächste Spalte (${PLACE[p + 1]}).`, focus: { r0: 0, r1: 0, c0: colOf(p + 1), c1: colOf(p + 1) } });
+      cells.push({ r: 1, c: colOf(p + 1), ch: String(cOut), kind: "subborrow", step });
+      steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cOut} kommt klein unter die nächste Spalte (${PLACE[p + 1]}).`, focus: { r0: 1, r1: 1, c0: colOf(p + 1), c1: colOf(p + 1) } });
       step++;
     }
   }
   if (finalCarry) {
-    cells.push({ r: 3, c: colOf(W), ch: String(finalCarry), kind: "res", step });
-    steps.push({ text: `Ganz vorne bleibt noch der Übertrag ${finalCarry} – er wird die erste Ziffer des Ergebnisses.`, focus: { r0: 0, r1: 3, c0: colOf(W), c1: colOf(W) } });
+    cells.push({ r: 2, c: colOf(W), ch: String(finalCarry), kind: "res", step });
+    steps.push({ text: `Ganz vorne bleibt noch der Übertrag ${finalCarry} – er wird die erste Ziffer des Ergebnisses.`, focus: { r0: 0, r1: 2, c0: colOf(W), c1: colOf(W) } });
     step++;
   }
-  return { op: "+", a: A, b: B, result: String(Number(a) + Number(b)), cols, rows: 4, cells, rules, steps };
+  return { op: "+", a: A, b: B, result: String(Number(a) + Number(b)), cols, rows: 3, cells, rules, steps };
 }
 
 // ---------------- Subtraktion (Abziehverfahren mit Erweitern) ----------------
@@ -137,12 +138,12 @@ function buildMul(a, b) {
   const Rcol = (place) => cols - 1 - place;   // place 0 = Einer ganz rechts
   const cells = [], rules = [], steps = [];
   const PLACE2 = ["Einer", "Zehner", "Hunderter", "Tausender", "Zehntausender", "Hunderttausender", "Millionen"];
-  // Faktorzeile (r=1): Multiplikator links, „·“, Multiplikand rechtsbündig im R-Block
-  for (let i = 0; i < mlStr.length; i++) cells.push({ r: 1, c: i, ch: mlStr[i], kind: "op", step: 0 });
-  cells.push({ r: 1, c: mlStr.length, ch: "·", kind: "oper", step: 0 });
-  for (let i = 0; i < Llen; i++) { const place = Llen - 1 - i; cells.push({ r: 1, c: Rcol(place), ch: String(D[i]), kind: "op", step: 0 }); }
-  rules.push({ r: 2, c0: leftW, c1: cols - 1, step: 0 });
-  let step = 1, row = 2;
+  // Faktorzeile (r=0): Multiplikator links, „·“, Multiplikand rechtsbündig im R-Block
+  for (let i = 0; i < mlStr.length; i++) cells.push({ r: 0, c: i, ch: mlStr[i], kind: "op", step: 0 });
+  cells.push({ r: 0, c: mlStr.length, ch: "·", kind: "oper", step: 0 });
+  for (let i = 0; i < Llen; i++) { const place = Llen - 1 - i; cells.push({ r: 0, c: Rcol(place), ch: String(D[i]), kind: "op", step: 0 }); }
+  rules.push({ r: 1, c0: leftW, c1: cols - 1, step: 0 });
+  let step = 1, row = 1;
   partials.forEach((pp) => {
     const vs = String(pp.val);
     for (let t = 0; t < vs.length; t++) { const place = vs.length - 1 - t; cells.push({ r: row, c: Rcol(place), ch: vs[t], kind: single ? "res" : "partial", step }); }
@@ -168,10 +169,10 @@ function buildMul(a, b) {
       const addStr = ds.join(" + ") + (carry > 0 ? ` + ${carry} (Übertrag)` : "");
       steps.push({ text: `${PLACE2[p]} addieren: ${addStr} = ${s}. Schreibe die ${digit}.`, focus: { r0: 0, r1: resRow, c0: Rcol(p), c1: Rcol(p) } });
       step++;
-      // Eigener Übertrags-Schritt: kleine Zahl über die nächste Spalte (erklärt)
+      // Eigener Übertrags-Schritt: kleine Zahl UNTEN (über dem Summenstrich)
       if (cout > 0 && p < R - 1) {
-        cells.push({ r: 0, c: Rcol(p + 1), ch: String(cout), kind: "carry", sup: true, step });
-        steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cout} kommt klein über die nächste Spalte (${PLACE2[p + 1]}).`, focus: { r0: 0, r1: 0, c0: Rcol(p + 1), c1: Rcol(p + 1) } });
+        cells.push({ r: resRow - 1, c: Rcol(p + 1), ch: String(cout), kind: "subborrow", step });
+        steps.push({ text: `Die ${s} ist größer als 9 – der Übertrag ${cout} kommt klein unter die nächste Spalte (${PLACE2[p + 1]}).`, focus: { r0: resRow - 1, r1: resRow - 1, c0: Rcol(p + 1), c1: Rcol(p + 1) } });
         step++;
       }
       carry = cout;
