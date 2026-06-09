@@ -116,6 +116,9 @@ export const ZS_CSS = `
 .zs-scope .btn-ghost:active { box-shadow: 0 1px 0 var(--soft); }
 .zs-scope .btn-go { background: var(--good); color: #fff; box-shadow: 0 4px 0 var(--good-dark); }
 .zs-scope .btn-go:active { box-shadow: 0 1px 0 var(--good-dark); }
+/* „Weiter →“-Zustand des Haupt-Buttons (gemeistert) – DigiKI-Türkis */
+.zs-scope .btn-next { background: #006363; color: #fff; box-shadow: 0 4px 0 #00403e; }
+.zs-scope .btn-next:active { box-shadow: 0 1px 0 #00403e; }
 
 /* Genauigkeits-Regler */
 .zs-scope .tol { background: #fff; border-radius: 18px; padding: 12px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }

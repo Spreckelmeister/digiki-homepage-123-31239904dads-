@@ -185,7 +185,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   let current=1;
   let tol=12;              // wirksame Abweichung (wird aus baseTol + Stufe berechnet)
   let solved=false;        // Straße glänzt golden
-  let scored=false;        // aktuelle Spur wurde bereits gewertet (verhindert Mehrfach-Prüfen)
+  let lastCheckDrawn=-1000;// drawnTotal beim letzten gewerteten Prüfen (Mehrfach-Prüfen-Sperre)
   let demoing=false;
 
   // ---------- Fortschritt / Stufen ----------
@@ -232,9 +232,11 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
       b.setAttribute('aria-pressed', sel);
     });
     resize();
+    updateCheckBtn();        // „Prüfen“ vs. „Weiter →“ je nachdem ob schon gemeistert
   }
+  const isMastered = tok => (((progress[tok]&&progress[tok].level)||0) >= MAX_LEVEL);
   function resetAttempt(){
-    trail=[]; drawnTotal=0; drawnBad=0; solved=false; scored=false;
+    trail=[]; drawnTotal=0; drawnBad=0; solved=false; lastCheckDrawn=-1000;
     visited=new Array(samples.length).fill(false);
     hideToast();
     applyTol();            // Straßenbreite an die aktuelle Stufe anpassen + neu zeichnen
@@ -359,7 +361,6 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   function pointerDown(e){
     if(demoing) return;
     if(solved) resetAttempt();
-    scored=false;          // neues Zeichnen → der nächste „Prüfen“-Klick wertet wieder
     drawing=true; cv.setPointerCapture(e.pointerId);
     const r=cv.getBoundingClientRect();
     const [dx,dy]=toDesign(e.clientX-r.left, e.clientY-r.top);
@@ -395,9 +396,10 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   // ---------- Prüfen ----------
   function check(){
     if(demoing) return;
-    // Eine Spur zählt nur EINMAL. Wer „Prüfen“ erneut klickt, ohne neu
-    // nachzufahren, kann die Stufe nicht weiter hochzählen.
-    if(scored){
+    // Mehrfach-Prüfen-Sperre: zählt nur, wenn seit dem letzten Prüfen wirklich
+    // NEU nachgefahren wurde. Bloßes erneutes Klicken (oder kurzes Antippen)
+    // reicht nicht – so lässt sich das 3-malige Üben nicht überspringen.
+    if(drawnTotal - lastCheckDrawn < 8){
       showToast(0,"Schon geprüft 🙂","Fahre die Form noch einmal nach – dann wieder auf ✓ Prüfen.");
       return;
     }
@@ -427,7 +429,8 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
     saveProgress();
     paintButton(current);
     updateSummary();
-    scored=true;           // diese Spur ist nun gewertet – erst neues Nachfahren zählt wieder
+    lastCheckDrawn=drawnTotal; // diese Spur ist gewertet – erst neues Nachfahren zählt wieder
+    updateCheckBtn();          // ggf. „Prüfen“ → „Weiter“, wenn jetzt gemeistert
     // Die schmalere Straße greift beim nächsten Versuch (über resetAttempt).
 
     if(score>=2){
@@ -572,7 +575,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   function paintAll(){ for(const tok of curSet()) paintButton(tok); }
   function resetAllProgress(){
     for(const k in progress) delete progress[k];
-    saveProgress(); paintAll(); updateSummary(); applyTol();
+    saveProgress(); paintAll(); updateSummary(); applyTol(); updateCheckBtn();
   }
 
   // ---------- Auswahl-Felder (je nach Modus) ----------
@@ -618,7 +621,40 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 
   on(root.querySelector('#btnClear'),'click',resetAttempt);
   on(root.querySelector('#btnShow'),'click',showDemo);
-  on(root.querySelector('#btnCheck'),'click',check);
+
+  // Haupt-Button (immer an gleicher Stelle): „✓ Prüfen“, solange das Zeichen
+  // noch nicht gemeistert ist – danach „Weiter →“ zum nächsten offenen Zeichen
+  // bzw. zum nächsten Block (Zahlen → ABC → abc).
+  const btnCheck=root.querySelector('#btnCheck');
+  function updateCheckBtn(){
+    if(!btnCheck) return;
+    const next=isMastered(current);
+    btnCheck.classList.toggle('btn-next', next);
+    btnCheck.classList.toggle('btn-go', !next);
+    btnCheck.textContent = next ? 'Weiter →' : '✓ Prüfen';
+    btnCheck.setAttribute('aria-label', next ? 'Weiter zum nächsten Zeichen' : 'Nachgefahrenes prüfen');
+  }
+  function goNext(){
+    // 1) nächstes noch nicht gemeistertes Zeichen im aktuellen Block (umlaufend)
+    const set=curSet(); let idx=set.indexOf(current); if(idx<0) idx=0;
+    for(let i=1;i<=set.length;i++){
+      const tok=set[(idx+i)%set.length];
+      if(!isMastered(tok)){ loadItem(tok); return; }
+    }
+    // 2) Block fertig → nächster Block, der noch offene Zeichen hat
+    const order=['zahlen','gross','klein']; const mi=order.indexOf(mode);
+    for(let i=1;i<=order.length;i++){
+      const m=order[(mi+i)%order.length];
+      const open=SETS[m].find(t=>!isMastered(t));
+      if(open){ setMode(m); loadItem(open); return; }
+    }
+    // 3) alles gemeistert → großer Glückwunsch
+    solved=true; redraw();
+    showToast(3,"Alles geschafft! 🏆","Du hast alle Zahlen und Buchstaben gemeistert!");
+    celebrate(); chime();
+  }
+  on(btnCheck,'click',()=>{ if(isMastered(current)) goNext(); else check(); });
+
   on(root.querySelector('#tol'),'input',e=>{
     baseTol=+e.target.value; applyTol();
   });
