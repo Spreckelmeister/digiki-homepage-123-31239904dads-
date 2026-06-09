@@ -600,6 +600,19 @@ export default function WerkzeugePage() {
                             {tool.icon}
                           </div>
                           <div className="flex flex-col items-end gap-1.5">
+                            {tool.adminOnly && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full bg-text px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white shadow-sm"
+                                title="Noch nicht veröffentlicht – nur für angemeldete Admins sichtbar"
+                              >
+                                <Lock
+                                  className="h-2.5 w-2.5"
+                                  strokeWidth={2.6}
+                                  aria-hidden="true"
+                                />
+                                Nur Admins
+                              </span>
+                            )}
                             {cat.experimental && (
                               <span
                                 className="inline-flex items-center gap-1 rounded-full bg-accent-strong px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white shadow-sm"

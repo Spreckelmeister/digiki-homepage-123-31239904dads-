@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { NotebookPen } from "lucide-react";
+import { NotebookPen, Lock } from "lucide-react";
 import ToolHeader from "../ToolHeader";
 import ClientEditor from "./ClientEditor";
 import { getCurrentProfile } from "@/lib/supabase/server";
@@ -40,6 +40,18 @@ export default async function Page() {
           />
         }
       />
+      {/* Interner-Status-Hinweis – noch nicht veröffentlicht */}
+      <div className="bg-text text-white print:hidden">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-2.5">
+          <Lock className="h-4 w-4 shrink-0 text-accent" strokeWidth={2.2} aria-hidden="true" />
+          <p className="text-sm leading-snug">
+            <strong className="font-bold">Intern – noch nicht veröffentlicht.</strong>{" "}
+            <span className="text-white/80">
+              Dieses Werkzeug ist nur für angemeldete Admins sichtbar und erscheint nicht in der öffentlichen Werkzeug-Übersicht.
+            </span>
+          </p>
+        </div>
+      </div>
       <section className="py-8 md:py-12 bg-bg print:py-0 print:bg-white">
         <div className="mx-auto max-w-[1400px] px-3 sm:px-4 lg:px-6 print:max-w-none print:px-0">
           <ClientEditor />
