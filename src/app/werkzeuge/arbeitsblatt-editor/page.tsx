@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { NotebookPen } from "lucide-react";
 import ToolHeader from "../ToolHeader";
 import ClientEditor from "./ClientEditor";
+import { getCurrentProfile } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Arbeitsblatt-Editor",
   description:
     "Erstellen Sie differenzierte Arbeitsblätter für die Grundschule – Silbentext, Lückentext, Rechenpäckchen, Schreiblinien, Suchsel und mehr. Druckfertig, mit Lösungsblatt, komplett lokal im Browser.",
   alternates: { canonical: "/werkzeuge/arbeitsblatt-editor" },
+  // Internes Tool – noch nicht veröffentlicht: nicht indexieren.
+  robots: { index: false, follow: false },
 };
 
-export default function Page() {
+export default async function Page() {
+  // Noch nicht veröffentlicht: nur für angemeldete Best-Practice-Admins
+  // zugänglich. Alle anderen (inkl. nicht angemeldete Besucher) erhalten 404.
+  const profile = await getCurrentProfile();
+  if (profile?.role !== "admin") notFound();
+
   return (
     <>
       <ToolHeader

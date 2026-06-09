@@ -29,6 +29,7 @@ import {
   NotebookPen,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
+import AdminOnly from "@/components/AdminOnly";
 
 export const metadata: Metadata = {
   title: "Werkzeuge",
@@ -51,6 +52,8 @@ interface Tool {
   available: boolean;
   /** Tool unterstützt server-backed Online-Modus (mit DigiKI-Konto) */
   cloudOption?: boolean;
+  /** Internes Tool: nur für angemeldete Best-Practice-Admins sichtbar (noch nicht veröffentlicht) */
+  adminOnly?: boolean;
 }
 
 interface Category {
@@ -126,6 +129,7 @@ const categories: Category[] = [
         description:
           "Differenzierte Arbeitsblätter bauen – Silbentext, Lückentext, Rechenpäckchen, Schreiblinien, Suchsel. Druckfertig, mit Lösungsblatt und optionalem KI-Assistenten.",
         available: true,
+        adminOnly: true,
       },
       {
         href: "/werkzeuge/pdf",
@@ -277,7 +281,11 @@ const categories: Category[] = [
   },
 ];
 
-const totalTools = categories.reduce((n, c) => n + c.tools.length, 0);
+// Interne (adminOnly) Werkzeuge zählen nicht zur öffentlichen Anzahl.
+const totalTools = categories.reduce(
+  (n, c) => n + c.tools.filter((t) => !t.adminOnly).length,
+  0,
+);
 
 const principles = [
   {
@@ -552,7 +560,8 @@ export default function WerkzeugePage() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {cat.tools.map((tool, toolIndex) => (
+                  {cat.tools.map((tool, toolIndex) => {
+                    const card = (
                     <Link
                       key={tool.href}
                       href={tool.href}
@@ -643,7 +652,14 @@ export default function WerkzeugePage() {
                         className="pointer-events-none absolute bottom-2 left-2 h-3 w-3 border-b border-l border-primary/0 group-hover:border-accent-strong transition-colors duration-300"
                       />
                     </Link>
-                  ))}
+                    );
+                    // Interne Werkzeuge nur für angemeldete Admins anzeigen.
+                    return tool.adminOnly ? (
+                      <AdminOnly key={tool.href}>{card}</AdminOnly>
+                    ) : (
+                      card
+                    );
+                  })}
                 </div>
               </div>
             ))}
