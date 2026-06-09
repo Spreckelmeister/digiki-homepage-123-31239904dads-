@@ -127,6 +127,7 @@ export default function App() {
   const closeRails = () => { setLeftOpen(false); setRightOpen(false); };
   const hist = useRef({ past: [], future: [] });
   const pageRef = useRef(null);
+  const canvasRef = useRef(null);
 
   // ---- Auf schmalen Geräten die A4-Seite initial einpassen ----
   useEffect(() => {
@@ -179,6 +180,13 @@ export default function App() {
   }) }));
 
   const addBlock = (type) => commit(prev => { const nb = makeBlock(type, prev.level); setTimeout(() => setSelId(nb.id), 0); return { ...prev, blocks: [...prev.blocks, nb] }; });
+  // Hängt eine neue Folgeseite an (Seitenumbruch am Ende). Neue Bausteine
+  // landen danach automatisch auf der neuen Seite – beliebig oft wiederholbar.
+  const addPage = () => {
+    commit(prev => ({ ...prev, blocks: [...prev.blocks, { id: DKI.nid(), type: "pagebreak" }] }));
+    setSelId(null);
+    setTimeout(() => { const c = canvasRef.current; if (c) c.scrollTo({ top: c.scrollHeight, behavior: "smooth" }); }, 60);
+  };
   const addClipart = (art) => commit(prev => {
     // Ist ein Bild-Block ausgewählt? Dann Clipart dort einreihen (nebeneinander) statt neuen Block anzulegen.
     const cur = prev.blocks.find(b => b.id === selId);
@@ -380,9 +388,10 @@ export default function App() {
         </div>
 
         {/* Canvas */}
-        <div className="scroll canvas-area" onMouseDown={e => { if (e.target.classList.contains("canvas-area") || e.target.classList.contains("page-pad")) setSelId(null); }}
-          style={{ overflow: "auto", background: "var(--bg)", display: "flex", justifyContent: "center", padding: "40px 40px 120px" }}>
-          <div className="page-pad" style={{ width: 794 * zoom }}>
+        <div ref={canvasRef} className="scroll canvas-area" onMouseDown={e => { if (e.target.classList.contains("canvas-area") || e.target.classList.contains("page-pad") || e.target.classList.contains("canvas-stack")) setSelId(null); }}
+          style={{ overflow: "auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 40px 80px" }}>
+          <div className="canvas-stack" style={{ display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100%" }}>
+          <div className="page-pad" style={{ width: 794 * zoom, height: (pageRef.current ? pageRef.current.offsetHeight : 1123) * zoom, flexShrink: 0 }}>
             <div id="ws-page" ref={pageRef} className={"ws-page" + (doc.frame && doc.frame !== "none" ? " framed" : "")} style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top center",
               background: "#fff", minHeight: 1123, borderRadius: 4, boxShadow: "var(--shadow-paper)", padding: "54px 56px",
               backgroundImage: grid ? "linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px)" : "none",
@@ -458,6 +467,15 @@ export default function App() {
                 ));
               })()}
             </div>
+          </div>
+
+          {!preview && (
+            <button type="button" className="abe-addpage" onClick={addPage}
+              style={{ width: 794 * zoom, maxWidth: "100%" }}
+              data-tip="Hängt eine neue Seite an – neue Bausteine landen darauf">
+              <Icon name="plus" size={18} /> Seite hinzufügen
+            </button>
+          )}
           </div>
         </div>
 

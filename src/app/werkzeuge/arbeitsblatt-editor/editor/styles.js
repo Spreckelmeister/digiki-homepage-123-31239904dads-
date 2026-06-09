@@ -212,6 +212,19 @@ export const EDITOR_CSS = `
   padding: 5px 12px; border-radius: 999px; box-shadow: 0 2px 8px rgba(21,128,61,.30);
 }
 
+/* "Seite hinzufügen" – Karte unter dem Blatt */
+.abe-scope .abe-addpage {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  margin-top: 20px; padding: 15px 22px;
+  border: 2px dashed var(--teal); border-radius: 14px;
+  background: #fff; color: var(--teal-700);
+  font-family: var(--ui); font-size: 14px; font-weight: 700;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.abe-scope .abe-addpage:hover { background: var(--teal-50); border-color: var(--teal-700); box-shadow: var(--shadow-sm); }
+.abe-scope .abe-addpage:active { transform: translateY(1px); }
+.abe-scope .abe-addpage:focus-visible { outline: 2px solid var(--teal-700); outline-offset: 2px; }
+
 /* ---- Rails als Grid-Spalten (Desktop) ---- */
 .abe-scope .rail { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .abe-scope .rail > aside { flex: 1 1 auto; min-height: 0; width: 100%; }
@@ -249,10 +262,10 @@ export const EDITOR_CSS = `
   /* globale Fixed-Overlays (Cookie-Banner, Bewertungs-FAB …) ausblenden */
   .fixed { display: none !important; }
   .abe-scope .app { display: block !important; height: auto !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
-  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar { display: none !important; }
+  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar, .abe-scope .abe-addpage { display: none !important; }
   .abe-scope .app-body { display: block !important; }
   .abe-scope .canvas-area { overflow: visible !important; padding: 0 !important; display: block !important; }
-  .abe-scope .page-pad { width: auto !important; }
+  .abe-scope .page-pad { width: auto !important; height: auto !important; }
   .abe-scope .ws-page { transform: none !important; width: 100% !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; background-image: none !important; border: none !important; }
   .abe-scope .ws-page.framed { padding: 8mm !important; }
   .abe-scope .ws-block { outline: none !important; margin: 0 0 8px !important; break-inside: avoid; }
@@ -281,7 +294,7 @@ export const SINGLE_PAGE_PRINT_CSS = `
 @media print {
   @page { size: A4; margin: 0; }
   .abe-scope .canvas-area { overflow: hidden !important; padding: 0 !important; display: block !important; }
-  .abe-scope .page-pad { width: auto !important; }
+  .abe-scope .page-pad { width: auto !important; height: auto !important; }
   .abe-scope .ws-page {
     width: 794px !important;
     height: 1122px !important;
