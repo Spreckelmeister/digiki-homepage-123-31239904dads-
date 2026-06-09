@@ -21,9 +21,13 @@ export interface WrapMailingOptions {
   heading?: string;
   /** Versteckter Pre-Header-Text (sichtbar in der Mail-Vorschauliste). */
   preheader?: string;
+  /** Optional eine andere Logo-URL setzen – sinnvoll z.B. für die
+   *  Vorschau im Admin-Tool (lokales /images/...), wo die externe
+   *  digiki-os.de-URL nicht immer auflöst. */
+  logoUrl?: string;
 }
 
-const LOGO_URL = "https://digiki-os.de/images/logos/DigiKI_Logo_v5.png";
+const DEFAULT_LOGO_URL = "https://digiki-os.de/images/logos/DigiKI_Logo_v5.png";
 const FOOTER_NAME = "DigiKI – Digitalisierung & Künstliche Intelligenz an Grundschulen Osnabrück";
 const FOOTER_CONTACT_NAME = "Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück";
 const FOOTER_EMAIL = "krafft@osnabrueck.de";
@@ -33,7 +37,9 @@ export function wrapMailing({
   eyebrow,
   heading,
   preheader,
+  logoUrl,
 }: WrapMailingOptions): string {
+  const resolvedLogo = logoUrl ?? DEFAULT_LOGO_URL;
   const preheaderBlock = preheader
     ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${preheader}</div>`
     : "";
@@ -63,7 +69,7 @@ export function wrapMailing({
           <tr>
             <td align="center"
               style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
-              <img src="${LOGO_URL}"
+              <img src="${resolvedLogo}"
                 alt="DigiKI – Grundschulen Osnabrück"
                 width="160" height="73"
                 style="display:block;border:0;" />

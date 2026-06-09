@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  ClipboardCheck,
   Code2,
+  Copy,
   Eye,
   Loader2,
   Mail,
@@ -13,6 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Wand2,
   X,
 } from "lucide-react";
 import { wrapMailing } from "@/lib/email/wrapMailing";
@@ -32,6 +35,35 @@ type SendResult = {
   sent: number;
   failed: { email: string; error: string }[];
 };
+
+// Fertiger Prompt, den der Admin in einen beliebigen KI-Chat
+// (ChatGPT, Claude, Gemini …) kopieren kann, um eine bestehende Mail
+// in das DigiKI-Format zu überführen. Output passt direkt in das
+// HTML-Editor-Feld unten (ohne Wrapper – das Tool fügt Header + Footer
+// automatisch hinzu).
+const AI_CONVERT_PROMPT = `Du bist ein E-Mail-HTML-Designer. Wandle den unten stehenden Mailtext in HTML um, das ich direkt in das DigiKI-Mailing-Tool einfügen kann.
+
+ANFORDERUNGEN:
+- Nur den Body-HTML zurückgeben (KEIN <html>, <head>, <body>, <style> – Header/Footer ergänzt das Tool automatisch).
+- Ausschließlich Inline-Styles verwenden (Outlook/Gmail-kompatibel).
+- Maximale Breite des Inhalts: ca. 560 px (also keine eigenen <table width="600">-Wrapper – nur Absätze, Listen, Buttons, einfache Tabellen).
+- Schriftart: Arial, Helvetica, sans-serif. Schriftgröße Fließtext: 15 px, Zeilenhöhe 1.6, Textfarbe #1A1A1A.
+- Absätze über <p style="margin:0 0 16px 0;...">, keine <br>-Ketten.
+- Überschriften (falls nötig): <h2 style="margin:24px 0 12px 0;font-size:18px;color:#006363;font-weight:bold;">.
+- Hervorhebungen: <strong>, nicht <b>. Links: <a style="color:#006363;text-decoration:underline;">.
+- Buttons im Markenstil:
+    <p style="margin:24px 0;"><a href="ZIEL_URL" style="display:inline-block;background-color:#006363;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 22px;border-radius:8px;">Button-Text</a></p>
+- Info-/Hinweis-Boxen (optional): hellblaue Callout-Box
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#EBF8F7;border:1px solid #B6E1DD;border-radius:8px;margin:16px 0;"><tr><td style="padding:14px 16px;font-size:14px;color:#1A1A1A;">…</td></tr></table>
+- Keine Bilder einbetten, keine externen Schriften, keine JavaScript-Bestandteile.
+- Sie-Form, freundlich, professionell, deutsche Sprache.
+
+EINZUSETZENDER ORIGINAL-TEXT:
+"""
+[HIER DEN BISHERIGEN MAILTEXT EINFÜGEN]
+"""
+
+Antworte ausschließlich mit dem fertigen HTML-Snippet – keine Erklärungen davor oder danach, kein Code-Fence.`;
 
 const SAMPLE_BODY = `<p>Liebe Schulen,</p>
 
@@ -105,7 +137,35 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
   const [sendError, setSendError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // ── Prompt-Copy-State ────────────────────────────────────────────────────
+  const [promptCopied, setPromptCopied] = useState(false);
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(AI_CONVERT_PROMPT);
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2000);
+    } catch {
+      // Fallback: select textarea content
+      const ta = document.getElementById("ai-prompt-textarea") as HTMLTextAreaElement | null;
+      ta?.select();
+    }
+  }
+
+  // Test-Mail-Adresse: standardmäßig die des aktuell eingeloggten Admins.
+  // Falls `adminEmail` erst nach dem ersten Render verfügbar wird oder der
+  // Nutzer das Feld geleert hat, springt es automatisch zurück – manuelles
+  // Überschreiben bleibt natürlich möglich.
+  useEffect(() => {
+    if (adminEmail && !testEmail.trim()) setTestEmail(adminEmail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminEmail]);
+
   // ── Preview ───────────────────────────────────────────────────────────────
+  // Für die Vorschau verwenden wir das lokal ausgelieferte Logo. Die
+  // externe digiki-os.de-URL wird in einem sandboxed iframe auf
+  // localhost oft nicht angezeigt (CORS/Referrer), was die Preview-Optik
+  // verfälscht. Der Versand selbst nutzt weiterhin die Production-URL.
+  const PREVIEW_LOGO = "/images/logos/DigiKI_Logo_v5.png";
   const previewHtml = useMemo(() => {
     if (!html.trim()) {
       return wrapMailing({
@@ -113,10 +173,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           '<p style="color:#999;font-style:italic;">Ihr HTML-Inhalt erscheint hier – fügen Sie links etwas ein.</p>',
         eyebrow: eyebrow || "Vorschau",
         heading: heading || "Vorschau",
+        logoUrl: PREVIEW_LOGO,
       });
     }
     return useWrapper
-      ? wrapMailing({ bodyHtml: html, eyebrow, heading, preheader })
+      ? wrapMailing({ bodyHtml: html, eyebrow, heading, preheader, logoUrl: PREVIEW_LOGO })
       : html;
   }, [html, useWrapper, eyebrow, heading, preheader]);
 
@@ -335,6 +396,71 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
               Inhalt der Mail
             </h2>
           </header>
+
+          {/* KI-Konvertierungs-Prompt – ausklappbar, damit er nicht
+              dauerhaft Platz wegnimmt, aber bei Bedarf schnell zur
+              Hand ist. */}
+          <details className="group rounded-xl border border-primary-light/30 bg-primary-light/5">
+            <summary className="flex cursor-pointer items-center gap-3 px-4 py-3 list-none [&::-webkit-details-marker]:hidden">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              >
+                <Wand2 className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                  Bestehende Mail in DigiKI-Style umwandeln
+                </p>
+                <p className="mt-0.5 text-[13px] text-text-light">
+                  Prompt kopieren und in ChatGPT / Claude einfügen – Antwort hier rein.
+                </p>
+              </div>
+              <span className="text-text-light transition-transform group-open:rotate-180">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </summary>
+            <div className="border-t border-primary-light/30 px-4 py-3 space-y-3">
+              <p className="text-[13px] text-text-light leading-relaxed">
+                Den Prompt unten in einen beliebigen KI-Chat einfügen, am
+                Ende den Original-Mailtext einsetzen. Das Ergebnis (reines
+                Body-HTML) anschließend in das HTML-Feld unten kopieren –
+                Header, Logo und Footer fügt dieses Tool automatisch hinzu.
+              </p>
+              <div className="relative">
+                <textarea
+                  id="ai-prompt-textarea"
+                  readOnly
+                  value={AI_CONVERT_PROMPT}
+                  rows={6}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text resize-y"
+                  style={{ minHeight: 140 }}
+                />
+                <button
+                  type="button"
+                  onClick={copyPrompt}
+                  className={`absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
+                    promptCopied
+                      ? "bg-emerald-600 text-white"
+                      : "bg-primary text-white hover:bg-primary/90"
+                  }`}
+                >
+                  {promptCopied ? (
+                    <>
+                      <ClipboardCheck className="h-3.5 w-3.5" /> Kopiert
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" /> Prompt kopieren
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </details>
 
           {/* Settings */}
           <div className="space-y-4">
@@ -587,7 +713,10 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
             </div>
             <iframe
               title="E-Mail-Vorschau"
-              sandbox=""
+              // allow-same-origin sorgt dafür, dass externe Ressourcen
+              // (Logo, Schriften) sauber laden. KEIN allow-scripts –
+              // das HTML kann also keinen Code im Editor-Kontext ausführen.
+              sandbox="allow-same-origin"
               srcDoc={previewHtml}
               className="block h-[600px] w-full border-0 bg-[#F5F9F9]"
             />
