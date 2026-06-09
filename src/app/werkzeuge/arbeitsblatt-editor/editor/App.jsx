@@ -178,8 +178,22 @@ export default function App() {
 
   const undo = () => { const h = hist.current; if (!h.past.length) return; setDoc(prev => { h.future.unshift(prev); return h.past.pop(); }); };
   const redo = () => { const h = hist.current; if (!h.future.length) return; setDoc(prev => { h.past.push(prev); return h.future.shift(); }); };
-  const [, force] = useState(0);
-  useEffect(() => { const t = setInterval(() => force(x => x + 1), 400); return () => clearInterval(t); }, []);
+  // Höhe des (skalierten) Seitenstapels für den Wrapper – per ResizeObserver
+  // statt per Dauer-Re-Render. Das frühere 400-ms-Intervall las offsetHeight
+  // mitten im Render aus (erzwungenes Reflow) → auf iPad Safari sichtbares
+  // „Flackern“ der Schrift. Jetzt wird nur bei echten Größenänderungen neu
+  // gemessen.
+  const [stackH, setStackH] = useState(1123);
+  useEffect(() => {
+    const el = stackRef.current;
+    if (!el) return;
+    const update = () => setStackH(el.offsetHeight || 1123);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // ---- block ops ----
   const sel = doc.blocks.find(b => b.id === selId) || null;
@@ -391,7 +405,7 @@ export default function App() {
           style={{ overflow: "auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 90px" }}>
           <div className="canvas-stack" style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 794 * zoom, maxWidth: "100%", minHeight: "100%" }}>
             {/* Ein Transform skaliert den ganzen Seitenstapel; der Wrapper trägt die sichtbare (skalierte) Größe. */}
-            <div className="page-scale-wrap" style={{ width: 794 * zoom, height: (stackRef.current ? stackRef.current.offsetHeight : 1123) * zoom, flexShrink: 0 }}>
+            <div className="page-scale-wrap" style={{ width: 794 * zoom, height: stackH * zoom, flexShrink: 0 }}>
               <div ref={stackRef} className="page-stack" style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top left", display: "flex", flexDirection: "column", alignItems: "center", gap: 34 }}>
                 {pages.map((pg, pi) => (
                   <div key={pi} className="page-sheet-wrap" style={{ position: "relative", width: 794, flexShrink: 0 }}>
