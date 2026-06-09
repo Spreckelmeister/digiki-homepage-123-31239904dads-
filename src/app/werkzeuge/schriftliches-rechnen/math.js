@@ -174,47 +174,52 @@ function buildDiv(a, b) {
   for (let i = 0; i < bStr.length; i++) cells.push({ r: 0, c: cx++, ch: bStr[i], kind: "op", step: 0 });
   cells.push({ r: 0, c: cx++, ch: "=", kind: "sym", step: 0 });
   const qCol0 = cx;                       // erste Quotientenspalte
-  // Lange Division
-  let rem = 0; let r = 1; let step = 1; let qIndex = 0;
+  // Lange Division – jede Ziffer in vier Einzelschritten:
+  // bestimmen → multiplizieren → subtrahieren → herunterholen
+  let rem = 0; let r = 1; let step = 1;
   const qChars = [];
   for (let i = 0; i < La; i++) {
     const cur = rem * 10 + da[i];
     const qd = Math.floor(cur / B);
-    // Quotientenziffer nur schreiben, wenn schon etwas „heruntergeholt“ wurde
-    const writeQ = !(qd === 0 && qChars.length === 0 && i < La - 1);
-    if (writeQ) {
-      qChars.push(qd);
-      cells.push({ r: 0, c: qCol0 + qChars.length - 1, ch: String(qd), kind: "quot", step });
-    }
-    if (qd === 0 && qChars.length === 0) {
-      steps.push({ text: `${cur} : ${B} = 0 — wir holen die nächste Ziffer dazu.`, focus: { r0: 0, r1: 0, c0: i, c1: i } });
+    // Führende Null: Abschnitt noch zu klein → nächste Ziffer dazunehmen
+    if (qd === 0 && qChars.length === 0 && i < La - 1) {
+      steps.push({ text: `${cur} : ${B} geht noch nicht – ${cur} ist kleiner als ${B}. Wir nehmen die nächste Ziffer dazu.`, focus: { r0: 0, r1: 0, c0: 0, c1: i + 1 } });
       rem = cur; step++; continue;
     }
     const prod = qd * B;
-    // Schreibe das Produkt unter den aktuellen Abschnitt (rechtsbündig bei Spalte i)
     const prodStr = String(prod);
-    for (let t = 0; t < prodStr.length; t++) {
-      const col = i - (prodStr.length - 1 - t);
-      cells.push({ r, c: col, ch: prodStr[t], kind: "aux", step });
-    }
-    rules.push({ r: r + 1, c0: Math.max(0, i - prodStr.length + 1), c1: i, step });
+    const prodCol0 = i - (prodStr.length - 1);
+
+    // Schritt A: Wie oft passt der Divisor? → Quotientenziffer
+    qChars.push(qd);
+    const qc = qCol0 + qChars.length - 1;
+    cells.push({ r: 0, c: qc, ch: String(qd), kind: "quot", step });
+    steps.push({ text: `Wie oft passt ${B} in ${cur}? ${qd}-mal. Schreibe die ${qd} ins Ergebnis.`, focus: { r0: 0, r1: 0, c0: qc, c1: qc } });
+    step++;
+
+    // Schritt B: Multiplizieren – Produkt darunter schreiben
+    for (let t = 0; t < prodStr.length; t++) cells.push({ r, c: i - (prodStr.length - 1 - t), ch: prodStr[t], kind: "aux", step });
+    steps.push({ text: `${qd} · ${B} = ${prod}. Schreibe ${prod} unter die ${cur}.`, focus: { r0: r, r1: r, c0: prodCol0, c1: i } });
+    step++;
+
+    // Schritt C: Subtrahieren – Strich ziehen und Rest ausrechnen
     const newRem = cur - prod;
-    // Rest unter den Strich, an Spalte i (mit ggf. heruntergeholter nächster Ziffer)
     const remStr = String(newRem);
-    let remRow = r + 1;
-    for (let t = 0; t < remStr.length; t++) {
-      const col = i - (remStr.length - 1 - t);
-      cells.push({ r: remRow, c: col, ch: remStr[t], kind: "aux", step });
-    }
-    // nächste Ziffer herunterholen (anzeigen neben dem Rest)
-    let downTxt = "";
+    const remRow = r + 1;
+    rules.push({ r: remRow, c0: prodCol0, c1: i, step });
+    for (let t = 0; t < remStr.length; t++) cells.push({ r: remRow, c: i - (remStr.length - 1 - t), ch: remStr[t], kind: "aux", step });
+    steps.push({ text: `Ziehe ab: ${cur} − ${prod} = ${newRem}.`, focus: { r0: r, r1: remRow, c0: prodCol0, c1: i } });
+    step++;
+
+    // Schritt D: nächste Ziffer herunterholen
     if (i < La - 1) {
       cells.push({ r: remRow, c: i + 1, ch: String(da[i + 1]), kind: "auxdown", step });
-      downTxt = ` Hole die ${da[i + 1]} herunter.`;
+      const next = newRem * 10 + da[i + 1];
+      steps.push({ text: `Hole die ${da[i + 1]} herunter. Weiter geht es mit ${next} : ${B}.`, focus: { r0: remRow, r1: remRow, c0: i - remStr.length + 1, c1: i + 1 } });
+      step++;
     }
-    steps.push({ text: `${cur} : ${B} = ${qd} (Rest ${newRem}). ${qd} · ${B} = ${prod}, ${cur} − ${prod} = ${newRem}.${downTxt}`, focus: { r0: r, r1: remRow, c0: Math.max(0, i - prodStr.length + 1), c1: i + (i < La - 1 ? 1 : 0) } });
     rem = newRem;
-    r = remRow + 1; step++;
+    r = remRow + 1;
   }
   if (remainder > 0) {
     steps.push({ text: `Es bleibt ein Rest von ${remainder}.`, focus: null });
