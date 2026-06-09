@@ -51,7 +51,20 @@ export const ZS_CSS = `
 
 .zs-scope .app { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
 
-/* Zahlen-Auswahl */
+/* Reiter: Zahlen / Großbuchstaben / Kleinbuchstaben */
+.zs-scope .zs-tabs { display: flex; gap: 6px; width: 100%; max-width: 520px; background: #fff; border-radius: 16px; padding: 5px; box-shadow: 0 4px 0 var(--soft); }
+.zs-scope .zs-tab {
+  flex: 1; font-family: inherit; font-weight: 600;
+  font-size: clamp(.95rem, 3.6vw, 1.1rem);
+  border: none; border-radius: 12px; padding: 11px 6px; cursor: pointer;
+  background: transparent; color: var(--ink);
+  transition: background .15s, color .15s, transform .08s;
+}
+.zs-scope .zs-tab:active { transform: translateY(1px); }
+.zs-scope .zs-tab.active { background: #006363; color: #fff; }
+.zs-scope .zs-tab:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Zahlen-/Buchstaben-Auswahl */
 .zs-scope .picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .zs-scope .num-btn {
   position: relative; overflow: visible;

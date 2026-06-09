@@ -67,9 +67,107 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
                   return [ cat(loop, line(sx,sy,sx-6,127)) ]; }
     }
   }
-  function getStrokes(n){
-    if(n<=9) return {w:100, strokes:baseStrokes(String(n))};
-    return {w:200, strokes: shift(baseStrokes('1'),-6).concat(shift(baseStrokes('0'),94))};
+  // ---------- Buchstaben-Glyphen: SVG-Pfade → Striche (Box 100 x 150) ----------
+  // Jeder Teilpfad (eigenes "M") wird ein eigener Strich mit eigener Startmarke.
+  const NS_SVG='http://www.w3.org/2000/svg';
+  const _glyphSvg=document.createElementNS(NS_SVG,'svg');
+  _glyphSvg.setAttribute('aria-hidden','true');
+  _glyphSvg.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;';
+  root.appendChild(_glyphSvg);
+  function pathToStrokes(d){
+    if(!d) return [];
+    const subs=d.split(/(?=[Mm])/).map(s=>s.trim()).filter(Boolean);
+    const out=[];
+    for(let sub of subs){
+      if(!/^[Mm]/.test(sub)) sub='M'+sub;
+      const p=document.createElementNS(NS_SVG,'path');
+      p.setAttribute('d',sub); _glyphSvg.appendChild(p);
+      let len=0; try{ len=p.getTotalLength(); }catch(e){ len=0; }
+      if(len<0.5){
+        const m=sub.match(/[Mm]\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/);
+        if(m) out.push([[+m[1],+m[2]]]);
+      } else {
+        const n=Math.max(2,Math.round(len/2.2)); const pts=[];
+        for(let i=0;i<=n;i++){ const pt=p.getPointAtLength(len*i/n); pts.push([pt.x,pt.y]); }
+        out.push(pts);
+      }
+      _glyphSvg.removeChild(p);
+    }
+    return out;
+  }
+
+  // Druckschrift-Buchstaben in kindgerechter Schreibrichtung. Großbuchstaben:
+  // Oberkante 26, Grundlinie 126. Kleinbuchstaben: x-Höhe 67, Grundlinie 126,
+  // Oberlängen bis 24, Unterlängen bis 150.
+  const GLYPH_PATHS={
+    A:'M28 126L50 26L72 126M37 88L63 88',
+    B:'M31 26L31 126M31 26L52 26Q70 26 70 50Q70 75 48 75L31 75M31 75L54 75Q72 75 72 100Q72 126 50 126L31 126',
+    C:'M70 50Q70 28 48 26Q26 26 26 76Q26 126 48 124Q70 122 70 100',
+    D:'M31 26L31 126M31 26L48 26Q72 26 72 76Q72 126 48 126L31 126',
+    E:'M33 26L33 126M33 26L70 26M33 76L62 76M33 126L70 126',
+    F:'M33 26L33 126M33 26L70 26M33 76L60 76',
+    G:'M70 50Q70 28 48 26Q26 26 26 76Q26 126 48 124Q70 122 70 100L70 82L54 82',
+    H:'M31 26L31 126M71 26L71 126M31 76L71 76',
+    I:'M38 26L62 26M50 26L50 126M38 126L62 126',
+    J:'M48 26L70 26M61 26L61 104Q61 126 43 126Q28 126 28 108',
+    K:'M32 26L32 126M68 28L34 78M40 72L70 126',
+    L:'M33 26L33 126L70 126',
+    M:'M26 126L26 26L50 88L74 26L74 126',
+    N:'M30 126L30 26L70 126L70 26',
+    O:'M50 26Q26 26 26 76Q26 126 50 126Q74 126 74 76Q74 26 50 26',
+    P:'M32 26L32 126M32 26L52 26Q72 26 72 51Q72 77 50 77L32 77',
+    Q:'M50 26Q26 26 26 76Q26 124 50 124Q74 124 74 76Q74 26 50 26M58 104L78 132',
+    R:'M32 26L32 126M32 26L52 26Q72 26 72 51Q72 77 50 77L32 77M50 77L72 126',
+    S:'M70 48Q70 26 48 26Q26 26 26 50Q26 72 50 76Q74 80 74 102Q74 126 50 126Q28 126 28 104',
+    T:'M28 27L72 27M50 27L50 126',
+    U:'M30 26L30 100Q30 126 50 126Q70 126 70 100L70 26',
+    V:'M28 26L50 126L72 26',
+    W:'M22 26L36 126L50 54L64 126L78 26',
+    X:'M30 26L70 126M70 26L30 126',
+    Y:'M30 26L50 80L70 26M50 80L50 126',
+    Z:'M30 27L70 27L30 126L70 126',
+    a:'M66 67L66 126M66 80Q54 67 42 67Q26 67 26 96Q26 126 42 126Q56 126 66 113',
+    b:'M30 24L30 126M30 80Q42 67 55 67Q72 67 72 96Q72 126 55 126Q40 126 30 113',
+    c:'M68 79Q58 67 46 67Q26 67 26 96Q26 126 46 126Q58 126 68 114',
+    d:'M70 24L70 126M70 80Q58 67 45 67Q28 67 28 96Q28 126 45 126Q60 126 70 113',
+    e:'M27 99L70 99Q70 67 48 67Q26 67 26 96Q26 126 48 126Q62 126 70 113',
+    f:'M64 31Q49 22 42 39L42 126M28 73L60 73',
+    g:'M68 80Q56 67 44 67Q26 67 26 95Q26 122 44 122Q62 122 68 110M68 67L68 133Q68 150 47 150Q31 150 29 137',
+    h:'M30 24L30 126M30 81Q41 67 53 67Q70 67 70 89L70 126',
+    i:'M50 71L50 126M50 53L50 57',
+    j:'M52 71L52 133Q52 150 35 150Q25 150 25 139M52 53L52 57',
+    k:'M32 24L32 126M64 71L36 99L66 126',
+    l:'M48 24L48 119Q48 127 58 126',
+    m:'M24 67L24 126M24 81Q32 67 41 67Q50 67 50 83L50 126M50 83Q58 67 67 67Q76 67 76 83L76 126',
+    n:'M30 67L30 126M30 81Q41 67 53 67Q70 67 70 89L70 126',
+    o:'M50 67Q28 67 28 96Q28 126 50 126Q72 126 72 96Q72 67 50 67',
+    p:'M30 67L30 150M30 80Q42 67 55 67Q72 67 72 96Q72 124 55 124Q40 124 30 111',
+    q:'M70 67L70 150M70 80Q58 67 45 67Q28 67 28 96Q28 124 45 124Q60 124 70 111',
+    r:'M32 67L32 126M32 83Q42 67 58 67Q66 67 70 72',
+    s:'M66 76Q66 67 48 67Q31 67 31 85Q31 98 50 99Q70 100 70 113Q70 126 50 126Q33 126 33 117',
+    t:'M44 41L44 114Q44 126 58 126M30 72L62 72',
+    u:'M30 67L30 108Q30 126 50 126Q66 126 70 111L70 67M70 67L70 126',
+    v:'M30 67L50 126L70 67',
+    w:'M24 67L36 126L50 82L64 126L76 67',
+    x:'M32 67L68 126M68 67L32 126',
+    y:'M30 67L50 117M70 67L44 150',
+    z:'M30 67L68 67L30 126L68 126',
+  };
+
+  // ---------- Modi / Zeichensätze ----------
+  const SETS={
+    zahlen:['1','2','3','4','5','6','7','8','9','10'],
+    gross:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+    klein:'abcdefghijklmnopqrstuvwxyz'.split(''),
+  };
+  let mode='zahlen';
+  const curSet=()=>SETS[mode];
+
+  function getStrokes(tok){
+    tok=String(tok);
+    if(tok==='10') return {w:200, strokes: shift(baseStrokes('1'),-6).concat(shift(baseStrokes('0'),94))};
+    if(/^[0-9]$/.test(tok)) return {w:100, strokes: baseStrokes(tok)};
+    return {w:100, strokes: pathToStrokes(GLYPH_PATHS[tok]||'')};
   }
 
   // ---------- Zustand ----------
@@ -116,10 +214,11 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   const DY=y=>offY+y*scale;
   const toDesign=(cx,cy)=>[(cx-offX)/scale,(cy-offY)/scale];
 
-  // ---------- Zahl laden ----------
-  function loadNumber(n){
-    current=n;
-    const g=getStrokes(n);
+  // ---------- Zeichen laden (Zahl oder Buchstabe) ----------
+  function loadItem(tok){
+    tok=String(tok);
+    current=tok;
+    const g=getStrokes(tok);
     design={w:g.w,h:150};
     strokes=g.strokes;
     samples=[];
@@ -127,8 +226,9 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
     visited=new Array(samples.length).fill(false);
     resetAttempt();
     [...root.querySelectorAll('.num-btn')].forEach(b=>{
-      b.classList.toggle('active', +b.dataset.n===n);
-      b.setAttribute('aria-pressed', +b.dataset.n===n);
+      const sel=b.dataset.n===tok;
+      b.classList.toggle('active', sel);
+      b.setAttribute('aria-pressed', sel);
     });
     resize();
   }
@@ -297,7 +397,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
     const offRatio = drawnTotal ? drawnBad/drawnTotal : 1;
 
     if(drawnTotal<12){
-      showToast(0,"Los geht's!","Fahre die Zahl von Anfang bis Ende nach.");
+      showToast(0,"Los geht's!","Fahre die Form von Anfang bis Ende nach.");
       return;
     }
     let score=0;
@@ -337,13 +437,13 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
         msg="Super gemacht! 👍";
         hint = offRatio>0.14
           ? "Fast perfekt – fahr für Grün noch genauer! 💚"
-          : "Fast! Erwisch die ganze Zahl für Grün. 💚";
+          : "Fast! Erwisch die ganze Form für Grün. 💚";
       }
       showToast(score,msg,hint);
       celebrate(); chime();
     } else {
       let msg, hint;
-      if(coverage<0.6){ msg="Fast! 🙂"; hint="Fahre die ganze Zahl nach – vom Start (grüner Punkt) bis zum Ende."; }
+      if(coverage<0.6){ msg="Fast! 🙂"; hint="Fahre die ganze Form nach – vom Start (grüner Punkt) bis zum Ende."; }
       else { msg="Gut versucht!"; hint="Du bist oft von der Straße abgekommen (rot). Bleib in der breiten Bahn."; }
       showToast(score,msg,hint);
     }
@@ -432,16 +532,17 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   }
   const progFill=root.querySelector('#progFill');
   const progText=root.querySelector('#progText');
-  function masteredCount(){ let c=0; for(let n=1;n<=10;n++) if(((progress[n]&&progress[n].level)||0)>=MAX_LEVEL) c++; return c; }
+  const KIND = ()=> mode==='zahlen' ? 'Zahl' : 'Buchstabe';
+  function masteredCount(){ let c=0; for(const tok of curSet()) if(((progress[tok]&&progress[tok].level)||0)>=MAX_LEVEL) c++; return c; }
   function updateSummary(){
-    const m=masteredCount();
-    if(progText) progText.textContent=m+'/10 gemeistert';
-    if(progFill) progFill.style.width=(m/10*100)+'%';
+    const m=masteredCount(), total=curSet().length;
+    if(progText) progText.textContent=m+'/'+total+' gemeistert';
+    if(progFill) progFill.style.width=(m/total*100)+'%';
   }
-  function paintButton(n){
-    const b=root.querySelector('.num-btn[data-n="'+n+'"]');
+  function paintButton(tok){
+    const b=root.querySelector('.num-btn[data-n="'+tok+'"]');
     if(!b) return;
-    const rec=progress[n]||{level:0,tone:'none'};
+    const rec=progress[tok]||{level:0,tone:'none'};
     b.classList.remove('s-red','s-yellow','s-green','mastered');
     if(rec.tone && rec.tone!=='none') b.classList.add('s-'+rec.tone);
     const mastered=(rec.level||0)>=MAX_LEVEL;
@@ -451,29 +552,61 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
       if(mastered || !(rec.level>0)){ pips.innerHTML=''; }
       else{ let h=''; for(let i=0;i<MAX_LEVEL;i++) h+='<i class="'+(i<rec.level?'on':'')+'"></i>'; pips.innerHTML=h; }
     }
-    const lbl = mastered            ? 'Zahl '+n+', gemeistert'
-              : rec.tone==='green'  ? 'Zahl '+n+', Stufe '+rec.level+' von '+MAX_LEVEL
-              : rec.tone==='yellow' ? 'Zahl '+n+', fast geschafft'
-              : rec.tone==='red'    ? 'Zahl '+n+', weiter üben'
-              : 'Zahl '+n;
+    const k=KIND();
+    const lbl = mastered            ? k+' '+tok+', gemeistert'
+              : rec.tone==='green'  ? k+' '+tok+', Stufe '+rec.level+' von '+MAX_LEVEL
+              : rec.tone==='yellow' ? k+' '+tok+', fast geschafft'
+              : rec.tone==='red'    ? k+' '+tok+', weiter üben'
+              : k+' '+tok;
     b.setAttribute('aria-label',lbl);
   }
-  function paintAll(){ for(let n=1;n<=10;n++) paintButton(n); }
+  function paintAll(){ for(const tok of curSet()) paintButton(tok); }
   function resetAllProgress(){
     for(const k in progress) delete progress[k];
     saveProgress(); paintAll(); updateSummary(); applyTol();
   }
 
-  // ---------- Buttons / Auswahl ----------
-  const picker=root.querySelector('#picker'); picker.innerHTML='';
-  for(let n=1;n<=10;n++){
-    const b=document.createElement('button');
-    b.className='num-btn'; b.dataset.n=n;
-    b.setAttribute('aria-pressed','false');
-    b.innerHTML='<span class="nf">'+n+'</span><span class="pips" aria-hidden="true"></span><span class="chk" aria-hidden="true">✓</span>';
-    on(b,'click',()=>loadNumber(n));
-    picker.appendChild(b);
+  // ---------- Auswahl-Felder (je nach Modus) ----------
+  const picker=root.querySelector('#picker');
+  function buildPicker(){
+    picker.innerHTML='';
+    for(const tok of curSet()){
+      const b=document.createElement('button');
+      b.className='num-btn'; b.dataset.n=tok;
+      b.setAttribute('aria-pressed','false');
+      b.innerHTML='<span class="nf">'+tok+'</span><span class="pips" aria-hidden="true"></span><span class="chk" aria-hidden="true">✓</span>';
+      on(b,'click',()=>loadItem(tok));
+      picker.appendChild(b);
+    }
   }
+
+  // ---------- Reiter: Zahlen / Großbuchstaben / Kleinbuchstaben ----------
+  const TABS=[['zahlen','Zahlen'],['gross','ABC'],['klein','abc']];
+  function buildTabs(){
+    const t=root.querySelector('#modeTabs'); if(!t) return;
+    t.innerHTML='';
+    for(const [m,label] of TABS){
+      const b=document.createElement('button');
+      const sel=m===mode;
+      b.className='zs-tab'+(sel?' active':''); b.type='button';
+      b.dataset.mode=m; b.setAttribute('role','tab'); b.setAttribute('aria-selected', sel?'true':'false');
+      b.textContent=label;
+      on(b,'click',()=>setMode(m));
+      t.appendChild(b);
+    }
+  }
+  function setMode(m){
+    if(m===mode || !SETS[m]) return;
+    mode=m;
+    [...root.querySelectorAll('.zs-tab')].forEach(b=>{
+      const sel=b.dataset.mode===m;
+      b.classList.toggle('active',sel);
+      b.setAttribute('aria-selected', sel?'true':'false');
+    });
+    buildPicker(); paintAll(); updateSummary();
+    loadItem(curSet()[0]);
+  }
+
   on(root.querySelector('#btnClear'),'click',resetAttempt);
   on(root.querySelector('#btnShow'),'click',showDemo);
   on(root.querySelector('#btnCheck'),'click',check);
@@ -482,21 +615,25 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   });
   const btnReset=root.querySelector('#btnResetAll');
   if(btnReset) on(btnReset,'click',()=>{
-    if(confirm('Fortschritt aller Zahlen löschen und für ein neues Kind neu starten?')) resetAllProgress();
+    if(confirm('Fortschritt aller Zahlen und Buchstaben löschen und für ein neues Kind neu starten?')) resetAllProgress();
   });
 
   on(window,'resize',resize);
   // Init
   baseTol=+root.querySelector('#tol').value || 12;
   loadProgress();
+  buildTabs();
+  buildPicker();
   paintAll();
   updateSummary();
-  loadNumber(1);
+  loadItem(curSet()[0]);
 
   return function cleanup(){
     destroyed=true;
     offs.forEach(f=>{ try{f();}catch(e){} });
     try{ const pk=root.querySelector('#picker'); if(pk) pk.innerHTML=''; }catch(e){}
+    try{ const tb=root.querySelector('#modeTabs'); if(tb) tb.innerHTML=''; }catch(e){}
     try{ const cf=root.querySelector('#conf'); if(cf) cf.innerHTML=''; }catch(e){}
+    try{ if(_glyphSvg && _glyphSvg.parentNode) _glyphSvg.parentNode.removeChild(_glyphSvg); }catch(e){}
   };
 }

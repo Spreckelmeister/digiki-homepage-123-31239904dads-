@@ -82,9 +82,11 @@ export default function ZahlenStrasseApp() {
         {fullscreen ? "⤡ Beenden" : "⛶ Vollbild"}
       </button>
 
-      <p className="sub">Fahre die Zahl nach – bleib auf der Straße! 🚗</p>
+      <p className="sub">Fahre nach – bleib auf der Straße! 🚗</p>
 
       <div className="app">
+        <div className="zs-tabs" id="modeTabs" role="tablist" aria-label="Übungsart" />
+
         <div className="topbar">
           <div className="prog">
             <div className="prog-track">
@@ -142,11 +144,13 @@ export default function ZahlenStrasseApp() {
         </div>
 
         <p className="help">
-          Für die Lehrkraft: Der Regler legt die Start-Breite der Straße fest. Nach
-          „✓ Prüfen" färbt sich die Zahl: 🟥 viel daneben · 🟨 fast · 🟩 richtig.
-          Jedes „Perfekt" macht die Straße eine Stufe schmaler (●●●) – nach drei
-          Stufen ist die Zahl gemeistert ✓ und oben abgehakt. „Neues Kind" setzt
-          den Fortschritt zurück.
+          Oben umschalten zwischen <strong>Zahlen</strong>, <strong>Großbuchstaben (ABC)</strong>{" "}
+          und <strong>Kleinbuchstaben (abc)</strong> – jeder Bereich hat seinen eigenen
+          Fortschritt. Für die Lehrkraft: Der Regler legt die Start-Breite der Straße
+          fest. Nach „✓ Prüfen" färbt sich das Feld: 🟥 viel daneben · 🟨 fast · 🟩
+          richtig. Jedes „Perfekt" macht die Straße eine Stufe schmaler (●●●) – nach
+          drei Stufen ist das Zeichen gemeistert ✓ und oben abgehakt. „Neues Kind"
+          setzt den Fortschritt zurück.
         </p>
       </div>
 
