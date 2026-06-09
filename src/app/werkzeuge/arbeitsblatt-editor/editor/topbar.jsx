@@ -38,7 +38,7 @@ function BrandMark() {
   );
 }
 
-function TopBar({ doc, onTitle, undo, redo, canUndo, canRedo, zoom, setZoom, grid, setGrid, onOpenKI, onPrint, saved, solutions, onToggleSolutions, preview, setPreview, onNew, onOpen, onSave, onExportHTML, onToggleLeft, onToggleRight }) {
+function TopBar({ doc, onTitle, undo, redo, canUndo, canRedo, zoom, setZoom, grid, setGrid, onOpenKI, onPrint, saved, solutions, onToggleSolutions, preview, setPreview, onNew, onOpen, onSave, onExportHTML, onToggleLeft, onToggleRight, fullscreen, onToggleFullscreen }) {
   return (
     <header className="abe-topbar" style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 56, padding: "8px 14px", background: "#fff", borderBottom: "1px solid var(--line)", zIndex: 30 }}>
       {/* Mobile/Tablet: Schubladen-Schalter (auf Desktop ausgeblendet) */}
@@ -83,6 +83,8 @@ function TopBar({ doc, onTitle, undo, redo, canUndo, canRedo, zoom, setZoom, gri
       </div>
 
       <button className={"icon-btn" + (grid ? " active" : "")} data-tip="Raster" onClick={() => setGrid(g => !g)}><Icon name="grid" size={17} /></button>
+
+      <button className={"icon-btn" + (fullscreen ? " active" : "")} data-tip={fullscreen ? "Vollbild verlassen" : "Vollbild"} aria-label={fullscreen ? "Vollbild verlassen" : "Vollbild"} aria-pressed={fullscreen} onClick={onToggleFullscreen}><Icon name={fullscreen ? "compress" : "expand"} size={18} /></button>
 
       <div style={{ width: 1, height: 26, background: "var(--line)" }} />
 

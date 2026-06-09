@@ -128,6 +128,30 @@ export default function App() {
   const hist = useRef({ past: [], future: [] });
   const pageRef = useRef(null);
   const canvasRef = useRef(null);
+  const scopeRef = useRef(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // ---- Vollbild (Fullscreen-API) für mehr Arbeitsfläche ----
+  const toggleFullscreen = () => {
+    const el = scopeRef.current; if (!el) return;
+    const doc = document;
+    if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) { try { const p = req.call(el); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    } else {
+      const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
+      if (exit) { try { exit.call(doc); } catch (e) {} }
+    }
+  };
+  useEffect(() => {
+    const onFs = () => setFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs);
+    };
+  }, []);
 
   // ---- Auf schmalen Geräten die A4-Seite initial einpassen ----
   useEffect(() => {
@@ -359,7 +383,7 @@ export default function App() {
   };
 
   return (
-    <div className="abe-scope">
+    <div className="abe-scope" ref={scopeRef}>
       <style dangerouslySetInnerHTML={{ __html: EDITOR_CSS }} />
       <div className={"app" + (preview ? " preview" : "")}>
       <TopBar doc={doc} onTitle={v => commit(p => ({ ...p, title: v }), false)} undo={undo} redo={redo}
@@ -368,7 +392,8 @@ export default function App() {
         solutions={!!doc.showSolutions} onToggleSolutions={toggleSolutions} preview={preview} setPreview={setPreview}
         onNew={onNew} onOpen={onOpen} onSave={onSave} onExportHTML={exportInteractive}
         onToggleLeft={() => { setLeftOpen(v => !v); setRightOpen(false); }}
-        onToggleRight={() => { setRightOpen(v => !v); setLeftOpen(false); }} />
+        onToggleRight={() => { setRightOpen(v => !v); setLeftOpen(false); }}
+        fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} />
 
       {preview && (
         <button onClick={() => setPreview(false)}

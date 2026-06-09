@@ -122,6 +122,12 @@ export const EDITOR_CSS = `
   position: relative;
 }
 
+/* Vollbild – Editor füllt den ganzen Bildschirm, Karte wird randlos */
+.abe-scope:fullscreen { width: 100vw; height: 100vh; background: var(--bg); padding: 0; overflow: hidden; }
+.abe-scope:fullscreen .app { height: 100vh; border: none; border-radius: 0; box-shadow: none; }
+.abe-scope:-webkit-full-screen { width: 100vw; height: 100vh; background: var(--bg); padding: 0; overflow: hidden; }
+.abe-scope:-webkit-full-screen .app { height: 100vh; border: none; border-radius: 0; box-shadow: none; }
+
 /* Generic helpers */
 .abe-scope .row { display: flex; align-items: center; }
 .abe-scope .col { display: flex; flex-direction: column; }
