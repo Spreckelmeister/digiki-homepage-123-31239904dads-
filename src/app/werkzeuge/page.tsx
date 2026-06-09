@@ -29,6 +29,7 @@ import {
   NotebookPen,
   Lock,
   Route,
+  Calculator,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import AdminOnly from "@/components/AdminOnly";
@@ -121,6 +122,16 @@ const categories: Category[] = [
         title: "Zahlen-Straße",
         description:
           "Die Ziffern 1–10 spielerisch nachfahren – am Tablet oder Smartboard. Mit Stufen, Fortschritt und sofortiger Rückmeldung.",
+        available: true,
+        adminOnly: true,
+      },
+      {
+        href: "/werkzeuge/schriftliches-rechnen",
+        eyebrow: "WZ-020",
+        icon: <Calculator className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Schriftliches Rechnen",
+        description:
+          "Addition, Subtraktion, Multiplikation und Division Schritt für Schritt animiert am Smartboard – mit Arbeitsblatt zum Ausdrucken.",
         available: true,
         adminOnly: true,
       },
