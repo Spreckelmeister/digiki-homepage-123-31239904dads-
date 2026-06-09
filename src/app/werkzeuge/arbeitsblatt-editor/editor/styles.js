@@ -277,7 +277,9 @@ export const EDITOR_CSS = `
    Print: nur das Arbeitsblatt, ohne Website- & Editor-Chrome
    ============================================================ */
 @media print {
-  @page { size: A4; margin: 14mm; }
+  /* margin:0 → randloses A4; die Seiten-Ränder kommen aus dem Blatt-Padding
+     selbst. Unterdrückt zugleich die Browser-Kopf-/Fußzeilen (URL, Datum). */
+  @page { size: A4; margin: 0; }
   /* globale Fixed-Overlays (Cookie-Banner, Bewertungs-FAB …) ausblenden */
   .fixed { display: none !important; }
   .abe-scope .app { display: block !important; height: auto !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
@@ -285,35 +287,8 @@ export const EDITOR_CSS = `
   .abe-scope .app-body { display: block !important; }
   .abe-scope .canvas-area { overflow: visible !important; padding: 0 !important; display: block !important; }
   .abe-scope .canvas-stack, .abe-scope .page-scale-wrap, .abe-scope .page-stack, .abe-scope .page-sheet-wrap { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; display: block !important; gap: 0 !important; }
-  /* Jedes Blatt beginnt eine neue Druckseite */
-  .abe-scope .page-sheet-wrap + .page-sheet-wrap { break-before: page; page-break-before: always; }
-  .abe-scope .ws-page { transform: none !important; width: 100% !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; background-image: none !important; border: none !important; border-radius: 0 !important; }
-  .abe-scope .ws-page.framed { padding: 8mm !important; }
-  .abe-scope .ws-block { outline: none !important; margin: 0 0 8px !important; break-inside: avoid; }
-  .abe-scope .ws-footer { break-inside: avoid; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .abe-scope .pop, .abe-scope .ki-dots, .abe-scope .rail, .abe-scope .rail-backdrop { animation: none !important; transition: none !important; }
-}
-`;
-
-/* ============================================================
-   Einseitiger Druck: Wenn der Editor das Blatt als EINE Seite
-   zählt, wird genau die Editor-Geometrie (794px Breite, gleiches
-   Padding) auf exakt eine A4-Seite gedruckt – `@page margin:0`,
-   Höhe auf eine A4-Seite (1122px @96dpi ≈ 297mm) geklemmt.
-   So gilt: eine Seite im Editor = eine Seite im Druck.
-   Wird in App.jsx nur bei Bedarf zur Laufzeit injiziert und nach
-   dem Druck wieder entfernt; landet als letztes <style> im <body>,
-   damit es die generischen Print-Regeln überschreibt.
-   ============================================================ */
-export const SINGLE_PAGE_PRINT_CSS = `
-@media print {
-  @page { size: A4; margin: 0; }
-  .abe-scope .canvas-area { overflow: hidden !important; padding: 0 !important; display: block !important; }
-  .abe-scope .canvas-stack, .abe-scope .page-scale-wrap, .abe-scope .page-stack, .abe-scope .page-sheet-wrap { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; display: block !important; gap: 0 !important; }
-  .abe-scope .page-sheet-meta, .abe-scope .abe-removepage { display: none !important; }
+  /* Jedes Blatt = exakt eine A4-Seite in 1:1-Editor-Geometrie (WYSIWYG):
+     794px Breite (=210mm), gleiches Padding, auf eine A4-Höhe geklemmt. */
   .abe-scope .ws-page {
     width: 794px !important;
     height: 1122px !important;
@@ -326,8 +301,16 @@ export const SINGLE_PAGE_PRINT_CSS = `
     border-radius: 0 !important;
     overflow: hidden !important;
     background-image: none !important;
+    break-inside: avoid;
   }
+  /* Jedes weitere Blatt beginnt auf einer neuen Druckseite */
+  .abe-scope .page-sheet-wrap:not(:first-child) .ws-page { break-before: page; page-break-before: always; }
   .abe-scope .ws-page.framed { padding: 54px 56px !important; }
-  .abe-scope .ws-block { break-inside: avoid; outline: none !important; }
+  .abe-scope .ws-block { outline: none !important; margin: 0 0 8px !important; break-inside: avoid; }
+  .abe-scope .ws-footer { break-inside: avoid; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .abe-scope .pop, .abe-scope .ki-dots, .abe-scope .rail, .abe-scope .rail-backdrop { animation: none !important; transition: none !important; }
 }
 `;

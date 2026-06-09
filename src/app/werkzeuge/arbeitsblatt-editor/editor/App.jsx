@@ -10,7 +10,7 @@ import { TopBar } from "./topbar";
 import { LeftRail } from "./leftrail";
 import { RightRail } from "./rightrail";
 import { KIModal } from "./ki";
-import { EDITOR_CSS, SINGLE_PAGE_PRINT_CSS } from "./styles";
+import { EDITOR_CSS } from "./styles";
 
 /* ============================================================
    Main app — state, history, canvas, assembly
@@ -349,36 +349,13 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selId, ki]);
 
-  // Liefert 1, wenn das Dokument aus genau EINEM Blatt besteht, das auch
-  // wirklich auf eine A4-Seite passt – nur dann wird beim Druck exakt auf
-  // eine Seite geklemmt. Mehrere Blätter oder ein übervolles Blatt → >1.
-  const measurePages = () => {
-    if (pages.length > 1) return pages.length;
-    const el = pageRef.current; if (!el) return 1;
-    const usable = (doc.frame && doc.frame !== "none") ? 958 : 1015;
-    // Transform liegt auf .page-stack → scrollHeight des Blattes ist unskaliert.
-    return (el.scrollHeight - 108) > usable + 2 ? 2 : 1;
-  };
-
-  // Druck: nur das Arbeitsblatt zeigen (Website- & Editor-Chrome per CSS
-  // ausblenden). Passt der Inhalt im Editor auf EINE Seite, wird die Editor-
-  // Geometrie 1:1 auf genau eine A4-Seite gedruckt (kein Überlauf auf Seite 2).
+  // Druck: nur die Arbeitsblätter zeigen (Website- & Editor-Chrome per CSS
+  // ausblenden). Jedes Blatt wird 1:1 in Editor-Geometrie auf genau eine
+  // A4-Seite gedruckt – Editor-Seite N = PDF-Seite N (siehe @media print).
   const onPrint = () => {
     const body = document.body;
     body.classList.add("abe-printing");
-    let dyn = null;
-    try {
-      if (measurePages() === 1) {
-        dyn = document.createElement("style");
-        dyn.setAttribute("data-abe-single-page", "");
-        dyn.textContent = SINGLE_PAGE_PRINT_CSS;
-        body.appendChild(dyn); // als letztes <style> → überschreibt generische Print-Regeln
-      }
-    } catch (e) {}
-    const done = () => {
-      body.classList.remove("abe-printing");
-      if (dyn && dyn.parentNode) dyn.parentNode.removeChild(dyn);
-    };
+    const done = () => body.classList.remove("abe-printing");
     window.addEventListener("afterprint", done, { once: true });
     window.print();
     setTimeout(done, 1500);
@@ -420,7 +397,7 @@ export default function App() {
           <div className="canvas-stack" style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 794 * zoom, maxWidth: "100%", minHeight: "100%" }}>
             {/* Ein Transform skaliert den ganzen Seitenstapel; der Wrapper trägt die sichtbare (skalierte) Größe. */}
             <div className="page-scale-wrap" style={{ width: 794 * zoom, height: (stackRef.current ? stackRef.current.offsetHeight : 1123) * zoom, flexShrink: 0 }}>
-              <div ref={stackRef} className="page-stack" style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top center", display: "flex", flexDirection: "column", alignItems: "center", gap: 34 }}>
+              <div ref={stackRef} className="page-stack" style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top left", display: "flex", flexDirection: "column", alignItems: "center", gap: 34 }}>
                 {pages.map((pg, pi) => (
                   <div key={pi} className="page-sheet-wrap" style={{ position: "relative", width: 794, flexShrink: 0 }}>
                     <div className="page-sheet-meta">Seite {pi + 1} / {pages.length}</div>
