@@ -302,7 +302,7 @@ import { Icon } from "./icons";
     const sz = block.size || 24;
     const rowStyle = { display: "flex", alignItems: "center", gap: 8, fontSize: sz, fontFamily: "var(--ui)", fontWeight: 600, color: "var(--ink)" };
     const blank = (val, w) => (
-      <span data-answer={val} style={{ display: "inline-block", width: w || 46, borderBottom: "2px solid var(--ink-soft)", height: sz * 0.9, textAlign: "center", fontWeight: 700, color: show ? "var(--sol)" : "transparent" }}>{val}</span>
+      <span data-answer={val} style={{ display: "inline-flex", alignItems: "flex-end", justifyContent: "center", width: w || 46, height: sz * 1.15, lineHeight: 1, paddingBottom: 2, borderBottom: "2px solid var(--ink-soft)", textAlign: "center", fontWeight: 700, color: show ? "var(--sol)" : "transparent" }}>{val}</span>
     );
     const box = (val) => (
       <span data-answer={val} style={{ display: "inline-flex", width: sz * 1.5, height: sz * 1.5, border: "2px solid var(--ink-soft)", borderRadius: 8, alignItems: "center", justifyContent: "center", fontWeight: 800, color: show ? "var(--sol)" : "transparent" }}>{val}</span>

@@ -266,3 +266,36 @@ export const EDITOR_CSS = `
   .abe-scope .pop, .abe-scope .ki-dots, .abe-scope .rail, .abe-scope .rail-backdrop { animation: none !important; transition: none !important; }
 }
 `;
+
+/* ============================================================
+   Einseitiger Druck: Wenn der Editor das Blatt als EINE Seite
+   zählt, wird genau die Editor-Geometrie (794px Breite, gleiches
+   Padding) auf exakt eine A4-Seite gedruckt – `@page margin:0`,
+   Höhe auf eine A4-Seite (1122px @96dpi ≈ 297mm) geklemmt.
+   So gilt: eine Seite im Editor = eine Seite im Druck.
+   Wird in App.jsx nur bei Bedarf zur Laufzeit injiziert und nach
+   dem Druck wieder entfernt; landet als letztes <style> im <body>,
+   damit es die generischen Print-Regeln überschreibt.
+   ============================================================ */
+export const SINGLE_PAGE_PRINT_CSS = `
+@media print {
+  @page { size: A4; margin: 0; }
+  .abe-scope .canvas-area { overflow: hidden !important; padding: 0 !important; display: block !important; }
+  .abe-scope .page-pad { width: auto !important; }
+  .abe-scope .ws-page {
+    width: 794px !important;
+    height: 1122px !important;
+    min-height: 1122px !important;
+    max-height: 1122px !important;
+    padding: 54px 56px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    background-image: none !important;
+  }
+  .abe-scope .ws-page.framed { padding: 54px 56px !important; }
+  .abe-scope .ws-block { break-inside: avoid; outline: none !important; }
+}
+`;

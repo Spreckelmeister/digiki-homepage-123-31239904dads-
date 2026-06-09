@@ -10,7 +10,7 @@ import { TopBar } from "./topbar";
 import { LeftRail } from "./leftrail";
 import { RightRail } from "./rightrail";
 import { KIModal } from "./ki";
-import { EDITOR_CSS } from "./styles";
+import { EDITOR_CSS, SINGLE_PAGE_PRINT_CSS } from "./styles";
 
 /* ============================================================
    Main app — state, history, canvas, assembly
@@ -303,11 +303,48 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selId, ki]);
 
-  // Druck: nur das Arbeitsblatt zeigen (Website- & Editor-Chrome per CSS ausblenden)
+  // Zählt, auf wie viele A4-Seiten der Inhalt fällt – identische Logik wie
+  // die Seitengrenzen-Anzeige im Canvas, damit Editor-Ansicht und Druck
+  // dieselbe Seitenzahl ergeben.
+  const measurePages = () => {
+    const el = pageRef.current; if (!el) return 1;
+    const PADT = 54;
+    const PAGE = (doc.frame && doc.frame !== "none") ? 958 : 1015;
+    const pr = el.getBoundingClientRect(); const z = zoom || 1;
+    const kids = [].slice.call(el.querySelectorAll(":scope > .ws-block, :scope > .ws-footer"));
+    let pageStart = 0, page = 1, lastBottom = PADT;
+    kids.forEach(k => {
+      const r = k.getBoundingClientRect();
+      const topRect = (r.top - pr.top) / z;
+      const top = topRect - PADT;
+      const h = r.height / z;
+      const brk = () => { page++; pageStart = top; };
+      if (k.classList.contains("pagebreak-block")) { if (top > pageStart + 0.5) brk(); }
+      else if (top > pageStart + 0.5 && (top + h) - pageStart > PAGE) brk();
+      lastBottom = topRect + h;
+    });
+    return page;
+  };
+
+  // Druck: nur das Arbeitsblatt zeigen (Website- & Editor-Chrome per CSS
+  // ausblenden). Passt der Inhalt im Editor auf EINE Seite, wird die Editor-
+  // Geometrie 1:1 auf genau eine A4-Seite gedruckt (kein Überlauf auf Seite 2).
   const onPrint = () => {
     const body = document.body;
     body.classList.add("abe-printing");
-    const done = () => body.classList.remove("abe-printing");
+    let dyn = null;
+    try {
+      if (measurePages() === 1) {
+        dyn = document.createElement("style");
+        dyn.setAttribute("data-abe-single-page", "");
+        dyn.textContent = SINGLE_PAGE_PRINT_CSS;
+        body.appendChild(dyn); // als letztes <style> → überschreibt generische Print-Regeln
+      }
+    } catch (e) {}
+    const done = () => {
+      body.classList.remove("abe-printing");
+      if (dyn && dyn.parentNode) dyn.parentNode.removeChild(dyn);
+    };
     window.addEventListener("afterprint", done, { once: true });
     window.print();
     setTimeout(done, 1500);
