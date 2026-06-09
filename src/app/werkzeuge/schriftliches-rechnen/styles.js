@@ -72,6 +72,11 @@ export const SR_CSS = `
   align-items: flex-start; justify-content: center; padding-top: 2px;
   font-size: calc(var(--sr-cell) * 0.34); color: var(--gold-deep); font-weight: 800;
 }
+/* Subtraktions-Übertrag: klein UNTEN am Subtrahenden */
+.sr-scope .sr-cell.k-subborrow {
+  align-items: flex-end; justify-content: center; padding-bottom: 1px;
+  font-size: calc(var(--sr-cell) * 0.32); color: var(--gold-deep); font-weight: 800; line-height: 1;
+}
 /* „Schreib“-Einblendung der frisch erscheinenden Ziffer */
 .sr-scope .sr-cell.appear { animation: sr-write .55s cubic-bezier(.2,.9,.3,1.2) both; }
 @keyframes sr-write {

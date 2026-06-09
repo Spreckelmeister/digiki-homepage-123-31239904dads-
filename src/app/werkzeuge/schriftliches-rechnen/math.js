@@ -51,44 +51,56 @@ function buildAdd(a, b) {
   return { op: "+", a: A, b: B, result: String(Number(a) + Number(b)), cols, rows: 4, cells, rules, steps };
 }
 
-// ---------------- Subtraktion (Ergänzungsverfahren / Auffülltechnik) ----------------
+// ---------------- Subtraktion (Abziehverfahren mit Erweitern) ----------------
+// „3 − 8 geht nicht → 13 − 8 = 5, Übertrag 1“. Der Übertrag wird klein UNTER
+// die nächste untere Zahl (Subtrahend) geschrieben.
 function buildSub(a, b) {
   const A = String(a), B = String(b);
   const W = Math.max(A.length, B.length);
   const da = A.padStart(W, "0").split("").map(Number);
   const db = B.padStart(W, "0").split("").map(Number);
-  const res = []; let borrow = 0; const borrowAt = new Array(W + 1).fill(0);
-  for (let p = 0; p < W; p++) {
-    const i = W - 1 - p;
-    const sub = db[i] + borrow;
-    const m = da[i];
-    let diff, bout;
-    if (m >= sub) { diff = m - sub; bout = 0; }
-    else { diff = m + 10 - sub; bout = 1; }
-    res[p] = diff; borrow = bout; borrowAt[p + 1] = bout;
-  }
   const cols = 1 + W;
   const colOf = (p) => cols - 1 - p;
   const cells = [], rules = [], steps = [];
-  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 1, c: colOf(p), ch: String(da[i]), kind: "op", step: 0 }); }
-  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 2, c: colOf(p), ch: String(db[i]), kind: "op", step: 0 }); }
-  cells.push({ r: 2, c: 0, ch: "−", kind: "oper", step: 0 });
-  rules.push({ r: 3, c0: 0, c1: cols - 1, step: 0 });
-  let step = 1;
+  // Zeilen: 0 = Minuend (oben), 1 = Subtrahend (unten) + „−“, Strich r2, 2 = Ergebnis
+  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 0, c: colOf(p), ch: String(da[i]), kind: "op", step: 0 }); }
+  for (let p = 0; p < W; p++) { const i = W - 1 - p; cells.push({ r: 1, c: colOf(p), ch: String(db[i]), kind: "op", step: 0 }); }
+  cells.push({ r: 1, c: 0, ch: "−", kind: "oper", step: 0 });
+  rules.push({ r: 2, c0: 0, c1: cols - 1, step: 0 });
+  let step = 1, borrow = 0;
   for (let p = 0; p < W; p++) {
     const i = W - 1 - p;
-    const carryIn = borrowAt[p];
-    const sub = db[i] + carryIn;
+    const carryIn = borrow;
+    const effSub = db[i] + carryIn;           // untere Zahl + evtl. Übertrag
     const m = da[i];
-    const target = m >= sub ? m : m + 10;
-    cells.push({ r: 3, c: colOf(p), ch: String(res[p]), kind: "res", step });
-    if (borrowAt[p + 1] > 0) cells.push({ r: 0, c: colOf(p + 1), ch: "1", kind: "borrow", sup: true, step });
-    const inTxt = carryIn > 0 ? ` (mit gemerkter 1: ${db[i]} + 1 = ${sub})` : "";
-    const outTxt = borrowAt[p + 1] > 0 ? ` Schreibe ${res[p]}, merke 1.` : ` Schreibe ${res[p]}.`;
-    steps.push({ text: `${PLACE[p]}: ${sub}${inTxt} plus ${res[p]} ist ${target}.${outTxt}`, focus: { r0: 0, r1: 3, c0: colOf(p), c1: colOf(p) } });
-    step++;
+    const col = colOf(p);
+    const subTxt = carryIn > 0 ? `${db[i]} + 1 = ${effSub}` : `${effSub}`;
+    const fcol = { r0: 0, r1: 2, c0: col, c1: col };
+    if (m >= effSub) {
+      // passt – ein Schritt
+      const diff = m - effSub;
+      cells.push({ r: 2, c: col, ch: String(diff), kind: "res", step });
+      const inTxt = carryIn > 0 ? ` (untere Zahl: ${subTxt})` : "";
+      steps.push({ text: `${PLACE[p]}: ${m} − ${effSub}${inTxt} = ${diff}. Schreibe ${diff}.`, focus: fcol });
+      step++;
+      borrow = 0;
+    } else {
+      // geht nicht → 3 Schritte
+      const diff = m + 10 - effSub;
+      const inTxt = carryIn > 0 ? ` (untere Zahl ist ${subTxt})` : "";
+      steps.push({ text: `${PLACE[p]}: ${m} − ${effSub}${inTxt} geht nicht – ${m} ist kleiner als ${effSub}.`, focus: fcol });
+      step++;
+      cells.push({ r: 2, c: col, ch: String(diff), kind: "res", step });
+      steps.push({ text: `Wir holen uns 10 dazu: ${m + 10} − ${effSub} = ${diff}. Schreibe ${diff}.`, focus: fcol });
+      step++;
+      // Übertrag 1 klein unter die nächste untere Zahl
+      if (p + 1 < W) cells.push({ r: 1, c: colOf(p + 1), ch: "1", kind: "subborrow", step });
+      steps.push({ text: `Dafür merken wir uns 1 Übertrag und schreiben ihn klein unter die nächste untere Zahl.`, focus: { r0: 1, r1: 1, c0: colOf(p + 1), c1: colOf(p + 1) } });
+      step++;
+      borrow = 1;
+    }
   }
-  return { op: "−", a: A, b: B, result: String(Number(a) - Number(b)), cols, rows: 4, cells, rules, steps };
+  return { op: "−", a: A, b: B, result: String(Number(a) - Number(b)), cols, rows: 3, cells, rules, steps };
 }
 
 // ---------------- Multiplikation (schriftlich, mit Stellenwert-Teilprodukten) ----------------
