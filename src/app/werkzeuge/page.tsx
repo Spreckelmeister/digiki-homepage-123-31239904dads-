@@ -28,6 +28,7 @@ import {
   Cloud,
   NotebookPen,
   Lock,
+  Route,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import AdminOnly from "@/components/AdminOnly";
@@ -112,6 +113,16 @@ const categories: Category[] = [
         description:
           "Namen aus der Klassenliste zufällig aufrufen oder in Gruppen einteilen. Listen bleiben auf Ihrem Gerät.",
         available: true,
+      },
+      {
+        href: "/werkzeuge/zahlen-strasse",
+        eyebrow: "WZ-019",
+        icon: <Route className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Zahlen-Straße",
+        description:
+          "Die Ziffern 1–10 spielerisch nachfahren – am Tablet oder Smartboard. Mit Stufen, Fortschritt und sofortiger Rückmeldung.",
+        available: true,
+        adminOnly: true,
       },
     ],
   },
