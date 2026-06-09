@@ -286,7 +286,11 @@ export default function LueckentextApp() {
       <style>{`
         @media print {
           @page { margin: 16mm; }
-          html, body { background: #fff !important; }
+          /* Das globale Body hat min-h-screen (100vh = volle A4-Höhe). Bei
+             16mm Seitenrand ist der bedruckbare Bereich kleiner als 100vh –
+             die erzwungene Mindesthöhe würde sonst eine leere Folgeseite
+             erzeugen. Daher im Druck auf Inhaltshöhe zurücksetzen. */
+          html, body { background: #fff !important; min-height: 0 !important; height: auto !important; }
           body > header, body > footer, .skip-link { display: none !important; }
         }
       `}</style>
