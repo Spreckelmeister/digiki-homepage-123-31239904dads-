@@ -53,11 +53,20 @@ export default function SchriftlichesRechnenApp() {
   const [fullscreen, setFullscreen] = useState(false);
   const [ws, setWs] = useState<{ a: number; b: number; r: string }[] | null>(null);
 
-  const sol = useMemo(() => buildSolution(op, pair[0], pair[1]), [op, pair]);
+  const sol = useMemo(() => {
+    try { return buildSolution(op, pair[0], pair[1]); }
+    catch { return buildSolution("+", 0, 0); }   // Schutz: niemals hart abstürzen
+  }, [op, pair]);
   const N = sol.steps.length;
 
-  // Bei neuer Aufgabe: zurück auf Anfang
-  useEffect(() => { setPhase(0); setPlaying(false); }, [sol]);
+  // Bei neuer Aufgabe SOFORT (noch im Render) zurücksetzen – sonst würde ein
+  // Render mit veraltetem (zu großem) phase-Wert auf sol.steps[phase-1] zugreifen
+  // und die Seite zum Absturz bringen.
+  const [solKey, setSolKey] = useState(sol);
+  if (solKey !== sol) { setSolKey(sol); setPhase(0); setPlaying(false); }
+
+  // phase zusätzlich defensiv auf den gültigen Bereich klemmen
+  const ph = Math.min(Math.max(0, phase), N);
 
   // Auto-Abspielen
   useEffect(() => {
@@ -75,12 +84,12 @@ export default function SchriftlichesRechnenApp() {
     return () => { document.body.style.overflow = pb; document.documentElement.style.overflow = ph; };
   }, [fullscreen]);
 
-  const focus = phase >= 1 ? sol.steps[phase - 1].focus : null;
-  const explainText = phase === 0
+  const focus = ph >= 1 && sol.steps[ph - 1] ? sol.steps[ph - 1].focus : null;
+  const explainText = ph === 0
     ? "Schau dir die Aufgabe an. Tippe auf ▶ Abspielen – dann rechnen wir Schritt für Schritt."
-    : phase >= N
+    : ph >= N
       ? `Fertig! ${sol.a} ${op} ${sol.b} = ${sol.result}.`
-      : sol.steps[phase - 1].text;
+      : (sol.steps[ph - 1] ? sol.steps[ph - 1].text : "");
 
   const pickOp = (o: Op) => { setOp(o); setPair(EXAMPLES[o][0]); setErr(""); };
   const showCustom = () => {
@@ -92,13 +101,15 @@ export default function SchriftlichesRechnenApp() {
     setErr(""); setPair([a, b]);
   };
 
-  const atEnd = phase >= N;
+  const atEnd = ph >= N;
   const playPause = () => { if (atEnd) { setPhase(0); setPlaying(true); } else setPlaying((p) => !p); };
 
   const downloadWorksheet = () => {
     const problems = Array.from({ length: 9 }, () => {
       const [a, b] = genProblem(op);
-      return { a, b, r: buildSolution(op, a, b).result };
+      let r = "";
+      try { r = buildSolution(op, a, b).result; } catch { r = String(op === "·" ? a * b : op === ":" ? Math.floor(a / b) : op === "−" ? a - b : a + b); }
+      return { a, b, r };
     });
     setWs(problems);
     setTimeout(() => window.print(), 60);
@@ -170,15 +181,15 @@ export default function SchriftlichesRechnenApp() {
               opacity: focus ? 1 : 0,
             }} aria-hidden="true" />
 
-            {sol.rules.filter((ru) => ru.step <= phase).map((ru, i) => (
+            {sol.rules.filter((ru: { step: number }) => ru.step <= ph).map((ru: { c0: number; c1: number; r: number }, i: number) => (
               <div key={"ru" + i} className="sr-rule"
                 style={{ gridColumn: `${ru.c0 + 1} / ${ru.c1 + 2}`, gridRow: ru.r + 1, alignSelf: "start" }} />
             ))}
 
-            {sol.cells.filter((c: { kind: string; step: number }) => c.kind !== "noop" && c.step <= phase).map(
+            {sol.cells.filter((c: { kind: string; step: number }) => c.kind !== "noop" && c.step <= ph).map(
               (c: { r: number; c: number; ch: string; kind: string; step: number }, i: number) => (
                 <div key={c.r + "-" + c.c + "-" + i}
-                  className={"sr-cell k-" + c.kind + (c.step === phase && phase > 0 ? " appear" : "")}
+                  className={"sr-cell k-" + c.kind + (c.step === ph && ph > 0 ? " appear" : "")}
                   style={{ gridColumn: c.c + 1, gridRow: c.r + 1 }}>
                   {c.ch}
                 </div>
@@ -188,22 +199,22 @@ export default function SchriftlichesRechnenApp() {
         </div>
 
         {/* Erklärung */}
-        <div className="sr-explain sr-fade" key={phase} role="status" aria-live="polite">
-          <span className="sr-badge">{phase === 0 ? "?" : phase >= N ? "✓" : phase}</span>
+        <div className="sr-explain sr-fade" key={ph} role="status" aria-live="polite">
+          <span className="sr-badge">{ph === 0 ? "?" : ph >= N ? "✓" : ph}</span>
           <span className="sr-etext">{explainText}</span>
         </div>
 
         {/* Fortschritt */}
         <div className="sr-steps-track" aria-hidden="true">
-          <div className="sr-steps-fill" style={{ width: `${N ? (phase / N) * 100 : 0}%` }} />
+          <div className="sr-steps-fill" style={{ width: `${N ? (ph / N) * 100 : 0}%` }} />
         </div>
 
         {/* Steuerung */}
         <div className="sr-controls">
           <button type="button" className="sr-btn sr-icon-btn" onClick={() => { setPhase(0); setPlaying(false); }}
-            disabled={phase === 0} aria-label="Von vorne">⟲</button>
+            disabled={ph === 0} aria-label="Von vorne">⟲</button>
           <button type="button" className="sr-btn sr-icon-btn" onClick={() => { setPlaying(false); setPhase((p) => Math.max(0, p - 1)); }}
-            disabled={phase === 0} aria-label="Ein Schritt zurück">◀</button>
+            disabled={ph === 0} aria-label="Ein Schritt zurück">◀</button>
           <button type="button" className="sr-btn sr-btn-play" onClick={playPause}>
             {playing ? "❚❚ Pause" : atEnd ? "↻ Nochmal" : "▶ Abspielen"}
           </button>
