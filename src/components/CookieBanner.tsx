@@ -38,7 +38,7 @@ export default function CookieBanner() {
 
   return (
     <section
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-lg p-4 md:p-6"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-lg p-4 md:p-6 print:hidden"
       role="region"
       aria-labelledby="cookie-banner-heading"
       aria-describedby="cookie-banner-description"

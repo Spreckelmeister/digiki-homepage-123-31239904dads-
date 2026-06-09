@@ -130,6 +130,8 @@ const nextConfig: NextConfig = {
                 "https://tessdata.projectnaptha.com",    // Tesseract.js Sprachpakete (deu.traineddata)
                 "https://*.public.blob.vercel-storage.com", // Eigene gespeicherte Bilder
                 "https://*.supabase.co",                 // Supabase Auth + REST-API
+                "https://api.anthropic.com",             // Arbeitsblatt-Editor: optionaler KI-Assistent (eigener API-Schlüssel der Lehrkraft, Browser-direkt)
+                "https://api.openai.com",                // Arbeitsblatt-Editor: optionaler KI-Assistent (eigener API-Schlüssel der Lehrkraft, Browser-direkt)
                 "https://vitals.vercel-insights.com",    // Vercel Speed Insights (nur nach Consent)
                 "blob:",                                 // FFmpeg-WASM lädt seinen Core via fetch(blob:)
               ].join(" "),

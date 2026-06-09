@@ -26,6 +26,7 @@ import {
   Network,
   CalendarClock,
   Cloud,
+  NotebookPen,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 
@@ -117,6 +118,15 @@ const categories: Category[] = [
     title: "Material",
     body: "Arbeitsblätter erstellen, Rätsel generieren, PDFs anpassen – sensible Dokumente verlassen Ihr Gerät nie.",
     tools: [
+      {
+        href: "/werkzeuge/arbeitsblatt-editor",
+        eyebrow: "WZ-018",
+        icon: <NotebookPen className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Arbeitsblatt-Editor",
+        description:
+          "Differenzierte Arbeitsblätter bauen – Silbentext, Lückentext, Rechenpäckchen, Schreiblinien, Suchsel. Druckfertig, mit Lösungsblatt und optionalem KI-Assistenten.",
+        available: true,
+      },
       {
         href: "/werkzeuge/pdf",
         eyebrow: "WZ-005",
