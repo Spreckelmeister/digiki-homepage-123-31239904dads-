@@ -51,7 +51,8 @@ export default function SchriftlichesRechnenApp() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(3000);
   const [fullscreen, setFullscreen] = useState(false);
-  const [ws, setWs] = useState<{ a: number; b: number; r: string }[] | null>(null);
+  const [ws, setWs] = useState<{ op: Op; problems: { a: number; b: number; r: string }[] } | null>(null);
+  const [printMode, setPrintMode] = useState<"tasks" | "solutions">("tasks");
 
   const sol = useMemo(() => {
     try { return buildSolution(op, pair[0], pair[1]); }
@@ -104,29 +105,44 @@ export default function SchriftlichesRechnenApp() {
   const atEnd = ph >= N;
   const playPause = () => { if (atEnd) { setPhase(0); setPlaying(true); } else setPlaying((p) => !p); };
 
-  const downloadWorksheet = () => {
-    const problems = Array.from({ length: 9 }, () => {
+  // Erzeugt einen Aufgaben-Satz (mit gemerkter Operation, damit Aufgaben- und
+  // Lösungsblatt immer zusammenpassen, auch wenn man später die Rechenart wechselt).
+  const genSet = (): { op: Op; problems: { a: number; b: number; r: string }[] } => ({
+    op,
+    problems: Array.from({ length: 9 }, () => {
       const [a, b] = genProblem(op);
       let r = "";
       try { r = buildSolution(op, a, b).result; } catch { r = String(op === "·" ? a * b : op === ":" ? Math.floor(a / b) : op === "−" ? a - b : a + b); }
       return { a, b, r };
-    });
-    setWs(problems);
-    setTimeout(() => window.print(), 60);
+    }),
+  });
+  const doPrint = (mode: "tasks" | "solutions", set: { op: Op; problems: { a: number; b: number; r: string }[] }) => {
+    setWs(set); setPrintMode(mode);
+    setTimeout(() => window.print(), 90);
   };
+  // Aufgabenblatt: neuer Satz, NUR Aufgaben (ohne Lösungen) – beliebig oft druckbar.
+  const printTasks = () => doPrint("tasks", genSet());
+  // Lösungsblatt: passende Lösungen zum zuletzt erzeugten Satz (separater Druck).
+  const printSolutions = () => doPrint("solutions", ws && ws.problems.length ? ws : genSet());
 
   const toggleFs = () => setFullscreen((v) => !v);
 
   const cell = "var(--sr-cell)";
   const opName = OPS.find((o) => o.op === op)?.name || "";
+  // Arbeitsblatt richtet sich nach dem gespeicherten Satz (passende Operation).
+  const wsOp: Op = ws?.op ?? op;
+  const wsProblems = ws?.problems ?? [];
+  const wsOpName = OPS.find((o) => o.op === wsOp)?.name || "";
 
   return (
     <div className={"sr-scope" + (fullscreen ? " sr-fullscreen" : "")} ref={rootRef}>
       <style dangerouslySetInnerHTML={{ __html: SR_CSS }} />
 
       <div className="sr-top-actions">
-        <button type="button" className="sr-mini sr-accent" onClick={downloadWorksheet}
-          aria-label="Als Arbeitsblatt herunterladen / drucken">📄 Arbeitsblatt</button>
+        <button type="button" className="sr-mini sr-accent" onClick={printTasks}
+          aria-label="Aufgabenblatt drucken (ohne Lösungen)" title="Aufgabenblatt (ohne Lösungen) – kariert, beliebig oft druckbar">📄 Aufgabenblatt</button>
+        <button type="button" className="sr-mini" onClick={printSolutions}
+          aria-label="Lösungsblatt drucken" title="Lösungsblatt – separater Druck (für die Lehrkraft)">🔑 Lösungen</button>
         <button type="button" className="sr-mini" onClick={toggleFs}
           aria-pressed={fullscreen} aria-label={fullscreen ? "Vollbild verlassen" : "Vollbild"}>
           {fullscreen ? "⤡ Beenden" : "⛶ Vollbild"}
@@ -229,38 +245,47 @@ export default function SchriftlichesRechnenApp() {
         </div>
       </div>
 
-      {/* Arbeitsblatt – nur im Druck sichtbar */}
-      <div className="sr-worksheet" aria-hidden="true">
-        <div className="sr-ws-head">
-          <div>
-            <p className="sr-ws-title">Schriftliches Rechnen – {opName}</p>
-            <p className="sr-ws-sub">Rechne schriftlich. Schreibe sauber in die Kästchen.</p>
-          </div>
-          <p className="sr-ws-name">Name: ______________________ &nbsp; Datum: __________</p>
-        </div>
-        <div className="sr-ws-grid">
-          {(ws || []).map((p, i) => (
-            <div className="sr-ws-item" key={i}>
-              <span className="sr-ws-num">Aufgabe {i + 1}</span>
-              <div className="sr-ws-task">{p.a} {op} {p.b} =</div>
-              <div className="sr-ws-karo" />
+      {/* Arbeitsblatt – nur im Druck sichtbar. Je nach Modus wird NUR die
+          Aufgaben- oder NUR die Lösungsseite gedruckt (getrennte Downloads). */}
+      <div className={"sr-worksheet print-" + printMode} aria-hidden="true">
+        <div className="sr-ws-taskpage">
+          <div className="sr-ws-head">
+            <div>
+              <p className="sr-ws-title">Schriftliches Rechnen – {wsOpName}</p>
+              <p className="sr-ws-sub">Rechne schriftlich. Nutze die Kästchen.</p>
             </div>
-          ))}
-        </div>
-        <div className="sr-ws-foot">
-          <span>DigiKI Osnabrück · Schriftliches Rechnen</span>
-          <span>www.digiki-os.de/werkzeuge</span>
+            <p className="sr-ws-name">Name: ______________________ &nbsp; Datum: __________</p>
+          </div>
+          <div className="sr-ws-grid">
+            {wsProblems.map((p, i) => (
+              <div className="sr-ws-item" key={i}>
+                <span className="sr-ws-num">Aufgabe {i + 1}</span>
+                <div className="sr-ws-task">{p.a} {wsOp} {p.b} =</div>
+                <div className="sr-ws-karo" />
+              </div>
+            ))}
+          </div>
+          <div className="sr-ws-foot">
+            <span>DigiKI Osnabrück · Schriftliches Rechnen ({wsOpName})</span>
+            <span>www.digiki-os.de/werkzeuge</span>
+          </div>
         </div>
 
         <div className="sr-ws-solpage">
           <div className="sr-ws-head">
-            <p className="sr-ws-title">Lösungen – {opName}</p>
-            <p className="sr-ws-name">nur für die Lehrkraft</p>
+            <div>
+              <p className="sr-ws-title">Lösungen – {wsOpName}</p>
+              <p className="sr-ws-sub">Lösungsblatt – nur für die Lehrkraft.</p>
+            </div>
           </div>
           <div className="sr-ws-sol">
-            {(ws || []).map((p, i) => (
-              <div key={i}>{i + 1}.&nbsp; {p.a} {op} {p.b} = <strong>{p.r}</strong></div>
+            {wsProblems.map((p, i) => (
+              <div key={i}>{i + 1}.&nbsp; {p.a} {wsOp} {p.b} = <strong>{p.r}</strong></div>
             ))}
+          </div>
+          <div className="sr-ws-foot">
+            <span>DigiKI Osnabrück · Lösungen ({wsOpName})</span>
+            <span>www.digiki-os.de/werkzeuge</span>
           </div>
         </div>
       </div>

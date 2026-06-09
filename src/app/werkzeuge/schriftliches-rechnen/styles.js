@@ -144,7 +144,11 @@ export const SR_CSS = `
   /* Tool-UI ausblenden, nur das Arbeitsblatt drucken */
   body .sr-scope > *:not(.sr-worksheet) { display:none !important; }
   body .sr-scope { position:static !important; padding:0 !important; border:none !important; box-shadow:none !important; background:#fff !important; overflow:visible !important; }
-  body .sr-scope .sr-worksheet { display:block !important; color:#111; }
+  /* print-color-adjust: exact → das Karo (Hintergrund) wird wirklich gedruckt */
+  body .sr-scope .sr-worksheet { display:block !important; color:#111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Getrennte Downloads: je nach Modus NUR Aufgaben ODER NUR Lösungen drucken */
+  body .sr-scope .sr-worksheet.print-tasks .sr-ws-solpage { display:none !important; }
+  body .sr-scope .sr-worksheet.print-solutions .sr-ws-taskpage { display:none !important; }
 }
 
 /* Sichtbar nur während des Drucks – Aufbau des Arbeitsblatts */
@@ -156,9 +160,16 @@ export const SR_CSS = `
 .sr-ws-item { break-inside: avoid; border:1px solid #ccc; border-radius:8px; padding:10px 12px 14px; }
 .sr-ws-num { font-size:11px; color:#777; font-weight:700; }
 .sr-ws-task { font-size:20px; font-weight:700; font-variant-numeric: tabular-nums; margin:4px 0 6px; }
-.sr-ws-karo { height:96px; border-radius:6px; background-image: repeating-linear-gradient(0deg,#e6efee 0 1px,transparent 1px 22px), repeating-linear-gradient(90deg,#e6efee 0 1px,transparent 1px 22px); background-size:22px 22px; border:1px solid #e6efee; }
+/* Kariertes Arbeitsfeld (für die schriftliche Rechnung). Wird per
+   print-color-adjust auch wirklich gedruckt. */
+.sr-ws-karo {
+  height:128px; border-radius:6px;
+  background-color:#fff;
+  background-image: repeating-linear-gradient(0deg,#bcd2cf 0 1px,transparent 1px 24px), repeating-linear-gradient(90deg,#bcd2cf 0 1px,transparent 1px 24px);
+  background-size:24px 24px; border:1.5px solid #9fbab6;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
 .sr-ws-foot { margin-top:14px; font-size:11px; color:#666; display:flex; justify-content:space-between; }
-.sr-ws-solpage { break-before: page; }
 .sr-ws-sol { columns: 3; font-size:13px; font-variant-numeric: tabular-nums; }
 .sr-ws-sol div { break-inside: avoid; padding:3px 0; }
 `;
