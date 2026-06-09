@@ -93,8 +93,9 @@ export async function POST(request: NextRequest) {
       ? "Ihr Antrag auf studentische Hilfskräfte wurde eingereicht – DigiKI"
       : "Ihr Antrag auf Tool-Lizenzen wurde eingereicht – DigiKI";
 
+    // Trailing-Slash entfernen, damit verkettete Pfade nicht zu `//best-practice…` werden.
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
+      (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
 
     const greeting = contact_person
       ? `Guten Tag ${escapeHtml(String(contact_person).slice(0, 100))},`
@@ -152,9 +153,10 @@ export async function POST(request: NextRequest) {
               </table>
 
               <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                Den aktuellen Bearbeitungsstatus können Sie jederzeit in unserer
+                Den aktuellen Bearbeitungsstatus Ihrer Einreichung sehen Sie jederzeit nach Login in der
                 <a href="${siteUrl}/best-practice/datenbank" style="color:#006363;">Best-Practice-Datenbank</a>
-                unter dem Abschnitt <em>„Meine Einreichungen"</em> mit Ihrer E-Mail-Adresse abrufen.
+                unter <em>„Meine Einreichungen"</em>. Dort können Sie Ihre Angaben auch nachträglich noch bearbeiten,
+                solange der Antrag den Status <strong>„neu"</strong> hat.
               </p>
 
               <p style="margin:0;color:#1A1A1A;font-size:15px;">
