@@ -139,6 +139,14 @@ export const ZS_CSS = `
 .zs-scope .toast .msg { font-weight: 600; font-size: 1.15rem; margin: 2px 0 4px; }
 .zs-scope .toast .hint { font-size: .95rem; color: #566F6B; font-weight: 500; }
 
+/* Eigener Bestätigungs-Dialog („Neues Kind") */
+.zs-scope .zs-confirm { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(20,58,55,.45); padding: 20px; }
+.zs-scope .zs-confirm[hidden] { display: none; }
+.zs-scope .zs-confirm-card { background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 22px 22px 18px; width: 380px; max-width: 92vw; text-align: center; }
+.zs-scope .zs-confirm-msg { font-weight: 600; font-size: 1.05rem; line-height: 1.4; margin: 0 0 16px; color: var(--ink); }
+.zs-scope .zs-confirm-row { display: flex; gap: 10px; }
+.zs-scope .zs-confirm-row .btn { flex: 1; min-width: 0; }
+
 .zs-scope .confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 .zs-scope .conf { position: absolute; font-size: 1.4rem; will-change: transform, opacity; }
 @keyframes zs-pop {

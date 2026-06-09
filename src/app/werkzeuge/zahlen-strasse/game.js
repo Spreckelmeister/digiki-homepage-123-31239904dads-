@@ -185,6 +185,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   let current=1;
   let tol=12;              // wirksame Abweichung (wird aus baseTol + Stufe berechnet)
   let solved=false;        // Straße glänzt golden
+  let scored=false;        // aktuelle Spur wurde bereits gewertet (verhindert Mehrfach-Prüfen)
   let demoing=false;
 
   // ---------- Fortschritt / Stufen ----------
@@ -233,7 +234,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
     resize();
   }
   function resetAttempt(){
-    trail=[]; drawnTotal=0; drawnBad=0; solved=false;
+    trail=[]; drawnTotal=0; drawnBad=0; solved=false; scored=false;
     visited=new Array(samples.length).fill(false);
     hideToast();
     applyTol();            // Straßenbreite an die aktuelle Stufe anpassen + neu zeichnen
@@ -358,6 +359,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   function pointerDown(e){
     if(demoing) return;
     if(solved) resetAttempt();
+    scored=false;          // neues Zeichnen → der nächste „Prüfen“-Klick wertet wieder
     drawing=true; cv.setPointerCapture(e.pointerId);
     const r=cv.getBoundingClientRect();
     const [dx,dy]=toDesign(e.clientX-r.left, e.clientY-r.top);
@@ -393,6 +395,12 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   // ---------- Prüfen ----------
   function check(){
     if(demoing) return;
+    // Eine Spur zählt nur EINMAL. Wer „Prüfen“ erneut klickt, ohne neu
+    // nachzufahren, kann die Stufe nicht weiter hochzählen.
+    if(scored){
+      showToast(0,"Schon geprüft 🙂","Fahre die Form noch einmal nach – dann wieder auf ✓ Prüfen.");
+      return;
+    }
     const coverage = visited.filter(Boolean).length / samples.length;
     const offRatio = drawnTotal ? drawnBad/drawnTotal : 1;
 
@@ -419,6 +427,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
     saveProgress();
     paintButton(current);
     updateSummary();
+    scored=true;           // diese Spur ist nun gewertet – erst neues Nachfahren zählt wieder
     // Die schmalere Straße greift beim nächsten Versuch (über resetAttempt).
 
     if(score>=2){
@@ -613,10 +622,16 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
   on(root.querySelector('#tol'),'input',e=>{
     baseTol=+e.target.value; applyTol();
   });
+  // „Neues Kind“ mit eigenem Bestätigungs-Dialog (window.confirm ist auf
+  // iPad/Safari unzuverlässig und wurde dort teils gar nicht angezeigt).
+  const confirmEl=root.querySelector('#zsConfirm');
+  const showConfirm=(show)=>{ if(!confirmEl) return; if(show) confirmEl.removeAttribute('hidden'); else confirmEl.setAttribute('hidden',''); };
   const btnReset=root.querySelector('#btnResetAll');
-  if(btnReset) on(btnReset,'click',()=>{
-    if(confirm('Fortschritt aller Zahlen und Buchstaben löschen und für ein neues Kind neu starten?')) resetAllProgress();
-  });
+  if(btnReset) on(btnReset,'click',()=>{ if(confirmEl) showConfirm(true); else resetAllProgress(); });
+  const cYes=root.querySelector('#zsConfirmYes'), cNo=root.querySelector('#zsConfirmNo');
+  if(cYes) on(cYes,'click',()=>{ resetAllProgress(); showConfirm(false); });
+  if(cNo) on(cNo,'click',()=>showConfirm(false));
+  if(confirmEl) on(confirmEl,'click',(e)=>{ if(e.target===confirmEl) showConfirm(false); });
 
   on(window,'resize',resize);
   // Init

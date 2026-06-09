@@ -132,6 +132,32 @@ export default function ZahlenStrasseApp() {
         <div className="hint" id="toastHint" />
       </div>
       <div className="confetti-layer" id="conf" />
+
+      {/* Eigener Bestätigungs-Dialog (statt window.confirm – auf iPad/Safari
+          zuverlässig). Sichtbarkeit steuert game.js über das hidden-Attribut. */}
+      <div
+        className="zs-confirm"
+        id="zsConfirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zsConfirmMsg"
+        hidden
+      >
+        <div className="zs-confirm-card">
+          <p className="zs-confirm-msg" id="zsConfirmMsg">
+            Fortschritt aller Zahlen und Buchstaben löschen und für ein neues Kind
+            neu starten?
+          </p>
+          <div className="zs-confirm-row">
+            <button type="button" className="btn btn-ghost" id="zsConfirmNo">
+              Abbrechen
+            </button>
+            <button type="button" className="btn btn-go" id="zsConfirmYes">
+              Ja, neu starten
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
