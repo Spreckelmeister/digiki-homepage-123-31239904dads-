@@ -765,9 +765,11 @@ import { Icon } from "./icons";
                 {doc.footer && <input value={doc.footerText || ""} onChange={e => patchDoc && patchDoc({ footerText: e.target.value })} placeholder="z. B. Grundschule Musterstadt · Frau Meier"
                   style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none", marginTop: 2 }} />}
               </Section>
-              <Section title="Druck">
-                <Row label="Seitengrenzen zeigen"><Toggle value={doc.pageGuides !== false} onChange={v => patchDoc && patchDoc({ pageGuides: v })} /></Row>
-                <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 2px", lineHeight: 1.45 }}>Zeigt als orange gestrichelte Linie, wo beim Drucken/PDF eine neue Seite beginnt (nur Editor, nicht im Ausdruck).</p>
+              <Section title="Seiten">
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start", color: "var(--muted)", fontSize: 12, lineHeight: 1.55 }}>
+                  <Icon name="file" size={15} style={{ color: "var(--teal-700)", flex: "none", marginTop: 1 }} />
+                  <span>Jedes Blatt entspricht einer A4-Druckseite. Mit „Seite hinzufügen" unter dem Blatt legst du beliebig viele Folgeseiten an.</span>
+                </div>
               </Section>
               <Section>
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start", color: "var(--muted)", fontSize: 12, lineHeight: 1.55 }}>

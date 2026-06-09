@@ -97,7 +97,7 @@ import { Icon } from "./icons";
     return (
       <div className={fontClass(block.font)} style={{ fontSize: block.size, lineHeight: 1.9, color: "var(--ink)", textAlign: block.align || "left" }}>
         {lines.map((ln, i) => (
-          <p key={i} style={{ margin: "0 0 6px", display: "flex", gap: 12 }}>
+          <p key={i} style={{ margin: "0 0 6px", display: "flex", gap: 12, alignItems: "baseline" }}>
             {block.numbers && <span style={{ color: "var(--muted-2)", fontFamily: "var(--ui)", fontSize: block.size * 0.7, minWidth: 22, textAlign: "right", userSelect: "none" }}>{i + 1}</span>}
             <span style={{ flex: 1 }}>{ln || "\u00a0"}</span>
           </p>

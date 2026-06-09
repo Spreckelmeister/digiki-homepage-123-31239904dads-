@@ -50,7 +50,6 @@
       { type: "image",    label: "Bild / Clipart", icon: "image", desc: "mehrere, beschriften, zählen" },
       { type: "name",     label: "Namensfeld",     icon: "name",  desc: "Name & Datum" },
       { type: "divider",  label: "Trennlinie",     icon: "divider", desc: "Linie / Schneidelinie" },
-      { type: "pagebreak", label: "Seitenumbruch",  icon: "pagebreak", desc: "erzwingt neue Druckseite" },
     ]},
   ];
 

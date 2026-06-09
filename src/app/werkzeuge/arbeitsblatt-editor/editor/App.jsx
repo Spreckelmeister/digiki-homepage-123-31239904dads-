@@ -129,6 +129,7 @@ export default function App() {
   const pageRef = useRef(null);
   const canvasRef = useRef(null);
   const scopeRef = useRef(null);
+  const stackRef = useRef(null);
   const [fullscreen, setFullscreen] = useState(false);
 
   // ---- Vollbild (Fullscreen-API) für mehr Arbeitsfläche ----
@@ -187,6 +188,19 @@ export default function App() {
 
   // ---- block ops ----
   const sel = doc.blocks.find(b => b.id === selId) || null;
+
+  // Blöcke in echte Seiten aufteilen. "pagebreak"-Blöcke sind reine
+  // (unsichtbare) Trenner zwischen den Blättern. Jede Seite kennt die ID
+  // ihres voranstehenden Trenners, damit sie sich gezielt entfernen lässt.
+  const pages = (() => {
+    const out = [{ breakId: null, items: [] }];
+    doc.blocks.forEach((b, gi) => {
+      if (b.type === "pagebreak") out.push({ breakId: b.id, items: [] });
+      else out[out.length - 1].items.push({ b, gi });
+    });
+    return out;
+  })();
+  const removePage = (breakId) => { if (!breakId) return; commit(prev => ({ ...prev, blocks: prev.blocks.filter(b => b.id !== breakId) })); };
   const patch = (partial) => commit(prev => ({ ...prev, blocks: prev.blocks.map(b => {
     if (b.id !== selId) return b;
     let nb = { ...b, ...partial };
@@ -335,27 +349,15 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selId, ki]);
 
-  // Zählt, auf wie viele A4-Seiten der Inhalt fällt – identische Logik wie
-  // die Seitengrenzen-Anzeige im Canvas, damit Editor-Ansicht und Druck
-  // dieselbe Seitenzahl ergeben.
+  // Liefert 1, wenn das Dokument aus genau EINEM Blatt besteht, das auch
+  // wirklich auf eine A4-Seite passt – nur dann wird beim Druck exakt auf
+  // eine Seite geklemmt. Mehrere Blätter oder ein übervolles Blatt → >1.
   const measurePages = () => {
+    if (pages.length > 1) return pages.length;
     const el = pageRef.current; if (!el) return 1;
-    const PADT = 54;
-    const PAGE = (doc.frame && doc.frame !== "none") ? 958 : 1015;
-    const pr = el.getBoundingClientRect(); const z = zoom || 1;
-    const kids = [].slice.call(el.querySelectorAll(":scope > .ws-block, :scope > .ws-footer"));
-    let pageStart = 0, page = 1, lastBottom = PADT;
-    kids.forEach(k => {
-      const r = k.getBoundingClientRect();
-      const topRect = (r.top - pr.top) / z;
-      const top = topRect - PADT;
-      const h = r.height / z;
-      const brk = () => { page++; pageStart = top; };
-      if (k.classList.contains("pagebreak-block")) { if (top > pageStart + 0.5) brk(); }
-      else if (top > pageStart + 0.5 && (top + h) - pageStart > PAGE) brk();
-      lastBottom = topRect + h;
-    });
-    return page;
+    const usable = (doc.frame && doc.frame !== "none") ? 958 : 1015;
+    // Transform liegt auf .page-stack → scrollHeight des Blattes ist unskaliert.
+    return (el.scrollHeight - 108) > usable + 2 ? 2 : 1;
   };
 
   // Druck: nur das Arbeitsblatt zeigen (Website- & Editor-Chrome per CSS
@@ -413,94 +415,84 @@ export default function App() {
         </div>
 
         {/* Canvas */}
-        <div ref={canvasRef} className="scroll canvas-area" onMouseDown={e => { if (e.target.classList.contains("canvas-area") || e.target.classList.contains("page-pad") || e.target.classList.contains("canvas-stack")) setSelId(null); }}
-          style={{ overflow: "auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 40px 80px" }}>
-          <div className="canvas-stack" style={{ display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100%" }}>
-          <div className="page-pad" style={{ width: 794 * zoom, height: (pageRef.current ? pageRef.current.offsetHeight : 1123) * zoom, flexShrink: 0 }}>
-            <div id="ws-page" ref={pageRef} className={"ws-page" + (doc.frame && doc.frame !== "none" ? " framed" : "")} style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top center",
-              background: "#fff", minHeight: 1123, borderRadius: 4, boxShadow: "var(--shadow-paper)", padding: "54px 56px",
-              backgroundImage: grid ? "linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px)" : "none",
-              backgroundSize: grid ? "28px 28px" : "auto", ...frameStyle(doc.frame) }}>
-              {doc.showSolutions && (
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                  <span className="sol-banner"><Icon name="key" size={14} /> Lösungsblatt</span>
-                </div>
-              )}
-              {doc.blocks.map((b, i) => {
-                const isSel = b.id === selId;
-                return (
-                  <div key={b.id} draggable
-                    onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = "move"; }}
-                    onDragOver={e => { e.preventDefault(); setOverIdx(i); }}
-                    onDragEnd={() => { reorder(dragIdx, overIdx); setDragIdx(null); setOverIdx(null); }}
-                    onMouseDown={e => { e.stopPropagation(); setSelId(b.id); }}
-                    style={{ position: "relative", padding: "10px 12px", margin: "2px 0", borderRadius: 10, cursor: "default",
-                      outline: isSel ? "2px solid var(--teal)" : "2px solid transparent", outlineOffset: 1,
-                      boxShadow: dragIdx === i ? "var(--shadow)" : "none", opacity: dragIdx === i ? .5 : 1,
-                      background: overIdx === i && dragIdx !== null && dragIdx !== i ? "var(--teal-50)" : "transparent",
-                      transition: "background .12s, outline-color .12s" }}
-                    className={"ws-block" + (b.type === "pagebreak" ? " pagebreak-block" : "")}>
-                    {overIdx === i && dragIdx !== null && dragIdx !== i && <div style={{ position: "absolute", left: 0, right: 0, top: -3, height: 3, background: "var(--teal)", borderRadius: 3 }} />}
-                    <Block block={b} doc={doc} onPatch={isSel ? patch : undefined} />
-
-                    {isSel && (
-                      <div className="block-toolbar" style={{ position: "absolute", top: -15, right: 10, display: "flex", gap: 1, background: "#fff", borderRadius: 9, padding: 3, boxShadow: "var(--shadow)", border: "1px solid var(--line)", zIndex: 20 }}>
-                        <button className="icon-btn" style={{ width: 28, height: 28, cursor: "grab" }} data-tip="Ziehen zum Verschieben"><Icon name="drag" size={16} /></button>
-                        <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Nach oben" onClick={e => { e.stopPropagation(); move(b.id, -1); }}><Icon name="up" size={16} /></button>
-                        <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Nach unten" onClick={e => { e.stopPropagation(); move(b.id, 1); }}><Icon name="down" size={16} /></button>
-                        <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Duplizieren" onClick={e => { e.stopPropagation(); duplicate(b.id); }}><Icon name="copy" size={15} /></button>
-                        <button className="icon-btn" style={{ width: 28, height: 28, color: "var(--syl-red)" }} data-tip="Löschen" onClick={e => { e.stopPropagation(); remove(b.id); }}><Icon name="trash" size={15} /></button>
-                      </div>
+        <div ref={canvasRef} className="scroll canvas-area" onMouseDown={e => { const cl = e.target.classList; if (cl.contains("canvas-area") || cl.contains("canvas-stack") || cl.contains("page-scale-wrap") || cl.contains("page-stack")) setSelId(null); }}
+          style={{ overflow: "auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 90px" }}>
+          <div className="canvas-stack" style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 794 * zoom, maxWidth: "100%", minHeight: "100%" }}>
+            {/* Ein Transform skaliert den ganzen Seitenstapel; der Wrapper trägt die sichtbare (skalierte) Größe. */}
+            <div className="page-scale-wrap" style={{ width: 794 * zoom, height: (stackRef.current ? stackRef.current.offsetHeight : 1123) * zoom, flexShrink: 0 }}>
+              <div ref={stackRef} className="page-stack" style={{ width: 794, transform: `scale(${zoom})`, transformOrigin: "top center", display: "flex", flexDirection: "column", alignItems: "center", gap: 34 }}>
+                {pages.map((pg, pi) => (
+                  <div key={pi} className="page-sheet-wrap" style={{ position: "relative", width: 794, flexShrink: 0 }}>
+                    <div className="page-sheet-meta">Seite {pi + 1} / {pages.length}</div>
+                    {pi > 0 && !preview && (
+                      <button type="button" className="abe-removepage" onClick={() => removePage(pg.breakId)}
+                        data-tip="Diese Seite entfernen – der Inhalt rückt nach oben">
+                        <Icon name="trash" size={14} /> Seite entfernen
+                      </button>
                     )}
-                  </div>
-                );
-              })}
-              {doc.blocks.length === 0 && (
-                <div style={{ textAlign: "center", padding: "120px 20px", color: "var(--muted)" }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-soft)" }}>Leeres Blatt</div>
-                  <div style={{ fontSize: 13, marginTop: 6 }}>Füge links Bausteine hinzu oder frag den KI-Assistenten.</div>
-                </div>
-              )}
-              {doc.footer && (
-                <div className="ws-footer" style={{ marginTop: 30, paddingTop: 8, borderTop: "1.5px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--ui)", fontSize: 11.5, color: "var(--muted)" }}>
-                  <span>{doc.footerText || ""}</span>
-                  <span style={{ fontWeight: 600 }}>{doc.title}</span>
-                </div>
-              )}
-              {doc.pageGuides !== false && (() => {
-                // Echte Seitenumbrüche simulieren: ein Block, der nicht mehr auf die Seite passt,
-                // rutscht beim Druck komplett auf die nächste (break-inside: avoid). Die Linie
-                // springt daher in die Lücke VOR diesem Block – sie schneidet nie einen Block.
-                const el = pageRef.current; if (!el) return null;
-                const PADT = 54;                                   // Innenabstand oben (= Druckrand)
-                const PAGE = (doc.frame && doc.frame !== "none") ? 958 : 1015; // nutzbare A4-Höhe in px
-                const pr = el.getBoundingClientRect(); const z = zoom || 1;
-                const kids = [].slice.call(el.querySelectorAll(":scope > .ws-block, :scope > .ws-footer"));
-                const guides = []; let pageStart = 0, page = 1, lastBottom = PADT;
-                kids.forEach(k => {
-                  const r = k.getBoundingClientRect();
-                  const topRect = (r.top - pr.top) / z;             // ab ws-page-Oberkante
-                  const top = topRect - PADT;                       // ab Inhaltsbeginn
-                  const h = r.height / z;
-                  const brk = () => { page++; guides.push({ y: (lastBottom + topRect) / 2, page }); pageStart = top; };
-                  if (k.classList.contains("pagebreak-block")) { if (top > pageStart + 0.5) brk(); }
-                  else if (top > pageStart + 0.5 && (top + h) - pageStart > PAGE) brk();
-                  lastBottom = topRect + h;
-                });
-                return guides.map((g, i) => (
-                  <div key={"pg" + i} className="page-break-guide" style={{ top: g.y }}><span>Seite {g.page}</span></div>
-                ));
-              })()}
-            </div>
-          </div>
+                    <div ref={pi === 0 ? pageRef : undefined} className={"ws-page" + (doc.frame && doc.frame !== "none" ? " framed" : "")} style={{ width: 794,
+                      background: "#fff", minHeight: 1123, borderRadius: 4, boxShadow: "var(--shadow-paper)", padding: "54px 56px",
+                      backgroundImage: grid ? "linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px)" : "none",
+                      backgroundSize: grid ? "28px 28px" : "auto", ...frameStyle(doc.frame) }}>
+                      {pi === 0 && doc.showSolutions && (
+                        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                          <span className="sol-banner"><Icon name="key" size={14} /> Lösungsblatt</span>
+                        </div>
+                      )}
+                      {pg.items.map(({ b, gi }) => {
+                        const isSel = b.id === selId;
+                        return (
+                          <div key={b.id} draggable
+                            onDragStart={e => { setDragIdx(gi); e.dataTransfer.effectAllowed = "move"; }}
+                            onDragOver={e => { e.preventDefault(); setOverIdx(gi); }}
+                            onDragEnd={() => { reorder(dragIdx, overIdx); setDragIdx(null); setOverIdx(null); }}
+                            onMouseDown={e => { e.stopPropagation(); setSelId(b.id); }}
+                            style={{ position: "relative", padding: "10px 12px", margin: "2px 0", borderRadius: 10, cursor: "default",
+                              outline: isSel ? "2px solid var(--teal)" : "2px solid transparent", outlineOffset: 1,
+                              boxShadow: dragIdx === gi ? "var(--shadow)" : "none", opacity: dragIdx === gi ? .5 : 1,
+                              background: overIdx === gi && dragIdx !== null && dragIdx !== gi ? "var(--teal-50)" : "transparent",
+                              transition: "background .12s, outline-color .12s" }}
+                            className="ws-block">
+                            {overIdx === gi && dragIdx !== null && dragIdx !== gi && <div style={{ position: "absolute", left: 0, right: 0, top: -3, height: 3, background: "var(--teal)", borderRadius: 3 }} />}
+                            <Block block={b} doc={doc} onPatch={isSel ? patch : undefined} />
 
-          {!preview && (
-            <button type="button" className="abe-addpage" onClick={addPage}
-              style={{ width: 794 * zoom, maxWidth: "100%" }}
-              data-tip="Hängt eine neue Seite an – neue Bausteine landen darauf">
-              <Icon name="plus" size={18} /> Seite hinzufügen
-            </button>
-          )}
+                            {isSel && (
+                              <div className="block-toolbar" style={{ position: "absolute", top: -15, right: 10, display: "flex", gap: 1, background: "#fff", borderRadius: 9, padding: 3, boxShadow: "var(--shadow)", border: "1px solid var(--line)", zIndex: 20 }}>
+                                <button className="icon-btn" style={{ width: 28, height: 28, cursor: "grab" }} data-tip="Ziehen zum Verschieben"><Icon name="drag" size={16} /></button>
+                                <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Nach oben" onClick={e => { e.stopPropagation(); move(b.id, -1); }}><Icon name="up" size={16} /></button>
+                                <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Nach unten" onClick={e => { e.stopPropagation(); move(b.id, 1); }}><Icon name="down" size={16} /></button>
+                                <button className="icon-btn" style={{ width: 28, height: 28 }} data-tip="Duplizieren" onClick={e => { e.stopPropagation(); duplicate(b.id); }}><Icon name="copy" size={15} /></button>
+                                <button className="icon-btn" style={{ width: 28, height: 28, color: "var(--syl-red)" }} data-tip="Löschen" onClick={e => { e.stopPropagation(); remove(b.id); }}><Icon name="trash" size={15} /></button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {pg.items.length === 0 && (
+                        <div style={{ textAlign: "center", padding: "150px 20px", color: "var(--muted)" }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-soft)" }}>{pages.length === 1 ? "Leeres Blatt" : "Leere Seite " + (pi + 1)}</div>
+                          <div style={{ fontSize: 13, marginTop: 6 }}>Füge links einen Baustein hinzu{pi === 0 ? " oder frag den KI-Assistenten." : "."}</div>
+                        </div>
+                      )}
+                      {pi === pages.length - 1 && doc.footer && (
+                        <div className="ws-footer" style={{ marginTop: 30, paddingTop: 8, borderTop: "1.5px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--ui)", fontSize: 11.5, color: "var(--muted)" }}>
+                          <span>{doc.footerText || ""}</span>
+                          <span style={{ fontWeight: 600 }}>{doc.title}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {!preview && (
+              <button type="button" className="abe-addpage" onClick={addPage}
+                style={{ width: "100%" }}
+                data-tip="Fügt ein neues, leeres Blatt hinzu">
+                <Icon name="plus" size={18} /> Seite hinzufügen
+              </button>
+            )}
           </div>
         </div>
 

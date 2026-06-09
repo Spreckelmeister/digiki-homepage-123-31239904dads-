@@ -207,10 +207,6 @@ export const EDITOR_CSS = `
 .abe-scope .app.preview .ws-block:hover { outline: none !important; }
 .abe-scope .app.preview .canvas-area { padding-top: 30px; }
 
-/* Seitengrenzen */
-.abe-scope .page-break-guide { position: absolute; left: 0; right: 0; border-top: 2px dashed #E8911E; pointer-events: none; z-index: 5; }
-.abe-scope .page-break-guide span { position: absolute; right: 0; top: -10px; background: #E8911E; color: #fff; font: 700 11px/1 var(--ui); padding: 3px 7px; border-radius: 6px; }
-
 /* Solution banner */
 .abe-scope .sol-banner {
   display: inline-flex; align-items: center; gap: 7px;
@@ -230,6 +226,23 @@ export const EDITOR_CSS = `
 .abe-scope .abe-addpage:hover { background: var(--teal-50); border-color: var(--teal-700); box-shadow: var(--shadow-sm); }
 .abe-scope .abe-addpage:active { transform: translateY(1px); }
 .abe-scope .abe-addpage:focus-visible { outline: 2px solid var(--teal-700); outline-offset: 2px; }
+
+/* Seiten-Beschriftung & "Seite entfernen" (im Abstand über jedem Blatt) */
+.abe-scope .page-sheet-meta {
+  position: absolute; top: -27px; left: 2px;
+  font-family: var(--ui); font-size: 12px; font-weight: 700;
+  color: var(--muted); user-select: none; pointer-events: none;
+}
+.abe-scope .abe-removepage {
+  position: absolute; top: -30px; right: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--ui); font-size: 12px; font-weight: 700;
+  color: var(--muted); background: transparent; border: none;
+  padding: 4px 8px; border-radius: 7px;
+  transition: color .14s ease, background .14s ease;
+}
+.abe-scope .abe-removepage:hover { color: #fff; background: var(--syl-red); }
+.abe-scope .abe-removepage:focus-visible { outline: 2px solid var(--teal-700); outline-offset: 2px; }
 
 /* ---- Rails als Grid-Spalten (Desktop) ---- */
 .abe-scope .rail { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
@@ -268,17 +281,16 @@ export const EDITOR_CSS = `
   /* globale Fixed-Overlays (Cookie-Banner, Bewertungs-FAB …) ausblenden */
   .fixed { display: none !important; }
   .abe-scope .app { display: block !important; height: auto !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
-  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar, .abe-scope .abe-addpage { display: none !important; }
+  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar, .abe-scope .abe-addpage, .abe-scope .page-sheet-meta, .abe-scope .abe-removepage { display: none !important; }
   .abe-scope .app-body { display: block !important; }
   .abe-scope .canvas-area { overflow: visible !important; padding: 0 !important; display: block !important; }
-  .abe-scope .page-pad { width: auto !important; height: auto !important; }
-  .abe-scope .ws-page { transform: none !important; width: 100% !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; background-image: none !important; border: none !important; }
+  .abe-scope .canvas-stack, .abe-scope .page-scale-wrap, .abe-scope .page-stack, .abe-scope .page-sheet-wrap { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; display: block !important; gap: 0 !important; }
+  /* Jedes Blatt beginnt eine neue Druckseite */
+  .abe-scope .page-sheet-wrap + .page-sheet-wrap { break-before: page; page-break-before: always; }
+  .abe-scope .ws-page { transform: none !important; width: 100% !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; background-image: none !important; border: none !important; border-radius: 0 !important; }
   .abe-scope .ws-page.framed { padding: 8mm !important; }
   .abe-scope .ws-block { outline: none !important; margin: 0 0 8px !important; break-inside: avoid; }
   .abe-scope .ws-footer { break-inside: avoid; }
-  .abe-scope .page-break-guide { display: none !important; }
-  .abe-scope .pagebreak-block { break-before: page; page-break-before: always; padding: 0 !important; margin: 0 !important; }
-  .abe-scope .pagebreak-block .pb-marker { display: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -300,7 +312,8 @@ export const SINGLE_PAGE_PRINT_CSS = `
 @media print {
   @page { size: A4; margin: 0; }
   .abe-scope .canvas-area { overflow: hidden !important; padding: 0 !important; display: block !important; }
-  .abe-scope .page-pad { width: auto !important; height: auto !important; }
+  .abe-scope .canvas-stack, .abe-scope .page-scale-wrap, .abe-scope .page-stack, .abe-scope .page-sheet-wrap { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; display: block !important; gap: 0 !important; }
+  .abe-scope .page-sheet-meta, .abe-scope .abe-removepage { display: none !important; }
   .abe-scope .ws-page {
     width: 794px !important;
     height: 1122px !important;
