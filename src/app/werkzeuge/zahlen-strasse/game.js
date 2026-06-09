@@ -161,8 +161,8 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
       ctx.beginPath();
       ctx.moveTo(DX(s[0][0]),DY(s[0][1]));
       for(let i=1;i<s.length;i++) ctx.lineTo(DX(s[i][0]),DY(s[i][1]));
-      ctx.strokeStyle = solved ? '#FFE39A' : 'var(--road)';
-      ctx.strokeStyle = solved ? '#FFE39A' : getCss('--road');
+      ctx.strokeStyle = solved ? '#F6E2A6' : 'var(--road)';
+      ctx.strokeStyle = solved ? '#F6E2A6' : getCss('--road');
       ctx.lineWidth=roadW; ctx.stroke();
     }
     // Mittellinie gestrichelt
