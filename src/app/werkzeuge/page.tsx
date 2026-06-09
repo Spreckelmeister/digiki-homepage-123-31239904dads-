@@ -27,6 +27,7 @@ import {
   CalendarClock,
   Cloud,
   NotebookPen,
+  Lock,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import AdminOnly from "@/components/AdminOnly";

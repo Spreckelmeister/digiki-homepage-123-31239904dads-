@@ -34,9 +34,28 @@ export default function LueckentextApp() {
   );
   const [blanked, setBlanked] = useState<Set<number>>(new Set());
   const [showSolution, setShowSolution] = useState(false);
+  // Wortspeicher (Wortliste zum Ausfüllen) – standardmäßig an, da die Kinder
+  // ohne ihn nicht wissen, welche Wörter in die Lücken gehören.
+  const [showWordBank, setShowWordBank] = useState(true);
 
   const tokens = useMemo(() => tokenize(rawText), [rawText]);
   const wordCount = tokens.filter((t) => t.type === "word").length;
+
+  // Wörter der Lücken als Hilfe-Liste: Satzzeichen entfernt, alphabetisch
+  // sortiert (verrät dadurch nicht die Reihenfolge der Lücken).
+  const wordBank = useMemo(() => {
+    const stripped = Array.from(blanked)
+      .map(
+        (idx) =>
+          tokens.find(
+            (t): t is Extract<Token, { type: "word" }> =>
+              t.type === "word" && t.index === idx
+          )?.value ?? ""
+      )
+      .map((v) => v.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+      .filter(Boolean);
+    return stripped.sort((a, b) => a.localeCompare(b, "de"));
+  }, [blanked, tokens]);
 
   const toggleWord = useCallback((index: number) => {
     setBlanked((prev) => {
@@ -136,6 +155,19 @@ export default function LueckentextApp() {
         <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-border bg-white p-4">
           <input
             type="checkbox"
+            checked={showWordBank}
+            onChange={(e) => setShowWordBank(e.target.checked)}
+            className="mt-0.5 accent-primary"
+          />
+          <span className="text-sm text-text">
+            <strong>Wortspeicher</strong> auf dem Arbeitsblatt anzeigen – die Wortliste
+            zum Einsetzen für die Kinder
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-border bg-white p-4">
+          <input
+            type="checkbox"
             checked={showSolution}
             onChange={(e) => setShowSolution(e.target.checked)}
             className="mt-0.5 accent-primary"
@@ -174,6 +206,18 @@ export default function LueckentextApp() {
               Datum: __________
             </p>
           </header>
+          {showWordBank && wordBank.length > 0 && (
+            <div className="mb-6 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-5 py-4 print:bg-transparent break-inside-avoid">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary mb-2.5">
+                Wortspeicher
+              </p>
+              <p className="flex flex-wrap gap-x-5 gap-y-1.5 text-lg font-semibold text-text">
+                {wordBank.map((w, i) => (
+                  <span key={i}>{w}</span>
+                ))}
+              </p>
+            </div>
+          )}
           <div className="text-lg leading-relaxed text-text max-w-prose">
             {tokens.map((t, i) => {
               if (t.type === "space") return <span key={i}>{t.value}</span>;
