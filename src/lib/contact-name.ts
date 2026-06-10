@@ -35,3 +35,27 @@ export function extractContactNames(raw: string | null | undefined): string {
   });
   return unique.join(" & ");
 }
+
+/** Name + Funktion zur Anzeige-Angabe „Name, Funktion" zusammensetzen. */
+export function combineContactPerson(
+  name: string | null | undefined,
+  func: string | null | undefined,
+): string {
+  const n = String(name ?? "").trim();
+  const f = String(func ?? "").trim();
+  return f ? `${n}, ${f}` : n;
+}
+
+/**
+ * Eine bestehende „Name, Funktion"-Angabe für die Bearbeitung wieder in Name +
+ * Funktion zerlegen (Best-Effort: alles vor dem ersten Komma = Name).
+ */
+export function splitContactPerson(raw: string | null | undefined): {
+  name: string;
+  func: string;
+} {
+  const s = String(raw ?? "").trim();
+  const i = s.indexOf(",");
+  if (i < 0) return { name: s, func: "" };
+  return { name: s.slice(0, i).trim(), func: s.slice(i + 1).trim() };
+}

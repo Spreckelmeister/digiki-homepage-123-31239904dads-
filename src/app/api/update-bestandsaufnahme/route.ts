@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { combineContactPerson } from "@/lib/contact-name";
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -34,7 +35,7 @@ export async function PUT(request: NextRequest) {
       student_count:            fields.studentCount,
       teacher_count:            fields.teacherCount,
       principal_name:           fields.principalName,
-      contact_person:           fields.contactPerson,
+      contact_person:           combineContactPerson(fields.contactPerson, fields.contactPersonFunction),
       contact_phone:            fields.contactPhone,
       is_startchancen_school:   fields.isStartchancen,
       daz_share:                fields.dazShare,

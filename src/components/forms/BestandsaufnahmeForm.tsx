@@ -10,6 +10,7 @@ import {
   useSchoolAutocomplete,
   type SchoolSuggestion,
 } from "./useSchoolAutocomplete";
+import { splitContactPerson } from "@/lib/contact-name";
 
 // Modul-Level: einmal kompiliert, nicht pro Keystroke neu.
 const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
@@ -526,8 +527,13 @@ export default function BestandsaufnahmeForm({
   const [additionalNotes, setAdditionalNotes] = useState(initialData?.additional_notes ?? "");
 
   // ── Kontaktdaten (auch im Edit-Modus änderbar) ────────────────────────────
+  // Feld 9 ist in Name + Funktion getrennt. Beim Bearbeiten eine bestehende
+  // „Name, Funktion"-Angabe wieder aufteilen (Name = vor dem ersten Komma).
   const [contactPerson, setContactPerson] = useState(
-    initialData?.contact_person ?? "",
+    () => splitContactPerson(initialData?.contact_person).name,
+  );
+  const [contactPersonFunction, setContactPersonFunction] = useState(
+    () => splitContactPerson(initialData?.contact_person).func,
   );
   const [principalName, setPrincipalName] = useState(
     initialData?.principal_name ?? "",
@@ -855,6 +861,7 @@ export default function BestandsaufnahmeForm({
           teacherCount: teacherCount || null,
           principalName: principalName || null,
           contactPerson: contactPerson || null,
+          contactPersonFunction: contactPersonFunction || null,
           contactPhone: contactPhone || null,
           isStartchancen,
           dazShare,
@@ -924,6 +931,7 @@ export default function BestandsaufnahmeForm({
         password,
         contactEmail,
         contactPerson,
+        contactPersonFunction: contactPersonFunction || null,
         principalName,
         contactPhone: contactPhone || null,
         schoolName,
@@ -1198,15 +1206,27 @@ export default function BestandsaufnahmeForm({
 
                 <div data-field-anchor="contactPerson">
                   <FieldLabel required htmlFor="contactPerson">
-                    9. Ansprechperson für DigiKI (Name, Funktion)
+                    9. Ansprechperson für DigiKI
                   </FieldLabel>
                   <TextInput
                     id="contactPerson"
                     value={contactPerson}
                     onChange={setContactPerson}
-                    placeholder="z. B. Maria Mustermann, IT-Beauftragte"
+                    placeholder="Name, z. B. Maria Mustermann"
                     autoComplete="name"
                   />
+                  <div className="mt-3">
+                    <FieldLabel htmlFor="contactPersonFunction">
+                      Funktion (optional)
+                    </FieldLabel>
+                    <TextInput
+                      id="contactPersonFunction"
+                      value={contactPersonFunction}
+                      onChange={setContactPersonFunction}
+                      placeholder="z. B. IT-Beauftragte, Schulleitung"
+                      autoComplete="organization-title"
+                    />
+                  </div>
                 </div>
 
                 <div data-field-anchor="contactPhone">
