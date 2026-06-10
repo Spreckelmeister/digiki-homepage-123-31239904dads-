@@ -426,7 +426,7 @@ import { Icon } from "./icons";
         <Section title="Einstellungen">
           <Row label="Zahlenraum bis"><Segmented value={block.max} onChange={v => patch({ max: v, _regen: Date.now() })} options={[
             { v: 10, label: "10" }, { v: 20, label: "20" }, { v: 100, label: "100" }, { v: 1000, label: "1000" }]} /></Row>
-          <Row label="Aufgaben"><Stepper value={block.count} min={2} max={20} step={2} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Aufgaben"><Stepper value={block.count} min={1} max={30} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
           <Row label="Spalten"><Stepper value={block.cols} min={1} max={3} onChange={v => patch({ cols: v })} /></Row>
           {mode === "normal" && <Row label="Ergebnisse zeigen"><Toggle value={!!block.showResult} onChange={v => patch({ showResult: v })} /></Row>}
         </Section>
@@ -850,7 +850,7 @@ import { Icon } from "./icons";
         )}
         <Section title="Einstellungen">
           {mode === "rechnen" && <Row label={kind === "geld" ? "Bis … €" : "Zahlenraum bis"}><Stepper value={block.max || 20} min={kind === "geld" ? 5 : 10} max={kind === "geld" ? 100 : 1000} step={kind === "geld" ? 5 : 10} onChange={v => patch({ max: v, _regen: Date.now() })} /></Row>}
-          <Row label="Aufgaben"><Stepper value={block.count || 8} min={2} max={20} step={2} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Aufgaben"><Stepper value={block.count || 8} min={1} max={30} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
           <Row label="Spalten"><Stepper value={block.cols || 2} min={1} max={3} onChange={v => patch({ cols: v })} /></Row>
           <Row label="Größe"><Stepper value={block.size || 22} min={16} max={32} step={2} onChange={v => patch({ size: v })} /></Row>
           {mode === "rechnen" && <Row label="Ergebnisse zeigen"><Toggle value={!!block.showResult} onChange={v => patch({ showResult: v })} /></Row>}
