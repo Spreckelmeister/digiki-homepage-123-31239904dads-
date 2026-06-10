@@ -128,6 +128,11 @@ import { Icon } from "./icons";
           nb.pairs = Array.isArray(nb.pairs) ? nb.pairs : [["A", "1"], ["B", "2"]]; nb._shuffle = nb.pairs.map((_, i) => i).sort(() => Math.random() - 0.5); nb.size = nb.size || 19; nb.font = nb.font || "druck";
         } else if (nb.type === "task") {
           nb.icon = nb.icon || "pencil"; nb.color = nb.color || "teal"; nb.font = nb.font || "druck"; nb.size = nb.size || 18;
+        } else if (nb.type === "selfcheck") {
+          nb.shape = nb.shape === "schlange" ? "schlange" : "band";
+          nb.size = nb.size || 22;
+          nb.decoys = Math.max(0, Math.min(6, +nb.decoys || 0));
+          if (nb.sources != null && !Array.isArray(nb.sources)) delete nb.sources; // null/undefiniert = automatisch alle
         }
       } catch (e) {}
       out.push(nb);
@@ -159,6 +164,7 @@ import { Icon } from "./icons";
       '- {"type":"mathtri","op":"+|-|×|÷","max":20}',
       '- {"type":"numline","min":0,"max":20,"step":1,"blanks":[3,7],"marks":[{"at":12,"type":"box"}]}',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
+      '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',
     ].join("\n");
   }

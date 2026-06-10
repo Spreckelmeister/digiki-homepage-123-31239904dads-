@@ -164,6 +164,50 @@ function genWordsearch(words, size = 10) {
   return { grid, placements, size: N };
 }
 
+// ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
+// Welche Bausteine liefern prüfbare Zahlen-Lösungen?
+const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline"];
+function collectSolutions(block) {
+  const out = [];
+  const push = v => { const n = +v; if (Number.isFinite(n)) out.push(n); };
+  if (!block) return out;
+  if (block.type === "matharow") {
+    if (block.mode === "compare") return out;              // Vergleichszeichen sind keine Zahl
+    (block.items || []).forEach(r => push(block.mode === "missing" ? (r.hide === "a" ? r.a : r.b) : r.res));
+  } else if (block.type === "mathwall") {
+    genWall(block.base || [], block.op).slice(1).forEach(row => row.forEach(push)); // berechnete Steine (ohne Basis)
+  } else if (block.type === "mathtri") {
+    const t = block.data || {};
+    ((t.op || block.op) === "÷" ? (t.corners || []) : (t.sides || [])).forEach(push);
+  } else if (block.type === "numline") {
+    (block.blanks || []).forEach(push);
+    (block.marks || []).forEach(m => { if (m.type === "box") push(m.at); });
+  }
+  return out;
+}
+// Deterministisches Mischen (stabil über Re-Renders → kein Flackern)
+function seededShuffle(arr, seed) {
+  const a = arr.slice();
+  let s = (seed >>> 0) || 1;
+  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+// Plausible „Täuscher" (falsche Ergebnisse) – deterministisch aus dem Seed
+function makeDecoys(nums, count, seed) {
+  if (!count || !nums.length) return [];
+  const real = new Set(nums), out = [];
+  let s = (seed >>> 0) || 7; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const offs = [1, -1, 2, -2, 3, -3, 10, -10];
+  let guard = 0;
+  while (out.length < count && guard++ < 300) {
+    const base = nums[Math.floor(rnd() * nums.length)];
+    const cand = base + offs[Math.floor(rnd() * offs.length)];
+    if (cand >= 0 && !real.has(cand) && out.indexOf(cand) < 0) out.push(cand);
+  }
+  return out;
+}
+
 // ---- Automatische Arbeitsaufträge (klar für Grundschulkinder) ----
 function autoPrompt(b) {
   if (!b) return "";
@@ -201,4 +245,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys };

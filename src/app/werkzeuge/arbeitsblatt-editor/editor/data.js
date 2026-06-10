@@ -45,6 +45,7 @@
       { type: "mathtri",  label: "Rechendreieck",  icon: "mathtri", desc: "Ecken & Seiten" },
       { type: "numline",  label: "Zahlenstrahl",   icon: "numline", desc: "Markierungen & Sprünge", hot: true },
       { type: "clock",    label: "Uhrzeit",        icon: "clock", desc: "Uhr ablesen" },
+      { type: "selfcheck", label: "Selbstkontrolle", icon: "selfcheck", desc: "Lösungen zum Selbst-Prüfen", hot: true },
     ]},
     { group: "Medien", items: [
       { type: "image",    label: "Bild / Clipart", icon: "image", desc: "mehrere, beschriften, zählen" },

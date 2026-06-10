@@ -7,7 +7,7 @@ import { Icon } from "./icons";
    Block renderers — the actual worksheet content
    Exposes Block({ block, doc, onPatch })
    ============================================================ */
-  const { syllabify, genWall, clipartSvg, CLIP_LABELS } = DKU;
+  const { syllabify, genWall, clipartSvg, CLIP_LABELS, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys } = DKU;
 
   const fontClass = id => (DKI.FONTS.find(f => f.id === id) || {}).css || "font-grundschrift";
   const schemeOf  = id => DKI.SYL_SCHEMES.find(s => s.id === id) || DKI.SYL_SCHEMES[0];
@@ -778,6 +778,82 @@ import { Icon } from "./icons";
   }
   const withPrompt = (block, el) => <><Prompt block={block} />{el}</>;
 
+  // ---------- Selbstkontrolle (Lösungsband / Zahlenschlange) ----------
+  function SelfCheck({ block, doc, solve }) {
+    const all = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
+    // sources == null  →  automatisch ALLE Rechen-Aufgaben auf dem Blatt
+    const sources = block.sources == null ? all : all.filter(b => block.sources.includes(b.id));
+    let nums = [];
+    sources.forEach(b => { nums = nums.concat(collectSolutions(b)); });
+    const seed = String(block.id || "s").split("").reduce((a, c) => a + c.charCodeAt(0), 11);
+    const decoys = makeDecoys(nums, block.decoys || 0, seed);
+    const tokens = seededShuffle(nums.map(v => ({ v })).concat(decoys.map(v => ({ v, decoy: true }))), seed);
+    const sz = block.size || 22;
+    const heading = block.heading != null ? block.heading : "Selbstkontrolle";
+    const shape = block.shape === "schlange" ? "schlange" : "band";
+
+    const Head = () => (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--sol)", color: "#fff", flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="selfcheck" size={18} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--ink)" }}>{heading}</div>
+          <div style={{ fontFamily: "var(--ui)", fontSize: 12, color: "var(--muted)" }}>Rechne und hake jedes gefundene Ergebnis ab.</div>
+        </div>
+      </div>
+    );
+
+    if (!tokens.length) {
+      return (
+        <div style={{ border: "2px dashed var(--line)", borderRadius: 14, padding: "20px 18px", textAlign: "center", fontFamily: "var(--ui)", color: "var(--muted)" }}>
+          <span style={{ display: "inline-flex", width: 34, height: 34, borderRadius: "50%", background: "var(--bg-rail)", color: "var(--sol)", alignItems: "center", justifyContent: "center", marginBottom: 8 }}><Icon name="selfcheck" size={19} /></span>
+          <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 14 }}>Noch keine Lösungen</div>
+          <div style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.45 }}>Tippe rechts die Rechen-Aufgaben an, deren Ergebnisse hier zum Abhaken erscheinen sollen.</div>
+        </div>
+      );
+    }
+
+    const Pill = ({ t, i }) => {
+      const isDecoy = solve && t.decoy;
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+          minWidth: sz * 2, height: sz * 1.8, padding: `0 ${Math.round(sz * 0.5)}px`, borderRadius: 12,
+          border: "2px solid " + (isDecoy ? "var(--syl-red)" : "var(--sol)"), background: "#fff",
+          fontFamily: "var(--ui)", fontWeight: 800, fontSize: sz, lineHeight: 1,
+          color: isDecoy ? "var(--syl-red)" : "var(--ink)", textDecoration: isDecoy ? "line-through" : "none",
+          transform: shape === "schlange" ? `translateY(${i % 2 ? Math.round(sz * 0.4) : -Math.round(sz * 0.12)}px)` : "none" }}>
+          {t.v}
+        </span>
+      );
+    };
+
+    if (shape === "schlange") {
+      return (
+        <div>
+          <Head />
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${Math.round(sz * 0.55)}px ${Math.round(sz * 0.42)}px`, padding: "8px 2px 6px" }}>
+            <span aria-hidden style={{ position: "relative", width: sz * 1.9, height: sz * 1.7, flex: "none",
+              borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%", background: "var(--sol)", boxShadow: "inset -2px -2px 0 rgba(0,0,0,.08)" }}>
+              <span style={{ position: "absolute", top: sz * 0.5, left: sz * 0.5, width: sz * 0.26, height: sz * 0.26, borderRadius: "50%", background: "#fff" }} />
+              <span style={{ position: "absolute", top: sz * 0.5, left: sz * 1.02, width: sz * 0.26, height: sz * 0.26, borderRadius: "50%", background: "#fff" }} />
+            </span>
+            {tokens.map((t, i) => <Pill key={i} t={t} i={i} />)}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ border: "2px dashed var(--sol)", background: "rgba(21,128,61,.06)", borderRadius: 16, padding: "14px 16px" }}>
+        <Head />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: Math.round(sz * 0.5) }}>
+          {tokens.map((t, i) => <Pill key={i} t={t} i={i} />)}
+        </div>
+      </div>
+    );
+  }
+
   function Block({ block, doc, onPatch }) {
     const solve = !!(doc && doc.showSolutions);
     switch (block.type) {
@@ -799,6 +875,7 @@ import { Icon } from "./icons";
       case "table":    return <Table block={block} onPatch={onPatch} />;
       case "task":     return <TaskInstr block={block} onPatch={onPatch} />;
       case "divider":  return <Divider block={block} />;
+      case "selfcheck": return <SelfCheck block={block} doc={doc} solve={solve} />;
       case "pagebreak": return <PageBreak />;
       default:         return <div style={{ color: "var(--muted)" }}>Unbekannter Block</div>;
     }

@@ -67,6 +67,7 @@ function makeBlock(type, level) {
     case "clock":    { const mk = () => ({ h: DKU.rint(1, 12), m: [0, 15, 30, 45][DKU.rint(0, easy ? 1 : 3)] }); return { ...base, clocks: [mk()], cols: 1 }; }
     case "table":    return { ...base, rows: 3, cols: 3, header: true, size: 16, rowH: 34, font: "druck", cells: [["Spalte 1", "Spalte 2", "Spalte 3"], ["", "", ""], ["", "", ""]] };
     case "task":     return { ...base, num: 1, icon: "pencil", color: "teal", font: "druck", size: 18, text: "Schreibe hier deinen Arbeitsauftrag." };
+    case "selfcheck": return { ...base, shape: "band", size: 22, decoys: 0 }; // sources undefiniert = automatisch alle Rechen-Aufgaben
     case "divider":  return { ...base, variant: "scissors", space: 30 };
     case "pagebreak": return { ...base };
     default:         return base;

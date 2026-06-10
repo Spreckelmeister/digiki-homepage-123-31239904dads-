@@ -7,7 +7,7 @@ import { Icon } from "./icons";
    Right rail — properties + Differenzierung
    ============================================================ */
   const { FONTS, SYL_SCHEMES, CLIPART } = DKI;
-  const { CLIP_LABELS, clipartSvg } = DKU;
+  const { CLIP_LABELS, clipartSvg, SC_ELIGIBLE, collectSolutions } = DKU;
 
   // ---- reusable controls ----
   const Section = ({ title, children, right }) => (
@@ -100,7 +100,7 @@ import { Icon } from "./icons";
   );
 
   // ---- per-block property editors ----
-  function BlockProps({ block, patch, onPickImage }) {
+  function BlockProps({ block, patch, onPickImage, doc }) {
     const t = block.type;
     if (t === "title") return (<>
       <Section title="Text"><TextArea value={block.text} onChange={v => patch({ text: v })} rows={2} /></Section>
@@ -692,6 +692,62 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "selfcheck") {
+      const META = {}; DKI.PALETTE.forEach(g => g.items.forEach(it => { META[it.type] = it; }));
+      const eligible = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
+      const allIds = eligible.map(b => b.id);
+      const isAll = block.sources == null;
+      const activeIds = isAll ? allIds : (block.sources || []).filter(id => allIds.includes(id));
+      const toggle = (id) => {
+        const next = activeIds.includes(id) ? activeIds.filter(x => x !== id) : [...activeIds, id];
+        patch({ sources: next.length === allIds.length ? null : next }); // alle gewählt → wieder Auto-Modus
+      };
+      const total = eligible.reduce((s, b) => s + (activeIds.includes(b.id) ? collectSolutions(b).length : 0), 0);
+      return (<>
+        <Section title="Aufgaben prüfen" right={<span style={{ fontSize: 11, fontWeight: 700, color: "var(--sol)", background: "rgba(21,128,61,.1)", padding: "2px 8px", borderRadius: 999 }}>{total} {total === 1 ? "Lösung" : "Lösungen"}</span>}>
+          {eligible.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Es gibt noch keine Rechen-Aufgaben auf dem Blatt. Füge z. B. ein <b>Rechenpäckchen</b>, eine <b>Rechenmauer</b>, ein <b>Rechendreieck</b> oder einen <b>Zahlenstrahl</b> hinzu – ihre Lösungen erscheinen dann hier automatisch.</p>
+          ) : (<>
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 9px", lineHeight: 1.5 }}>Tippe die Aufgaben an, deren Ergebnisse zum Abhaken erscheinen sollen.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {eligible.map(b => {
+                const on = activeIds.includes(b.id);
+                const m = META[b.type] || { label: b.type, icon: "math" };
+                const n = collectSolutions(b).length;
+                return (
+                  <button key={b.id} onClick={() => toggle(b.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 11px", textAlign: "left", borderRadius: 11, cursor: "pointer",
+                      border: "1.5px solid " + (on ? "var(--sol)" : "var(--line)"), background: on ? "rgba(21,128,61,.07)" : "#fff", transition: "all .12s ease" }}>
+                    <span style={{ width: 32, height: 32, flex: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                      background: on ? "var(--sol)" : "var(--bg-rail)", color: on ? "#fff" : "var(--ink-soft)" }}><Icon name={m.icon} size={17} /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{m.label}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{n} {n === 1 ? "Lösung" : "Lösungen"}</div>
+                    </span>
+                    <span style={{ width: 24, height: 24, flex: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
+                      border: "2px solid " + (on ? "var(--sol)" : "var(--line)"), background: on ? "var(--sol)" : "#fff", color: "#fff" }}>
+                      {on && <Icon name="check" size={15} stroke={2.6} />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {isAll && <p style={{ fontSize: 11, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.45 }}>Aktuell werden <b>alle</b> Aufgaben automatisch geprüft – auch neu hinzugefügte.</p>}
+          </>)}
+        </Section>
+        <Section title="Darstellung">
+          <Row label="Form"><Segmented value={block.shape || "band"} onChange={v => patch({ shape: v })} options={[
+            { v: "band", label: "Band" }, { v: "schlange", label: "Schlange" }]} /></Row>
+          <Row label="Zahlengröße"><Stepper value={block.size || 22} min={16} max={36} step={2} onChange={v => patch({ size: v })} /></Row>
+        </Section>
+        <Section title="Schwieriger machen">
+          <Row label="Falsche Ergebnisse einstreuen"><Toggle value={!!block.decoys} onChange={v => patch({ decoys: v ? 3 : 0 })} /></Row>
+          {!!block.decoys && <Row label="Anzahl"><Stepper value={block.decoys} min={1} max={6} onChange={v => patch({ decoys: v })} /></Row>}
+          {!!block.decoys && <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 2px 0", lineHeight: 1.45 }}>Zusätzliche falsche Zahlen verhindern bloßes Abhaken. Im Lösungsblatt sind sie rot durchgestrichen.</p>}
+        </Section>
+      </>);
+    }
+
     if (t === "pagebreak") return (
       <Section title="Seitenumbruch">
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", color: "var(--muted)", fontSize: 12.5, lineHeight: 1.55 }}>
@@ -743,7 +799,7 @@ import { Icon } from "./icons";
                   <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 9px", marginTop: 7 }} onClick={() => patch({ prompt: null })}><Icon name="redo" size={13} /> Automatischer Text</button>
                 </Section>
               )}
-              <BlockProps block={sel} patch={patch} onPickImage={onPickImage} />
+              <BlockProps block={sel} patch={patch} onPickImage={onPickImage} doc={doc} />
             </div>
           ) : (
             <div>

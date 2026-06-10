@@ -77,6 +77,7 @@ const ICON_PATHS = {
   docnew:  '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M12 11v6M9 14h6"/>',
   frame:   '<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1"/>',
   pagebreak: '<rect x="5" y="3" width="14" height="6" rx="1"/><rect x="5" y="15" width="14" height="6" rx="1"/><path d="M2 12h3.5M8.5 12h2.5M13 12h2.5M18.5 12H22"/>',
+  selfcheck: '<circle cx="12" cy="12" r="9"/><path d="m8.2 12.2 2.4 2.4 5.2-5.2"/>',
 };
 
 function Icon({ name, size = 18, stroke = 1.8, className = "", style }) {
