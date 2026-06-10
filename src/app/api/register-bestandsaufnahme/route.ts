@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
-import { extractContactNames, combineContactPerson } from "@/lib/contact-name";
+import { extractContactNames } from "@/lib/contact-name";
 
 function escapeHtml(str: string): string {
   return str
@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     password,
     contactEmail,
     contactPerson,
-    contactPersonFunction,
     principalName,
     contactPhone,
     schoolName,
@@ -213,14 +212,10 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Name & Funktion kommen jetzt als getrennte Felder. full_name (Auth + Profil →
-  // Anreden/Anzeigen) bekommt nur den Namen – kein Parsen mehr nötig.
-  // extractContactNames bleibt als Schutz, falls jemand doch „Name, Funktion" ins
-  // Namensfeld tippt. Für die Bestandsaufnahme wird „Name, Funktion" wieder
-  // zusammengesetzt (contact_person), die Funktion steckt zudem in respondent_role.
+  // Feld 9 erfasst nur den Namen (die Funktion steckt in Frage 7 / respondent_role).
+  // extractContactNames bleibt als Schutz, falls doch „Name, Funktion" eingetippt wird.
   const contactName =
     extractContactNames(contactPerson) || String(contactPerson).trim();
-  const contactPersonFull = combineContactPerson(contactPerson, contactPersonFunction);
 
   // ── Account serverseitig anlegen ───────────────────────────────────────────
   // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
@@ -342,7 +337,7 @@ export async function POST(request: NextRequest) {
     .from("bestandsaufnahme_responses")
     .insert({
       user_id: userId,
-      contact_person: contactPersonFull.slice(0, 200),
+      contact_person: contactName.slice(0, 200),
       principal_name: String(principalName).slice(0, 200),
       contact_email:
         typeof contactEmail === "string"

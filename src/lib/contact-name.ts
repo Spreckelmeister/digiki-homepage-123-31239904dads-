@@ -15,7 +15,7 @@
 const ROLE_RE =
   /(schulleit|konrektor|rektor|direktor|lehr(?:er|erin|kraft|amt)?|p[äa]dagog|erzieher|sekretari|beauftragt|koordinat|stellv|fachleit|abteilungsleit|leitung|f[öo]rder|sonderp[äa]d|didakti)/i;
 
-export function extractContactNames(raw: string | null | undefined): string {
+export function extractContactNames(raw: unknown): string {
   const s = String(raw ?? "").trim();
   if (!s) return "";
   // An Kommas, mehrfach-Leerzeichen sowie „und"/„&"/„/" trennen.
@@ -36,19 +36,10 @@ export function extractContactNames(raw: string | null | undefined): string {
   return unique.join(" & ");
 }
 
-/** Name + Funktion zur Anzeige-Angabe „Name, Funktion" zusammensetzen. */
-export function combineContactPerson(
-  name: string | null | undefined,
-  func: string | null | undefined,
-): string {
-  const n = String(name ?? "").trim();
-  const f = String(func ?? "").trim();
-  return f ? `${n}, ${f}` : n;
-}
-
 /**
- * Eine bestehende „Name, Funktion"-Angabe für die Bearbeitung wieder in Name +
- * Funktion zerlegen (Best-Effort: alles vor dem ersten Komma = Name).
+ * Eine bestehende „Name, Funktion"-Altangabe für die Bearbeitung auf den Namen
+ * reduzieren (Best-Effort: alles vor dem ersten Komma = Name). Die Funktion wird
+ * nicht mehr abgefragt – sie steckt in Frage 7 (respondent_role).
  */
 export function splitContactPerson(raw: string | null | undefined): {
   name: string;
