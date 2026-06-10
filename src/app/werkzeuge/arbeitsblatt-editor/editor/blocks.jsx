@@ -1174,9 +1174,9 @@ import { Icon } from "./icons";
       );
     };
 
-    // Schlangenkopf mit Augen, Nasenlöchern und gespaltener Zunge (zeigt nach rechts)
-    const SnakeHead = () => (
-      <svg aria-hidden width={sz * 2.15} height={sz * 1.8} viewBox="0 0 44 38" style={{ flex: "none", display: "block", overflow: "visible" }}>
+    // Schlangenkopf mit Augen, Nasenlöchern und gespaltener Zunge (zeigt nach außen)
+    const SnakeHead = ({ dir = "right" }) => (
+      <svg aria-hidden width={sz * 2.15} height={sz * 1.8} viewBox="0 0 44 38" style={{ flex: "none", display: "block", overflow: "visible", transform: dir === "left" ? "scaleX(-1)" : "none" }}>
         <path d="M33 19 H41 M41 19 L45 16 M41 19 L45 22" stroke="var(--syl-red)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         <ellipse cx="20" cy="19" rx="17" ry="14" fill="var(--sol)" />
         <circle cx="15" cy="13" r="3.6" fill="#fff" />
@@ -1202,10 +1202,16 @@ import { Icon } from "./icons";
           <div style={{ display: "flex", flexDirection: "column", gap: Math.round(sz * 0.5), paddingTop: 4 }}>
             {rows.map((row, ri) => {
               const disp = ri % 2 === 1 ? [...row].reverse() : row;  // ungerade Zeilen rückwärts → U-Wende
+              const isLast = ri === rows.length - 1;
+              // Kopf ans ENDE der Schlange: gerade Zeile endet rechts (Kopf rechts),
+              // ungerade Zeile (rückwärts) endet links (Kopf links, gespiegelt).
+              const headRight = isLast && ri % 2 === 0;
+              const headLeft = isLast && ri % 2 === 1;
               return (
                 <div key={ri} style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", gap, justifyContent: ri % 2 === 1 ? "flex-end" : "flex-start" }}>
-                  {ri === 0 && <SnakeHead />}
+                  {headLeft && <SnakeHead dir="left" />}
                   {disp.map((t, i) => <Pill key={i} t={t} />)}
+                  {headRight && <SnakeHead dir="right" />}
                 </div>
               );
             })}
