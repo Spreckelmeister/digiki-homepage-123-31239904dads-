@@ -803,6 +803,11 @@ import { Icon } from "./icons";
           <Row label="Stellen je Zahl"><Stepper value={block.digits || 3} min={2} max={4} onChange={v => patch({ digits: v, _regen: Date.now() })} /></Row>
           <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>2 = Zehner, 3 = Hunderter, 4 = Tausender.</p>
         </Section>
+        <Section title="Anzahl">
+          <Row label="Aufgaben"><Stepper value={block.count || 1} min={1} max={12} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Spalten"><Stepper value={block.cols || 2} min={1} max={4} onChange={v => patch({ cols: v })} /></Row>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>Mehrere Rechnungen gleichen Typs nebeneinander – spart Platz.</p>
+        </Section>
         <Section title="Darstellung">
           {(op === "+" || op === "-") && <Row label="Übertrags-Zeile zeigen"><Toggle value={block.carries !== false} onChange={v => patch({ carries: v })} /></Row>}
           {op === "×" && <Row label="Teilergebnisse zeigen"><Toggle value={block.partials !== false} onChange={v => patch({ partials: v })} /></Row>}

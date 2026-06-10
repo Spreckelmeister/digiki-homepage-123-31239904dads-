@@ -221,6 +221,11 @@ function genWritten(op, digits) {
   if (op === "×") { const a = rnum(d), b = rint(2, d >= 4 ? 99 : d >= 3 ? 29 : 9); return { op: "×", a, b, res: a * b }; }
   const a = rnum(d), b = rnum(d); return { op: "+", a, b, res: a + b };
 }
+function genWrittenItems(op, digits, count) {
+  const out = [];
+  for (let i = 0; i < Math.max(1, count || 1); i++) { const g = genWritten(op, digits); out.push({ a: g.a, b: g.b, res: g.res }); }
+  return out;
+}
 
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
@@ -315,4 +320,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten, genWrittenItems };
