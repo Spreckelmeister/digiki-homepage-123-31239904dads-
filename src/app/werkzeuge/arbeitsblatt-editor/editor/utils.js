@@ -263,6 +263,7 @@ function autoPrompt(b) {
   if (b.type === "dotfield") return "Wie viele Punkte sind es? Schreibe die Zahl in das Kästchen.";
   if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
   if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
+  if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "wordsearch") return "Finde alle Wörter und male sie farbig an. Sie stehen waagerecht, senkrecht und schräg.";
   if (b.type === "clock") {
     const n = (b.clocks || []).length || 1;

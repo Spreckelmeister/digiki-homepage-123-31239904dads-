@@ -37,13 +37,35 @@ import { Icon } from "./icons";
       ))}
     </div>
   );
-  const Stepper = ({ value, onChange, min = 0, max = 99, step = 1, suffix }) => (
-    <div style={{ display: "inline-flex", alignItems: "center", background: "var(--bg-rail)", borderRadius: 9, padding: 2 }}>
-      <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}><Icon name="minus" size={15} /></button>
-      <span style={{ width: 44, textAlign: "center", fontSize: 13, fontWeight: 700 }}>{value}{suffix || ""}</span>
-      <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => onChange(Math.min(max, +(value + step).toFixed(2)))}><Icon name="plus" size={15} /></button>
-    </div>
-  );
+  // Zahl per +/- ODER direkter Eingabe (iPad: numerische Tastatur via inputMode).
+  // Tippen wird in lokalem Text-State gehalten und erst bei Verlassen/Enter
+  // geklemmt übernommen – so kann man das Feld zwischendurch leeren.
+  function Stepper({ value, onChange, min = 0, max = 99, step = 1, suffix }) {
+    const [txt, setTxt] = React.useState(String(value));
+    React.useEffect(() => { setTxt(String(value)); }, [value]);
+    const commit = (raw) => {
+      let n = parseFloat(String(raw).replace(",", "."));
+      if (!Number.isFinite(n)) n = value;
+      n = +Math.max(min, Math.min(max, n)).toFixed(2);
+      onChange(n); setTxt(String(n));
+    };
+    const bump = (d) => onChange(+Math.max(min, Math.min(max, +(value + d).toFixed(2))));
+    return (
+      <div style={{ display: "inline-flex", alignItems: "center", background: "var(--bg-rail)", borderRadius: 9, padding: 2 }}>
+        <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => bump(-step)}><Icon name="minus" size={15} /></button>
+        <div style={{ display: "inline-flex", alignItems: "baseline", justifyContent: "center", width: 46 }}>
+          <input value={txt} inputMode="decimal" aria-label="Wert"
+            onChange={e => setTxt(e.target.value.replace(/[^0-9.,\-]/g, ""))}
+            onFocus={e => e.target.select()}
+            onBlur={e => commit(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(e.currentTarget.value); e.currentTarget.blur(); } }}
+            style={{ width: suffix ? 26 : 40, textAlign: "center", fontSize: 13, fontWeight: 700, border: "none", background: "transparent", outline: "none", color: "var(--ink)", font: "inherit", padding: 0 }} />
+          {suffix && <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-soft)" }}>{suffix}</span>}
+        </div>
+        <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => bump(step)}><Icon name="plus" size={15} /></button>
+      </div>
+    );
+  }
   const Toggle = ({ value, onChange }) => (
     <button onClick={() => onChange(!value)} style={{ width: 40, height: 23, borderRadius: 999, border: "none", cursor: "pointer", position: "relative",
       background: value ? "var(--teal)" : "#CBD5E1", transition: "background .16s" }}>
@@ -700,6 +722,74 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "imagelabel") {
+      const points = block.points || [];
+      const setPoint = (i, p) => patch({ points: points.map((x, j) => j === i ? { ...x, ...p } : x) });
+      const delPoint = (i) => patch({ points: points.filter((_, j) => j !== i) });
+      const loadScaled = (file) => new Promise(res => {
+        const r = new FileReader();
+        r.onload = () => { const img = new Image(); img.onload = () => {
+          const m = 560; let w = img.width, h = img.height; const sc = Math.min(1, m / Math.max(w, h));
+          w = Math.round(w * sc); h = Math.round(h * sc);
+          const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h);
+          res(c.toDataURL("image/png"));
+        }; img.src = r.result; };
+        r.readAsDataURL(file);
+      });
+      const upload = () => {
+        const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
+        inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; loadScaled(f).then(src => patch({ src, art: null })); };
+        inp.click();
+      };
+      return (<>
+        <Section title="Bild">
+          {(block.src || block.art) ? (<>
+            <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: 8, display: "flex", justifyContent: "center", background: "var(--bg-rail)" }}>
+              {block.src ? <img src={block.src} alt="" style={{ maxWidth: "100%", maxHeight: 140, borderRadius: 6 }} /> : <div style={{ width: 120, height: 120 }} dangerouslySetInnerHTML={{ __html: clipartSvg(block.art) }} />}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={upload}><Icon name="download" size={15} /> Ersetzen</button>
+              <button className="btn btn-ghost" data-tip="Bild entfernen" onClick={() => patch({ src: null, art: null, points: [] })}><Icon name="trash" size={15} /></button>
+            </div>
+          </>) : (<>
+            <button className="btn" style={{ width: "100%" }} onClick={upload}><Icon name="download" size={15} /> Bild hochladen</button>
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 0 6px", lineHeight: 1.5 }}>… oder ein Clipart wählen:</p>
+            <div className="scroll" style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 4, maxHeight: 120, overflowY: "auto", padding: 2 }}>
+              {CLIPART.map(c => (
+                <button key={c} onClick={() => patch({ art: c, src: null })} data-tip={CLIP_LABELS[c]}
+                  style={{ aspectRatio: "1", padding: 3, borderRadius: 7, cursor: "pointer", background: "var(--bg-rail)", border: "1.5px solid transparent" }}
+                  dangerouslySetInnerHTML={{ __html: clipartSvg(c) }} />
+              ))}
+            </div>
+          </>)}
+        </Section>
+        {(block.src || block.art) && (
+          <Section title="Beschriftungen" right={<span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal-700)", background: "var(--teal-50)", padding: "2px 8px", borderRadius: 999 }}>{points.length}</span>}>
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 9px", lineHeight: 1.5 }}>Tippe auf dem Blatt direkt auf das Bild, um nummerierte Punkte zu setzen. Hier trägst du die Lösungswörter ein.</p>
+            {points.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: "var(--muted)", textAlign: "center", padding: "10px 0" }}>Noch keine Punkte gesetzt.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {points.map((p, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 24, height: 24, flex: "none", borderRadius: "50%", background: "var(--teal-700)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 13 }}>{i + 1}</span>
+                    <input value={p.word || ""} onChange={e => setPoint(i, { word: e.target.value })} placeholder="Lösungswort"
+                      style={{ flex: 1, minWidth: 0, border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", font: "inherit", fontSize: 13, outline: "none" }} />
+                    <button className="icon-btn" style={{ width: 26, height: 26 }} data-tip="Punkt entfernen" onClick={() => delPoint(i)}><Icon name="close" size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+        )}
+        <Section title="Optionen">
+          <Row label="Wortspeicher zeigen"><Toggle value={!!block.bank} onChange={v => patch({ bank: v })} /></Row>
+          <Row label="Bildgröße"><Stepper value={block.size || 320} min={160} max={520} step={20} onChange={v => patch({ size: v })} /></Row>
+        </Section>
+        <Section title="Schrift"><FontPicker value={block.font || "grundschrift"} onChange={v => patch({ font: v })} /></Section>
+      </>);
+    }
+
     if (t === "dotfield") {
       const field = block.field || "zwanzig";
       const cap = field === "zehn" ? 10 : field === "hundert" ? 100 : 20;
@@ -853,7 +943,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "imagelabel"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

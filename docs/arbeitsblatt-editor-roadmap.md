@@ -18,6 +18,12 @@
 - **Nachspur-Kontur** (Teil von Phase 1.2) – Schreiblinien-Vorgabewort als
   hohle Konturschrift / hell / grau (CSS `-webkit-text-stroke`, iPad-tauglich,
   ohne neue Font-Dateien).
+- **Bild beschriften** (Phase 3.5) – Baustein `imagelabel`: eigenes Bild (oder
+  Clipart) hochladen, per **Antippen** nummerierte Punkte setzen, Kinder schreiben
+  zu jeder Nummer das Wort; optionaler Wortspeicher. Kein freies Ziehen.
+- **Zahlenfelder direkt eingebbar** (UX) – der `Stepper` erlaubt jetzt neben +/−
+  auch **direkte Zahleneingabe** mit numerischer Tastatur (`inputMode`) – wichtig
+  auf dem iPad, gilt für alle Zahlen-Einstellungen.
 
 > Alle neuen Felder sind in Palette, Eigenschaften (Touch-Controls), KI-Assistent
 > und die Selbstkontrolle integriert. Verifiziert per Syntax-Check, Logik-Tests

@@ -139,6 +139,10 @@ import { Icon } from "./icons";
           nb.count = Math.max(2, Math.min(12, +nb.count || 6));
           nb.blank = ["a", "b", "mix"].includes(nb.blank) ? nb.blank : "mix";
           if (!Array.isArray(nb.rows) || !nb.rows.length || !nb.rows.every(r => r && typeof r.a === "number")) nb.rows = genHouse(nb.target, nb.count, nb.blank);
+        } else if (nb.type === "imagelabel") {
+          nb.points = Array.isArray(nb.points) ? nb.points.filter(p => p && Number.isFinite(+p.x) && Number.isFinite(+p.y)).map(p => ({ x: +p.x, y: +p.y, word: String(p.word || "") })) : [];
+          if (!nb.src && !nb.art) nb.art = null;
+          nb.size = nb.size || 320; nb.font = nb.font || "grundschrift";
         } else if (nb.type === "selfcheck") {
           nb.shape = nb.shape === "schlange" ? "schlange" : "band";
           nb.size = nb.size || 22;

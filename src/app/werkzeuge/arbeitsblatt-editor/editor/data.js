@@ -52,6 +52,7 @@
     ]},
     { group: "Medien", items: [
       { type: "image",    label: "Bild / Clipart", icon: "image", desc: "mehrere, beschriften, zählen" },
+      { type: "imagelabel", label: "Bild beschriften", icon: "imagelabel", desc: "Teile eines Bildes benennen", hot: true },
       { type: "name",     label: "Namensfeld",     icon: "name",  desc: "Name & Datum" },
       { type: "divider",  label: "Trennlinie",     icon: "divider", desc: "Linie / Schneidelinie" },
     ]},

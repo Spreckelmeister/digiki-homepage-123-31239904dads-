@@ -880,6 +880,72 @@ import { Icon } from "./icons";
     );
   }
 
+  // ---------- Bild beschriften (Teile eines Bildes benennen) ----------
+  function ImageLabel({ block, solve, onPatch }) {
+    const points = block.points || [];
+    const editable = !!onPatch && !solve;
+    const w = block.size || 320;
+    const hasImg = !!(block.src || block.art);
+    const seed = String(block.id || "i").split("").reduce((a, c) => a + c.charCodeAt(0), 5);
+    const words = points.map(p => p.word).filter(Boolean);
+
+    if (!hasImg) {
+      return (
+        <div style={{ border: "2px dashed var(--line)", borderRadius: 14, padding: "30px 18px", textAlign: "center", fontFamily: "var(--ui)", color: "var(--muted)" }}>
+          <span style={{ display: "inline-flex", width: 38, height: 38, borderRadius: 10, background: "var(--bg-rail)", color: "var(--teal-700)", alignItems: "center", justifyContent: "center", marginBottom: 8 }}><Icon name="image" size={20} /></span>
+          <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 14 }}>Bild beschriften</div>
+          <div style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.45 }}>Lade rechts ein Bild hoch (z. B. Pflanze, Körper). Dann tippe auf das Bild, um nummerierte Punkte zu setzen.</div>
+        </div>
+      );
+    }
+
+    const onImgClick = (e) => {
+      if (!editable) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      onPatch({ points: [...points, { x: +Math.min(1, Math.max(0, x)).toFixed(3), y: +Math.min(1, Math.max(0, y)).toFixed(3), word: "" }] });
+    };
+    const removePoint = (i) => onPatch && onPatch({ points: points.filter((_, j) => j !== i) });
+    const bankWords = block.bank && words.length ? seededShuffle(words, seed) : null;
+
+    return (
+      <div>
+        {bankWords && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 14px", padding: "10px 14px", marginBottom: 14, border: "2px dashed var(--teal)", borderRadius: 12, background: "var(--teal-50)" }}>
+            <span style={{ fontWeight: 700, color: "var(--teal-700)", fontFamily: "var(--ui)", fontSize: 13, alignSelf: "center" }}>Wortspeicher:</span>
+            {bankWords.map((b, i) => <span key={i} className={fontClass(block.font || "grundschrift")} style={{ fontWeight: 600, fontSize: 16 }}>{b}</span>)}
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: w, cursor: editable ? "crosshair" : "default" }} onClick={onImgClick}>
+            {block.src
+              ? <img src={block.src} alt="" draggable="false" style={{ width: "100%", display: "block", borderRadius: 8 }} />
+              : <div style={{ width: w, height: w }} dangerouslySetInnerHTML={{ __html: clipartSvg(block.art) }} />}
+            {points.map((p, i) => (
+              <span key={i} onClick={editable ? (e) => { e.stopPropagation(); removePoint(i); } : undefined}
+                style={{ position: "absolute", left: `${p.x * 100}%`, top: `${p.y * 100}%`, transform: "translate(-50%,-50%)",
+                  width: 28, height: 28, borderRadius: "50%", background: "var(--teal-700)", color: "#fff",
+                  border: "2.5px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,.3)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--ui)", fontWeight: 800, fontSize: 14, cursor: editable ? "pointer" : "default" }}>{i + 1}</span>
+            ))}
+          </div>
+        </div>
+        {editable && <div style={{ textAlign: "center", fontFamily: "var(--ui)", fontSize: 12, color: "var(--teal-700)", marginTop: 6 }}><Icon name="target" size={13} style={{ verticalAlign: "-2px" }} /> Auf das Bild tippen setzt einen Punkt · Punkt antippen entfernt ihn</div>}
+        {points.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "12px 22px", marginTop: 16 }}>
+            {points.map((p, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-end", gap: 9 }}>
+                <span style={{ width: 24, height: 24, flex: "none", borderRadius: "50%", background: "var(--teal-50)", color: "var(--teal-700)", border: "2px solid var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 13 }}>{i + 1}</span>
+                <span className={fontClass(block.font || "grundschrift")} style={{ flex: 1, borderBottom: "2px solid var(--ink-soft)", minHeight: 26, fontSize: 18, color: "var(--sol)", fontWeight: 700, paddingLeft: 4 }}>{solve ? p.word : " "}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ---------- Selbstkontrolle (Lösungsband / Zahlenschlange) ----------
   function SelfCheck({ block, doc, solve }) {
     const all = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
@@ -976,6 +1042,7 @@ import { Icon } from "./icons";
       case "dotfield": return withPrompt(block, <DotField block={block} solve={solve} />);
       case "hundredchart": return withPrompt(block, <HundredChart block={block} solve={solve} onPatch={onPatch} />);
       case "numhouse": return withPrompt(block, <NumHouse block={block} solve={solve} />);
+      case "imagelabel": return withPrompt(block, <ImageLabel block={block} solve={solve} onPatch={onPatch} />);
       case "wordsearch": return withPrompt(block, <WordSearch block={block} solve={solve} />);
       case "table":    return <Table block={block} onPatch={onPatch} />;
       case "task":     return <TaskInstr block={block} onPatch={onPatch} />;

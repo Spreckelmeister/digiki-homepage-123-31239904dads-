@@ -68,6 +68,7 @@ function makeBlock(type, level) {
     case "dotfield": { const field = easy ? "zehn" : "zwanzig"; const cap = field === "zehn" ? 10 : 20; return { ...base, field, value: DKU.rint(easy ? 3 : 6, cap - 1), showNumber: false, size: 26 }; }
     case "hundredchart": { const n = easy ? 6 : hard ? 14 : 10; return { ...base, blanks: DKU.genChartBlanks(n) }; }
     case "numhouse": { const target = easy ? 10 : hard ? 20 : 12; const count = easy ? 5 : hard ? 8 : 6; return { ...base, target, count, blank: "mix", size: 22, rows: DKU.genHouse(target, count, "mix") }; }
+    case "imagelabel": return { ...base, src: null, art: null, points: [], size: 320, bank: false, font: "grundschrift" };
     case "table":    return { ...base, rows: 3, cols: 3, header: true, size: 16, rowH: 34, font: "druck", cells: [["Spalte 1", "Spalte 2", "Spalte 3"], ["", "", ""], ["", "", ""]] };
     case "task":     return { ...base, num: 1, icon: "pencil", color: "teal", font: "druck", size: 18, text: "Schreibe hier deinen Arbeitsauftrag." };
     case "selfcheck": return { ...base, shape: "band", size: 22, decoys: 0 }; // sources undefiniert = automatisch alle Rechen-Aufgaben
