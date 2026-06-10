@@ -221,6 +221,7 @@ function genWritten(op, digits, mdigits) {
   const rnum = (k) => rint(Math.pow(10, k - 1), Math.pow(10, k) - 1);
   if (op === "-") { let a = rnum(d), b = rnum(d); if (b > a) { const t = a; a = b; b = t; } return { op: "-", a, b, res: a - b }; }
   if (op === "×") { const a = rnum(d), b = (mdigits === 2) ? rint(11, 99) : rint(2, 9); return { op: "×", a, b, res: a * b }; }
+  if (op === "÷") { const b = rint(2, 9); let q = rnum(d); if (q % 10 === 0) q += rint(1, 9); return { op: "÷", a: b * q, b, res: q }; } // einstelliger Divisor, geht auf
   const a = rnum(d), b = rnum(d); return { op: "+", a, b, res: a + b };
 }
 function genWrittenItems(op, digits, count, mdigits) {

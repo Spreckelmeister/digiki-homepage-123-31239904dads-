@@ -22,10 +22,13 @@
   `350 g + 200 g`) und Umrechnen (z. B. `3 m = 300 cm`) für Geld, Länge, Gewicht,
   Volumen; Geld mit Komma-Darstellung (`4,30 €`).
 - **Schriftliche Rechenverfahren** (Phase 2) – Baustein `writtenmath`:
-  schriftliche Addition, Subtraktion und Multiplikation in Stellenwert-Notation;
-  Überträge-Zeile (Add./Sub.) und Teilergebnisse (Mult.) zuschaltbar; 2–4
-  Stellen; Ergebnis per Lösungs-Umschalter. **Offen:** schriftliche Division
-  (komplexes Abzieh-/Herunterhol-Layout, eigener Folgeschritt).
+  schriftliche **Addition, Subtraktion, Multiplikation und Division** in
+  Stellenwert-Notation. Add./Sub. mit zuschaltbarer Überträge-Zeile; Multiplikation
+  mit ein-/zweistelligem Multiplikator (zweistellig: Teilergebnisse) und Faktoren
+  nebeneinander (`a · b`); Division mit komplettem Abzieh-/Herunterhol-Rechenweg
+  (in der Schüleransicht leerer Rechenraum, im Lösungsblatt der ganze Weg).
+  Mehrere gleichartige Aufgaben pro Block (Anzahl + Spalten), 2–4 Stellen,
+  Ergebnisse fließen in die Selbstkontrolle.
 - **Bild beschriften** (Phase 3.5) – Baustein `imagelabel`: eigenes Bild (oder
   Clipart) hochladen, per **Antippen** nummerierte Punkte setzen, Kinder schreiben
   zu jeder Nummer das Wort; optionaler Wortspeicher. Kein freies Ziehen.

@@ -148,7 +148,7 @@ import { Icon } from "./icons";
           nb.cols = nb.cols || 2; nb.size = nb.size || 22;
           if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
         } else if (nb.type === "writtenmath") {
-          nb.op = ["+", "-", "×"].includes(nb.op) ? nb.op : "+";
+          nb.op = ["+", "-", "×", "÷"].includes(nb.op) ? nb.op : "+";
           nb.digits = Math.min(4, Math.max(2, +nb.digits || 3));
           nb.count = Math.min(12, Math.max(1, +nb.count || 4));
           nb.cols = nb.cols || 2;
@@ -198,7 +198,7 @@ import { Icon } from "./icons";
       '- {"type":"hundredchart","blanks":[4,17,28]}  Hundertertafel 1-100 mit ausgeblendeten Feldern',
       '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
       '- {"type":"unitcalc","kind":"geld|laenge|gewicht|volumen","mode":"rechnen|umrechnen","op":"+|-","max":20,"count":8}  Rechnen/Umrechnen mit Geld & Größen',
-      '- {"type":"writtenmath","op":"+|-|×","digits":3,"count":4,"mdigits":1}  Schriftliche Rechenverfahren (count = Anzahl; mdigits = Stellen des Multiplikators bei ×)',
+      '- {"type":"writtenmath","op":"+|-|×|÷","digits":3,"count":4,"mdigits":1}  Schriftliche Rechenverfahren (count = Anzahl; mdigits = Stellen des Multiplikators bei ×; ÷ = einstelliger Divisor, geht auf)',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',

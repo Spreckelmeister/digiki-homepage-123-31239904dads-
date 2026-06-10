@@ -384,7 +384,7 @@ import { Icon } from "./icons";
     const Cell = ({ ch, kind }) => (
       <div style={{ width: cw, height: kind === "carry" ? Math.round(rowH * 0.62) : rowH, display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "var(--ui)", fontWeight: 700, fontSize: kind === "carry" ? Math.round(sz * 0.6) : sz,
-        color: (kind === "answer" || kind === "carry") ? (solve ? "var(--sol)" : "transparent") : kind === "op" ? "var(--muted)" : "var(--ink)" }}>{ch}</div>
+        color: (kind === "answer" || kind === "carry") ? (solve ? "var(--sol)" : "transparent") : kind === "opsol" ? (solve ? "var(--muted)" : "transparent") : kind === "op" ? "var(--muted)" : "var(--ink)" }}>{ch}</div>
     );
     // Zeile aus expliziten Zellen: Array von {ch,kind} oder null (= Leerspalte)
     const Row = (cells, key) => (
@@ -403,6 +403,58 @@ import { Icon } from "./icons";
         <div style={{ width: W * cw, borderTop: "2px solid var(--ink)" }} />
       </div>
     );
+
+    // ----- Schriftliche Division: dividend : divisor = quotient, mit Abzieh-Schritten -----
+    // In der Schüleransicht nur die Kopfzeile + reservierter (leerer) Rechenraum;
+    // im Lösungsblatt die kompletten Zwischenschritte (Abziehen & Herunterholen).
+    if (op === "÷") {
+      const ds = String(a).split("").map(Number), N = ds.length;
+      const lines = []; const quotArr = [];
+      let cur = 0, started = false;
+      for (let col = 0; col < N; col++) {
+        cur = cur * 10 + ds[col];
+        if (!started && cur < b) continue;                 // führende Stellen sammeln, bis teilbar
+        if (started) lines.push({ type: "val", value: cur, end: col }); // Rest + heruntergeholte Ziffer
+        started = true;
+        const q = Math.floor(cur / b); quotArr.push(String(q));
+        const prod = q * b; lines.push({ type: "sub", value: prod, end: col });
+        lines.push({ type: "rule", end: col, width: String(cur).length });
+        cur -= prod;
+      }
+      lines.push({ type: "rem", value: cur, end: N - 1 });
+      const quot = quotArr.join("") || "0";
+      const W1 = N + 1;                                     // Spalte 0 = Rand (für „−"), 1..N = Dividendenstellen
+      const posRow = (value, end, minus) => {
+        const s = String(value).split(""); const start = end - s.length + 2;
+        const arr = Array(W1).fill(null);
+        s.forEach((ch, k) => { arr[start + k] = { ch, kind: "answer" }; });
+        if (minus) arr[start - 1] = { ch: "−", kind: "opsol" };
+        return arr;
+      };
+      const headRow = Array(W1).fill(null);
+      String(a).split("").forEach((ch, k) => { headRow[1 + k] = { ch, kind: "ink" }; });
+      return (
+        <div style={{ display: "inline-flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {headRow.map((c, i) => c ? <Cell key={i} ch={c.ch} kind={c.kind} /> : <div key={i} style={{ width: cw }} />)}
+            <span style={{ display: "flex", alignItems: "center", height: rowH, fontFamily: "var(--ui)", fontWeight: 700, fontSize: sz, color: "var(--ink)", whiteSpace: "pre" }}>{" : " + b + " = "}</span>
+            <span style={{ display: "flex", alignItems: "center", height: rowH, fontFamily: "var(--ui)", fontWeight: 800, fontSize: sz, letterSpacing: "0.14em", color: solve ? "var(--sol)" : "transparent" }}>{quot}</span>
+          </div>
+          {lines.map((ln, idx) => {
+            if (ln.type === "rule") {
+              const start = ln.end - ln.width + 2;
+              return (
+                <div key={"l" + idx} style={{ display: "flex", margin: "1px 0" }}>
+                  <div style={{ width: start * cw }} />
+                  <div style={{ width: ln.width * cw, borderTop: "2px solid " + (solve ? "var(--ink)" : "transparent") }} />
+                </div>
+              );
+            }
+            return Row(posRow(ln.value, ln.end, ln.type === "sub"), "d" + idx);
+          })}
+        </div>
+      );
+    }
 
     // ----- Multiplikation: Faktoren NEBENEINANDER (a · b), Teilergebnisse versetzt darunter -----
     if (op === "×") {

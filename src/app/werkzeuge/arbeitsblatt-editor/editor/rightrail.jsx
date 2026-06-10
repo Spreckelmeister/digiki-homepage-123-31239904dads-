@@ -794,9 +794,9 @@ import { Icon } from "./icons";
       const op = block.op || "+";
       return (<>
         <Section title="Rechenart">
-          <Segmented value={op} onChange={v => patch({ op: v, _regen: Date.now() })} options={[{ v: "+", label: "+" }, { v: "-", label: "−" }, { v: "×", label: "×" }]} />
+          <Segmented value={op} onChange={v => patch({ op: v, _regen: Date.now() })} options={[{ v: "+", label: "+" }, { v: "-", label: "−" }, { v: "×", label: "×" }, { v: "÷", label: "÷" }]} />
           <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
-            {op === "×" ? "Schriftliche Multiplikation." : op === "-" ? "Schriftliche Subtraktion (Stellenwert)." : "Schriftliche Addition (Stellenwert)."}
+            {op === "÷" ? "Schriftliche Division mit Abzieh-Schritten – im Lösungsblatt der komplette Rechenweg." : op === "×" ? "Schriftliche Multiplikation." : op === "-" ? "Schriftliche Subtraktion (Stellenwert)." : "Schriftliche Addition (Stellenwert)."}
           </p>
         </Section>
         {op === "×" && (
@@ -806,8 +806,8 @@ import { Icon } from "./icons";
           </Section>
         )}
         <Section title="Zahlen">
-          <Row label="Stellen je Zahl"><Stepper value={block.digits || 3} min={2} max={4} onChange={v => patch({ digits: v, _regen: Date.now() })} /></Row>
-          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>2 = Zehner, 3 = Hunderter, 4 = Tausender.</p>
+          <Row label={op === "÷" ? "Stellen im Ergebnis" : "Stellen je Zahl"}><Stepper value={block.digits || 3} min={2} max={4} onChange={v => patch({ digits: v, _regen: Date.now() })} /></Row>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>{op === "÷" ? "Bestimmt die Größe des Ergebnisses (Divisor ist einstellig, die Aufgabe geht auf)." : "2 = Zehner, 3 = Hunderter, 4 = Tausender."}</p>
         </Section>
         <Section title="Anzahl">
           <Row label="Aufgaben"><Stepper value={block.count || 1} min={1} max={12} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
