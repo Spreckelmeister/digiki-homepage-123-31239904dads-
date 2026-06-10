@@ -230,9 +230,69 @@ function genWrittenItems(op, digits, count, mdigits) {
   return out;
 }
 
+// ---- Neue Bausteine (aus ProV2): Generatoren ----
+// Rechenkette: Folge von Operationen ab einer Startzahl
+function genChain(start, count, max, ops) {
+  const allow = (ops && ops.length) ? ops : ["+", "-"];
+  let cur = start; const steps = [];
+  for (let i = 0; i < count; i++) {
+    let op = allow[rint(0, allow.length - 1)];
+    if (op === "-" && cur < 2) op = "+";
+    let n;
+    if (op === "+") { n = rint(1, Math.max(1, max - cur)); cur += n; }
+    else if (op === "-") { n = rint(1, Math.max(1, cur - 1)); cur -= n; }
+    else { n = rint(2, 5); cur *= n; }
+    steps.push({ op, n });
+  }
+  return steps;
+}
+// Brüche (Zähler m / Nenner n)
+function genFractions(count, maxDen) {
+  const md = Math.max(2, maxDen || 8); const out = [];
+  for (let i = 0; i < (count || 3); i++) { const n = rint(2, md); const m = rint(1, Math.max(1, n - 1)); out.push({ n, m }); }
+  return out;
+}
+// Malkreuz-Faktoren
+function genMul(twoByTwo) {
+  if (twoByTwo) return { a: rint(12, 49), b: rint(11, 29) };
+  return { a: rint(11, 29), b: rint(3, 9) };
+}
+// Rechennetz: rechts hop/hn, runter vop/vn
+function netApply(op, n, x) { return op === "+" ? x + n : op === "-" ? x - n : x * n; }
+function genNetStart(cols, hop, hn, vop, vn, max) {
+  const lim = max || 100;
+  for (let t = 0; t < 250; t++) {
+    const s = rint(1, Math.max(2, Math.floor(lim / 2)));
+    let ok = true, v = s; const top = [s];
+    for (let c = 1; c < (cols || 3); c++) { v = netApply(hop, hn, v); top.push(v); if (v < 0 || v > lim) { ok = false; break; } }
+    if (ok) top.forEach(x => { const w = netApply(vop, vn, x); if (w < 0 || w > lim) ok = false; });
+    if (ok) return s;
+  }
+  return 1;
+}
+// Rechenrad: innere Zahlen, auf die die Mittel-Rechnung angewendet wird
+function genRad(op, n, count, max) {
+  const o = op || "+"; const cnt = count || 5; const lim = max || 20; const N = Number.isFinite(n) ? n : 3;
+  const set = new Set(); const out = []; let guard = 0;
+  while (out.length < cnt && guard++ < 600) {
+    let x;
+    if (o === "×") x = rint(1, Math.max(2, Math.floor(lim / Math.max(2, N))));
+    else if (o === "-") x = rint(N, lim);
+    else x = rint(0, Math.max(1, lim - N));
+    if (set.has(x)) continue; set.add(x); out.push(x);
+  }
+  return out;
+}
+// Einmaleins-Tafel: zufällige Lücken-Indizes
+function genGridBlanks(count, total) {
+  const set = new Set(); const c = Math.min(Math.max(0, count || 0), total);
+  while (set.size < c) set.add(rint(0, total - 1));
+  return [...set].sort((a, b) => a - b);
+}
+
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
-const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse", "writtenmath"];
+const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse", "writtenmath", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "sach"];
 function collectSolutions(block) {
   const out = [];
   const push = v => { const n = +v; if (Number.isFinite(n)) out.push(n); };
@@ -256,6 +316,28 @@ function collectSolutions(block) {
     (block.rows || []).forEach(r => push(r.hide === "a" ? r.a : r.b));
   } else if (block.type === "writtenmath") {
     (block.items && block.items.length ? block.items : (block.a != null ? [{ res: block.res }] : [])).forEach(it => push(it.res));
+  } else if (block.type === "chain") {
+    let cur = Number.isFinite(block.start) ? block.start : 0;
+    (block.steps || []).forEach(s => { cur = s.op === "+" ? cur + s.n : s.op === "-" ? cur - s.n : s.op === "×" ? cur * s.n : Math.round(cur / s.n); push(cur); });
+  } else if (block.type === "net") {
+    const cols = Math.min(4, Math.max(2, block.cols || 3));
+    const top = [Number.isFinite(block.start) ? block.start : 3];
+    for (let c = 1; c < cols; c++) top.push(netApply(block.hop || "+", block.hn != null ? block.hn : 2, top[c - 1]));
+    top.slice(1).forEach(push);                                   // berechnete obere Zellen
+    top.forEach(x => push(netApply(block.vop || "+", block.vn != null ? block.vn : 10, x))); // untere Reihe
+  } else if (block.type === "rechenrad") {
+    const op = block.op || "+", n = Number.isFinite(block.n) ? block.n : 3;
+    (block.inner || []).forEach(x => push(op === "+" ? x + n : op === "-" ? x - n : op === "×" ? x * n : x));
+  } else if (block.type === "malkreuz") {
+    push((block.a || 0) * (block.b || 0));                        // Endergebnis a · b
+  } else if (block.type === "times") {
+    const cols = Math.min(12, Math.max(1, block.cols || 10));
+    (block.blanks || []).forEach(idx => { const r = Math.floor(idx / cols), c = idx % cols; push((r + 1) * (c + 1)); });
+  } else if (block.type === "placevalue") {
+    const places = Math.min(6, Math.max(1, block.places || 3));
+    (block.numbers || []).forEach(num => String(Math.abs(Math.round(num))).padStart(places, "0").slice(-places).split("").forEach(d => push(d)));
+  } else if (block.type === "sach") {
+    push(block.az);
   }
   return out;
 }
@@ -316,6 +398,14 @@ function autoPrompt(b) {
   if (b.type === "unitcalc") return b.mode === "umrechnen" ? "Rechne in die andere Einheit um." : "Rechne mit den Größen. Vergiss die Einheit nicht.";
   if (b.type === "writtenmath") return "Rechne schriftlich. Vergiss die Überträge nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
+  if (b.type === "chain") return "Rechne der Reihe nach. Trage jedes Ergebnis in das nächste Kästchen ein.";
+  if (b.type === "placevalue") return "Trage die Ziffern in die Stellenwerttafel ein (H = Hunderter, Z = Zehner, E = Einer).";
+  if (b.type === "fraction") return b.ask === "shade" ? "Färbe den angegebenen Bruchteil farbig an." : "Welcher Bruch ist gefärbt? Schreibe ihn als Bruch auf.";
+  if (b.type === "times") return "Fülle die fehlenden Felder in der Einmaleins-Tafel aus.";
+  if (b.type === "malkreuz") return "Rechne mit dem Malkreuz: Multipliziere die Teile und trage die Teilprodukte und das Ergebnis ein.";
+  if (b.type === "rechenrad") return "In der Mitte steht die Rechnung. Wende sie auf jede Zahl im inneren Ring an und schreibe das Ergebnis nach außen.";
+  if (b.type === "sach") return "Lies die Sachaufgabe genau. Schreibe Rechnung und Antwort auf.";
+  if (b.type === "net") return "Rechne mit den Pfeilen: nach rechts " + (b.hop || "+") + (b.hn != null ? b.hn : 2) + ", nach unten " + (b.vop || "+") + (b.vn != null ? b.vn : 10) + ".";
   if (b.type === "wordsearch") return "Finde alle Wörter und male sie farbig an. Sie stehen waagerecht, senkrecht und schräg.";
   if (b.type === "clock") {
     const n = (b.clocks || []).length || 1;
@@ -325,4 +415,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten, genWrittenItems };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten, genWrittenItems, genChain, genFractions, genMul, netApply, genNetStart, genRad, genGridBlanks };

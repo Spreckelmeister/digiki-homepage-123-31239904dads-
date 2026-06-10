@@ -49,6 +49,14 @@
       { type: "numhouse", label: "Zahlenhaus",     icon: "numhouse", desc: "Zahlen zerlegen" },
       { type: "unitcalc", label: "Geld & Größen",  icon: "unit", desc: "Rechnen & Umrechnen mit Einheiten", hot: true },
       { type: "writtenmath", label: "Schriftlich rechnen", icon: "written", desc: "Plus, Minus, Mal, Geteilt" },
+      { type: "chain",    label: "Rechenkette",     icon: "chain",    desc: "Pfeilrechnen" },
+      { type: "net",      label: "Rechennetz",      icon: "net",      desc: "Pfeile: rechts & runter" },
+      { type: "rechenrad", label: "Rechenrad",      icon: "rechenrad", desc: "Zahlenscheibe" },
+      { type: "malkreuz", label: "Malkreuz",        icon: "malkreuz", desc: "halbschriftlich malnehmen" },
+      { type: "times",    label: "Einmaleins-Tafel", icon: "times",   desc: "Malfolgen-Gitter" },
+      { type: "placevalue", label: "Stellenwerttafel", icon: "placevalue", desc: "H · Z · E" },
+      { type: "fraction", label: "Brüche",          icon: "fraction", desc: "Pizza & Balken", hot: true },
+      { type: "sach",     label: "Sachaufgabe",     icon: "sach",     desc: "Frage · Rechnung · Antwort" },
       { type: "clock",    label: "Uhrzeit",        icon: "clock", desc: "Uhr ablesen" },
       { type: "selfcheck", label: "Selbstkontrolle", icon: "selfcheck", desc: "Lösungen zum Selbst-Prüfen", hot: true },
     ]},
@@ -92,4 +100,17 @@
     ],
   };
 
-  export const DKI = { FONTS, SYL_SCHEMES, CLIPART, PALETTE, TEMPLATES, DEFAULT_DOC, nid, bumpId };
+  // Sachaufgaben-Bibliothek (für den Baustein „Sachaufgabe")
+  const SACH = [
+    { level: "leicht", text: "Lena hat 12 Äpfel. Sie verschenkt 5 Äpfel an ihre Freunde. Wie viele Äpfel hat Lena noch?", calc: "12 − 5 = 7", av: "Lena hat noch", az: "7", an: "Äpfel." },
+    { level: "leicht", text: "Auf dem Schulhof spielen 8 Kinder. 6 Kinder kommen dazu. Wie viele Kinder spielen jetzt auf dem Schulhof?", calc: "8 + 6 = 14", av: "Jetzt spielen", az: "14", an: "Kinder auf dem Schulhof." },
+    { level: "leicht", text: "Tim hat 3 Tüten mit je 5 Murmeln. Wie viele Murmeln hat Tim?", calc: "3 · 5 = 15", av: "Tim hat", az: "15", an: "Murmeln." },
+    { level: "mittel", text: "Ein Buch hat 64 Seiten. Mia hat schon 37 Seiten gelesen. Wie viele Seiten muss sie noch lesen?", calc: "64 − 37 = 27", av: "Mia muss noch", az: "27", an: "Seiten lesen." },
+    { level: "mittel", text: "Im Bus sitzen 23 Fahrgäste. An der Haltestelle steigen 9 Fahrgäste aus und 14 ein. Wie viele Fahrgäste sind jetzt im Bus?", calc: "23 − 9 + 14 = 28", av: "Im Bus sind jetzt", az: "28", an: "Fahrgäste." },
+    { level: "mittel", text: "Eine Klasse sammelt 4 Wochen lang jede Woche 25 Pfandflaschen. Wie viele Flaschen sind es insgesamt?", calc: "4 · 25 = 100", av: "Es sind insgesamt", az: "100", an: "Flaschen." },
+    { level: "schwer", text: "Ein Bäcker backt am Morgen 240 Brötchen. Bis zum Mittag verkauft er 168 Brötchen. Wie viele Brötchen sind noch da?", calc: "240 − 168 = 72", av: "Es sind noch", az: "72", an: "Brötchen da." },
+    { level: "schwer", text: "Familie Berg fährt 3 Stunden mit dem Auto. In jeder Stunde schafft sie 85 Kilometer. Wie weit fährt die Familie?", calc: "3 · 85 = 255", av: "Die Familie fährt", az: "255", an: "Kilometer." },
+    { level: "schwer", text: "Eine Eintrittskarte für den Zoo kostet für Kinder 4 €. Die Klasse 4a hat 26 Kinder. Wie viel kosten alle Karten zusammen?", calc: "26 · 4 = 104", av: "Alle Karten kosten zusammen", az: "104", an: "€." },
+  ];
+
+  export const DKI = { FONTS, SYL_SCHEMES, CLIPART, PALETTE, TEMPLATES, DEFAULT_DOC, SACH, nid, bumpId };

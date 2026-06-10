@@ -8,6 +8,7 @@
   --color-accent-hover: #d4962e;
   --color-accent-strong: #AB7A0E; /* Dunkleres Warm-Gold für Text auf Weiß (Large-Text AA ~3.8:1) */
   --color-accent-strong-hover: #8F660A;
+  --color-accent-text: #7C5A08;   /* Kleintext-AA: ~6.3:1 auf Weiß, ~5.5:1 auf accent/10-15 (WCAG 1.4.3) */
   --color-teal: #00cabe;          /* Osnabrück-Türkis */
   --color-teal-dark: #006363;     /* Barrierefreie Alternativfarbe */
   --color-bg: #F5F9F9;

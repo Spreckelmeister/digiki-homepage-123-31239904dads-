@@ -9,7 +9,8 @@ export async function updateSession(request: NextRequest) {
     const isProtectedRoute =
       request.nextUrl.pathname.startsWith("/best-practice/datenbank") ||
       request.nextUrl.pathname.startsWith("/best-practice/admin") ||
-      request.nextUrl.pathname.startsWith("/best-practice/konto");
+      request.nextUrl.pathname.startsWith("/best-practice/konto") ||
+      request.nextUrl.pathname.startsWith("/schulungsdashboard");
 
     if (isProtectedRoute) {
       const url = request.nextUrl.clone();
@@ -48,7 +49,8 @@ export async function updateSession(request: NextRequest) {
   // Protected routes: redirect to login if not authenticated
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/best-practice/datenbank") ||
-    request.nextUrl.pathname.startsWith("/best-practice/admin");
+    request.nextUrl.pathname.startsWith("/best-practice/admin") ||
+    request.nextUrl.pathname.startsWith("/schulungsdashboard");
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();
@@ -66,6 +68,22 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (!profile || profile.role?.toLowerCase() !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/best-practice/datenbank";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Schulungs-Dashboard: nur admin + schulungsteam
+  if (request.nextUrl.pathname.startsWith("/schulungsdashboard") && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const role = profile?.role?.toLowerCase();
+    if (role !== "admin" && role !== "schulungsteam") {
       const url = request.nextUrl.clone();
       url.pathname = "/best-practice/datenbank";
       return NextResponse.redirect(url);

@@ -859,6 +859,135 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "chain") {
+      const ops = block.ops || ["+", "-"];
+      const toggleOp = (o) => { let n = ops.includes(o) ? ops.filter(x => x !== o) : [...ops, o]; if (!n.length) n = [o]; patch({ ops: n, _regen: Date.now() }); };
+      return (<>
+        <Section title="Rechenkette">
+          <Row label="Startzahl"><Stepper value={block.start ?? 5} min={0} max={block.max || 20} onChange={v => patch({ start: v, _regen: Date.now() })} /></Row>
+          <Row label="Schritte"><Stepper value={block.count || 3} min={1} max={8} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Zahlenraum bis"><Segmented value={block.max || 20} onChange={v => patch({ max: v, _regen: Date.now() })} options={[{ v: 20, label: "20" }, { v: 100, label: "100" }, { v: 1000, label: "1000" }]} /></Row>
+          <Row label="Rechenarten">
+            <div style={{ display: "flex", gap: 4 }}>
+              {[["+", "+"], ["-", "−"], ["×", "×"]].map(([o, l]) => (
+                <button key={o} onClick={() => toggleOp(o)} style={{ width: 32, height: 30, borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 14,
+                  border: "1.5px solid " + (ops.includes(o) ? "var(--teal)" : "var(--line)"), background: ops.includes(o) ? "var(--teal-50)" : "#fff", color: ops.includes(o) ? "var(--teal-700)" : "var(--muted)" }}>{l}</button>
+              ))}
+            </div>
+          </Row>
+          <button className="btn" style={{ width: "100%", marginTop: 4 }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Kette würfeln</button>
+        </Section>
+      </>);
+    }
+
+    if (t === "net") {
+      const OpPick = ({ op, n, kop, kn }) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[["+", "+"], ["-", "−"], ["×", "×"]].map(([o, l]) => (
+              <button key={o} onClick={() => patch({ [kop]: o })} style={{ width: 30, height: 28, borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 14,
+                border: "1.5px solid " + ((op || "+") === o ? "var(--teal)" : "var(--line)"), background: (op || "+") === o ? "var(--teal-50)" : "#fff", color: (op || "+") === o ? "var(--teal-700)" : "var(--muted)" }}>{l}</button>
+            ))}
+          </div>
+          <Stepper value={n} min={1} max={op === "×" ? 10 : 50} onChange={v => patch({ [kn]: v })} />
+        </div>
+      );
+      return (<>
+        <Section title="Rechennetz">
+          <Row label="Spalten"><Stepper value={block.cols || 3} min={2} max={4} onChange={v => patch({ cols: v })} /></Row>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", margin: "2px 2px 6px" }}>Pfeil nach rechts →</div>
+          <OpPick op={block.hop} n={block.hn != null ? block.hn : 2} kop="hop" kn="hn" />
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", margin: "12px 2px 6px" }}>Pfeil nach unten ↓</div>
+          <OpPick op={block.vop} n={block.vn != null ? block.vn : 10} kop="vop" kn="vn" />
+          <Row label="Zahlenraum bis"><Segmented value={block.max || 100} onChange={v => patch({ max: v })} options={[{ v: 20, label: "20" }, { v: 100, label: "100" }, { v: 1000, label: "1000" }]} /></Row>
+          <button className="btn" style={{ width: "100%", marginTop: 10 }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Startzahl</button>
+        </Section>
+      </>);
+    }
+
+    if (t === "rechenrad") return (<>
+      <Section title="Rechenrad">
+        <Row label="Rechenart"><Segmented value={block.op || "+"} onChange={v => patch({ op: v })} options={[{ v: "+", label: "+" }, { v: "-", label: "−" }, { v: "×", label: "×" }]} /></Row>
+        <Row label="Zahl in der Mitte"><Stepper value={block.n ?? 3} min={1} max={(block.op === "×") ? 10 : 20} onChange={v => patch({ n: v })} /></Row>
+        <Row label="Felder"><Stepper value={block.count || 5} min={3} max={8} onChange={v => patch({ count: v })} /></Row>
+        <Row label="Zahlenraum bis"><Segmented value={block.max || 20} onChange={v => patch({ max: v })} options={[{ v: 20, label: "20" }, { v: 100, label: "100" }]} /></Row>
+        <button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Zahlen</button>
+      </Section>
+    </>);
+
+    if (t === "malkreuz") return (<>
+      <Section title="Malkreuz">
+        <Row label="1. Faktor"><Stepper value={block.a || 14} min={2} max={999} onChange={v => patch({ a: v })} /></Row>
+        <Row label="2. Faktor"><Stepper value={block.b || 13} min={2} max={99} onChange={v => patch({ b: v })} /></Row>
+        <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 2px 10px", lineHeight: 1.5 }}>Die Faktoren werden in Hunderter/Zehner/Einer zerlegt; die Teilprodukte stehen im Kreuz. Ziffern erscheinen im Lösungsblatt.</p>
+        <button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Zahlen</button>
+      </Section>
+    </>);
+
+    if (t === "times") {
+      const total = (block.rows || 10) * (block.cols || 10);
+      return (<>
+        <Section title="Einmaleins-Tafel">
+          <Row label="Zeilen"><Stepper value={block.rows || 10} min={1} max={12} onChange={v => patch({ rows: v })} /></Row>
+          <Row label="Spalten"><Stepper value={block.cols || 10} min={1} max={12} onChange={v => patch({ cols: v })} /></Row>
+          <Row label="Lücken (leer = füllen)"><Stepper value={block.blanksN != null ? block.blanksN : (block.blanks || []).length} min={0} max={total} onChange={v => patch({ blanksN: v })} /></Row>
+          <button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Lücken neu verteilen</button>
+        </Section>
+      </>);
+    }
+
+    if (t === "placevalue") {
+      const parseNums = (s) => s.split(/[^0-9]+/).map(Number).filter(n => Number.isFinite(n) && n > 0).slice(0, 8);
+      return (<>
+        <Section title="Stellenwerttafel">
+          <Row label="Stellen"><Stepper value={block.places || 3} min={1} max={5} onChange={v => patch({ places: v })} /></Row>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>Spalten: HT · ZT · T · H · Z · E. Die Ziffern sind nur im Lösungsblatt sichtbar.</p>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", margin: "2px 2px 4px" }}>Zahlen (Komma-getrennt)</div>
+          <input value={(block.numbers || []).join(", ")} onChange={e => patch({ numbers: parseNums(e.target.value) })} placeholder="z. B. 234, 408, 96"
+            style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none" }} />
+        </Section>
+      </>);
+    }
+
+    if (t === "fraction") return (<>
+      <Section title="Brüche">
+        <Row label="Darstellung"><Segmented value={block.shape || "pie"} onChange={v => patch({ shape: v })} options={[{ v: "pie", label: "Kreis" }, { v: "bar", label: "Balken" }]} /></Row>
+        <Row label="Aufgabe"><Segmented value={block.ask || "name"} onChange={v => patch({ ask: v })} options={[{ v: "name", label: "benennen" }, { v: "shade", label: "färben" }]} /></Row>
+        <Row label="Anzahl Bilder"><Stepper value={block.count || (block.items ? block.items.length : 3)} min={1} max={6} onChange={v => patch({ count: v })} /></Row>
+        <Row label="größter Nenner"><Stepper value={block.maxDen || 8} min={2} max={12} onChange={v => patch({ maxDen: v })} /></Row>
+        <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 2px 10px", lineHeight: 1.5 }}>„benennen": gefärbtes Bild → Bruch aufschreiben. „färben": Bruch ist vorgegeben → Bild anmalen (Lösung zeigt die Färbung).</p>
+        <button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Brüche</button>
+      </Section>
+    </>);
+
+    if (t === "sach") {
+      const SACH = DKI.SACH || [];
+      return (<>
+        <Section title="Sachaufgabe">
+          <select value="" onChange={e => { const s = SACH[+e.target.value]; if (s) patch({ text: s.text, calc: s.calc, av: s.av, az: s.az, an: s.an }); }}
+            style={{ width: "100%", border: "1.5px solid var(--teal)", background: "var(--teal-50)", color: "var(--teal-700)", borderRadius: 9, padding: "8px 10px", font: "inherit", fontSize: 12.5, fontWeight: 700, outline: "none", cursor: "pointer", marginBottom: 8 }}>
+            <option value="" disabled>📚 Aufgabe aus Bibliothek wählen …</option>
+            {SACH.map((s, i) => <option key={i} value={i}>{(s.level === "leicht" ? "★ " : s.level === "mittel" ? "★★ " : "★★★ ") + s.text.slice(0, 46)}…</option>)}
+          </select>
+          <TextArea value={block.text || ""} onChange={v => patch({ text: v })} rows={4} placeholder="Aufgabentext mit Frage" />
+        </Section>
+        <Section title="Antwortsatz (geprüft wird die Zahl)">
+          <input value={block.av || ""} onChange={e => patch({ av: e.target.value })} placeholder="Satzanfang, z. B. Lena hat noch"
+            style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none", marginBottom: 6 }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={block.az || ""} onChange={e => patch({ az: e.target.value })} placeholder="Zahl"
+              style={{ width: 80, border: "1.5px solid var(--teal)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, fontWeight: 700, outline: "none" }} />
+            <input value={block.an || ""} onChange={e => patch({ an: e.target.value })} placeholder="Satzende, z. B. Äpfel."
+              style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none" }} />
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", margin: "10px 2px 4px" }}>Rechnung (fürs Lösungsblatt)</div>
+          <input value={block.calc || ""} onChange={e => patch({ calc: e.target.value })} placeholder="z. B. 12 − 5 = 7"
+            style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none" }} />
+        </Section>
+        <Section title="Schrift"><FontPicker value={block.font} onChange={v => patch({ font: v })} /></Section>
+      </>);
+    }
+
     if (t === "dotfield") {
       const field = block.field || "zwanzig";
       const cap = field === "zehn" ? 10 : field === "hundert" ? 100 : 20;
@@ -1020,7 +1149,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "writtenmath", "imagelabel"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "writtenmath", "imagelabel", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "fraction", "sach"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

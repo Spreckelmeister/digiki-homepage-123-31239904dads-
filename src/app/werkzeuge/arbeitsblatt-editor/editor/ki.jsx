@@ -10,7 +10,7 @@ import { Icon } from "./icons";
    Hinweis: bewusst KEINE async/await (Babel-Standalone → regenerator).
    ============================================================ */
   const { nid } = DKI;
-  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks, genUnitItems, genWrittenItems } = DKU;
+  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks, genUnitItems, genWrittenItems, genChain, genFractions, genMul, genNetStart, genRad, genGridBlanks } = DKU;
 
   // ---- Offline-Vorlagen (Fallback ohne Schlüssel) ----
   const TOPICS = {
@@ -155,6 +155,48 @@ import { Icon } from "./icons";
           nb.mdigits = nb.mdigits === 2 ? 2 : 1;
           if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genWrittenItems(nb.op, nb.digits, nb.count, nb.mdigits);
           nb.size = nb.size || 26;
+        } else if (nb.type === "chain") {
+          nb.max = Math.min(1000, Math.max(10, +nb.max || 20));
+          nb.count = Math.min(8, Math.max(1, +nb.count || 3));
+          nb.start = Math.min(nb.max, Math.max(0, +nb.start || rint(2, Math.floor(nb.max / 4))));
+          nb.ops = Array.isArray(nb.ops) && nb.ops.length ? nb.ops.filter(o => ["+", "-", "×"].includes(o)) : ["+", "-"];
+          if (!nb.ops.length) nb.ops = ["+", "-"];
+          nb.steps = genChain(nb.start, nb.count, nb.max, nb.ops);
+        } else if (nb.type === "fraction") {
+          nb.shape = nb.shape === "bar" ? "bar" : "pie";
+          nb.ask = nb.ask === "shade" ? "shade" : "name";
+          nb.count = Math.min(6, Math.max(1, +nb.count || 3));
+          nb.maxDen = Math.min(12, Math.max(2, +nb.maxDen || 8));
+          nb.cols = nb.count; nb.items = genFractions(nb.count, nb.maxDen);
+        } else if (nb.type === "malkreuz") {
+          if (!(+nb.a > 1 && +nb.b > 1)) { const m = genMul(false); nb.a = m.a; nb.b = m.b; }
+          else { nb.a = Math.round(+nb.a); nb.b = Math.round(+nb.b); }
+        } else if (nb.type === "net") {
+          nb.cols = Math.min(4, Math.max(2, +nb.cols || 3));
+          nb.max = Math.min(1000, Math.max(10, +nb.max || 100));
+          nb.hop = ["+", "-", "×"].includes(nb.hop) ? nb.hop : "+";
+          nb.vop = ["+", "-", "×"].includes(nb.vop) ? nb.vop : "+";
+          nb.hn = Math.max(1, +nb.hn || 2); nb.vn = Math.max(1, +nb.vn || 10);
+          nb.start = genNetStart(nb.cols, nb.hop, nb.hn, nb.vop, nb.vn, nb.max);
+        } else if (nb.type === "placevalue") {
+          nb.places = Math.min(5, Math.max(1, +nb.places || 3));
+          nb.numbers = (Array.isArray(nb.numbers) ? nb.numbers : []).map(n => Math.abs(Math.round(+n || 0))).filter(n => n > 0).slice(0, 8);
+          if (!nb.numbers.length) nb.numbers = [234, 408, 96];
+        } else if (nb.type === "rechenrad") {
+          nb.op = ["+", "-", "×"].includes(nb.op) ? nb.op : "+";
+          nb.n = Math.max(1, +nb.n || 3);
+          nb.count = Math.min(8, Math.max(3, +nb.count || 6));
+          nb.max = Math.min(1000, Math.max(10, +nb.max || 20));
+          nb.inner = genRad(nb.op, nb.n, nb.count, nb.max);
+        } else if (nb.type === "sach") {
+          nb.font = nb.font || "druck"; nb.size = nb.size || 19;
+          nb.text = String(nb.text || "Sachaufgabe"); nb.az = String(nb.az != null ? nb.az : "");
+          nb.av = String(nb.av || "Es sind"); nb.an = String(nb.an || "");
+        } else if (nb.type === "times") {
+          nb.rows = Math.min(12, Math.max(1, +nb.rows || 10));
+          nb.cols = Math.min(12, Math.max(1, +nb.cols || 10));
+          nb.blanksN = Math.min(nb.rows * nb.cols, Math.max(0, +nb.blanksN || 16));
+          nb.blanks = genGridBlanks(nb.blanksN, nb.rows * nb.cols);
         } else if (nb.type === "imagelabel") {
           nb.points = Array.isArray(nb.points) ? nb.points.filter(p => p && Number.isFinite(+p.x) && Number.isFinite(+p.y)).map(p => ({ x: +p.x, y: +p.y, word: String(p.word || "") })) : [];
           if (!nb.src && !nb.art) nb.art = null;
@@ -199,6 +241,14 @@ import { Icon } from "./icons";
       '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
       '- {"type":"unitcalc","kind":"geld|laenge|gewicht|volumen","mode":"rechnen|umrechnen","op":"+|-","max":20,"count":8}  Rechnen/Umrechnen mit Geld & Größen',
       '- {"type":"writtenmath","op":"+|-|×|÷","digits":3,"count":4,"mdigits":1}  Schriftliche Rechenverfahren (count = Anzahl; mdigits = Stellen des Multiplikators bei ×; ÷ = einstelliger Divisor, geht auf)',
+      '- {"type":"chain","start":5,"count":3,"max":20,"ops":["+","-"]}  Rechenkette (Pfeilrechnen) automatisch',
+      '- {"type":"net","cols":3,"hop":"×","hn":2,"vop":"+","vn":10,"max":100}  Rechennetz (Pfeile rechts & runter) automatisch',
+      '- {"type":"rechenrad","op":"+|-|×","n":4,"count":6,"max":100}  Rechenrad automatisch',
+      '- {"type":"malkreuz","a":14,"b":13}  Malkreuz (halbschriftlich multiplizieren)',
+      '- {"type":"times","rows":10,"cols":10,"blanksN":16}  Einmaleins-Tafel automatisch',
+      '- {"type":"placevalue","places":3,"numbers":[234,408,96]}  Stellenwerttafel',
+      '- {"type":"fraction","shape":"pie|bar","ask":"name|shade","count":3,"maxDen":8}  Brüche automatisch',
+      '- {"type":"sach","text":"Sachaufgabe mit Frage?","calc":"12 − 5 = 7","av":"Lena hat noch","az":"7","an":"Äpfel."}  Sachaufgabe: az = geprüfte Zahl im Antwortsatz',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',

@@ -2,7 +2,8 @@ export interface Profile {
   id: string;
   full_name: string;
   school: string;
-  role: "teacher" | "admin";
+  /** "schulungsteam" = wie "teacher", zusätzlich Zugriff auf das Schulungs-Dashboard. */
+  role: "teacher" | "admin" | "schulungsteam";
   phone?: string | null;
   principal_name?: string | null;
   created_at: string;

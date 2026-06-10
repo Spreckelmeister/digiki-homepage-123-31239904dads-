@@ -84,6 +84,14 @@ const ICON_PATHS = {
   imagelabel: '<rect x="3" y="4" width="13" height="13" rx="2"/><circle cx="7.3" cy="8.3" r="1.5"/><path d="m3.5 16 4-3.5 3 2"/><path d="M19 10.5c-1.7 0-3 1.3-3 3 0 2.2 3 5.5 3 5.5s3-3.3 3-5.5c0-1.7-1.3-3-3-3Z"/><circle cx="19" cy="13.5" r="1"/>',
   unit: '<path d="M17.5 8.2a5.6 5.6 0 1 0 0 7.6"/><path d="M5 11h9M5 14h8"/>',
   written: '<path d="M9 4h10M9 8h10"/><path d="M4 11.5h16"/><path d="M11 15h8M11 19h8"/><path d="M5 4.5v3M4 6h2"/><path d="M5 16h2M5 19h2"/>',
+  chain: '<rect x="2" y="8.5" width="7" height="7" rx="1.5"/><rect x="15" y="8.5" width="7" height="7" rx="1.5"/><path d="M9 12h4M11.5 9.5 14 12l-2.5 2.5"/>',
+  fraction: '<circle cx="12" cy="12" r="9"/><path d="M12 12 12 3a9 9 0 0 1 7.8 4.5Z" fill="currentColor" stroke="none"/><path d="M12 3v18M3 12h18" opacity=".7"/>',
+  malkreuz: '<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 12h16M12 4v16"/>',
+  net: '<rect x="3" y="3" width="6.2" height="5.6" rx="1.3"/><rect x="14.8" y="3" width="6.2" height="5.6" rx="1.3"/><rect x="3" y="15.4" width="6.2" height="5.6" rx="1.3"/><rect x="14.8" y="15.4" width="6.2" height="5.6" rx="1.3"/><path d="M10.4 5.8h2.6M11.8 4.6l1.6 1.2-1.6 1.2M6.1 10v3M4.9 11.6l1.2 1.6 1.2-1.6"/>',
+  placevalue: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M9 5v14M15 5v14M3 10h18" opacity=".7"/>',
+  rechenrad: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3.5M12 17.5V21M3 12h3.5M17.5 12H21M5.6 5.6l2.5 2.5M15.9 15.9l2.5 2.5M18.4 5.6l-2.5 2.5M8.1 15.9l-2.5 2.5" opacity=".75"/>',
+  sach: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M10.2 12a2 2 0 1 1 2.9 2.2c-.7.4-1.1.8-1.1 1.6"/><circle cx="12" cy="18.4" r=".9" fill="currentColor" stroke="none"/>',
+  times: '<rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M8.5 3v18M3 8.5h18" opacity=".55"/><path d="m13 13.5 4.5 4.5M17.5 13.5 13 18"/>',
 };
 
 function Icon({ name, size = 18, stroke = 1.8, className = "", style }) {

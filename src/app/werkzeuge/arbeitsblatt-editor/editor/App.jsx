@@ -73,6 +73,14 @@ function makeBlock(type, level) {
     case "numhouse": { const target = easy ? 10 : hard ? 20 : 12; const count = easy ? 5 : hard ? 8 : 6; return { ...base, target, count, blank: "mix", size: 22, rows: DKU.genHouse(target, count, "mix") }; }
     case "unitcalc": { const count = easy ? 6 : hard ? 12 : 8; return { ...base, kind: "geld", mode: "rechnen", op: "+", max: 20, count, cols: 2, size: 22, showResult: false, items: DKU.genUnitItems("geld", "rechnen", "+", 20, count) }; }
     case "writtenmath": { const dg = easy ? 2 : hard ? 4 : 3; const count = easy ? 2 : hard ? 6 : 4; return { ...base, op: "+", digits: dg, mdigits: 1, count, cols: 2, carries: true, partials: true, size: 26, items: DKU.genWrittenItems("+", dg, count, 1) }; }
+    case "chain":    { const max = easy ? 20 : 100, count = easy ? 2 : hard ? 4 : 3, start = DKU.rint(2, Math.max(3, Math.floor(max / 4))); return { ...base, start, count, max, ops: ["+", "-"], steps: DKU.genChain(start, count, max, ["+", "-"]) }; }
+    case "fraction": { const count = easy ? 2 : hard ? 4 : 3, maxDen = easy ? 6 : hard ? 12 : 8; return { ...base, shape: "pie", ask: "name", count, maxDen, cols: count, items: DKU.genFractions(count, maxDen) }; }
+    case "malkreuz": { const mb = DKU.genMul(!!hard); return { ...base, a: mb.a, b: mb.b }; }
+    case "net":      { const hop = easy ? "+" : "×", hn = easy ? 2 : DKU.rint(2, 3), vop = "+", vn = easy ? 5 : 10, cols = 3, max = easy ? 20 : hard ? 1000 : 100; return { ...base, cols, hop, hn, vop, vn, max, start: DKU.genNetStart(cols, hop, hn, vop, vn, max) }; }
+    case "placevalue": return { ...base, places: hard ? 4 : 3, numbers: hard ? [3456, 2807, 1290] : [234, 408, 96] };
+    case "rechenrad": { const op = hard ? "×" : "+", n = op === "×" ? DKU.rint(2, 9) : DKU.rint(2, 5), count = easy ? 4 : 6, max = easy ? 20 : op === "×" ? 100 : 50; return { ...base, op, n, count, max, inner: DKU.genRad(op, n, count, max) }; }
+    case "sach":     { const pool = DKI.SACH.filter(s => s.level === (easy ? "leicht" : hard ? "schwer" : "mittel")); const s = pool[DKU.rint(0, pool.length - 1)] || DKI.SACH[0]; return { ...base, font: "druck", size: 19, text: s.text, calc: s.calc, av: s.av, az: s.az, an: s.an }; }
+    case "times":    { const rows = easy ? 5 : 10, cols = easy ? 5 : 10, blanksN = easy ? 6 : hard ? 40 : 18; return { ...base, rows, cols, blanksN, blanks: DKU.genGridBlanks(blanksN, rows * cols) }; }
     case "imagelabel": return { ...base, src: null, art: null, points: [], size: 320, bank: false, font: "grundschrift" };
     case "table":    return { ...base, rows: 3, cols: 3, header: true, size: 16, rowH: 34, font: "druck", cells: [["Spalte 1", "Spalte 2", "Spalte 3"], ["", "", ""], ["", "", ""]] };
     case "task":     return { ...base, num: 1, icon: "pencil", color: "teal", font: "druck", size: 18, text: "Schreibe hier deinen Arbeitsauftrag." };
@@ -263,7 +271,12 @@ export default function App() {
         || (b.type === "mathtri" && (partial.op || partial.max))
         || (b.type === "numhouse" && (partial.target != null || partial.count != null || partial.blank != null))
         || (b.type === "unitcalc" && (partial.kind || partial.mode || partial.op || partial.max || partial.count))
-        || (b.type === "writtenmath" && (partial.op || partial.digits || partial.count || partial.mdigits))) {
+        || (b.type === "writtenmath" && (partial.op || partial.digits || partial.count || partial.mdigits))
+        || (b.type === "chain" && (partial.start != null || partial.count != null || partial.max != null || partial.ops != null))
+        || (b.type === "fraction" && (partial.count != null || partial.maxDen != null))
+        || (b.type === "times" && (partial.rows != null || partial.cols != null || partial.blanksN != null))
+        || (b.type === "rechenrad" && (partial.op != null || partial.n != null || partial.count != null || partial.max != null))
+        || (b.type === "net" && (partial.hop != null || partial.hn != null || partial.vop != null || partial.vn != null || partial.cols != null || partial.max != null))) {
       if (nb.type === "matharow") nb.items = genMath(nb.op, nb.max, nb.count, nb.mode);
       else if (nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);
       else if (nb.type === "mathtri") nb.data = DKU.genTriangle(nb.max || 20, nb.op);
@@ -271,6 +284,12 @@ export default function App() {
       else if (nb.type === "numhouse") nb.rows = DKU.genHouse(nb.target || 10, nb.count || 6, nb.blank || "mix");
       else if (nb.type === "unitcalc") nb.items = DKU.genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
       else if (nb.type === "writtenmath") nb.items = DKU.genWrittenItems(nb.op, nb.digits, nb.count, nb.mdigits);
+      else if (nb.type === "chain") nb.steps = DKU.genChain(Number.isFinite(nb.start) ? nb.start : 5, nb.count || 3, nb.max || 20, nb.ops || ["+", "-"]);
+      else if (nb.type === "fraction") { nb.items = DKU.genFractions(nb.count || 3, nb.maxDen || 8); nb.cols = nb.count || nb.cols || nb.items.length; }
+      else if (nb.type === "times") nb.blanks = DKU.genGridBlanks(nb.blanksN != null ? nb.blanksN : ((nb.blanks || []).length || 18), (nb.rows || 10) * (nb.cols || 10));
+      else if (nb.type === "malkreuz") { const mb = DKU.genMul(nb.b >= 10); nb.a = mb.a; nb.b = mb.b; }
+      else if (nb.type === "rechenrad") nb.inner = DKU.genRad(nb.op, nb.n, nb.count, nb.max);
+      else if (nb.type === "net") nb.start = DKU.genNetStart(nb.cols, nb.hop, nb.hn, nb.vop, nb.vn, nb.max || 100);
       delete nb._regen;
     }
     if (partial.words && nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);

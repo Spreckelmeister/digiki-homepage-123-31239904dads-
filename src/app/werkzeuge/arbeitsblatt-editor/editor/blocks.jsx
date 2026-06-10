@@ -1230,6 +1230,273 @@ import { Icon } from "./icons";
     );
   }
 
+  // ---------- Rechenkette (ProV2) ----------
+  function Chain({ block, solve }) {
+    const start = Number.isFinite(block.start) ? block.start : 5;
+    const steps = block.steps || [];
+    let cur = start; const vals = [start];
+    steps.forEach(s => { cur = s.op === "+" ? cur + s.n : s.op === "-" ? cur - s.n : s.op === "×" ? cur * s.n : Math.round(cur / s.n); vals.push(cur); });
+    const Box = ({ val, show }) => (
+      <div data-answer={show ? undefined : String(val)} style={{ minWidth: 50, height: 44, border: "2px solid var(--ink-soft)", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 20, padding: "0 8px", background: "#fff", color: show ? "var(--ink)" : (solve ? "var(--sol)" : "transparent") }}>{val}</div>
+    );
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+        <Box val={vals[0]} show={true} />
+        {steps.map((s, i) => (
+          <React.Fragment key={i}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <span style={{ fontFamily: "var(--ui)", fontSize: 14, fontWeight: 700, color: "var(--teal-700)" }}>{s.op}{s.n}</span>
+              <svg width="42" height="14"><line x1="2" y1="7" x2="33" y2="7" stroke="var(--ink-soft)" strokeWidth="2" /><path d="M33 2 L42 7 L33 12 Z" fill="var(--ink-soft)" /></svg>
+            </div>
+            <Box val={vals[i + 1]} show={false} />
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
+
+  // ---------- Brüche (ProV2) ----------
+  function Fraction({ block, solve }) {
+    const shape = block.shape || "pie";
+    const ask = block.ask || "name";
+    const items = (block.items && block.items.length) ? block.items : [{ n: 4, m: 3 }];
+    const cols = Math.min(Math.max(1, block.cols || items.length), 6);
+    const fillShape = ask === "shade" ? solve : true;
+    const Pie = ({ n, m }) => {
+      const R = 46, cx = 52, cy = 52;
+      const pol = (deg) => { const a = (deg - 90) * Math.PI / 180; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; };
+      const secs = [];
+      for (let i = 0; i < n; i++) {
+        const a0 = i * 360 / n, a1 = (i + 1) * 360 / n;
+        const p0 = pol(a0), p1 = pol(a1);
+        const large = (a1 - a0) > 180 ? 1 : 0;
+        secs.push(<path key={i} d={`M${cx} ${cy} L${p0[0].toFixed(2)} ${p0[1].toFixed(2)} A${R} ${R} 0 ${large} 1 ${p1[0].toFixed(2)} ${p1[1].toFixed(2)} Z`}
+          fill={fillShape && i < m ? "var(--teal)" : "#fff"} stroke="var(--ink-soft)" strokeWidth="2" />);
+      }
+      return <svg width="104" height="104" viewBox="0 0 104 104">{secs}</svg>;
+    };
+    const Bar = ({ n, m }) => {
+      const W = 210, H = 50, w = W / n;
+      return (
+        <svg width={W + 4} height={H + 4} viewBox={`0 0 ${W + 4} ${H + 4}`}>
+          {Array.from({ length: n }).map((_, i) => (
+            <rect key={i} x={(2 + i * w).toFixed(2)} y="2" width={w.toFixed(2)} height={H} fill={fillShape && i < m ? "var(--teal)" : "#fff"} stroke="var(--ink-soft)" strokeWidth="2" />
+          ))}
+        </svg>
+      );
+    };
+    const Frac = ({ n, m }) => (
+      <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 26, lineHeight: 1, color: "var(--ink)" }}>
+        <span>{m}</span><span style={{ width: 30, borderTop: "3px solid var(--ink)", margin: "3px 0" }} /><span>{n}</span>
+      </span>
+    );
+    const FracBlank = ({ n, m }) => {
+      const box = { width: 36, height: 36, border: "2px solid var(--ink-soft)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 20, color: solve ? "var(--sol)" : "transparent" };
+      return (<span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+        <span data-answer={String(m)} style={box}>{m}</span><span style={{ width: 36, borderTop: "3px solid var(--ink)", margin: "4px 0" }} /><span data-answer={String(n)} style={box}>{n}</span>
+      </span>);
+    };
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 22, justifyItems: "center", alignItems: "end" }}>
+        {items.map((it, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            {shape === "bar" ? <Bar n={it.n} m={it.m} /> : <Pie n={it.n} m={it.m} />}
+            {ask === "shade" ? <Frac n={it.n} m={it.m} /> : <FracBlank n={it.n} m={it.m} />}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ---------- Malkreuz (ProV2) ----------
+  function Malkreuz({ block, solve }) {
+    const a = Math.max(1, block.a || 14), b = Math.max(1, block.b || 13);
+    const parts = (x) => { const str = String(Math.abs(Math.round(x))), L = str.length, res = []; for (let i = 0; i < L; i++) { const d = +str[i]; if (d) res.push(d * Math.pow(10, L - 1 - i)); } return res.length ? res : [0]; };
+    const A = parts(a), B = parts(b);
+    const hStyle = { border: "1.5px solid var(--ink-soft)", background: "var(--teal-50)", color: "var(--teal-700)", minWidth: 56, height: 42, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 18, padding: "0 10px" };
+    const cStyle = { border: "1.5px solid var(--ink-soft)", minWidth: 56, height: 42, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 19, background: "#fff", color: solve ? "var(--sol)" : "transparent" };
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+        <table style={{ borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={{ ...hStyle, background: "var(--teal-700)", color: "#fff" }}>×</th>
+            {B.map((bp, i) => <th key={i} style={hStyle}>{bp}</th>)}
+          </tr></thead>
+          <tbody>
+            {A.map((ap, r) => (
+              <tr key={r}>
+                <th style={hStyle}>{ap}</th>
+                {B.map((bp, c) => <td key={c} data-answer={String(ap * bp)} style={cStyle}>{ap * bp}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--ui)", fontWeight: 800, fontSize: 21, color: "var(--ink)" }}>
+          <span>{a} · {b} =</span>
+          <span data-answer={String(a * b)} style={{ minWidth: 70, height: 44, border: "2px solid var(--ink-soft)", borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", color: solve ? "var(--sol)" : "transparent" }}>{a * b}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Rechennetz (ProV2) ----------
+  function Net({ block, solve }) {
+    const cols = Math.min(4, Math.max(2, block.cols || 3));
+    const hop = block.hop || "+", hn = block.hn != null ? block.hn : 2;
+    const vop = block.vop || "+", vn = block.vn != null ? block.vn : 10;
+    const apply = (op, n, x) => op === "+" ? x + n : op === "-" ? x - n : x * n;
+    const top = [Number.isFinite(block.start) ? block.start : 3];
+    for (let c = 1; c < cols; c++) top.push(apply(hop, hn, top[c - 1]));
+    const bottom = top.map(x => apply(vop, vn, x));
+    const Box = ({ val, show }) => (
+      <div data-answer={show ? undefined : String(val)} style={{ width: 56, height: 46, border: "2px solid var(--ink-soft)", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--ui)", fontWeight: 700, fontSize: 20, background: "#fff", color: show ? "var(--ink)" : (solve ? "var(--sol)" : "transparent") }}>{val}</div>
+    );
+    const HArrow = () => (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: "var(--ui)", fontSize: 14, fontWeight: 800, color: "var(--teal-700)" }}>{hop}{hn}</span>
+        <svg width="40" height="12"><line x1="2" y1="6" x2="31" y2="6" stroke="var(--ink-soft)" strokeWidth="2" /><path d="M31 1.5 L40 6 L31 10.5 Z" fill="var(--ink-soft)" /></svg>
+      </div>
+    );
+    const VArrow = () => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, height: 42 }}>
+        <svg width="12" height="38"><line x1="6" y1="2" x2="6" y2="29" stroke="var(--ink-soft)" strokeWidth="2" /><path d="M1.5 29 L6 38 L10.5 29 Z" fill="var(--ink-soft)" /></svg>
+        <span style={{ fontFamily: "var(--ui)", fontSize: 14, fontWeight: 800, color: "var(--orange-600)" }}>{vop}{vn}</span>
+      </div>
+    );
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols * 2 - 1}, auto)`, gap: "2px 4px", alignItems: "center", justifyItems: "center" }}>
+          {top.map((v, c) => (
+            <React.Fragment key={"t" + c}>
+              <Box val={v} show={c === 0} />
+              {c < cols - 1 && <HArrow />}
+            </React.Fragment>
+          ))}
+          {top.map((_, c) => (
+            <React.Fragment key={"v" + c}>
+              <VArrow />
+              {c < cols - 1 && <div />}
+            </React.Fragment>
+          ))}
+          {bottom.map((v, c) => (
+            <React.Fragment key={"b" + c}>
+              <Box val={v} show={false} />
+              {c < cols - 1 && <div />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Stellenwerttafel (ProV2) ----------
+  function PlaceValue({ block, solve }) {
+    const places = Math.min(6, Math.max(1, block.places || 3));
+    const labels = ["E", "Z", "H", "T", "ZT", "HT"].slice(0, places).reverse();
+    const numbers = block.numbers || [234];
+    const digits = (n) => String(Math.abs(Math.round(n))).padStart(places, "0").slice(-places).split("");
+    const th = { border: "1.5px solid var(--ink-soft)", background: "var(--teal-50)", padding: "6px 0", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--teal-700)", width: 44, textAlign: "center" };
+    const td = { border: "1.5px solid var(--ink-soft)", width: 44, height: 40, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 20, color: solve ? "var(--sol)" : "transparent" };
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <table style={{ borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={{ border: "none", width: 64 }} />
+            {labels.map((l, i) => <th key={i} style={th}>{l}</th>)}
+          </tr></thead>
+          <tbody>
+            {numbers.map((n, r) => (
+              <tr key={r}>
+                <td style={{ fontFamily: "var(--ui)", fontWeight: 700, fontSize: 19, color: "var(--ink)", textAlign: "right", paddingRight: 12 }}>{n}</td>
+                {digits(n).map((d, c) => <td key={c} data-answer={String(d)} style={td}>{d}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // ---------- Rechenrad (ProV2) ----------
+  function Rechenrad({ block, solve }) {
+    const op = block.op || "+";
+    const n = Number.isFinite(block.n) ? block.n : 3;
+    const inner = (block.inner && block.inner.length) ? block.inner : [2, 5, 8, 3, 6];
+    const apply = (x) => op === "+" ? x + n : op === "-" ? x - n : op === "×" ? x * n : x;
+    const S = 280, C = S / 2, rHub = 40, rIn = 80, rOut = 124, K = inner.length;
+    const pol = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+    const spokes = inner.map((x, i) => { const deg = i * 360 / K; const ip = pol(rIn, deg), opn = pol(rOut, deg); return { x, ix: ip[0], iy: ip[1], ox: opn[0], oy: opn[1], res: apply(x) }; });
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} style={{ fontFamily: "var(--ui)" }}>
+          <circle cx={C} cy={C} r={rOut + 14} fill="none" stroke="var(--line)" strokeWidth="2" />
+          {spokes.map((s, i) => <line key={i} x1={C} y1={C} x2={s.ox.toFixed(2)} y2={s.oy.toFixed(2)} stroke="var(--line)" strokeWidth="2" />)}
+          {spokes.map((s, i) => (
+            <g key={i}>
+              <circle cx={s.ix.toFixed(2)} cy={s.iy.toFixed(2)} r="18" fill="#fff" stroke="var(--ink-soft)" strokeWidth="2" />
+              <text x={s.ix.toFixed(2)} y={(s.iy + 6).toFixed(2)} textAnchor="middle" fontSize="18" fontWeight="700" fill="var(--ink)">{s.x}</text>
+              <circle cx={s.ox.toFixed(2)} cy={s.oy.toFixed(2)} r="20" fill="#fff" stroke={solve ? "var(--sol)" : "var(--ink-soft)"} strokeWidth="2" strokeDasharray={solve ? "0" : "4 3"} />
+              <text x={s.ox.toFixed(2)} y={(s.oy + 6).toFixed(2)} textAnchor="middle" fontSize="18" fontWeight="800" fill={solve ? "var(--sol)" : "transparent"}>{s.res}</text>
+            </g>
+          ))}
+          <circle cx={C} cy={C} r={rHub} fill="var(--teal-50)" stroke="var(--teal)" strokeWidth="2.5" />
+          <text x={C} y={C + 8} textAnchor="middle" fontSize="23" fontWeight="800" fill="var(--teal-700)">{(op === "×" ? "·" : op) + " " + n}</text>
+        </svg>
+      </div>
+    );
+  }
+
+  // ---------- Sachaufgabe (ProV2) ----------
+  function Sach({ block, solve }) {
+    return (
+      <div className={fontClass(block.font || "druck")} data-speak={block.text} style={{ fontSize: block.size || 19, color: "var(--ink)" }}>
+        <div style={{ lineHeight: 1.65, marginBottom: 16, background: "var(--bg-rail)", borderLeft: "4px solid var(--teal)", borderRadius: 10, padding: "12px 14px" }}>{block.text}</div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginBottom: 14 }}>
+          <span style={{ fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--teal-700)", flex: "none" }}>Rechnung:</span>
+          <span style={{ flex: 1, borderBottom: "2px solid var(--ink-soft)", minHeight: 30, display: "flex", alignItems: "flex-end", paddingBottom: 2, fontWeight: 700, color: "var(--sol)" }}>{solve ? (block.calc || "") : ""}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--teal-700)", flex: "none" }}>Antwort:</span>
+          <span>{block.av}</span>
+          <span data-answer={String(block.az ?? "")} style={{ minWidth: 64, height: 38, border: "2px solid var(--ink-soft)", borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, background: "#fff", color: solve ? "var(--sol)" : "transparent" }}>{block.az}</span>
+          <span>{block.an}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Einmaleins-Tafel (ProV2) ----------
+  function TimesTable({ block, solve }) {
+    const rows = Math.min(12, Math.max(1, block.rows || 10));
+    const cols = Math.min(12, Math.max(1, block.cols || 10));
+    const blanks = new Set(block.blanks || []);
+    const corner = { border: "1.5px solid var(--ink-soft)", background: "var(--teal-700)", color: "#fff", width: 34, height: 32, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 16 };
+    const head = { border: "1.5px solid var(--ink-soft)", background: "var(--teal-50)", color: "var(--teal-700)", width: 34, height: 32, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15 };
+    return (
+      <div style={{ display: "flex", justifyContent: "center", overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={corner}>×</th>
+            {Array.from({ length: cols }).map((_, c) => <th key={c} style={head}>{c + 1}</th>)}
+          </tr></thead>
+          <tbody>
+            {Array.from({ length: rows }).map((_, r) => (
+              <tr key={r}>
+                <th style={head}>{r + 1}</th>
+                {Array.from({ length: cols }).map((_, c) => {
+                  const idx = r * cols + c, val = (r + 1) * (c + 1), blank = blanks.has(idx);
+                  return <td key={c} data-answer={blank ? String(val) : undefined} style={{ border: "1.5px solid var(--ink-soft)", width: 34, height: 32, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 15,
+                    background: blank ? "var(--teal-50)" : "#fff", color: blank ? (solve ? "var(--sol)" : "transparent") : "var(--ink)" }}>{val}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   function Block({ block, doc, onPatch }) {
     const solve = !!(doc && doc.showSolutions);
     switch (block.type) {
@@ -1245,6 +1512,14 @@ import { Icon } from "./icons";
       case "matharow": return withPrompt(block, <MathRows block={block} solve={solve} />);
       case "unitcalc": return withPrompt(block, <UnitRows block={block} solve={solve} />);
       case "writtenmath": return withPrompt(block, <WrittenMath block={block} solve={solve} />);
+      case "chain":    return withPrompt(block, <Chain block={block} solve={solve} />);
+      case "net":      return withPrompt(block, <Net block={block} solve={solve} />);
+      case "rechenrad": return withPrompt(block, <Rechenrad block={block} solve={solve} />);
+      case "malkreuz": return withPrompt(block, <Malkreuz block={block} solve={solve} />);
+      case "times":    return withPrompt(block, <TimesTable block={block} solve={solve} />);
+      case "placevalue": return withPrompt(block, <PlaceValue block={block} solve={solve} />);
+      case "fraction": return withPrompt(block, <Fraction block={block} solve={solve} />);
+      case "sach":     return withPrompt(block, <Sach block={block} solve={solve} />);
       case "mathwall": return withPrompt(block, <MathWall block={block} solve={solve} />);
       case "mathtri":  return withPrompt(block, <MathTri block={block} solve={solve} />);
       case "numline":  return withPrompt(block, <NumLine block={block} solve={solve} onPatch={onPatch} />);
