@@ -339,6 +339,42 @@ import { Icon } from "./icons";
     );
   }
 
+  // ---------- Geld- & Größenrechnen ----------
+  function UnitRows({ block, solve }) {
+    const cols = block.cols || 2;
+    const rows = block.items || [];
+    const show = solve || block.showResult;
+    const sz = block.size || 22;
+    const money = (c) => (c / 100).toFixed(2).replace(".", ",");
+    const fmt = (it, v) => it.money ? money(v) : String(v);
+    const rowStyle = { display: "flex", alignItems: "center", gap: 7, fontSize: sz, fontFamily: "var(--ui)", fontWeight: 600, color: "var(--ink)", flexWrap: "wrap" };
+    const blank = (val, unit) => (
+      <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 5 }}>
+        <span data-answer={val} style={{ display: "inline-flex", alignItems: "flex-end", justifyContent: "center", minWidth: sz * 2.2, height: sz * 1.15, paddingBottom: 2, borderBottom: "2px solid var(--ink-soft)", textAlign: "center", fontWeight: 700, color: show ? "var(--sol)" : "transparent" }}>{val}</span>
+        {unit && <span style={{ fontWeight: 600 }}>{unit}</span>}
+      </span>
+    );
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "14px 40px" }}>
+        {rows.map((r, i) => r.mode === "umrechnen" ? (
+          <div key={i} style={rowStyle}>
+            <span>{fmt(r, r.val)}&nbsp;{r.fromUnit}</span>
+            <span style={{ color: "var(--muted)" }}>=</span>
+            {blank(fmt(r, r.res), r.toUnit)}
+          </div>
+        ) : (
+          <div key={i} style={rowStyle}>
+            <span>{fmt(r, r.a)}&nbsp;{r.unit}</span>
+            <span style={{ color: "var(--muted)" }}>{r.op === "-" ? "−" : r.op}</span>
+            <span>{fmt(r, r.b)}&nbsp;{r.unit}</span>
+            <span style={{ color: "var(--muted)" }}>=</span>
+            {blank(fmt(r, r.res), r.unit)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   // ---------- Math wall (Rechenmauer) ----------
   function MathWall({ block, solve }) {
     const rows = genWall(block.base || [2, 5, 3], block.op); // bottom..top
@@ -1037,6 +1073,7 @@ import { Icon } from "./icons";
       case "image":    return <ImageBlock block={block} solve={solve} />;
       case "lines":    return <Lines block={block} />;
       case "matharow": return withPrompt(block, <MathRows block={block} solve={solve} />);
+      case "unitcalc": return withPrompt(block, <UnitRows block={block} solve={solve} />);
       case "mathwall": return withPrompt(block, <MathWall block={block} solve={solve} />);
       case "mathtri":  return withPrompt(block, <MathTri block={block} solve={solve} />);
       case "numline":  return withPrompt(block, <NumLine block={block} solve={solve} onPatch={onPatch} />);

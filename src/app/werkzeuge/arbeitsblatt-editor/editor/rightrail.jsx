@@ -790,6 +790,42 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "unitcalc") {
+      const kind = block.kind || "geld";
+      const mode = block.mode || "rechnen";
+      const KINDS = [["geld", "Geld"], ["laenge", "Länge"], ["gewicht", "Gewicht"], ["volumen", "Volumen"]];
+      return (<>
+        <Section title="Bereich">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {KINDS.map(([v, l]) => (
+              <button key={v} onClick={() => patch({ kind: v, _regen: Date.now() })}
+                style={{ padding: "9px 6px", borderRadius: 10, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+                  border: "1.5px solid " + (kind === v ? "var(--teal)" : "var(--line)"), background: kind === v ? "var(--teal-50)" : "#fff", color: kind === v ? "var(--teal-700)" : "var(--ink-soft)" }}>{l}</button>
+            ))}
+          </div>
+        </Section>
+        <Section title="Aufgabentyp">
+          <Segmented value={mode} onChange={v => patch({ mode: v, _regen: Date.now() })} options={[{ v: "rechnen", label: "Rechnen" }, { v: "umrechnen", label: "Umrechnen" }]} />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
+            {mode === "umrechnen" ? "Eine Größe in die andere Einheit umrechnen (z. B. 3 m = 300 cm)." : "Mit Größen rechnen (z. B. 350 g + 200 g)."}
+          </p>
+        </Section>
+        {mode === "rechnen" && (
+          <Section title="Rechenart">
+            <Segmented value={block.op || "+"} onChange={v => patch({ op: v, _regen: Date.now() })} options={[{ v: "+", label: "+" }, { v: "-", label: "−" }]} />
+          </Section>
+        )}
+        <Section title="Einstellungen">
+          {mode === "rechnen" && <Row label={kind === "geld" ? "Bis … €" : "Zahlenraum bis"}><Stepper value={block.max || 20} min={kind === "geld" ? 5 : 10} max={kind === "geld" ? 100 : 1000} step={kind === "geld" ? 5 : 10} onChange={v => patch({ max: v, _regen: Date.now() })} /></Row>}
+          <Row label="Aufgaben"><Stepper value={block.count || 8} min={2} max={20} step={2} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Spalten"><Stepper value={block.cols || 2} min={1} max={3} onChange={v => patch({ cols: v })} /></Row>
+          <Row label="Größe"><Stepper value={block.size || 22} min={16} max={32} step={2} onChange={v => patch({ size: v })} /></Row>
+          {mode === "rechnen" && <Row label="Ergebnisse zeigen"><Toggle value={!!block.showResult} onChange={v => patch({ showResult: v })} /></Row>}
+        </Section>
+        <Section><button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Aufgaben würfeln</button></Section>
+      </>);
+    }
+
     if (t === "dotfield") {
       const field = block.field || "zwanzig";
       const cap = field === "zehn" ? 10 : field === "hundert" ? 100 : 20;
@@ -951,7 +987,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "imagelabel"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "imagelabel"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

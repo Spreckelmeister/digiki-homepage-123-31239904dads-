@@ -47,6 +47,7 @@
       { type: "dotfield", label: "Punktefeld",     icon: "dotfield", desc: "Zehner-, Zwanziger-, Hunderterfeld" },
       { type: "hundredchart", label: "Hundertertafel", icon: "hundred", desc: "Zahlen 1–100, Felder ausblendbar" },
       { type: "numhouse", label: "Zahlenhaus",     icon: "numhouse", desc: "Zahlen zerlegen" },
+      { type: "unitcalc", label: "Geld & Größen",  icon: "unit", desc: "Rechnen & Umrechnen mit Einheiten", hot: true },
       { type: "clock",    label: "Uhrzeit",        icon: "clock", desc: "Uhr ablesen" },
       { type: "selfcheck", label: "Selbstkontrolle", icon: "selfcheck", desc: "Lösungen zum Selbst-Prüfen", hot: true },
     ]},

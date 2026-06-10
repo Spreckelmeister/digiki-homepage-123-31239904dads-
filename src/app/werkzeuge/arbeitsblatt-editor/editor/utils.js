@@ -182,6 +182,37 @@ function genChartBlanks(count) {
   return out.sort((a, b) => a - b);
 }
 
+// ---- Geld- & Größenrechnen ----
+// rechnen: a ± b in einer Einheit (Geld in Cent, intern). umrechnen: Größe in
+// die nächste Einheit (z. B. 3 m = 300 cm). Ergebnisse sind exakt/ganzzahlig.
+function genUnitCalc(kind, op, max) {
+  if (kind === "geld") {
+    const cents = () => rint(1, Math.max(2, max)) * 100 + rint(0, 9) * 10; // ganze € + Zehner-Cent
+    let aC = cents(), bC = cents();
+    if (op === "-" && bC > aC) { const t = aC; aC = bC; bC = t; }
+    return { mode: "rechnen", a: aC, b: bC, res: op === "-" ? aC - bC : aC + bC, op, unit: "€", money: true };
+  }
+  const unit = kind === "laenge" ? "cm" : kind === "gewicht" ? "g" : "ml";
+  let a = rint(1, max), b = rint(1, max);
+  if (op === "-" && b > a) { const t = a; a = b; b = t; }
+  return { mode: "rechnen", a, b, res: op === "-" ? a - b : a + b, op, unit, money: false };
+}
+function genConvert(kind) {
+  if (kind === "geld") { const v = rint(1, 20); return { mode: "umrechnen", val: v, fromUnit: "€", toUnit: "ct", res: v * 100, money: false }; }
+  let pair;
+  if (kind === "laenge") pair = [["cm", "mm", 10, 30], ["m", "cm", 100, 9], ["km", "m", 1000, 9]][rint(0, 2)];
+  else if (kind === "gewicht") pair = ["kg", "g", 1000, 9];
+  else pair = ["l", "ml", 1000, 9];
+  const [from, to, factor, hi] = pair;
+  const v = rint(1, hi);
+  return { mode: "umrechnen", val: v, fromUnit: from, toUnit: to, res: v * factor, money: false };
+}
+function genUnitItems(kind, mode, op, max, count) {
+  const out = [];
+  for (let i = 0; i < (count || 8); i++) out.push(mode === "umrechnen" ? genConvert(kind) : genUnitCalc(kind, op || "+", max || 20));
+  return out;
+}
+
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
 const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse"];
@@ -263,6 +294,7 @@ function autoPrompt(b) {
   if (b.type === "dotfield") return "Wie viele Punkte sind es? Schreibe die Zahl in das Kästchen.";
   if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
   if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
+  if (b.type === "unitcalc") return b.mode === "umrechnen" ? "Rechne in die andere Einheit um." : "Rechne mit den Größen. Vergiss die Einheit nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "wordsearch") return "Finde alle Wörter und male sie farbig an. Sie stehen waagerecht, senkrecht und schräg.";
   if (b.type === "clock") {
@@ -273,4 +305,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems };

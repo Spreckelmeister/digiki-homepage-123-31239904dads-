@@ -10,7 +10,7 @@ import { Icon } from "./icons";
    Hinweis: bewusst KEINE async/await (Babel-Standalone → regenerator).
    ============================================================ */
   const { nid } = DKI;
-  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks } = DKU;
+  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks, genUnitItems } = DKU;
 
   // ---- Offline-Vorlagen (Fallback ohne Schlüssel) ----
   const TOPICS = {
@@ -139,6 +139,14 @@ import { Icon } from "./icons";
           nb.count = Math.max(2, Math.min(12, +nb.count || 6));
           nb.blank = ["a", "b", "mix"].includes(nb.blank) ? nb.blank : "mix";
           if (!Array.isArray(nb.rows) || !nb.rows.length || !nb.rows.every(r => r && typeof r.a === "number")) nb.rows = genHouse(nb.target, nb.count, nb.blank);
+        } else if (nb.type === "unitcalc") {
+          nb.kind = ["geld", "laenge", "gewicht", "volumen"].includes(nb.kind) ? nb.kind : "geld";
+          nb.mode = nb.mode === "umrechnen" ? "umrechnen" : "rechnen";
+          nb.op = nb.op === "-" ? "-" : "+";
+          nb.max = Math.min(1000, Math.max(5, +nb.max || 20));
+          nb.count = Math.min(20, Math.max(2, +nb.count || 8));
+          nb.cols = nb.cols || 2; nb.size = nb.size || 22;
+          if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
         } else if (nb.type === "imagelabel") {
           nb.points = Array.isArray(nb.points) ? nb.points.filter(p => p && Number.isFinite(+p.x) && Number.isFinite(+p.y)).map(p => ({ x: +p.x, y: +p.y, word: String(p.word || "") })) : [];
           if (!nb.src && !nb.art) nb.art = null;
@@ -181,6 +189,7 @@ import { Icon } from "./icons";
       '- {"type":"dotfield","field":"zehn|zwanzig|hundert","value":14}  Punktefeld (Zehner-/Zwanziger-/Hunderterfeld); Kinder schreiben die Anzahl',
       '- {"type":"hundredchart","blanks":[4,17,28]}  Hundertertafel 1-100 mit ausgeblendeten Feldern',
       '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
+      '- {"type":"unitcalc","kind":"geld|laenge|gewicht|volumen","mode":"rechnen|umrechnen","op":"+|-","max":20,"count":8}  Rechnen/Umrechnen mit Geld & Größen',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',
