@@ -219,6 +219,12 @@ import { Icon } from "./icons";
     const dashed = "1.5px dashed #B7C3CD";
     const base = "2px solid var(--ink-soft)";
     const band = "rgba(43,182,172,.08)";
+    // Nachspur-Stil des Vorgabeworts: grau (Standard) · hell · Kontur (hohl zum Nachfahren)
+    const traceWord = block.trace === "kontur"
+      ? { color: "transparent", WebkitTextStroke: "2px #B7C3CD" }
+      : block.trace === "hell"
+        ? { color: "#E3E9EC" }
+        : { color: "#C9D4DA" };
 
     const StartDot = ({ top }) => block.startDot ? (
       <div style={{ position: "absolute", left: 1, top: top - 5, display: "flex", alignItems: "center", gap: 2 }}>
@@ -240,7 +246,7 @@ import { Icon } from "./icons";
       if (variant === "grundlinie") {
         rows.push(
           <div key={i} style={{ position: "relative", height: H * 2.0, marginBottom: 0 }}>
-            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: H * 1.3, display: "flex", alignItems: "flex-end", fontSize: H * 1.2, lineHeight: 1, color: "#C9D4DA", whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
+            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: H * 1.3, display: "flex", alignItems: "flex-end", fontSize: H * 1.2, lineHeight: 1, ...traceWord, whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
             <div style={{ position: "absolute", left: 0, right: 0, top: H * 1.3, borderTop: base }} />
             <StartDot top={H * 1.3} />
           </div>
@@ -251,7 +257,7 @@ import { Icon } from "./icons";
         const asc = H, body = H, rowH = asc + body;
         rows.push(
           <div key={i} style={{ position: "relative", height: rowH, marginBottom: H * 1.3 }}>
-            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: asc + body, display: "flex", alignItems: "flex-end", fontSize: body * 1.4, lineHeight: 1, color: "#C9D4DA", whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
+            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: asc + body, display: "flex", alignItems: "flex-end", fontSize: body * 1.4, lineHeight: 1, ...traceWord, whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, borderTop: thin }} />
             <div style={{ position: "absolute", left: 0, right: 0, top: asc, borderTop: dashed }} />
             <div style={{ position: "absolute", left: 0, right: 0, top: asc + body, borderTop: base }} />
@@ -280,7 +286,7 @@ import { Icon } from "./icons";
           )}
           <div style={{ position: "absolute", left: padL, right: 0, top: 0, bottom: 0 }}>
             {variant === "haus" && <div style={{ position: "absolute", left: 0, right: 0, top: asc, height: body, background: band }} />}
-            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: asc + body, display: "flex", alignItems: "flex-end", fontSize: body * 1.5, lineHeight: 1, color: "#C9D4DA", whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
+            {block.word && <span className={fontClass(block.font || "schreib")} style={{ position: "absolute", left: 6, top: 0, height: asc + body, display: "flex", alignItems: "flex-end", fontSize: body * 1.5, lineHeight: 1, ...traceWord, whiteSpace: "nowrap", pointerEvents: "none", paddingBottom: 1 }}>{block.word}</span>}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, borderTop: thin }} />
             <div style={{ position: "absolute", left: 0, right: 0, top: asc, borderTop: thin }} />
             <div style={{ position: "absolute", left: 0, right: 0, top: asc + body, borderTop: base }} />
@@ -778,6 +784,102 @@ import { Icon } from "./icons";
   }
   const withPrompt = (block, el) => <><Prompt block={block} />{el}</>;
 
+  // ---------- Punktefeld (Zehner-/Zwanziger-/Hunderterfeld) ----------
+  function DotField({ block, solve }) {
+    const field = block.field || "zwanzig";
+    const cap = field === "zehn" ? 10 : field === "hundert" ? 100 : 20;
+    const value = Math.max(0, Math.min(cap, +block.value || 0));
+    const showN = solve || block.showNumber;
+    const cols = field === "hundert" ? 10 : 5;
+    const rows = cap / cols;
+    const rowGroup = field === "hundert" ? 5 : 2;            // Lücke nach 5 Reihen (Hunderter) bzw. 2 (Zwanziger = zwei Zehnerfelder)
+    const cell = field === "hundert" ? 22 : 34;
+    const gap = Math.round(cell * 0.5);
+    const r = cell * 0.30;
+    const W = cols * cell + Math.floor((cols - 1) / 5) * gap;
+    const H = rows * cell + Math.floor((rows - 1) / rowGroup) * gap;
+    const dots = [];
+    for (let i = 0; i < cap; i++) {
+      const c = i % cols, rr = Math.floor(i / cols);
+      const x = c * cell + Math.floor(c / 5) * gap + cell / 2;
+      const y = rr * cell + Math.floor(rr / rowGroup) * gap + cell / 2;
+      const filled = i < value;
+      dots.push(<circle key={i} cx={x} cy={y} r={r}
+        fill={filled ? "var(--teal)" : "#fff"} stroke={filled ? "var(--teal-700)" : "var(--ink-soft)"} strokeWidth={filled ? 1 : 1.6} />);
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>{dots}</svg>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 72, height: 50, borderRadius: 11, border: "2px solid var(--ink-soft)", fontFamily: "var(--ui)", fontSize: 28, fontWeight: 800, color: showN ? "var(--sol)" : "transparent" }}>{value}</div>
+      </div>
+    );
+  }
+
+  // ---------- Hundertertafel ----------
+  function HundredChart({ block, solve, onPatch }) {
+    const blanks = block.blanks || [];
+    const bset = new Set(blanks);
+    const editable = !!onPatch && !solve;
+    const cell = 44;
+    const toggle = (n) => { if (!editable) return; onPatch({ blanks: bset.has(n) ? blanks.filter(x => x !== n) : [...blanks, n].sort((a, b) => a - b) }); };
+    const nums = []; for (let i = 1; i <= 100; i++) nums.push(i);
+    return (
+      <div>
+        {editable && <div style={{ fontFamily: "var(--ui)", fontSize: 12, fontWeight: 600, color: "var(--teal-700)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}><Icon name="target" size={14} /> Tippe Felder an, um sie als Lücke auszublenden.</div>}
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(10, ${cell}px)`, width: "max-content", margin: "0 auto", border: "2px solid var(--ink-soft)", borderRadius: 8, overflow: "hidden" }}>
+          {nums.map(n => {
+            const blank = bset.has(n);
+            const c = (n - 1) % 10, rr = Math.floor((n - 1) / 10);
+            return (
+              <div key={n} onClick={() => toggle(n)}
+                style={{ height: cell, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontSize: 16, fontWeight: 600,
+                  borderRight: c < 9 ? "1px solid var(--line)" : "none", borderBottom: rr < 9 ? "1px solid var(--line)" : "none",
+                  background: blank ? (solve ? "rgba(21,128,61,.08)" : "#FFFDEB") : "#fff",
+                  color: blank ? (solve ? "var(--sol)" : "transparent") : "var(--ink)",
+                  cursor: editable ? "pointer" : "default", userSelect: "none" }}>
+                {n}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Zahlenhaus (Zerlegungshaus) ----------
+  function NumHouse({ block, solve }) {
+    const target = block.target ?? 10;
+    const rows = block.rows || [];
+    const sz = block.size || 22;
+    const W = 190;
+    const Cell = ({ val, hidden }) => (
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", height: sz * 1.95 }}>
+        {hidden
+          ? <span style={{ minWidth: sz * 1.7, height: sz * 1.5, padding: `0 ${Math.round(sz * 0.3)}px`, borderRadius: 8, border: "2px solid var(--ink-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: sz, color: solve ? "var(--sol)" : "transparent" }}>{val}</span>
+          : <span style={{ fontFamily: "var(--ui)", fontWeight: 700, fontSize: sz, color: "var(--ink)" }}>{val}</span>}
+      </div>
+    );
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ width: W }}>
+          <svg width={W} height={60} viewBox={`0 0 ${W} 60`} style={{ display: "block" }}>
+            <path d={`M3 58 L${W / 2} 5 L${W - 3} 58 Z`} fill="var(--teal-50)" stroke="var(--teal)" strokeWidth="2.5" strokeLinejoin="round" />
+            <text x={W / 2} y="48" textAnchor="middle" fontFamily="var(--ui)" fontWeight="800" fontSize="30" fill="var(--teal-700)">{target}</text>
+          </svg>
+          <div style={{ border: "2.5px solid var(--teal)", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden" }}>
+            {rows.map((r, i) => (
+              <div key={i} style={{ display: "flex", borderTop: i ? "1.5px solid var(--line)" : "none" }}>
+                <Cell val={r.a} hidden={r.hide === "a"} />
+                <div style={{ borderLeft: "1.5px dashed var(--line)" }} />
+                <Cell val={r.b} hidden={r.hide === "b"} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Selbstkontrolle (Lösungsband / Zahlenschlange) ----------
   function SelfCheck({ block, doc, solve }) {
     const all = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
@@ -871,6 +973,9 @@ import { Icon } from "./icons";
       case "mathtri":  return withPrompt(block, <MathTri block={block} solve={solve} />);
       case "numline":  return withPrompt(block, <NumLine block={block} solve={solve} onPatch={onPatch} />);
       case "clock":    return withPrompt(block, <Clock block={block} solve={solve} />);
+      case "dotfield": return withPrompt(block, <DotField block={block} solve={solve} />);
+      case "hundredchart": return withPrompt(block, <HundredChart block={block} solve={solve} onPatch={onPatch} />);
+      case "numhouse": return withPrompt(block, <NumHouse block={block} solve={solve} />);
       case "wordsearch": return withPrompt(block, <WordSearch block={block} solve={solve} />);
       case "table":    return <Table block={block} onPatch={onPatch} />;
       case "task":     return <TaskInstr block={block} onPatch={onPatch} />;

@@ -65,6 +65,9 @@ function makeBlock(type, level) {
     case "wordsearch": return { ...base, words: ["IGEL", "BAUM", "BLATT", "WALD", "NEST"], grid: DKU.genWordsearch(["IGEL", "BAUM", "BLATT", "WALD", "NEST"], 10) };
     case "mathtri":  return { ...base, max: 20, op: "+", data: DKU.genTriangle(easy ? 10 : 20, "+") };
     case "clock":    { const mk = () => ({ h: DKU.rint(1, 12), m: [0, 15, 30, 45][DKU.rint(0, easy ? 1 : 3)] }); return { ...base, clocks: [mk()], cols: 1 }; }
+    case "dotfield": { const field = easy ? "zehn" : "zwanzig"; const cap = field === "zehn" ? 10 : 20; return { ...base, field, value: DKU.rint(easy ? 3 : 6, cap - 1), showNumber: false, size: 26 }; }
+    case "hundredchart": { const n = easy ? 6 : hard ? 14 : 10; return { ...base, blanks: DKU.genChartBlanks(n) }; }
+    case "numhouse": { const target = easy ? 10 : hard ? 20 : 12; const count = easy ? 5 : hard ? 8 : 6; return { ...base, target, count, blank: "mix", size: 22, rows: DKU.genHouse(target, count, "mix") }; }
     case "table":    return { ...base, rows: 3, cols: 3, header: true, size: 16, rowH: 34, font: "druck", cells: [["Spalte 1", "Spalte 2", "Spalte 3"], ["", "", ""], ["", "", ""]] };
     case "task":     return { ...base, num: 1, icon: "pencil", color: "teal", font: "druck", size: 18, text: "Schreibe hier deinen Arbeitsauftrag." };
     case "selfcheck": return { ...base, shape: "band", size: 22, decoys: 0 }; // sources undefiniert = automatisch alle Rechen-Aufgaben
@@ -216,11 +219,13 @@ export default function App() {
     let nb = { ...b, ...partial };
     if (partial._regen
         || (b.type === "matharow" && (partial.op || partial.max || partial.count || partial.mode))
-        || (b.type === "mathtri" && (partial.op || partial.max))) {
+        || (b.type === "mathtri" && (partial.op || partial.max))
+        || (b.type === "numhouse" && (partial.target != null || partial.count != null || partial.blank != null))) {
       if (nb.type === "matharow") nb.items = genMath(nb.op, nb.max, nb.count, nb.mode);
       else if (nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);
       else if (nb.type === "mathtri") nb.data = DKU.genTriangle(nb.max || 20, nb.op);
       else if (nb.type === "clock") nb.clocks = (nb.clocks && nb.clocks.length ? nb.clocks : [{ h: 3, m: 0 }]).map(() => ({ h: DKU.rint(1, 12), m: [0, 15, 30, 45][DKU.rint(0, 3)] }));
+      else if (nb.type === "numhouse") nb.rows = DKU.genHouse(nb.target || 10, nb.count || 6, nb.blank || "mix");
       delete nb._regen;
     }
     if (partial.words && nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);

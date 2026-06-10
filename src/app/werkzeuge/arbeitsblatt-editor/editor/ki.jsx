@@ -10,7 +10,7 @@ import { Icon } from "./icons";
    Hinweis: bewusst KEINE async/await (Babel-Standalone → regenerator).
    ============================================================ */
   const { nid } = DKI;
-  const { rint, genWall, genWordsearch, genTriangle } = DKU;
+  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks } = DKU;
 
   // ---- Offline-Vorlagen (Fallback ohne Schlüssel) ----
   const TOPICS = {
@@ -128,6 +128,17 @@ import { Icon } from "./icons";
           nb.pairs = Array.isArray(nb.pairs) ? nb.pairs : [["A", "1"], ["B", "2"]]; nb._shuffle = nb.pairs.map((_, i) => i).sort(() => Math.random() - 0.5); nb.size = nb.size || 19; nb.font = nb.font || "druck";
         } else if (nb.type === "task") {
           nb.icon = nb.icon || "pencil"; nb.color = nb.color || "teal"; nb.font = nb.font || "druck"; nb.size = nb.size || 18;
+        } else if (nb.type === "dotfield") {
+          nb.field = ["zehn", "zwanzig", "hundert"].includes(nb.field) ? nb.field : "zwanzig";
+          const cap = nb.field === "zehn" ? 10 : nb.field === "hundert" ? 100 : 20;
+          nb.value = Math.max(0, Math.min(cap, +nb.value || 0)); nb.size = nb.size || 26;
+        } else if (nb.type === "hundredchart") {
+          nb.blanks = Array.isArray(nb.blanks) ? nb.blanks.map(Number).filter(n => n >= 1 && n <= 100) : genChartBlanks(10);
+        } else if (nb.type === "numhouse") {
+          nb.target = Math.max(2, Math.min(100, +nb.target || 10));
+          nb.count = Math.max(2, Math.min(12, +nb.count || 6));
+          nb.blank = ["a", "b", "mix"].includes(nb.blank) ? nb.blank : "mix";
+          if (!Array.isArray(nb.rows) || !nb.rows.length || !nb.rows.every(r => r && typeof r.a === "number")) nb.rows = genHouse(nb.target, nb.count, nb.blank);
         } else if (nb.type === "selfcheck") {
           nb.shape = nb.shape === "schlange" ? "schlange" : "band";
           nb.size = nb.size || 22;
@@ -163,6 +174,9 @@ import { Icon } from "./icons";
       '- {"type":"mathwall","op":"+|-|×","base":[2,5,3]}',
       '- {"type":"mathtri","op":"+|-|×|÷","max":20}',
       '- {"type":"numline","min":0,"max":20,"step":1,"blanks":[3,7],"marks":[{"at":12,"type":"box"}]}',
+      '- {"type":"dotfield","field":"zehn|zwanzig|hundert","value":14}  Punktefeld (Zehner-/Zwanziger-/Hunderterfeld); Kinder schreiben die Anzahl',
+      '- {"type":"hundredchart","blanks":[4,17,28]}  Hundertertafel 1-100 mit ausgeblendeten Feldern',
+      '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',

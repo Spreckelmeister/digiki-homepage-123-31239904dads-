@@ -78,6 +78,9 @@ const ICON_PATHS = {
   frame:   '<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1"/>',
   pagebreak: '<rect x="5" y="3" width="14" height="6" rx="1"/><rect x="5" y="15" width="14" height="6" rx="1"/><path d="M2 12h3.5M8.5 12h2.5M13 12h2.5M18.5 12H22"/>',
   selfcheck: '<circle cx="12" cy="12" r="9"/><path d="m8.2 12.2 2.4 2.4 5.2-5.2"/>',
+  dotfield: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M12 6v12" opacity=".5"/><circle cx="6.5" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.5" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="6.5" cy="14" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.5" cy="14" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.3"/><circle cx="18" cy="10" r="1.3"/><circle cx="15" cy="14" r="1.3"/><circle cx="18" cy="14" r="1.3"/>',
+  hundred: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" opacity=".55"/>',
+  numhouse: '<path d="m4 10 8-6 8 6"/><path d="M6 9.5V20h12V9.5"/><path d="M9 20v-5h6v5"/>',
 };
 
 function Icon({ name, size = 18, stroke = 1.8, className = "", style }) {

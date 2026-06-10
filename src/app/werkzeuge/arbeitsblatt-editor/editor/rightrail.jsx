@@ -362,6 +362,14 @@ import { Icon } from "./icons";
             <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>Ein graues Wort sitzt auf der Linie – die Kinder spuren es nach. Leer lassen für leere Linien.</p>
             <input value={block.word || ""} onChange={e => patch({ word: e.target.value })} placeholder="z. B. Mama"
               style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", font: "inherit", fontSize: 13, outline: "none" }} />
+            {block.word && (
+              <div style={{ marginTop: 11 }}>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 6 }}>Nachspur-Stil</div>
+                <Segmented value={block.trace || "grau"} onChange={v => patch({ trace: v })} options={[
+                  { v: "grau", label: "Grau" }, { v: "hell", label: "Hell" }, { v: "kontur", label: "Kontur" }]} />
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: "7px 2px 0", lineHeight: 1.45 }}>„Kontur" zeigt hohle Buchstaben zum Nachfahren – ideal zum Schreibenlernen.</p>
+              </div>
+            )}
           </Section>
           {block.word && <Section title="Schrift"><FontPicker value={block.font || "schreib"} onChange={v => patch({ font: v })} /></Section>}
         </>)}
@@ -692,6 +700,60 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "dotfield") {
+      const field = block.field || "zwanzig";
+      const cap = field === "zehn" ? 10 : field === "hundert" ? 100 : 20;
+      return (<>
+        <Section title="Feld">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+            {[["zehn", "Zehner", "10"], ["zwanzig", "Zwanziger", "20"], ["hundert", "Hunderter", "100"]].map(([v, l, n]) => (
+              <button key={v} onClick={() => patch({ field: v, value: Math.min(block.value || 0, v === "zehn" ? 10 : v === "hundert" ? 100 : 20) })}
+                style={{ padding: "8px 4px", borderRadius: 10, cursor: "pointer", border: "1.5px solid " + (field === v ? "var(--teal)" : "var(--line)"), background: field === v ? "var(--teal-50)" : "#fff" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)" }}>{l}</div>
+                <div style={{ fontSize: 10.5, color: "var(--muted)" }}>bis {n}</div>
+              </button>
+            ))}
+          </div>
+        </Section>
+        <Section title="Einstellungen">
+          <Row label="Anzahl Punkte"><Stepper value={block.value || 0} min={0} max={cap} onChange={v => patch({ value: v })} /></Row>
+          <Row label="Zahl anzeigen"><Toggle value={!!block.showNumber} onChange={v => patch({ showNumber: v })} /></Row>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>Standardmäßig bleibt das Kästchen leer – die Kinder zählen und tragen die Zahl ein. Im Lösungsblatt erscheint sie automatisch.</p>
+        </Section>
+      </>);
+    }
+
+    if (t === "hundredchart") {
+      const blanks = block.blanks || [];
+      return (<>
+        <Section title="Lücken" right={<span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal-700)", background: "var(--teal-50)", padding: "2px 8px", borderRadius: 999 }}>{blanks.length}</span>}>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 9px", lineHeight: 1.5 }}>Tippe direkt auf die Hundertertafel, um einzelne Felder auszublenden – oder würfle zufällige Lücken.</p>
+          <Row label="Zufällige Lücken"><Stepper value={blanks.length} min={0} max={50} step={2} onChange={v => patch({ blanks: DKU.genChartBlanks(v) })} /></Row>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 9px" }} onClick={() => patch({ blanks: DKU.genChartBlanks(blanks.length || 10) })}><Icon name="redo" size={14} /> Neu würfeln</button>
+            <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 9px" }} onClick={() => patch({ blanks: [] })}>Keine</button>
+          </div>
+        </Section>
+      </>);
+    }
+
+    if (t === "numhouse") {
+      const blank = block.blank || "mix";
+      return (<>
+        <Section title="Zahlenhaus">
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 10px", lineHeight: 1.5 }}>Die Zahl im Dach wird zerlegt. Jede Zeile zeigt ein Zahlenpaar, das zusammen die Zielzahl ergibt.</p>
+          <Row label="Zielzahl"><Stepper value={block.target || 10} min={2} max={20} onChange={v => patch({ target: v })} /></Row>
+          <Row label="Zeilen"><Stepper value={block.count || 6} min={2} max={12} onChange={v => patch({ count: v })} /></Row>
+        </Section>
+        <Section title="Welche Zahl fehlt?">
+          <Segmented value={blank} onChange={v => patch({ blank: v })} options={[
+            { v: "a", label: "Links" }, { v: "b", label: "Rechts" }, { v: "mix", label: "Gemischt" }]} />
+          <button className="btn" style={{ width: "100%", marginTop: 10 }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Zerlegungen würfeln</button>
+        </Section>
+        <Section title="Größe"><Stepper value={block.size || 22} min={16} max={34} step={2} onChange={v => patch({ size: v })} /></Section>
+      </>);
+    }
+
     if (t === "selfcheck") {
       const META = {}; DKI.PALETTE.forEach(g => g.items.forEach(it => { META[it.type] = it; }));
       const eligible = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
@@ -791,7 +853,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

@@ -164,9 +164,27 @@ function genWordsearch(words, size = 10) {
   return { grid, placements, size: N };
 }
 
+// ---- Zahlenhaus (Zerlegungshaus): Zerlegungen einer Zielzahl ----
+function genHouse(target, count, blank) {
+  const T = Math.max(2, target | 0);
+  const pool = []; for (let a = 0; a <= T; a++) pool.push(a);
+  const n = Math.min(count || 6, pool.length);
+  const pick = [];
+  for (let i = 0; i < n; i++) pick.push(pool.splice(rint(0, pool.length - 1), 1)[0]);
+  return pick.map(a => ({ a, b: T - a, hide: blank === "a" ? "a" : blank === "b" ? "b" : (Math.random() < 0.5 ? "a" : "b") }));
+}
+// ---- Hundertertafel: zufällige Lücken (1..100) ----
+function genChartBlanks(count) {
+  const pool = []; for (let i = 1; i <= 100; i++) pool.push(i);
+  const out = [];
+  const n = Math.min(Math.max(0, count | 0), 100);
+  for (let i = 0; i < n; i++) out.push(pool.splice(rint(0, pool.length - 1), 1)[0]);
+  return out.sort((a, b) => a - b);
+}
+
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
-const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline"];
+const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse"];
 function collectSolutions(block) {
   const out = [];
   const push = v => { const n = +v; if (Number.isFinite(n)) out.push(n); };
@@ -182,6 +200,12 @@ function collectSolutions(block) {
   } else if (block.type === "numline") {
     (block.blanks || []).forEach(push);
     (block.marks || []).forEach(m => { if (m.type === "box") push(m.at); });
+  } else if (block.type === "dotfield") {
+    push(block.value);                                     // gesuchte Anzahl
+  } else if (block.type === "hundredchart") {
+    (block.blanks || []).forEach(push);
+  } else if (block.type === "numhouse") {
+    (block.rows || []).forEach(r => push(r.hide === "a" ? r.a : r.b));
   }
   return out;
 }
@@ -236,6 +260,9 @@ function autoPrompt(b) {
     if ((b.marks || []).length) return "Schau dir die Markierungen am Zahlenstrahl genau an.";
     return "";
   }
+  if (b.type === "dotfield") return "Wie viele Punkte sind es? Schreibe die Zahl in das Kästchen.";
+  if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
+  if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
   if (b.type === "wordsearch") return "Finde alle Wörter und male sie farbig an. Sie stehen waagerecht, senkrecht und schräg.";
   if (b.type === "clock") {
     const n = (b.clocks || []).length || 1;
@@ -245,4 +272,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks };

@@ -5,6 +5,30 @@
 
 ---
 
+## ✅ Bereits umgesetzt
+
+- **Selbstkontrolle-Feld** (Phase 1.1) – Baustein `selfcheck`: sammelt automatisch
+  die Lösungen verknüpfter Rechen-Aufgaben (Rechenpäckchen, -mauer, -dreieck,
+  Zahlenstrahl, Punktefeld, Hundertertafel, Zahlenhaus) als abhakbares Band oder
+  Zahlenschlange; Verknüpfen per Antippen; optionale Täuscher-Zahlen.
+- **Punktefeld** (Phase 2) – Baustein `dotfield`: Zehner-/Zwanziger-/Hunderterfeld.
+- **Hundertertafel** (Phase 2) – Baustein `hundredchart`: 1–100, Felder per Tippen
+  als Lücke ausblendbar.
+- **Zahlenhaus** (Phase 2) – Baustein `numhouse`: Zerlegung einer Zielzahl.
+- **Nachspur-Kontur** (Teil von Phase 1.2) – Schreiblinien-Vorgabewort als
+  hohle Konturschrift / hell / grau (CSS `-webkit-text-stroke`, iPad-tauglich,
+  ohne neue Font-Dateien).
+
+> Alle neuen Felder sind in Palette, Eigenschaften (Touch-Controls), KI-Assistent
+> und die Selbstkontrolle integriert. Verifiziert per Syntax-Check, Logik-Tests
+> und fehlerfreiem Route-Compile.
+
+**Als Nächstes:** restliche Phase 1.2/1.3 (echte Nachspur-/Schreibschrift-Dateien:
+VA, LA, OpenDyslexic – brauchen Font-Assets) sowie weitere Phase-2-Felder
+(schriftliche Rechenverfahren, Geld/Größen).
+
+---
+
 ## 0. Leitprinzip (gilt für jede Entscheidung)
 
 **Der Editor muss komplett auf dem iPad bedienbar bleiben – einfach, intuitiv,
