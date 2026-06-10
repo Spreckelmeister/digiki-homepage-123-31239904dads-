@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { DKI } from "./data";
@@ -11,6 +11,9 @@ import { LeftRail } from "./leftrail";
 import { RightRail } from "./rightrail";
 import { KIModal } from "./ki";
 import { EDITOR_CSS } from "./styles";
+
+// useLayoutEffect ohne SSR-Warnung (der Editor läuft nur clientseitig)
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /* ============================================================
    Main app — state, history, canvas, assembly
@@ -135,6 +138,10 @@ export default function App() {
   const canvasRef = useRef(null);
   const scopeRef = useRef(null);
   const stackRef = useRef(null);
+  const blockEls = useRef(new Map());   // id -> DOM-Element (für Höhenmessung)
+  const blockH = useRef(new Map());     // id -> gemessene Außenhöhe in px
+  const [, setMeasureTick] = useState(0);
+  const [fontsReady, setFontsReady] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
   // ---- Vollbild: bewusst als CSS-Overlay (fixe Position), NICHT über die
@@ -200,18 +207,49 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
+  // ---- Bausteinhöhen messen → Grundlage der automatischen Seitenaufteilung.
+  // Höhen hängen nur von Inhalt & Breite ab (nicht von der Seite), daher genügt
+  // eine Messung pro Inhaltsänderung; das Ergebnis steht stabil zur Verfügung. ----
+  useIsoLayoutEffect(() => {
+    let changed = false;
+    blockEls.current.forEach((el, id) => {
+      if (!el || !el.isConnected) return;
+      const h = el.offsetHeight + 4; // vertikale Ränder (2px oben + 2px unten)
+      const prev = blockH.current.get(id);
+      if (prev === undefined || Math.abs(prev - h) > 1) { blockH.current.set(id, h); changed = true; }
+    });
+    if (changed) setMeasureTick(t => t + 1);
+  }, [doc.blocks, zoom, doc.showSolutions, doc.footer, fontsReady]);
+
+  // Worksheet-Schriften laden asynchron → nach dem Laden einmal neu messen,
+  // damit die Seitenaufteilung mit der echten Texthöhe rechnet.
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.fonts || !document.fonts.ready) return;
+    let alive = true;
+    document.fonts.ready.then(() => { if (alive) setFontsReady(true); });
+    return () => { alive = false; };
+  }, []);
+
   // ---- block ops ----
   const sel = doc.blocks.find(b => b.id === selId) || null;
 
   // Blöcke in echte Seiten aufteilen. "pagebreak"-Blöcke sind reine
   // (unsichtbare) Trenner zwischen den Blättern. Jede Seite kennt die ID
   // ihres voranstehenden Trenners, damit sie sich gezielt entfernen lässt.
+  // A4-Seiten bilden: an manuellen „pagebreak"-Blöcken UND automatisch, sobald
+  // die Bausteine die nutzbare Höhe einer Seite überschreiten (gemessene Höhen).
+  const PAGE_USABLE = 990; // px nutzbare Inhaltshöhe (1123 − Ränder − Sicherheitsabstand)
   const pages = (() => {
-    const out = [{ breakId: null, items: [] }];
+    const out = [{ breakId: null, items: [], h: 0 }];
     doc.blocks.forEach((b, gi) => {
-      if (b.type === "pagebreak") out.push({ breakId: b.id, items: [] });
-      else out[out.length - 1].items.push({ b, gi });
+      if (b.type === "pagebreak") { out.push({ breakId: b.id, items: [], h: 0 }); return; }
+      const bh = blockH.current.get(b.id) || 96; // Schätzung, bis gemessen
+      let pg = out[out.length - 1];
+      if (pg.items.length && pg.h + bh > PAGE_USABLE) { out.push({ breakId: null, auto: true, items: [], h: 0 }); pg = out[out.length - 1]; }
+      pg.items.push({ b, gi });
+      pg.h += bh;
     });
+    out.forEach(p => { p.overflow = p.h > PAGE_USABLE; }); // einzelner Baustein zu groß für eine Seite
     return out;
   })();
   const removePage = (breakId) => { if (!breakId) return; commit(prev => ({ ...prev, blocks: prev.blocks.filter(b => b.id !== breakId) })); };
@@ -417,14 +455,14 @@ export default function App() {
                 {pages.map((pg, pi) => (
                   <div key={pi} className="page-sheet-wrap" style={{ position: "relative", width: 794, flexShrink: 0 }}>
                     <div className="page-sheet-meta">Seite {pi + 1} / {pages.length}</div>
-                    {pi > 0 && !preview && (
+                    {pg.breakId && !preview && (
                       <button type="button" className="abe-removepage" onClick={() => removePage(pg.breakId)}
                         data-tip="Diese Seite entfernen – der Inhalt rückt nach oben">
                         <Icon name="trash" size={14} /> Seite entfernen
                       </button>
                     )}
                     <div ref={pi === 0 ? pageRef : undefined} className={"ws-page" + (doc.frame && doc.frame !== "none" ? " framed" : "")} style={{ width: 794,
-                      background: "#fff", minHeight: 1123, borderRadius: 4, boxShadow: "var(--shadow-paper)", padding: "54px 56px",
+                      background: "#fff", height: 1123, position: "relative", borderRadius: 4, boxShadow: "var(--shadow-paper)", padding: "54px 56px",
                       backgroundImage: grid ? "linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px)" : "none",
                       backgroundSize: grid ? "28px 28px" : "auto", ...frameStyle(doc.frame) }}>
                       {pi === 0 && doc.showSolutions && (
@@ -436,6 +474,7 @@ export default function App() {
                         const isSel = b.id === selId;
                         return (
                           <div key={b.id} draggable
+                            ref={el => { const m = blockEls.current; if (el) m.set(b.id, el); else m.delete(b.id); }}
                             onDragStart={e => { setDragIdx(gi); e.dataTransfer.effectAllowed = "move"; }}
                             onDragOver={e => { e.preventDefault(); setOverIdx(gi); }}
                             onDragEnd={() => { reorder(dragIdx, overIdx); setDragIdx(null); setOverIdx(null); }}
@@ -471,6 +510,11 @@ export default function App() {
                         <div className="ws-footer" style={{ marginTop: 30, paddingTop: 8, borderTop: "1.5px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--ui)", fontSize: 11.5, color: "var(--muted)" }}>
                           <span>{doc.footerText || ""}</span>
                           <span style={{ fontWeight: 600 }}>{doc.title}</span>
+                        </div>
+                      )}
+                      {pg.overflow && !preview && (
+                        <div className="abe-overflow-warn" style={{ position: "absolute", left: -2, right: -2, bottom: -2, borderTop: "3px dashed var(--syl-red)", display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 5 }}>
+                          <span style={{ transform: "translateY(-52%)", background: "var(--syl-red)", color: "#fff", fontFamily: "var(--ui)", fontSize: 11.5, fontWeight: 700, padding: "4px 11px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "var(--shadow-sm)" }}>⚠ Passt nicht auf die Seite — Baustein kleiner machen</span>
                         </div>
                       )}
                     </div>

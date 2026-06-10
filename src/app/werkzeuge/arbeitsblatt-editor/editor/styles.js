@@ -295,7 +295,7 @@ export const EDITOR_CSS = `
   /* globale Fixed-Overlays (Cookie-Banner, Bewertungs-FAB …) ausblenden */
   .fixed { display: none !important; }
   .abe-scope .app { display: block !important; height: auto !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
-  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar, .abe-scope .abe-addpage, .abe-scope .page-sheet-meta, .abe-scope .abe-removepage { display: none !important; }
+  .abe-scope header.abe-topbar, .abe-scope .rail, .abe-scope .rail-backdrop, .abe-scope .block-toolbar, .abe-scope .abe-addpage, .abe-scope .page-sheet-meta, .abe-scope .abe-removepage, .abe-scope .abe-overflow-warn { display: none !important; }
   .abe-scope .app-body { display: block !important; }
   .abe-scope .canvas-area { overflow: visible !important; padding: 0 !important; display: block !important; }
   .abe-scope .canvas-stack, .abe-scope .page-scale-wrap, .abe-scope .page-stack, .abe-scope .page-sheet-wrap { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; display: block !important; gap: 0 !important; }
