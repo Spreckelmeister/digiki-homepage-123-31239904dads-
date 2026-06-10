@@ -847,6 +847,14 @@ import { Icon } from "./icons";
     if (t === "selfcheck") {
       const META = {}; DKI.PALETTE.forEach(g => g.items.forEach(it => { META[it.type] = it; }));
       const eligible = ((doc && doc.blocks) || []).filter(b => SC_ELIGIBLE.includes(b.type));
+      // Gleichartige Bausteine unterscheidbar machen: erster ohne Zahl, weitere „… 2", „… 3" …
+      const typeTotals = {}; eligible.forEach(b => { typeTotals[b.type] = (typeTotals[b.type] || 0) + 1; });
+      const typeIdx = {}; const labelById = {};
+      eligible.forEach(b => {
+        const m = META[b.type] || { label: b.type };
+        typeIdx[b.type] = (typeIdx[b.type] || 0) + 1;
+        labelById[b.id] = (typeTotals[b.type] > 1 && typeIdx[b.type] > 1) ? `${m.label} ${typeIdx[b.type]}` : m.label;
+      });
       const allIds = eligible.map(b => b.id);
       const isAll = block.sources == null;
       const activeIds = isAll ? allIds : (block.sources || []).filter(id => allIds.includes(id));
@@ -873,7 +881,7 @@ import { Icon } from "./icons";
                     <span style={{ width: 32, height: 32, flex: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
                       background: on ? "var(--sol)" : "var(--bg-rail)", color: on ? "#fff" : "var(--ink-soft)" }}><Icon name={m.icon} size={17} /></span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{m.label}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{labelById[b.id]}</div>
                       <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{n} {n === 1 ? "Lösung" : "Lösungen"}</div>
                     </span>
                     <span style={{ width: 24, height: 24, flex: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",

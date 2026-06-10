@@ -1001,11 +1001,13 @@ import { Icon } from "./icons";
         <div>
           <Head />
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${Math.round(sz * 0.55)}px ${Math.round(sz * 0.42)}px`, padding: "8px 2px 6px" }}>
-            <span aria-hidden style={{ position: "relative", width: sz * 1.9, height: sz * 1.7, flex: "none",
-              borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%", background: "var(--sol)", boxShadow: "inset -2px -2px 0 rgba(0,0,0,.08)" }}>
-              <span style={{ position: "absolute", top: sz * 0.5, left: sz * 0.5, width: sz * 0.26, height: sz * 0.26, borderRadius: "50%", background: "#fff" }} />
-              <span style={{ position: "absolute", top: sz * 0.5, left: sz * 1.02, width: sz * 0.26, height: sz * 0.26, borderRadius: "50%", background: "#fff" }} />
-            </span>
+            <svg aria-hidden width={sz * 1.9} height={sz * 1.7} viewBox="0 0 40 36" style={{ flex: "none", display: "block" }}>
+              <ellipse cx="21" cy="19" rx="17" ry="14" fill="var(--sol)" />
+              <circle cx="16" cy="13.5" r="3.6" fill="#fff" />
+              <circle cx="26" cy="13.5" r="3.6" fill="#fff" />
+              <circle cx="16.7" cy="14" r="1.7" fill="#0b3d22" />
+              <circle cx="26.7" cy="14" r="1.7" fill="#0b3d22" />
+            </svg>
             {tokens.map((t, i) => <Pill key={i} t={t} i={i} />)}
           </div>
         </div>
