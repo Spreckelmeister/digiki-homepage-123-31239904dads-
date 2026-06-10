@@ -9,13 +9,16 @@
  * - Aktualisiert profiles.full_name UND die Auth-Metadaten (full_name), damit
  *   beides konsistent bleibt; `school` u. a. Metadaten bleiben erhalten.
  *
- * Ausführen:
- *   vercel env pull .env.local        (einmalig, holt SERVICE_ROLE_KEY etc.)
- *   npm run fix-contact-fullnames     (Dry-Run – nur Vorschau)
- *   npm run fix-contact-fullnames -- --apply   (tatsächlich schreiben)
+ * Ausführen (PowerShell):
+ *   vercel env pull .env.local                         (einmalig, holt SERVICE_ROLE_KEY etc.)
+ *   npx tsx scripts/fix-contact-fullnames.ts           (Dry-Run – nur Vorschau)
+ *   npx tsx scripts/fix-contact-fullnames.ts --apply   (tatsächlich schreiben)
+ * Alternativ per Umgebungsvariable:
+ *   $env:APPLY="1"; npm run fix-contact-fullnames
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { extractContactNames } from "../src/lib/contact-name";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -29,12 +32,15 @@ if (!url || !key) {
   process.exit(1);
 }
 
-const APPLY = process.argv.includes("--apply");
+// „--apply" als Flag ODER per Umgebungsvariable APPLY=1 (robuster, falls
+// `npm run … -- --apply` den Flag je nach Shell nicht durchreicht).
+const APPLY =
+  process.argv.includes("--apply") ||
+  process.env.APPLY === "1" ||
+  process.env.APPLY === "true";
 const supa = createClient(url, key, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
-
-const nameOnly = (s: string) => s.split(",")[0].trim() || s.trim();
 
 async function main() {
   // Nur Profile mit Komma im Namen – das ist genau das betroffene Muster.
@@ -53,7 +59,7 @@ async function main() {
     .map((r) => ({
       id: r.id as string,
       from: String(r.full_name ?? ""),
-      to: nameOnly(String(r.full_name ?? "")),
+      to: extractContactNames(r.full_name as string),
     }))
     .filter((c) => c.to && c.to !== c.from);
 
@@ -91,7 +97,7 @@ async function main() {
       const meta: Record<string, unknown> = { ...(u?.user?.user_metadata ?? {}) };
       for (const k of ["full_name", "name", "display_name"]) {
         if (typeof meta[k] === "string" && (meta[k] as string).includes(",")) {
-          meta[k] = nameOnly(meta[k] as string);
+          meta[k] = extractContactNames(meta[k] as string);
         }
       }
       meta.full_name = c.to; // immer auf den reinen Namen setzen

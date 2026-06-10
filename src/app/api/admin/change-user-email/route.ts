@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
+import { extractContactNames } from "@/lib/contact-name";
 
 function escapeHtml(str: string): string {
   return str
@@ -266,9 +267,9 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // full_name kann „Name, Funktion" sein (Bestandsaufnahme-Feld 9) – für die
-      // Anrede nur den Namen vor dem ersten Komma verwenden.
-      const contactName = fullName.split(",")[0].trim();
+      // full_name kann „Name, Funktion" (ggf. mehrere Personen) sein – für die
+      // Anrede nur die Namen verwenden (Funktionen entfernt).
+      const contactName = extractContactNames(fullName);
       const greeting = contactName
         ? `Guten Tag ${escapeHtml(contactName.slice(0, 100))},`
         : "Guten Tag,";

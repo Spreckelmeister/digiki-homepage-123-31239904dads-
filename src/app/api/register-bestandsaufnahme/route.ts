@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import { extractContactNames } from "@/lib/contact-name";
 
 function escapeHtml(str: string): string {
   return str
@@ -212,11 +213,12 @@ export async function POST(request: NextRequest) {
   );
 
   // Feld 9 erfasst „Name, Funktion" (z. B. „Maria Mustermann, IT-Beauftragte").
-  // Für full_name (Auth + Profil → Anreden/Anzeigen) nur den Namen vor dem ersten
-  // Komma verwenden. Die volle Angabe bleibt in der Bestandsaufnahme (contact_person)
-  // erhalten; die Funktion steckt zusätzlich in respondent_role.
+  // Für full_name (Auth + Profil → Anreden/Anzeigen) nur die Namen verwenden
+  // (Funktionen entfernt, mehrere Personen mit „ & " verbunden). Die volle Angabe
+  // bleibt in der Bestandsaufnahme (contact_person) erhalten; die Funktion steckt
+  // zusätzlich in respondent_role.
   const contactName =
-    String(contactPerson).split(",")[0].trim() || String(contactPerson).trim();
+    extractContactNames(contactPerson) || String(contactPerson).trim();
 
   // ── Account serverseitig anlegen ───────────────────────────────────────────
   // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
