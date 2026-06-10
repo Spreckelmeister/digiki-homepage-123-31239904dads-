@@ -429,7 +429,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const greeting = `Guten Tag ${escapeHtml(String(contactPerson).slice(0, 100))},`;
+      // Feld 9 erfasst „Name, Funktion" (z. B. „Maria Mustermann, IT-Beauftragte").
+      // Für die Anrede nur den Namen vor dem ersten Komma verwenden, sonst steht
+      // dort z. B. „Guten Tag Helke Wiederholt, Lehrerin,".
+      const contactName =
+        String(contactPerson).split(",")[0].trim() || String(contactPerson).trim();
+      const greeting = `Guten Tag ${escapeHtml(contactName.slice(0, 100))},`;
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
       const emailSafe = escapeHtml(loginEmail);
       const confirmationUrlSafe = escapeHtml(confirmationUrl);

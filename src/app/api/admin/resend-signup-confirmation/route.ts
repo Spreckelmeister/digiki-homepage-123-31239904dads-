@@ -200,8 +200,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const greeting = fullName
-      ? `Guten Tag ${escapeHtml(fullName.slice(0, 100))},`
+    // full_name kann „Name, Funktion" sein (Bestandsaufnahme-Feld 9) – für die
+    // Anrede nur den Namen vor dem ersten Komma verwenden.
+    const contactName = fullName.split(",")[0].trim();
+    const greeting = contactName
+      ? `Guten Tag ${escapeHtml(contactName.slice(0, 100))},`
       : "Guten Tag,";
     const schoolSafe = escapeHtml(schoolName.slice(0, 200));
     const emailSafe = escapeHtml(targetEmail);
