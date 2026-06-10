@@ -211,6 +211,13 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  // Feld 9 erfasst „Name, Funktion" (z. B. „Maria Mustermann, IT-Beauftragte").
+  // Für full_name (Auth + Profil → Anreden/Anzeigen) nur den Namen vor dem ersten
+  // Komma verwenden. Die volle Angabe bleibt in der Bestandsaufnahme (contact_person)
+  // erhalten; die Funktion steckt zusätzlich in respondent_role.
+  const contactName =
+    String(contactPerson).split(",")[0].trim() || String(contactPerson).trim();
+
   // ── Account serverseitig anlegen ───────────────────────────────────────────
   // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
   // und versenden ihn in unserer Custom-Mail (Supabase verschickt dann keine).
@@ -220,7 +227,7 @@ export async function POST(request: NextRequest) {
       password,
       email_confirm: false,
       user_metadata: {
-        full_name: String(contactPerson).slice(0, 200),
+        full_name: contactName.slice(0, 200),
         school: String(schoolName).slice(0, 200),
       },
     });
@@ -301,7 +308,7 @@ export async function POST(request: NextRequest) {
   const { error: profileError } = await adminSupabase.from("profiles").upsert(
     {
       id: userId,
-      full_name: String(contactPerson).slice(0, 200),
+      full_name: contactName.slice(0, 200),
       school: String(schoolName).slice(0, 200),
       role: "teacher",
       phone: contactPhone ? String(contactPhone).slice(0, 50) : null,
@@ -429,11 +436,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Feld 9 erfasst „Name, Funktion" (z. B. „Maria Mustermann, IT-Beauftragte").
-      // Für die Anrede nur den Namen vor dem ersten Komma verwenden, sonst steht
-      // dort z. B. „Guten Tag Helke Wiederholt, Lehrerin,".
-      const contactName =
-        String(contactPerson).split(",")[0].trim() || String(contactPerson).trim();
       const greeting = `Guten Tag ${escapeHtml(contactName.slice(0, 100))},`;
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
       const emailSafe = escapeHtml(loginEmail);

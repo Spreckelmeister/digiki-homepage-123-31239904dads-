@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "upload-images": "tsx scripts/upload-images.ts"
+    "upload-images": "tsx scripts/upload-images.ts",
+    "fix-contact-fullnames": "tsx scripts/fix-contact-fullnames.ts"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
