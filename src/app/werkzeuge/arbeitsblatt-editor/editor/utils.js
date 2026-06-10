@@ -214,22 +214,24 @@ function genUnitItems(kind, mode, op, max, count) {
 }
 
 // ---- Schriftliche Rechenverfahren (+, −, ×): Zahlen wählen ----
-function genWritten(op, digits) {
+// mdigits = Stellen des Multiplikators bei × (1 = einstellig, 2 = zweistellig);
+// innerhalb eines Blocks immer gleich → einheitliches Layout (eine bzw. zwei Linien).
+function genWritten(op, digits, mdigits) {
   const d = Math.max(2, Math.min(4, digits || 3));
   const rnum = (k) => rint(Math.pow(10, k - 1), Math.pow(10, k) - 1);
   if (op === "-") { let a = rnum(d), b = rnum(d); if (b > a) { const t = a; a = b; b = t; } return { op: "-", a, b, res: a - b }; }
-  if (op === "×") { const a = rnum(d), b = rint(2, d >= 4 ? 99 : d >= 3 ? 29 : 9); return { op: "×", a, b, res: a * b }; }
+  if (op === "×") { const a = rnum(d), b = (mdigits === 2) ? rint(11, 99) : rint(2, 9); return { op: "×", a, b, res: a * b }; }
   const a = rnum(d), b = rnum(d); return { op: "+", a, b, res: a + b };
 }
-function genWrittenItems(op, digits, count) {
+function genWrittenItems(op, digits, count, mdigits) {
   const out = [];
-  for (let i = 0; i < Math.max(1, count || 1); i++) { const g = genWritten(op, digits); out.push({ a: g.a, b: g.b, res: g.res }); }
+  for (let i = 0; i < Math.max(1, count || 1); i++) { const g = genWritten(op, digits, mdigits); out.push({ a: g.a, b: g.b, res: g.res }); }
   return out;
 }
 
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
-const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse"];
+const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse", "writtenmath"];
 function collectSolutions(block) {
   const out = [];
   const push = v => { const n = +v; if (Number.isFinite(n)) out.push(n); };
@@ -251,6 +253,8 @@ function collectSolutions(block) {
     (block.blanks || []).forEach(push);
   } else if (block.type === "numhouse") {
     (block.rows || []).forEach(r => push(r.hide === "a" ? r.a : r.b));
+  } else if (block.type === "writtenmath") {
+    (block.items && block.items.length ? block.items : (block.a != null ? [{ res: block.res }] : [])).forEach(it => push(it.res));
   }
   return out;
 }

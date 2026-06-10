@@ -796,9 +796,15 @@ import { Icon } from "./icons";
         <Section title="Rechenart">
           <Segmented value={op} onChange={v => patch({ op: v, _regen: Date.now() })} options={[{ v: "+", label: "+" }, { v: "-", label: "−" }, { v: "×", label: "×" }]} />
           <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
-            {op === "×" ? "Schriftliche Multiplikation mit Teilergebnissen." : op === "-" ? "Schriftliche Subtraktion (Stellenwert)." : "Schriftliche Addition (Stellenwert)."}
+            {op === "×" ? "Schriftliche Multiplikation." : op === "-" ? "Schriftliche Subtraktion (Stellenwert)." : "Schriftliche Addition (Stellenwert)."}
           </p>
         </Section>
+        {op === "×" && (
+          <Section title="Multiplikator">
+            <Segmented value={block.mdigits || 1} onChange={v => patch({ mdigits: v, _regen: Date.now() })} options={[{ v: 1, label: "einstellig" }, { v: 2, label: "zweistellig" }]} />
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>Zweistellig erzeugt Teilergebnisse (zwei Linien), einstellig eine Linie – im ganzen Block einheitlich.</p>
+          </Section>
+        )}
         <Section title="Zahlen">
           <Row label="Stellen je Zahl"><Stepper value={block.digits || 3} min={2} max={4} onChange={v => patch({ digits: v, _regen: Date.now() })} /></Row>
           <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "4px 2px 0", lineHeight: 1.5 }}>2 = Zehner, 3 = Hunderter, 4 = Tausender.</p>
@@ -810,7 +816,7 @@ import { Icon } from "./icons";
         </Section>
         <Section title="Darstellung">
           {(op === "+" || op === "-") && <Row label="Übertrags-Zeile zeigen"><Toggle value={block.carries !== false} onChange={v => patch({ carries: v })} /></Row>}
-          {op === "×" && <Row label="Teilergebnisse zeigen"><Toggle value={block.partials !== false} onChange={v => patch({ partials: v })} /></Row>}
+          {op === "×" && (block.mdigits || 1) === 2 && <Row label="Teilergebnisse zeigen"><Toggle value={block.partials !== false} onChange={v => patch({ partials: v })} /></Row>}
           <Row label="Größe"><Stepper value={block.size || 26} min={18} max={40} step={2} onChange={v => patch({ size: v })} /></Row>
         </Section>
         <Section><button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Aufgabe würfeln</button></Section>

@@ -72,7 +72,7 @@ function makeBlock(type, level) {
     case "hundredchart": { const n = easy ? 6 : hard ? 14 : 10; return { ...base, blanks: DKU.genChartBlanks(n) }; }
     case "numhouse": { const target = easy ? 10 : hard ? 20 : 12; const count = easy ? 5 : hard ? 8 : 6; return { ...base, target, count, blank: "mix", size: 22, rows: DKU.genHouse(target, count, "mix") }; }
     case "unitcalc": { const count = easy ? 6 : hard ? 12 : 8; return { ...base, kind: "geld", mode: "rechnen", op: "+", max: 20, count, cols: 2, size: 22, showResult: false, items: DKU.genUnitItems("geld", "rechnen", "+", 20, count) }; }
-    case "writtenmath": { const dg = easy ? 2 : hard ? 4 : 3; const count = easy ? 2 : hard ? 6 : 4; return { ...base, op: "+", digits: dg, count, cols: 2, carries: true, partials: true, size: 26, items: DKU.genWrittenItems("+", dg, count) }; }
+    case "writtenmath": { const dg = easy ? 2 : hard ? 4 : 3; const count = easy ? 2 : hard ? 6 : 4; return { ...base, op: "+", digits: dg, mdigits: 1, count, cols: 2, carries: true, partials: true, size: 26, items: DKU.genWrittenItems("+", dg, count, 1) }; }
     case "imagelabel": return { ...base, src: null, art: null, points: [], size: 320, bank: false, font: "grundschrift" };
     case "table":    return { ...base, rows: 3, cols: 3, header: true, size: 16, rowH: 34, font: "druck", cells: [["Spalte 1", "Spalte 2", "Spalte 3"], ["", "", ""], ["", "", ""]] };
     case "task":     return { ...base, num: 1, icon: "pencil", color: "teal", font: "druck", size: 18, text: "Schreibe hier deinen Arbeitsauftrag." };
@@ -263,14 +263,14 @@ export default function App() {
         || (b.type === "mathtri" && (partial.op || partial.max))
         || (b.type === "numhouse" && (partial.target != null || partial.count != null || partial.blank != null))
         || (b.type === "unitcalc" && (partial.kind || partial.mode || partial.op || partial.max || partial.count))
-        || (b.type === "writtenmath" && (partial.op || partial.digits || partial.count))) {
+        || (b.type === "writtenmath" && (partial.op || partial.digits || partial.count || partial.mdigits))) {
       if (nb.type === "matharow") nb.items = genMath(nb.op, nb.max, nb.count, nb.mode);
       else if (nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);
       else if (nb.type === "mathtri") nb.data = DKU.genTriangle(nb.max || 20, nb.op);
       else if (nb.type === "clock") nb.clocks = (nb.clocks && nb.clocks.length ? nb.clocks : [{ h: 3, m: 0 }]).map(() => ({ h: DKU.rint(1, 12), m: [0, 15, 30, 45][DKU.rint(0, 3)] }));
       else if (nb.type === "numhouse") nb.rows = DKU.genHouse(nb.target || 10, nb.count || 6, nb.blank || "mix");
       else if (nb.type === "unitcalc") nb.items = DKU.genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
-      else if (nb.type === "writtenmath") nb.items = DKU.genWrittenItems(nb.op, nb.digits, nb.count);
+      else if (nb.type === "writtenmath") nb.items = DKU.genWrittenItems(nb.op, nb.digits, nb.count, nb.mdigits);
       delete nb._regen;
     }
     if (partial.words && nb.type === "wordsearch") nb.grid = DKU.genWordsearch(nb.words, nb.grid?.size || 10);

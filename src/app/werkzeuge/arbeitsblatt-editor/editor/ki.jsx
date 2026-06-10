@@ -152,7 +152,8 @@ import { Icon } from "./icons";
           nb.digits = Math.min(4, Math.max(2, +nb.digits || 3));
           nb.count = Math.min(12, Math.max(1, +nb.count || 4));
           nb.cols = nb.cols || 2;
-          if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genWrittenItems(nb.op, nb.digits, nb.count);
+          nb.mdigits = nb.mdigits === 2 ? 2 : 1;
+          if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genWrittenItems(nb.op, nb.digits, nb.count, nb.mdigits);
           nb.size = nb.size || 26;
         } else if (nb.type === "imagelabel") {
           nb.points = Array.isArray(nb.points) ? nb.points.filter(p => p && Number.isFinite(+p.x) && Number.isFinite(+p.y)).map(p => ({ x: +p.x, y: +p.y, word: String(p.word || "") })) : [];
@@ -197,7 +198,7 @@ import { Icon } from "./icons";
       '- {"type":"hundredchart","blanks":[4,17,28]}  Hundertertafel 1-100 mit ausgeblendeten Feldern',
       '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
       '- {"type":"unitcalc","kind":"geld|laenge|gewicht|volumen","mode":"rechnen|umrechnen","op":"+|-","max":20,"count":8}  Rechnen/Umrechnen mit Geld & Größen',
-      '- {"type":"writtenmath","op":"+|-|×","digits":3,"count":4}  Schriftliche Rechenverfahren (count = Anzahl gleichartiger Aufgaben)',
+      '- {"type":"writtenmath","op":"+|-|×","digits":3,"count":4,"mdigits":1}  Schriftliche Rechenverfahren (count = Anzahl; mdigits = Stellen des Multiplikators bei ×)',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',
