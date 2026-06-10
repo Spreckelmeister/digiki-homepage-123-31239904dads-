@@ -1696,31 +1696,6 @@ export default function BestandsaufnahmeForm({
               Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail – erst danach ist der Account aktiv.
             </p>
 
-            <div
-              role="note"
-              className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
-            >
-              <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
-              <div className="space-y-1">
-                <p className="font-semibold">
-                  Hinweis zu NIBIS-Adressen (<code className="font-mono text-xs">@*.nibis.de</code>)
-                </p>
-                <p className="leading-relaxed">
-                  Der niedersächsische Bildungsserver blockiert derzeit automatisierte Bestätigungsmails unseres Projekts.
-                  Eine Zustellung an Adressen wie <code className="font-mono text-xs">schulleitung@xxxxx.nibis.de</code> ist
-                  aktuell <strong>nicht möglich</strong>. Bitte nutzen Sie für die Registrierung eine andere
-                  dienstliche oder private E-Mail-Adresse. Bei Fragen:{" "}
-                  <a
-                    href="mailto:krafft@osnabrueck.de"
-                    className="underline hover:text-amber-950"
-                  >
-                    krafft@osnabrueck.de
-                  </a>
-                  .
-                </p>
-              </div>
-            </div>
-
             <div>
               <FieldLabel required htmlFor="contactEmail">E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
