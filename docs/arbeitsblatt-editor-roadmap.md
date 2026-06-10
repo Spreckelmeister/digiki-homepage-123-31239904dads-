@@ -178,6 +178,35 @@ Bedienkonzept.*
 
 ---
 
+### Phase 3.5 – Bilder hochladen & beschriften lassen
+
+**Schon vorhanden (Basis):** Der Baustein „Bild / Clipart" kann bereits **eigene
+Bilder hochladen** (auch mehrere gleichzeitig) und im Modus **„Beschriften"**
+unter jedes Bild eine Schreiblinie setzen – die Lehrkraft hinterlegt das
+Lösungswort, die Kinder schreiben es. Deckt „Wie heißt das? – ein Wort pro Bild"
+bereits ab.
+
+**Erweiterung (geplant): Teile *eines* Bildes benennen.** Das klassische
+„Beschrifte das Bild" (Pflanze, Körper, Landkarte): ein großes Bild mit mehreren
+nummerierten Zeigepunkten und Beschriftungslinien.
+
+- **iPad-einfach:** Bild hochladen → **auf die Stelle tippen** setzt einen
+  nummerierten Punkt (genau wie das Tippen auf Zahlenstrahl / Hundertertafel).
+  Daneben entsteht automatisch eine nummerierte Liste mit Schreiblinien.
+  **Kein freies Ziehen** – nur Antippen; Punkt erneut antippen = entfernen.
+- Lehrkraft tippt je Nummer das Lösungswort ein → erscheint im Lösungsblatt.
+- **Selbstkontrolle-/Wortspeicher-fähig:** optionaler Wortspeicher mit den
+  Begriffen zum Einsetzen – nutzt das vorhandene Wortspeicher-Muster (wie beim
+  Lückentext).
+- Optional: Hintergrund des hochgeladenen Bildes freistellen – das Projekt hat
+  dafür bereits `@imgly/background-removal` im Stack.
+
+Bleibt im Baustein-Modell: entweder ein neuer Baustein `imagelabel` oder ein
+fünfter Modus des bestehenden Bild-Bausteins. Passt zum Tipp-Muster der schon
+gebauten Felder (Zahlenstrahl, Hundertertafel).
+
+---
+
 ### Phase 4 – Inhalte & Verbreitung
 *Steigert den Nutzwert ohne den Editor zu verkomplizieren.*
 
