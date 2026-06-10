@@ -8,23 +8,20 @@
 -- ── 1. Neue Rolle "schulungsteam" in profiles erlauben ───────
 -- Gleichgestellt mit "teacher", einziger Unterschied:
 -- Zugriff auf das Schulungs-Dashboard.
-DO $$
-DECLARE c RECORD;
-BEGIN
-  -- Vorhandene CHECK-Constraints auf profiles.role entfernen
-  FOR c IN
-    SELECT conname FROM pg_constraint
-    WHERE conrelid = 'public.profiles'::regclass
-      AND contype = 'c'
-      AND pg_get_constraintdef(oid) ILIKE '%role%'
-  LOOP
-    EXECUTE format('ALTER TABLE public.profiles DROP CONSTRAINT %I', c.conname);
-  END LOOP;
-END $$;
-
-ALTER TABLE public.profiles
-  ADD CONSTRAINT profiles_role_check
-  CHECK (role IN ('teacher', 'admin', 'schulungsteam'));
+--
+-- profiles.role ist ein ENUM-Typ (user_role), KEIN TEXT mit CHECK.
+-- Daher den neuen Wert dem Enum hinzufügen. "ADD VALUE IF NOT EXISTS"
+-- ist idempotent (Re-Run unschädlich).
+--
+-- WICHTIG: Ein frisch hinzugefügter Enum-Wert darf in DERSELBEN
+-- Transaktion nicht verwendet werden. Damit die folgenden Objekte
+-- (z. B. has_schulungen_access) trotzdem in einem Rutsch angelegt
+-- werden können, vergleichen sie role über role::text statt über das
+-- Enum-Literal 'schulungsteam'. Sollte Ihre Supabase-Instanz das ganze
+-- Skript in EINER Transaktion ausführen und hier dennoch einen Fehler
+-- melden, führen Sie nur diese eine ALTER-TYPE-Zeile separat aus und
+-- starten danach den Rest.
+ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'schulungsteam';
 
 -- WICHTIG: Die Self-UPDATE-Policy auf profiles (Migration 006) erlaubt
 -- authentifizierten Nutzern, ihre eigene Profilzeile zu ändern – OHNE
@@ -69,8 +66,10 @@ SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
+    -- role::text, damit diese Funktion auch in derselben Transaktion
+    -- erstellt werden kann, in der 'schulungsteam' zum Enum kam.
     WHERE id = auth.uid()
-      AND role IN ('admin', 'schulungsteam')
+      AND role::text IN ('admin', 'schulungsteam')
   );
 $$;
 
