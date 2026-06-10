@@ -213,6 +213,15 @@ function genUnitItems(kind, mode, op, max, count) {
   return out;
 }
 
+// ---- Schriftliche Rechenverfahren (+, −, ×): Zahlen wählen ----
+function genWritten(op, digits) {
+  const d = Math.max(2, Math.min(4, digits || 3));
+  const rnum = (k) => rint(Math.pow(10, k - 1), Math.pow(10, k) - 1);
+  if (op === "-") { let a = rnum(d), b = rnum(d); if (b > a) { const t = a; a = b; b = t; } return { op: "-", a, b, res: a - b }; }
+  if (op === "×") { const a = rnum(d), b = rint(2, d >= 4 ? 99 : d >= 3 ? 29 : 9); return { op: "×", a, b, res: a * b }; }
+  const a = rnum(d), b = rnum(d); return { op: "+", a, b, res: a + b };
+}
+
 // ---- Selbstkontrolle: Lösungszahlen aus Aufgaben-Bausteinen einsammeln ----
 // Welche Bausteine liefern prüfbare Zahlen-Lösungen?
 const SC_ELIGIBLE = ["matharow", "mathwall", "mathtri", "numline", "dotfield", "hundredchart", "numhouse"];
@@ -295,6 +304,7 @@ function autoPrompt(b) {
   if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
   if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
   if (b.type === "unitcalc") return b.mode === "umrechnen" ? "Rechne in die andere Einheit um." : "Rechne mit den Größen. Vergiss die Einheit nicht.";
+  if (b.type === "writtenmath") return "Rechne schriftlich. Vergiss die Überträge nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "wordsearch") return "Finde alle Wörter und male sie farbig an. Sie stehen waagerecht, senkrecht und schräg.";
   if (b.type === "clock") {
@@ -305,4 +315,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten };

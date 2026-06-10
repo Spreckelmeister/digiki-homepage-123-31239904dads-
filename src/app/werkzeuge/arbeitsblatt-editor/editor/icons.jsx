@@ -83,6 +83,7 @@ const ICON_PATHS = {
   numhouse: '<path d="m4 10 8-6 8 6"/><path d="M6 9.5V20h12V9.5"/><path d="M9 20v-5h6v5"/>',
   imagelabel: '<rect x="3" y="4" width="13" height="13" rx="2"/><circle cx="7.3" cy="8.3" r="1.5"/><path d="m3.5 16 4-3.5 3 2"/><path d="M19 10.5c-1.7 0-3 1.3-3 3 0 2.2 3 5.5 3 5.5s3-3.3 3-5.5c0-1.7-1.3-3-3-3Z"/><circle cx="19" cy="13.5" r="1"/>',
   unit: '<path d="M17.5 8.2a5.6 5.6 0 1 0 0 7.6"/><path d="M5 11h9M5 14h8"/>',
+  written: '<path d="M9 4h10M9 8h10"/><path d="M4 11.5h16"/><path d="M11 15h8M11 19h8"/><path d="M5 4.5v3M4 6h2"/><path d="M5 16h2M5 19h2"/>',
 };
 
 function Icon({ name, size = 18, stroke = 1.8, className = "", style }) {

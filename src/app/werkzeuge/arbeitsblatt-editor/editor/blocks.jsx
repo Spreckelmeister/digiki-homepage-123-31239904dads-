@@ -375,6 +375,84 @@ import { Icon } from "./icons";
     );
   }
 
+  // ---------- Schriftliche Rechenverfahren (+, −, ×) ----------
+  function WrittenMath({ block, solve }) {
+    const op = block.op || "+";
+    const a = block.a ?? 0, b = block.b ?? 0, res = block.res ?? 0;
+    const sz = block.size || 26;
+    const cw = Math.round(sz * 0.82), rowH = Math.round(sz * 1.28);
+    const cols = Math.max(String(a).length, String(b).length, String(res).length);
+    const showCarry = block.carries !== false && (op === "+" || op === "-");
+    const showPartials = block.partials !== false && op === "×" && String(b).length > 1;
+    const opSign = op === "-" ? "−" : op;
+
+    const Cell = ({ ch, kind }) => (
+      <div style={{ width: cw, height: kind === "carry" ? Math.round(rowH * 0.62) : rowH, display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--ui)", fontWeight: kind === "carry" ? 700 : 700, fontSize: kind === "carry" ? Math.round(sz * 0.6) : sz,
+        color: kind === "answer" ? (solve ? "var(--sol)" : "transparent") : kind === "carry" ? (solve ? "var(--sol)" : "transparent") : "var(--ink)" }}>{ch}</div>
+    );
+
+    // Eine Zahl rechtsbündig als Zellen-Zeile, optional mit Rechenzeichen links
+    const NumRow = ({ num, sign, kind, shift = 0 }) => {
+      const s = String(num).split("");
+      const pad = cols - s.length - shift;
+      return (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ width: cw, height: rowH, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: sz, color: "var(--muted)" }}>{sign || ""}</div>
+          {Array.from({ length: cols }).map((_, i) => { const di = i - pad; return <Cell key={i} ch={(di >= 0 && di < s.length) ? s[di] : ""} kind={kind} />; })}
+        </div>
+      );
+    };
+
+    const CarryRow = () => {
+      const A = String(a).padStart(cols, "0").split("").map(Number);
+      const B = String(b).padStart(cols, "0").split("").map(Number);
+      const at = Array(cols).fill("");
+      let c = 0;
+      for (let i = cols - 1; i >= 0; i--) {
+        if (op === "+") { const s = A[i] + B[i] + c; c = s >= 10 ? 1 : 0; }
+        else { c = A[i] < (B[i] + c) ? 1 : 0; }
+        if (c === 1 && i - 1 >= 0) at[i - 1] = "1"; // Übertrag in die nächste Spalte links
+      }
+      return (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ width: cw }} />
+          {at.map((v, i) => <Cell key={i} ch={v} kind="carry" />)}
+        </div>
+      );
+    };
+
+    const Line = () => (
+      <div style={{ display: "flex", alignItems: "center", margin: "2px 0" }}>
+        <div style={{ width: cw }} />
+        <div style={{ width: cols * cw, borderTop: "2px solid var(--ink)" }} />
+      </div>
+    );
+
+    const partials = [];
+    if (showPartials) {
+      const bstr = String(b);
+      for (let p = 0; p < bstr.length; p++) {
+        const digit = Number(bstr[bstr.length - 1 - p]);
+        partials.push(<NumRow key={p} num={a * digit} kind="answer" shift={p} />);
+      }
+    }
+
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ display: "inline-flex", flexDirection: "column" }}>
+          <NumRow num={a} kind="ink" />
+          <NumRow num={b} sign={opSign} kind="ink" />
+          {showCarry && <CarryRow />}
+          <Line />
+          {showPartials && partials}
+          {showPartials && <Line />}
+          <NumRow num={res} kind="answer" />
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Math wall (Rechenmauer) ----------
   function MathWall({ block, solve }) {
     const rows = genWall(block.base || [2, 5, 3], block.op); // bottom..top
@@ -1074,6 +1152,7 @@ import { Icon } from "./icons";
       case "lines":    return <Lines block={block} />;
       case "matharow": return withPrompt(block, <MathRows block={block} solve={solve} />);
       case "unitcalc": return withPrompt(block, <UnitRows block={block} solve={solve} />);
+      case "writtenmath": return withPrompt(block, <WrittenMath block={block} solve={solve} />);
       case "mathwall": return withPrompt(block, <MathWall block={block} solve={solve} />);
       case "mathtri":  return withPrompt(block, <MathTri block={block} solve={solve} />);
       case "numline":  return withPrompt(block, <NumLine block={block} solve={solve} onPatch={onPatch} />);

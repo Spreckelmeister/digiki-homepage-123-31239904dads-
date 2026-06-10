@@ -10,7 +10,7 @@ import { Icon } from "./icons";
    Hinweis: bewusst KEINE async/await (Babel-Standalone → regenerator).
    ============================================================ */
   const { nid } = DKI;
-  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks, genUnitItems } = DKU;
+  const { rint, genWall, genWordsearch, genTriangle, genHouse, genChartBlanks, genUnitItems, genWritten } = DKU;
 
   // ---- Offline-Vorlagen (Fallback ohne Schlüssel) ----
   const TOPICS = {
@@ -147,6 +147,11 @@ import { Icon } from "./icons";
           nb.count = Math.min(20, Math.max(2, +nb.count || 8));
           nb.cols = nb.cols || 2; nb.size = nb.size || 22;
           if (!Array.isArray(nb.items) || !nb.items.length) nb.items = genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
+        } else if (nb.type === "writtenmath") {
+          nb.op = ["+", "-", "×"].includes(nb.op) ? nb.op : "+";
+          nb.digits = Math.min(4, Math.max(2, +nb.digits || 3));
+          if (!Number.isFinite(+nb.a) || !Number.isFinite(+nb.b) || !Number.isFinite(+nb.res)) { const g = genWritten(nb.op, nb.digits); nb.a = g.a; nb.b = g.b; nb.res = g.res; }
+          nb.size = nb.size || 26;
         } else if (nb.type === "imagelabel") {
           nb.points = Array.isArray(nb.points) ? nb.points.filter(p => p && Number.isFinite(+p.x) && Number.isFinite(+p.y)).map(p => ({ x: +p.x, y: +p.y, word: String(p.word || "") })) : [];
           if (!nb.src && !nb.art) nb.art = null;
@@ -190,6 +195,7 @@ import { Icon } from "./icons";
       '- {"type":"hundredchart","blanks":[4,17,28]}  Hundertertafel 1-100 mit ausgeblendeten Feldern',
       '- {"type":"numhouse","target":10,"count":6,"blank":"mix"}  Zahlenhaus: Zerlegung der Zielzahl (blank: a|b|mix)',
       '- {"type":"unitcalc","kind":"geld|laenge|gewicht|volumen","mode":"rechnen|umrechnen","op":"+|-","max":20,"count":8}  Rechnen/Umrechnen mit Geld & Größen',
+      '- {"type":"writtenmath","op":"+|-|×","digits":3}  Schriftliches Rechenverfahren in Stellenwert-Notation',
       '- {"type":"clock","clocks":[{"h":3,"m":0},{"h":7,"m":30}],"cols":2}',
       '- {"type":"selfcheck","shape":"band"}  Selbstkontrolle-Feld: sammelt automatisch die Ergebnisse aller Rechen-Aufgaben auf dem Blatt zum Abhaken. Am besten als letzten Block nach den Rechenaufgaben einfügen. shape "band" oder "schlange".',
       '- {"type":"divider","variant":"scissors"}',

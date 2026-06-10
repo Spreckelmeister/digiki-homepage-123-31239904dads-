@@ -21,6 +21,11 @@
 - **Geld- & Größenrechnen** (Phase 2) – Baustein `unitcalc`: Rechnen (z. B.
   `350 g + 200 g`) und Umrechnen (z. B. `3 m = 300 cm`) für Geld, Länge, Gewicht,
   Volumen; Geld mit Komma-Darstellung (`4,30 €`).
+- **Schriftliche Rechenverfahren** (Phase 2) – Baustein `writtenmath`:
+  schriftliche Addition, Subtraktion und Multiplikation in Stellenwert-Notation;
+  Überträge-Zeile (Add./Sub.) und Teilergebnisse (Mult.) zuschaltbar; 2–4
+  Stellen; Ergebnis per Lösungs-Umschalter. **Offen:** schriftliche Division
+  (komplexes Abzieh-/Herunterhol-Layout, eigener Folgeschritt).
 - **Bild beschriften** (Phase 3.5) – Baustein `imagelabel`: eigenes Bild (oder
   Clipart) hochladen, per **Antippen** nummerierte Punkte setzen, Kinder schreiben
   zu jeder Nummer das Wort; optionaler Wortspeicher. Kein freies Ziehen.
