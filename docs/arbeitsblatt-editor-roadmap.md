@@ -24,6 +24,12 @@
 - **Zahlenfelder direkt eingebbar** (UX) – der `Stepper` erlaubt jetzt neben +/−
   auch **direkte Zahleneingabe** mit numerischer Tastatur (`inputMode`) – wichtig
   auf dem iPad, gilt für alle Zahlen-Einstellungen.
+- **Feste A4-Seiten + automatische Seitenaufteilung** – jede Seite hat feste
+  A4-Höhe; Bausteine, die nicht mehr passen, rutschen automatisch auf die
+  nächste Seite (Höhenmessung pro Baustein, inkl. Nachmessen nach Font-Laden).
+  Passt ein *einzelner* Baustein nicht auf eine Seite, erscheint eine rote
+  Warnung am Seitenrand. Behebt das Abschneiden beim Drucken (z. B. langes
+  Zahlenhaus). Manuelle Seitenumbrüche bleiben zusätzlich möglich.
 
 > Alle neuen Felder sind in Palette, Eigenschaften (Touch-Controls), KI-Assistent
 > und die Selbstkontrolle integriert. Verifiziert per Syntax-Check, Logik-Tests
