@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { Check, Clock3, MailWarning, RefreshCw, Send } from "lucide-react";
-import { getResendCooldown, formatCooldown } from "@/lib/auth/resendCooldown";
+import { getResendBlock, formatCooldown } from "@/lib/auth/resendCooldown";
 
 interface Props {
   userId: string;
   schoolName: string;
   /** ISO-Zeitstempel des letzten Resend – `null` wenn noch nie versendet. */
   lastResendAt: string | null;
+  /** ISO-Zeitstempel der ursprünglichen Anmeldung (Signup), für die
+   *  Signup-Grace-Sperre. */
+  signupAt?: string | null;
 }
 
 type State = "idle" | "sending" | "success" | "error";
@@ -22,6 +25,7 @@ export default function ResendQuickAction({
   userId,
   schoolName,
   lastResendAt,
+  signupAt,
 }: Props) {
   const [state, setState] = useState<State>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -30,6 +34,9 @@ export default function ResendQuickAction({
   // neu geladen werden muss.
   const [localLastResend, setLocalLastResend] = useState<string | null>(
     lastResendAt,
+  );
+  const [localSignupAt, setLocalSignupAt] = useState<string | null>(
+    signupAt ?? null,
   );
 
   // Cooldown jede Minute aktualisieren, damit der Tooltip live tickt.
@@ -41,10 +48,10 @@ export default function ResendQuickAction({
     return () => window.clearInterval(i);
   }, [localLastResend]);
 
-  const cooldown = getResendCooldown(localLastResend);
+  const block = getResendBlock(localSignupAt, localLastResend);
   // cooldownTick wird hier nur als Re-Render-Trigger gelesen
   void cooldownTick;
-  const isLocked = cooldown !== null && state === "idle";
+  const isLocked = block !== null && state === "idle";
 
   async function handleClick() {
     if (state === "sending" || isLocked) return;
@@ -60,12 +67,20 @@ export default function ResendQuickAction({
       if (!res.ok) {
         // Sonderfall 429: Server hat 24h-Sperre durchgesetzt – Stempel
         // lokal auf den eigenen Server-Wert setzen, damit der Button
-        // direkt in den Cooldown geht.
+        // direkt in den Cooldown geht. Bei reason==='signup-grace' setzen
+        // wir den lokalen Signup-Timestamp.
         if (res.status === 429 && typeof json.nextAvailableAt === "string") {
-          const inferredLast = new Date(
-            new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
-          ).toISOString();
-          setLocalLastResend(inferredLast);
+          if (json.reason === "signup-grace") {
+            const inferredSignup = new Date(
+              new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+            ).toISOString();
+            setLocalSignupAt(inferredSignup);
+          } else {
+            const inferredLast = new Date(
+              new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+            ).toISOString();
+            setLocalLastResend(inferredLast);
+          }
         }
         setState("error");
         setErrorMsg(
@@ -89,13 +104,13 @@ export default function ResendQuickAction({
     "inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all";
 
   // ── Cooldown-Zustand ─────────────────────────────────────────────
-  if (isLocked && cooldown) {
+  if (isLocked && block) {
     return (
       <button
         type="button"
         disabled
-        aria-label={`Resend gesperrt – wieder möglich in ${cooldown.formatted}`}
-        title={`Bestätigungs-Mail wurde bereits versendet – neuer Versand erst in ${cooldown.formatted} möglich (Link aus voriger Mail ist noch gültig).`}
+        aria-label={`Resend gesperrt – wieder möglich in ${block.formatted}`}
+        title={`Bestätigungs-Mail wurde bereits versendet – neuer Versand erst in ${block.formatted} möglich (Link aus voriger Mail ist noch gültig).`}
         className={`${baseClass} cursor-not-allowed border-border bg-bg text-text-light/60`}
       >
         <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />

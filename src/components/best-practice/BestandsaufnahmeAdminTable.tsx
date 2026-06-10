@@ -189,6 +189,7 @@ export default function BestandsaufnahmeAdminTable({
   rows,
   emailConfirmedEntries,
   lastResendEntries,
+  signupAtEntries,
 }: {
   rows: Row[];
   /** Tupel-Liste statt Map, weil Server Components keine Map-Props
@@ -197,6 +198,9 @@ export default function BestandsaufnahmeAdminTable({
   /** Letzter Versandzeitstempel pro user_id, für die 24h-Sperre des
    *  Resend-Buttons. */
   lastResendEntries?: [string, string | null][];
+  /** Signup-Zeitstempel pro user_id, damit die 24h-Sperre ab Anmeldung
+   *  clientseitig angezeigt werden kann. */
+  signupAtEntries?: [string, string | null][];
 }) {
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<Set<FilterId>>(new Set());
@@ -212,6 +216,10 @@ export default function BestandsaufnahmeAdminTable({
   const lastResendMap = useMemo(
     () => new Map(lastResendEntries ?? []),
     [lastResendEntries],
+  );
+  const signupAtMap = useMemo(
+    () => new Map(signupAtEntries ?? []),
+    [signupAtEntries],
   );
 
   const groups = useMemo(() => groupBySchool(rows), [rows]);
@@ -559,6 +567,7 @@ export default function BestandsaufnahmeAdminTable({
                               lastResendAt={
                                 lastResendMap.get(selected.user_id) ?? null
                               }
+                              signupAt={signupAtMap.get(selected.user_id) ?? null}
                             />
                           )}
                           <a
@@ -656,6 +665,7 @@ export default function BestandsaufnahmeAdminTable({
                         lastResendAt={
                           lastResendMap.get(selected.user_id) ?? null
                         }
+                        signupAt={signupAtMap.get(selected.user_id) ?? null}
                       />
                     )}
                   </div>

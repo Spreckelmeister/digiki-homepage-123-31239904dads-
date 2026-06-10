@@ -34,6 +34,40 @@ export function getResendCooldown(
   };
 }
 
+export type ResendBlockReason = "resend-cooldown" | "signup-grace";
+
+export type ResendBlock = CooldownInfo & { reason: ResendBlockReason };
+
+/**
+ * Kombinierte Sperre für den Bestätigungs-Mail-Resend. Es greift die
+ * Sperre, die später endet:
+ *  - "signup-grace":    Die Anmeldung ist noch keine 24h her – die Schule
+ *                       soll erst selbst Gelegenheit haben zu bestätigen,
+ *                       bevor wir per Admin-Mail nachfassen.
+ *  - "resend-cooldown": Nach einem Versand ist der Link 24h gültig – in
+ *                       dieser Zeit kein erneuter Versand, damit die Schule
+ *                       nicht mehrfach kontaktiert wird.
+ *
+ * Liefert `null`, wenn keine Sperre aktiv ist (Versand möglich).
+ */
+export function getResendBlock(
+  signupAt: string | null | undefined,
+  lastResendAt: string | null | undefined,
+  now: Date = new Date(),
+): ResendBlock | null {
+  const resend = getResendCooldown(lastResendAt, now);
+  const signup = getResendCooldown(signupAt, now);
+  if (resend && signup) {
+    // Beide aktiv: die länger laufende Sperre gewinnt.
+    return resend.remainingMs >= signup.remainingMs
+      ? { ...resend, reason: "resend-cooldown" }
+      : { ...signup, reason: "signup-grace" };
+  }
+  if (resend) return { ...resend, reason: "resend-cooldown" };
+  if (signup) return { ...signup, reason: "signup-grace" };
+  return null;
+}
+
 /** Formatiert eine Restzeit als „23 Std 12 Min" bzw. „47 Min". */
 export function formatCooldown(remainingMs: number): string {
   const totalMinutes = Math.max(1, Math.ceil(remainingMs / 60_000));

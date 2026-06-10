@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
-import { getResendCooldown } from "@/lib/auth/resendCooldown";
+import { getResendBlock } from "@/lib/auth/resendCooldown";
 
 function escapeHtml(str: string): string {
   return str
@@ -97,23 +97,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 24-Stunden-Sperre prüfen: solange der Link aus der vorherigen Mail noch
-  // gültig ist, soll nicht erneut versendet werden, damit die Schule nicht
-  // mehrfach kontaktiert wird. Quelle der Wahrheit ist
-  // user_metadata.last_confirmation_resend_at (vom Server hier gesetzt).
+  // 24-Stunden-Sperren prüfen. Es greift, was später endet:
+  //  • signup-grace:    Die Anmeldung ist noch keine 24h her – die Schule
+  //    soll erst selbst Gelegenheit haben, ihre Adresse zu bestätigen,
+  //    bevor wir per Admin-Mail nachfassen.
+  //  • resend-cooldown: Solange der Link aus einer vorherigen Mail noch
+  //    gültig ist (24h ab Versand), soll nicht erneut versendet werden,
+  //    damit die Schule nicht mehrfach kontaktiert wird. Quelle der
+  //    Wahrheit ist user_metadata.last_confirmation_resend_at.
   const existingMeta =
     (userData.user.user_metadata ?? {}) as Record<string, unknown>;
   const lastResendIso =
     typeof existingMeta.last_confirmation_resend_at === "string"
       ? existingMeta.last_confirmation_resend_at
       : null;
-  const cooldown = getResendCooldown(lastResendIso);
-  if (cooldown) {
+  const signupIso = userData.user.created_at ?? null;
+  const block = getResendBlock(signupIso, lastResendIso);
+  if (block) {
+    const error =
+      block.reason === "signup-grace"
+        ? `Die Anmeldung ist erst seit Kurzem eingegangen. Wir geben der Schule zunächst Gelegenheit, ihre E-Mail-Adresse selbst zu bestätigen – eine erneute Bestätigungs-Mail kann erst in ${block.formatted} versendet werden.`
+        : `Eine neue Bestätigungs-Mail kann erst in ${block.formatted} versendet werden – der Link aus der vorherigen Mail ist noch ${block.formatted} gültig. So vermeiden wir, dass die Schule mehrfach kontaktiert wird.`;
     return NextResponse.json(
       {
-        error: `Eine neue Bestätigungs-Mail kann erst in ${cooldown.formatted} versendet werden – der Link aus der vorherigen Mail ist noch ${cooldown.formatted} gültig. So vermeiden wir, dass die Schule mehrfach kontaktiert wird.`,
-        cooldownRemainingMs: cooldown.remainingMs,
-        nextAvailableAt: cooldown.nextAvailableAt,
+        error,
+        reason: block.reason,
+        cooldownRemainingMs: block.remainingMs,
+        nextAvailableAt: block.nextAvailableAt,
       },
       { status: 429 },
     );

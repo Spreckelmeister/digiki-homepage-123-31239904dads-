@@ -42,6 +42,7 @@ export default async function BestandsaufnahmeAdminPage() {
   // Filter, lastResendEntries für die 24h-Sperre der Quick-Action-Buttons.
   const emailConfirmedEntries: [string, string | null][] = [];
   const lastResendEntries: [string, string | null][] = [];
+  const signupAtEntries: [string, string | null][] = [];
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.SUPABASE_SERVICE_ROLE_KEY &&
@@ -71,6 +72,9 @@ export default async function BestandsaufnahmeAdminPage() {
             ? meta.last_confirmation_resend_at
             : null;
         lastResendEntries.push([u.id, lastResend]);
+        // Anmeldezeitpunkt für die Signup-Grace-Sperre (erst nach 24h
+        // darf eine erneute Bestätigungs-Mail versendet werden).
+        signupAtEntries.push([u.id, u.created_at ?? null]);
       }
     } catch (err) {
       console.error("[bestandsaufnahme-admin] listUsers failed:", err);
@@ -167,6 +171,7 @@ export default async function BestandsaufnahmeAdminPage() {
             rows={rows}
             emailConfirmedEntries={emailConfirmedEntries}
             lastResendEntries={lastResendEntries}
+            signupAtEntries={signupAtEntries}
           />
         </div>
       </section>

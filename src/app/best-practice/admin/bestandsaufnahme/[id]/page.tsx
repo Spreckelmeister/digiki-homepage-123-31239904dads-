@@ -53,6 +53,7 @@ export default async function BestandsaufnahmeDetailPage({
   // Service-Role-Key, weil auth.users via RLS nicht erreichbar ist.
   let emailConfirmedAt: string | null = null;
   let lastResendAt: string | null = null;
+  let signupAt: string | null = null;
   if (
     r.user_id &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -72,6 +73,7 @@ export default async function BestandsaufnahmeDetailPage({
     if (typeof meta.last_confirmation_resend_at === "string") {
       lastResendAt = meta.last_confirmation_resend_at;
     }
+    signupAt = userData?.user?.created_at ?? null;
   }
 
   return (
@@ -129,6 +131,7 @@ export default async function BestandsaufnahmeDetailPage({
               currentEmail={r.contact_email}
               emailConfirmedAt={emailConfirmedAt}
               lastResendAt={lastResendAt}
+              signupAt={signupAt}
             />
           )}
 

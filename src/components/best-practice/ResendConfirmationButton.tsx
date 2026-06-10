@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock3, MailWarning, RefreshCw } from "lucide-react";
-import { getResendCooldown } from "@/lib/auth/resendCooldown";
+import { getResendBlock } from "@/lib/auth/resendCooldown";
 
 interface Props {
   userId: string;
@@ -11,6 +11,9 @@ interface Props {
   emailConfirmedAt: string | null;
   /** ISO-Zeitstempel des letzten Resend – `null` wenn noch nie versendet. */
   lastResendAt: string | null;
+  /** ISO-Zeitstempel der ursprünglichen Anmeldung (Signup), für die
+   *  Signup-Grace-Sperre. */
+  signupAt?: string | null;
 }
 
 const FMT_LONG = new Intl.DateTimeFormat("de-DE", {
@@ -26,6 +29,7 @@ export default function ResendConfirmationButton({
   currentEmail,
   emailConfirmedAt,
   lastResendAt,
+  signupAt,
 }: Props) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
@@ -40,6 +44,12 @@ export default function ResendConfirmationButton({
     lastResendAt,
   );
 
+  // Lokaler Signup-Zeitstempel (wird benötigt, um die "signup-grace" Sperre
+  // clientseitig korrekt darzustellen). Initialisiert mit der Prop.
+  const [localSignupAt, setLocalSignupAt] = useState<string | null>(
+    signupAt ?? null,
+  );
+
   // Cooldown jede Minute neu berechnen, damit „verfügbar in X" live tickt.
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -50,8 +60,8 @@ export default function ResendConfirmationButton({
 
   if (emailConfirmedAt) return null;
 
-  const cooldown = getResendCooldown(localLastResend);
-  const isLocked = cooldown !== null;
+  const block = getResendBlock(localSignupAt, localLastResend);
+  const isLocked = block !== null;
 
   async function handleResend() {
     if (isLocked) return;
@@ -67,10 +77,20 @@ export default function ResendConfirmationButton({
       if (!res.ok) {
         // Server hat die 24h-Sperre durchgesetzt – lokal nachziehen
         if (res.status === 429 && typeof json.nextAvailableAt === "string") {
-          const inferredLast = new Date(
-            new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
-          ).toISOString();
-          setLocalLastResend(inferredLast);
+          // Wenn reason === 'signup-grace' ist, dann stammt nextAvailableAt
+          // von signup + 24h. In diesem Fall setzen wir lokal den Signup-
+          // Zeitstempel, sonst den letzten Resend.
+          if (json.reason === "signup-grace") {
+            const inferredSignup = new Date(
+              new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+            ).toISOString();
+            setLocalSignupAt(inferredSignup);
+          } else {
+            const inferredLast = new Date(
+              new Date(json.nextAvailableAt).getTime() - 24 * 60 * 60 * 1000,
+            ).toISOString();
+            setLocalLastResend(inferredLast);
+          }
         }
         setMessage({
           type: "err",
@@ -128,7 +148,7 @@ export default function ResendConfirmationButton({
         </p>
 
         {/* Cooldown-Hinweis ODER 24h-Info-Pille */}
-        {isLocked && cooldown ? (
+        {isLocked && block ? (
           <div className="mt-4 inline-flex items-start gap-2 rounded-lg border border-border bg-bg px-3.5 py-2.5 text-[12.5px] text-text-light">
             <Clock3
               className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
@@ -147,7 +167,7 @@ export default function ResendConfirmationButton({
                 </>
               )}
               . Der Link aus dieser Mail ist noch{" "}
-              <strong className="text-text">{cooldown.formatted}</strong>{" "}
+              <strong className="text-text">{block.formatted}</strong>{" "}
               gültig – aus Rücksicht auf die Schule sperren wir einen weiteren
               Versand bis dahin.
             </span>
@@ -179,8 +199,8 @@ export default function ResendConfirmationButton({
             )}
             {sending
               ? "Wird versendet..."
-              : isLocked && cooldown
-                ? `Erneut möglich in ${cooldown.formatted}`
+              : isLocked && block
+                ? `Erneut möglich in ${block.formatted}`
                 : "Bestätigungs-Mail erneut senden"}
           </button>
 
