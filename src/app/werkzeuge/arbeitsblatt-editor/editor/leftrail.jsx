@@ -9,6 +9,8 @@ import { Icon } from "./icons";
 function LeftRail({ onAdd, onTemplate, onClipart }) {
   const [tab, setTab] = React.useState("blocks");
   const [q, setQ] = React.useState("");
+  // Baustein-Gruppen einzeln ein-/ausklappbar – standardmäßig alle eingeklappt.
+  const [openGroups, setOpenGroups] = React.useState({});
   const { PALETTE, TEMPLATES, CLIPART } = DKI;
   const { CLIP_LABELS, clipartSvg } = DKU;
 
@@ -34,10 +36,22 @@ function LeftRail({ onAdd, onTemplate, onClipart }) {
       </div>
 
       <div className="scroll" style={{ overflowY: "auto", padding: "12px 12px 28px", flex: 1 }}>
-        {tab === "blocks" && PALETTE.map(grp => (
-          <div key={grp.group} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted-2)", margin: "0 2px 8px" }}>{grp.group}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {tab === "blocks" && PALETTE.map(grp => {
+          const open = !!openGroups[grp.group];
+          return (
+          <div key={grp.group} style={{ marginBottom: 6 }}>
+            <button onClick={() => setOpenGroups(s => ({ ...s, [grp.group]: !s[grp.group] }))}
+              aria-expanded={open}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "8px 4px", margin: "0 0 2px",
+                       border: "none", background: "transparent", cursor: "pointer", textAlign: "left", borderRadius: 8 }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--bg-rail)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <Icon name={open ? "chevdown" : "chevright"} size={15} style={{ color: "var(--muted-2)", flex: "none" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted-2)" }}>{grp.group}</span>
+              <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--muted)", background: "var(--bg-rail)", borderRadius: 999, padding: "1px 7px" }}>{grp.items.length}</span>
+            </button>
+            {open && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
               {grp.items.map(it => (
                 <button key={it.type} onClick={() => onAdd(it.type)} className="palette-card"
                   style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 10px", textAlign: "left",
@@ -58,8 +72,10 @@ function LeftRail({ onAdd, onTemplate, onClipart }) {
                 </button>
               ))}
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
 
         {tab === "templates" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
