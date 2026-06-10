@@ -1109,33 +1109,54 @@ import { Icon } from "./icons";
       );
     }
 
-    const Pill = ({ t, i }) => {
+    const Pill = ({ t }) => {
       const isDecoy = solve && t.decoy;
       return (
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none",
           minWidth: sz * 2, height: sz * 1.8, padding: `0 ${Math.round(sz * 0.5)}px`, borderRadius: 12,
           border: "2px solid " + (isDecoy ? "var(--syl-red)" : "var(--sol)"), background: "#fff",
           fontFamily: "var(--ui)", fontWeight: 800, fontSize: sz, lineHeight: 1,
-          color: isDecoy ? "var(--syl-red)" : "var(--ink)", textDecoration: isDecoy ? "line-through" : "none",
-          transform: shape === "schlange" ? `translateY(${i % 2 ? Math.round(sz * 0.4) : -Math.round(sz * 0.12)}px)` : "none" }}>
+          color: isDecoy ? "var(--syl-red)" : "var(--ink)", textDecoration: isDecoy ? "line-through" : "none" }}>
           {t.v}
         </span>
       );
     };
 
+    // Schlangenkopf mit Augen, Nasenlöchern und gespaltener Zunge (zeigt nach rechts)
+    const SnakeHead = () => (
+      <svg aria-hidden width={sz * 2.15} height={sz * 1.8} viewBox="0 0 44 38" style={{ flex: "none", display: "block", overflow: "visible" }}>
+        <path d="M33 19 H41 M41 19 L45 16 M41 19 L45 22" stroke="var(--syl-red)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <ellipse cx="20" cy="19" rx="17" ry="14" fill="var(--sol)" />
+        <circle cx="15" cy="13" r="3.6" fill="#fff" />
+        <circle cx="26" cy="13" r="3.6" fill="#fff" />
+        <circle cx="15.6" cy="13.4" r="1.7" fill="#0b3d22" />
+        <circle cx="26.6" cy="13.4" r="1.7" fill="#0b3d22" />
+        <circle cx="32" cy="20.5" r="0.9" fill="#0b3d22" />
+        <circle cx="32" cy="24" r="0.9" fill="#0b3d22" />
+      </svg>
+    );
+
     if (shape === "schlange") {
+      // Serpentine (Boustrophedon): Zeilen wechseln die Richtung → es windet sich
+      // wie eine echte Schlange. Kopf am Anfang, gleichmäßig, auch bei vielen Zahlen.
+      const gap = Math.round(sz * 0.42);
+      const headW = sz * 2.15;
+      const perRow = Math.max(5, Math.floor((640 - headW) / (sz * 2 + gap)));
+      const rows = [];
+      for (let i = 0; i < tokens.length; i += perRow) rows.push(tokens.slice(i, i + perRow));
       return (
         <div>
           <Head />
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${Math.round(sz * 0.55)}px ${Math.round(sz * 0.42)}px`, padding: "8px 2px 6px" }}>
-            <svg aria-hidden width={sz * 1.9} height={sz * 1.7} viewBox="0 0 40 36" style={{ flex: "none", display: "block" }}>
-              <ellipse cx="21" cy="19" rx="17" ry="14" fill="var(--sol)" />
-              <circle cx="16" cy="13.5" r="3.6" fill="#fff" />
-              <circle cx="26" cy="13.5" r="3.6" fill="#fff" />
-              <circle cx="16.7" cy="14" r="1.7" fill="#0b3d22" />
-              <circle cx="26.7" cy="14" r="1.7" fill="#0b3d22" />
-            </svg>
-            {tokens.map((t, i) => <Pill key={i} t={t} i={i} />)}
+          <div style={{ display: "flex", flexDirection: "column", gap: Math.round(sz * 0.5), paddingTop: 4 }}>
+            {rows.map((row, ri) => {
+              const disp = ri % 2 === 1 ? [...row].reverse() : row;  // ungerade Zeilen rückwärts → U-Wende
+              return (
+                <div key={ri} style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", gap, justifyContent: ri % 2 === 1 ? "flex-end" : "flex-start" }}>
+                  {ri === 0 && <SnakeHead />}
+                  {disp.map((t, i) => <Pill key={i} t={t} />)}
+                </div>
+              );
+            })}
           </div>
         </div>
       );
