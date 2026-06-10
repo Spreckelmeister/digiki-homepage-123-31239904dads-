@@ -18,6 +18,9 @@
 - **Nachspur-Kontur** (Teil von Phase 1.2) – Schreiblinien-Vorgabewort als
   hohle Konturschrift / hell / grau (CSS `-webkit-text-stroke`, iPad-tauglich,
   ohne neue Font-Dateien).
+- **Geld- & Größenrechnen** (Phase 2) – Baustein `unitcalc`: Rechnen (z. B.
+  `350 g + 200 g`) und Umrechnen (z. B. `3 m = 300 cm`) für Geld, Länge, Gewicht,
+  Volumen; Geld mit Komma-Darstellung (`4,30 €`).
 - **Bild beschriften** (Phase 3.5) – Baustein `imagelabel`: eigenes Bild (oder
   Clipart) hochladen, per **Antippen** nummerierte Punkte setzen, Kinder schreiben
   zu jeder Nummer das Wort; optionaler Wortspeicher. Kein freies Ziehen.
