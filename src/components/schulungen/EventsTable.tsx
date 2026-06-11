@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowUpRight, Loader2, Mail, Users, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  ChevronDown,
+  Loader2,
+  Mail,
+  Users,
+  X,
+} from "lucide-react";
 import {
   ROLE_LABELS,
   type EventParticipant,
@@ -44,6 +52,7 @@ export default function EventsTable({
   loading: boolean;
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
+  const [expanded, setExpanded] = useState(true);
 
   const groups: { label: string; items: TrainingEvent[] }[] = [
     { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
@@ -56,31 +65,48 @@ export default function EventsTable({
   return (
     <section
       aria-labelledby="events-heading"
-      className="rounded-2xl border border-border bg-white p-5 shadow-sm md:p-6"
+      className="rounded-2xl border border-border bg-white shadow-sm"
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="events-heading" className="text-base font-bold text-text">
-          Alle Schulungen
+      <div className="flex items-center justify-between gap-3 px-5 py-4 md:px-6">
+        <h2 id="events-heading" className="min-w-0">
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            aria-expanded={expanded}
+            className="flex items-center gap-2 text-left text-base font-bold text-text"
+          >
+            Alle Schulungen
+            <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-bold tabular-nums text-text-light">
+              {events.length}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-text-light transition-transform ${expanded ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
         </h2>
         <a
           href="https://www.digiki-os.de/fuer-schulen#kos-fortbildungen"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
         >
           Termine auf der Website
           <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
         </a>
       </div>
-      <p className="mt-1 text-xs text-text-light">
-        Auf eine Schulung tippen, um die Teilnehmenden zu sehen.
-      </p>
 
-      {loading ? (
-        <p className="mt-4 text-sm text-text-light">Lade Schulungen …</p>
-      ) : (
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
-          {groups.map((group) => (
+      {expanded && (
+        <div className="border-t border-border p-5 md:p-6">
+          <p className="text-xs text-text-light">
+            Auf eine Schulung tippen, um die Teilnehmenden zu sehen.
+          </p>
+
+          {loading ? (
+            <p className="mt-4 text-sm text-text-light">Lade Schulungen …</p>
+          ) : (
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              {groups.map((group) => (
             <div key={group.label}>
               <h3 className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-text">
                 {group.label} · {group.items.length}{" "}
@@ -136,7 +162,9 @@ export default function EventsTable({
                 })}
               </ul>
             </div>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CircleSlash, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, CircleSlash, Search } from "lucide-react";
 import type { SchoolParticipation } from "@/lib/schulungen/types";
 
 type Filter = "all" | "registered" | "pending";
@@ -20,6 +20,7 @@ export default function SchoolsPanel({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [expanded, setExpanded] = useState(false);
 
   // Tab-Zähler passen exakt zu den jeweils gefilterten Listen.
   // "eligible*" (= aus der Bestandsaufnahme) speist die Kopfzeile, da
@@ -65,34 +66,49 @@ export default function SchoolsPanel({
   return (
     <section
       aria-labelledby="schools-heading"
-      className="rounded-2xl border border-border bg-white p-5 shadow-sm md:p-6"
+      className="rounded-2xl border border-border bg-white shadow-sm"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 id="schools-heading" className="text-base font-bold text-text">
-            Schulen &amp; Quoten
-          </h2>
-          <p className="mt-1 text-xs text-text-light">
-            {counts.eligibleRegistered} von {counts.eligibleTotal}{" "}
-            teilnahmeberechtigten Schulen angemeldet · max. 2 Lehrkräfte und 1
-            Schulleitung je Schule (global).
-          </p>
-        </div>
-        <div className="relative w-full sm:w-64">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
+      <h2 id="schools-heading" className="px-5 py-4 md:px-6">
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          aria-expanded={expanded}
+          className="flex items-center gap-2 text-left text-base font-bold text-text"
+        >
+          Schulen &amp; Quoten
+          <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-bold tabular-nums text-text-light">
+            {counts.eligibleRegistered}/{counts.eligibleTotal}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-text-light transition-transform ${expanded ? "rotate-180" : ""}`}
             aria-hidden="true"
           />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Schule suchen …"
-            aria-label="Schule suchen"
-            className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
-        </div>
-      </div>
+        </button>
+      </h2>
+
+      {expanded && (
+        <div className="border-t border-border p-5 md:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <p className="text-xs text-text-light">
+              {counts.eligibleRegistered} von {counts.eligibleTotal}{" "}
+              teilnahmeberechtigten Schulen angemeldet · max. 2 Lehrkräfte und 1
+              Schulleitung je Schule (global).
+            </p>
+            <div className="relative w-full sm:w-64 sm:shrink-0">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Schule suchen …"
+                aria-label="Schule suchen"
+                className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </div>
 
       {/* Filter */}
       <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Schulen filtern">
@@ -144,6 +160,8 @@ export default function SchoolsPanel({
             <SchoolCard key={school.school_key} school={school} />
           ))}
         </ul>
+      )}
+        </div>
       )}
     </section>
   );

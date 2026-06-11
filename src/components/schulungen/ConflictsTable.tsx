@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Loader2, School, Search, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Loader2,
+  School,
+  Search,
+  ShieldAlert,
+} from "lucide-react";
 import {
   ROLE_LABELS,
   type ConflictItem,
@@ -223,6 +230,7 @@ export default function ConflictsTable({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   // Freie Schulen je Rolle einmal vorberechnen (für die Dropdowns).
   const freeByRole = useMemo(
@@ -273,16 +281,21 @@ export default function ConflictsTable({
       aria-labelledby="conflicts-heading"
       className="rounded-2xl border border-border bg-white shadow-sm"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 md:px-6">
-        <h2
-          id="conflicts-heading"
-          className="flex items-center gap-2 text-base font-bold text-text"
-        >
-          <ShieldAlert
-            className="h-4 w-4 text-accent-text"
-            aria-hidden="true"
-          />
-          Offene Konflikte
+      <div className="flex items-center justify-between gap-3 px-5 py-4 md:px-6">
+        <h2 id="conflicts-heading" className="min-w-0">
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            aria-expanded={expanded}
+            className="flex items-center gap-2 text-left text-base font-bold text-text"
+          >
+            <ShieldAlert className="h-4 w-4 shrink-0 text-accent-text" aria-hidden="true" />
+            Offene Konflikte
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-text-light transition-transform ${expanded ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
         </h2>
         {!loading && !error && (
           <div className="flex items-center gap-2">
@@ -315,6 +328,9 @@ export default function ConflictsTable({
           </div>
         )}
       </div>
+
+      {expanded && (
+        <div className="border-t border-border">
 
       {actionError && (
         <div
@@ -473,6 +489,8 @@ export default function ConflictsTable({
               })}
             </tbody>
           </table>
+        </div>
+      )}
         </div>
       )}
     </section>
