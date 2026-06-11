@@ -153,132 +153,166 @@ export async function POST(request: NextRequest) {
   // übersprungene Zeilen (z. B. zuvor abgelehnte Konflikte).
   const skippedRows = [...parsed.skipped];
 
-  for (const row of parsed.rows) {
-    try {
-      const schoolId = await upsertSchool(admin, row);
-      const personId = await upsertPerson(admin, row, schoolId);
+  const total = parsed.rows.length;
+  // Fortschritt wird gedrosselt gemeldet (~50 Updates), damit große
+  // Dateien nicht hunderte Events erzeugen, kleine aber flüssig laufen.
+  const step = Math.max(1, Math.ceil(total / 50));
 
-      // Schule nicht bei DigiKI registriert (= nicht in der Bestandsaufnahme)?
-      // → Person wird trotzdem direkt angemeldet (erscheint unter dem Termin),
-      //   aber als offener Konflikt markiert. „Ablehnen" entfernt die
-      //   Anmeldung wieder, „Zulassen" behält sie (Warnung in der
-      //   Teilnehmerliste bleibt). Frühere Entscheidung wird respektiert.
-      if (!isRegisteredSchool(row.schoolName, registeredKeys)) {
-        unregisteredRows.push({
-          name: [row.lastName, row.firstName].filter(Boolean).join(", "),
-          school: row.schoolName.trim(),
-        });
-        const recorded = await recordConflict(admin, {
-          batchId,
-          eventId: event.id,
-          schoolId,
-          personId,
-          role: event.audience,
-          reason:
-            "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
-          payload: { ...row, kurs_nr: event.kurs_nr },
-        });
-        if (recorded === "skipped_rejected") {
-          // Bewusst abgelehnt → nicht (wieder) anmelden.
-          counts.skipped++;
-          continue;
+  // Antwort als NDJSON-Stream: pro verarbeiteter Zeile (gedrosselt) ein
+  // {type:"progress"}-Event, am Ende {type:"result"} mit dem vollständigen
+  // ImportFileResult. So zeigt das Dashboard echten Zeilen-Fortschritt
+  // statt nur 0 % / 100 %.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const emit = (obj: unknown) =>
+        controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+
+      emit({ type: "progress", processed: 0, total });
+
+      let processed = 0;
+      for (const row of parsed.rows) {
+        try {
+          const schoolId = await upsertSchool(admin, row);
+          const personId = await upsertPerson(admin, row, schoolId);
+
+          // Schule nicht bei DigiKI registriert (= nicht in der
+          // Bestandsaufnahme)? → Person wird trotzdem direkt angemeldet
+          // (erscheint unter dem Termin), aber als offener Konflikt
+          // markiert. „Ablehnen" entfernt die Anmeldung wieder,
+          // „Zulassen" behält sie. Frühere Entscheidung wird respektiert.
+          if (!isRegisteredSchool(row.schoolName, registeredKeys)) {
+            unregisteredRows.push({
+              name: [row.lastName, row.firstName].filter(Boolean).join(", "),
+              school: row.schoolName.trim(),
+            });
+            const recorded = await recordConflict(admin, {
+              batchId,
+              eventId: event.id,
+              schoolId,
+              personId,
+              role: event.audience,
+              reason:
+                "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
+              payload: { ...row, kurs_nr: event.kurs_nr },
+            });
+            if (recorded === "skipped_rejected") {
+              // Bewusst abgelehnt → nicht (wieder) anmelden.
+              counts.skipped++;
+            } else {
+              // Anmeldung anlegen/aktualisieren (Quote umgehen – der
+              // Schul-Status ist der entscheidende Punkt, nicht die Quote).
+              await registerOverride(admin, {
+                eventId: event.id,
+                schoolId,
+                personId,
+                role: event.audience,
+                workshops: row.workshops,
+                batchId,
+              });
+              if (recorded === "skipped_approved") counts.updated++;
+              else counts.conflicts++;
+            }
+          } else {
+            const result = await upsertRegistration(admin, {
+              row,
+              eventId: event.id,
+              kursNr: event.kurs_nr,
+              audience: event.audience,
+              schoolId,
+              personId,
+              batchId,
+            });
+            counts[result]++;
+            if (result === "skipped") {
+              skippedRows.push({
+                row: row.row,
+                reason: `${row.lastName}, ${row.firstName}: Konflikt wurde zuvor abgelehnt – übersprungen`,
+              });
+            }
+          }
+        } catch (err) {
+          counts.errors++;
+          const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+          errorMessages.push(
+            `Zeile ${row.row} (${row.lastName}, ${row.firstName}): ${msg}`
+          );
         }
-        // Anmeldung anlegen/aktualisieren (Quote umgehen – der Schul-Status
-        // ist der entscheidende Punkt, nicht die Quote).
-        await registerOverride(admin, {
-          eventId: event.id,
-          schoolId,
-          personId,
-          role: event.audience,
-          workshops: row.workshops,
-          batchId,
-        });
-        if (recorded === "skipped_approved") counts.updated++;
-        else counts.conflicts++;
-        continue;
+        processed++;
+        if (processed === total || processed % step === 0) {
+          emit({ type: "progress", processed, total });
+        }
       }
 
-      const result = await upsertRegistration(admin, {
-        row,
-        eventId: event.id,
-        kursNr: event.kurs_nr,
-        audience: event.audience,
-        schoolId,
-        personId,
-        batchId,
-      });
-      counts[result]++;
-      if (result === "skipped") {
-        skippedRows.push({
-          row: row.row,
-          reason: `${row.lastName}, ${row.firstName}: Konflikt wurde zuvor abgelehnt – übersprungen`,
+      const fileSummary = {
+        name: file.name,
+        kurs_nr: event.kurs_nr,
+        rows: parsed.rows.length,
+        new: counts.new,
+        updated: counts.updated,
+        conflicts: counts.conflicts,
+        errors: counts.errors + skippedRows.length,
+        unregistered: unregisteredRows.length,
+      };
+
+      // Batch-Zähler fortschreiben (Dateien werden sequentiell verarbeitet).
+      // Schlägt der SELECT fehl, NICHT mit 0-Fallbacks weiterschreiben – das
+      // würde die bisherigen Zähler/Dateien überschreiben.
+      const { data: batch, error: batchReadError } = await admin
+        .from("import_batches")
+        .select("file_count, rows_total, rows_new, rows_updated, rows_conflict, rows_error, files")
+        .eq("id", batchId)
+        .single();
+
+      if (batchReadError || !batch) {
+        emit({
+          type: "error",
+          error:
+            "Import-Batch konnte nicht aktualisiert werden – bitte erneut versuchen.",
         });
+        controller.close();
+        return;
       }
-    } catch (err) {
-      counts.errors++;
-      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
-      errorMessages.push(
-        `Zeile ${row.row} (${row.lastName}, ${row.firstName}): ${msg}`
-      );
-    }
-  }
 
-  const fileSummary = {
-    name: file.name,
-    kurs_nr: event.kurs_nr,
-    rows: parsed.rows.length,
-    new: counts.new,
-    updated: counts.updated,
-    conflicts: counts.conflicts,
-    errors: counts.errors + skippedRows.length,
-    unregistered: unregisteredRows.length,
-  };
+      const totals = {
+        rows_total: batch.rows_total + fileSummary.rows,
+        rows_new: batch.rows_new + counts.new,
+        rows_updated: batch.rows_updated + counts.updated,
+        rows_conflict: batch.rows_conflict + counts.conflicts,
+        rows_error: batch.rows_error + fileSummary.errors,
+      };
 
-  // Batch-Zähler fortschreiben (Dateien werden sequentiell verarbeitet).
-  // Schlägt der SELECT fehl, NICHT mit 0-Fallbacks weiterschreiben – das
-  // würde die bisherigen Zähler/Dateien überschreiben.
-  const { data: batch, error: batchReadError } = await admin
-    .from("import_batches")
-    .select("file_count, rows_total, rows_new, rows_updated, rows_conflict, rows_error, files")
-    .eq("id", batchId)
-    .single();
+      await admin
+        .from("import_batches")
+        .update({
+          ...totals,
+          file_count: batch.file_count + 1,
+          files: [...((batch.files as unknown[]) ?? []), fileSummary],
+        })
+        .eq("id", batchId);
 
-  if (batchReadError || !batch) {
-    return NextResponse.json(
-      { error: "Import-Batch konnte nicht aktualisiert werden – bitte erneut versuchen." },
-      { status: 503 }
-    );
-  }
+      const result: ImportFileResult = {
+        batch_id: batchId,
+        file: {
+          ...fileSummary,
+          skipped: skippedRows,
+          error_messages: errorMessages,
+          unregistered_rows: unregisteredRows.slice(0, 100),
+        },
+        batch_totals: totals,
+      };
 
-  const totals = {
-    rows_total: batch.rows_total + fileSummary.rows,
-    rows_new: batch.rows_new + counts.new,
-    rows_updated: batch.rows_updated + counts.updated,
-    rows_conflict: batch.rows_conflict + counts.conflicts,
-    rows_error: batch.rows_error + fileSummary.errors,
-  };
-
-  await admin
-    .from("import_batches")
-    .update({
-      ...totals,
-      file_count: batch.file_count + 1,
-      files: [...((batch.files as unknown[]) ?? []), fileSummary],
-    })
-    .eq("id", batchId);
-
-  const result: ImportFileResult = {
-    batch_id: batchId,
-    file: {
-      ...fileSummary,
-      skipped: skippedRows,
-      error_messages: errorMessages,
-      unregistered_rows: unregisteredRows.slice(0, 100),
+      emit({ type: "result", result });
+      controller.close();
     },
-    batch_totals: totals,
-  };
+  });
 
-  return NextResponse.json(result);
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 /**

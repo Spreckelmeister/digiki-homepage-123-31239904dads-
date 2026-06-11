@@ -88,6 +88,9 @@ export default function UploadCard({
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  // Fortschritt INNERHALB der gerade laufenden Datei (0…1) – für einen
+  // flüssigen Balken auch bei nur einer Datei.
+  const [fileFraction, setFileFraction] = useState(0);
   const [outcomes, setOutcomes] = useState<FileOutcome[]>([]);
   const [batchTotals, setBatchTotals] = useState<
     ImportFileResult["batch_totals"] | null
@@ -143,11 +146,13 @@ export default function UploadCard({
     setOutcomes([]);
     setBatchTotals(null);
     setProgress({ done: 0, total: selected.length });
+    setFileFraction(0);
 
     let batchId = "";
     const results: FileOutcome[] = [];
 
     for (const item of selected) {
+      setFileFraction(0);
       try {
         const form = new FormData();
         form.append("file", item.file);
@@ -158,23 +163,89 @@ export default function UploadCard({
           method: "POST",
           body: form,
         });
-        const body = (await res.json().catch(() => null)) as
-          | ImportFileResult
-          | { error?: string }
-          | null;
 
-        if (!res.ok || !body || !("batch_id" in body)) {
+        if (!res.ok || !res.body) {
+          // Validierungsfehler kommen als JSON (mit Status) zurück.
+          const body = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
           results.push({
             name: item.file.name,
             ok: false,
-            message:
-              (body && "error" in body && body.error) ||
-              "Import fehlgeschlagen",
+            message: body?.error ?? "Import fehlgeschlagen",
           });
         } else {
-          batchId = body.batch_id;
-          setBatchTotals(body.batch_totals);
-          results.push({ name: item.file.name, ok: true, summary: body.file });
+          // Erfolgsfall: NDJSON-Stream mit Live-Fortschritt lesen.
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let fileResult: ImportFileResult | null = null;
+          let streamError: string | null = null;
+
+          // Eine NDJSON-Zeile parsen (reine Funktion, kein Seiteneffekt –
+          // die Zuweisungen erfolgen im Lese-Scope, damit TS die Typen
+          // korrekt erkennt).
+          const parseLine = (
+            line: string
+          ):
+            | {
+                type?: string;
+                processed?: number;
+                total?: number;
+                result?: ImportFileResult;
+                error?: string;
+              }
+            | null => {
+            const trimmed = line.trim();
+            if (!trimmed) return null;
+            try {
+              return JSON.parse(trimmed);
+            } catch {
+              return null;
+            }
+          };
+
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let nl: number;
+            while ((nl = buffer.indexOf("\n")) >= 0) {
+              const msg = parseLine(buffer.slice(0, nl));
+              buffer = buffer.slice(nl + 1);
+              if (!msg) continue;
+              if (msg.type === "progress" && msg.total && msg.total > 0) {
+                setFileFraction(Math.min(1, (msg.processed ?? 0) / msg.total));
+              } else if (msg.type === "result" && msg.result) {
+                fileResult = msg.result;
+              } else if (msg.type === "error") {
+                streamError = msg.error ?? "Import fehlgeschlagen";
+              }
+            }
+          }
+          // Rest-Puffer (letzte Zeile ohne abschließendes \n).
+          const last = parseLine(buffer);
+          if (last?.type === "result" && last.result) {
+            fileResult = last.result;
+          } else if (last?.type === "error") {
+            streamError = last.error ?? "Import fehlgeschlagen";
+          }
+
+          if (fileResult) {
+            batchId = fileResult.batch_id;
+            setBatchTotals(fileResult.batch_totals);
+            results.push({
+              name: item.file.name,
+              ok: true,
+              summary: fileResult.file,
+            });
+          } else {
+            results.push({
+              name: item.file.name,
+              ok: false,
+              message: streamError ?? "Import fehlgeschlagen",
+            });
+          }
         }
       } catch {
         results.push({
@@ -185,6 +256,7 @@ export default function UploadCard({
       }
       setOutcomes([...results]);
       setProgress((p) => ({ ...p, done: p.done + 1 }));
+      setFileFraction(0);
     }
 
     // Nur erfolgreich importierte Dateien aus der Auswahl entfernen –
@@ -197,10 +269,14 @@ export default function UploadCard({
     await onImported();
   }
 
+  // Gesamtfortschritt = abgeschlossene Dateien + Anteil der laufenden Datei.
   const percent =
     progress.total === 0
       ? 0
-      : Math.round((progress.done / progress.total) * 100);
+      : Math.min(
+          100,
+          Math.round(((progress.done + fileFraction) / progress.total) * 100)
+        );
 
   return (
     <section
