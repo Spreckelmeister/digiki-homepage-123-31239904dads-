@@ -859,6 +859,34 @@ import { Icon } from "./icons";
       </>);
     }
 
+    if (t === "moneycount") {
+      const max = block.max || 2;
+      const MAXES = [[1, "1 €"], [2, "2 €"], [5, "5 €"], [10, "10 €"], [20, "20 €"], [100, "100 €"]];
+      return (<>
+        <Section title="Betrag bis">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {MAXES.map(([v, l]) => (
+              <button key={v} onClick={() => patch({ max: v, withBills: v >= 5 ? block.withBills : false, _regen: Date.now() })}
+                style={{ padding: "9px 6px", borderRadius: 10, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+                  border: "1.5px solid " + (max === v ? "var(--teal)" : "var(--line)"), background: max === v ? "var(--teal-50)" : "#fff", color: max === v ? "var(--teal-700)" : "var(--ink-soft)" }}>{l}</button>
+            ))}
+          </div>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>Die Summe der Münzen/Scheine bleibt unter diesem Betrag.</p>
+        </Section>
+        <Section title="Aufgabe">
+          <Row label="Münzen pro Aufgabe"><Stepper value={block.pieces || 3} min={2} max={8} onChange={v => patch({ pieces: v, _regen: Date.now() })} /></Row>
+          {max >= 5 && <Row label="Auch Geldscheine"><Toggle value={!!block.withBills} onChange={v => patch({ withBills: v, _regen: Date.now() })} /></Row>}
+        </Section>
+        <Section title="Anzahl & Größe">
+          <Row label="Aufgaben"><Stepper value={block.count || 4} min={1} max={12} onChange={v => patch({ count: v, _regen: Date.now() })} /></Row>
+          <Row label="Spalten"><Stepper value={block.cols || 1} min={1} max={3} onChange={v => patch({ cols: v })} /></Row>
+          <Row label="Münzgröße"><Stepper value={block.size || 24} min={16} max={34} step={2} onChange={v => patch({ size: v })} /></Row>
+          <Row label="Lösung anzeigen"><Toggle value={!!block.showResult} onChange={v => patch({ showResult: v })} /></Row>
+        </Section>
+        <Section><button className="btn" style={{ width: "100%" }} onClick={() => patch({ _regen: Date.now() })}><Icon name="redo" size={16} /> Neue Aufgaben würfeln</button></Section>
+      </>);
+    }
+
     if (t === "chain") {
       const ops = block.ops || ["+", "-"];
       const toggleOp = (o) => { let n = ops.includes(o) ? ops.filter(x => x !== o) : [...ops, o]; if (!n.length) n = [o]; patch({ ops: n, _regen: Date.now() }); };
@@ -1149,7 +1177,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "writtenmath", "imagelabel", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "fraction", "sach"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "moneycount", "writtenmath", "imagelabel", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "fraction", "sach"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

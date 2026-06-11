@@ -72,6 +72,7 @@ function makeBlock(type, level) {
     case "hundredchart": { const n = easy ? 6 : hard ? 14 : 10; return { ...base, blanks: DKU.genChartBlanks(n) }; }
     case "numhouse": { const target = easy ? 10 : hard ? 20 : 12; const count = easy ? 5 : hard ? 8 : 6; return { ...base, target, count, blank: "mix", size: 22, rows: DKU.genHouse(target, count, "mix") }; }
     case "unitcalc": { const count = easy ? 6 : hard ? 12 : 8; return { ...base, kind: "geld", mode: "rechnen", op: "+", max: 20, count, cols: 2, size: 22, showResult: false, items: DKU.genUnitItems("geld", "rechnen", "+", 20, count) }; }
+    case "moneycount": { const max = easy ? 2 : hard ? 20 : 10; const pieces = easy ? 3 : hard ? 6 : 4; const count = easy ? 3 : hard ? 6 : 4; const withBills = max >= 10 && !easy; return { ...base, max, pieces, withBills, count, cols: 1, size: 24, showResult: false, items: DKU.genMoneyItems(max, pieces, withBills, count) }; }
     case "writtenmath": { const dg = easy ? 2 : hard ? 4 : 3; const count = easy ? 2 : hard ? 6 : 4; return { ...base, op: "+", digits: dg, mdigits: 1, count, cols: 2, carries: true, partials: true, size: 26, items: DKU.genWrittenItems("+", dg, count, 1) }; }
     case "chain":    { const max = easy ? 20 : 100, count = easy ? 2 : hard ? 4 : 3, start = DKU.rint(2, Math.max(3, Math.floor(max / 4))); return { ...base, start, count, max, ops: ["+", "-"], steps: DKU.genChain(start, count, max, ["+", "-"]) }; }
     case "fraction": { const count = easy ? 2 : hard ? 4 : 3, maxDen = easy ? 6 : hard ? 12 : 8; return { ...base, shape: "pie", ask: "name", count, maxDen, cols: count, items: DKU.genFractions(count, maxDen) }; }
@@ -271,6 +272,7 @@ export default function App() {
         || (b.type === "mathtri" && (partial.op || partial.max))
         || (b.type === "numhouse" && (partial.target != null || partial.count != null || partial.blank != null))
         || (b.type === "unitcalc" && (partial.kind || partial.mode || partial.op || partial.max || partial.count))
+        || (b.type === "moneycount" && (partial.max != null || partial.pieces != null || partial.withBills != null || partial.count != null))
         || (b.type === "writtenmath" && (partial.op || partial.digits || partial.count || partial.mdigits))
         || (b.type === "chain" && (partial.start != null || partial.count != null || partial.max != null || partial.ops != null))
         || (b.type === "fraction" && (partial.count != null || partial.maxDen != null))
@@ -283,6 +285,7 @@ export default function App() {
       else if (nb.type === "clock") nb.clocks = (nb.clocks && nb.clocks.length ? nb.clocks : [{ h: 3, m: 0 }]).map(() => ({ h: DKU.rint(1, 12), m: [0, 15, 30, 45][DKU.rint(0, 3)] }));
       else if (nb.type === "numhouse") nb.rows = DKU.genHouse(nb.target || 10, nb.count || 6, nb.blank || "mix");
       else if (nb.type === "unitcalc") nb.items = DKU.genUnitItems(nb.kind, nb.mode, nb.op, nb.max, nb.count);
+      else if (nb.type === "moneycount") nb.items = DKU.genMoneyItems(nb.max, nb.pieces, nb.withBills, nb.count);
       else if (nb.type === "writtenmath") nb.items = DKU.genWrittenItems(nb.op, nb.digits, nb.count, nb.mdigits);
       else if (nb.type === "chain") nb.steps = DKU.genChain(Number.isFinite(nb.start) ? nb.start : 5, nb.count || 3, nb.max || 20, nb.ops || ["+", "-"]);
       else if (nb.type === "fraction") { nb.items = DKU.genFractions(nb.count || 3, nb.maxDen || 8); nb.cols = nb.count || nb.cols || nb.items.length; }

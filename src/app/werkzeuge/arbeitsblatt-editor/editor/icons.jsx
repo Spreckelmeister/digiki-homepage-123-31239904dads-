@@ -83,6 +83,7 @@ const ICON_PATHS = {
   numhouse: '<path d="m4 10 8-6 8 6"/><path d="M6 9.5V20h12V9.5"/><path d="M9 20v-5h6v5"/>',
   imagelabel: '<rect x="3" y="4" width="13" height="13" rx="2"/><circle cx="7.3" cy="8.3" r="1.5"/><path d="m3.5 16 4-3.5 3 2"/><path d="M19 10.5c-1.7 0-3 1.3-3 3 0 2.2 3 5.5 3 5.5s3-3.3 3-5.5c0-1.7-1.3-3-3-3Z"/><circle cx="19" cy="13.5" r="1"/>',
   unit: '<path d="M17.5 8.2a5.6 5.6 0 1 0 0 7.6"/><path d="M5 11h9M5 14h8"/>',
+  coins: '<ellipse cx="8.5" cy="6.5" rx="5.5" ry="2.6"/><path d="M3 6.5v4c0 1.45 2.46 2.6 5.5 2.6s5.5-1.15 5.5-2.6v-4"/><ellipse cx="15.5" cy="14.5" rx="5.5" ry="2.6"/><path d="M10 14v3.4c0 1.45 2.46 2.6 5.5 2.6s5.5-1.15 5.5-2.6v-3.4"/>',
   written: '<path d="M9 4h10M9 8h10"/><path d="M4 11.5h16"/><path d="M11 15h8M11 19h8"/><path d="M5 4.5v3M4 6h2"/><path d="M5 16h2M5 19h2"/>',
   chain: '<rect x="2" y="8.5" width="7" height="7" rx="1.5"/><rect x="15" y="8.5" width="7" height="7" rx="1.5"/><path d="M9 12h4M11.5 9.5 14 12l-2.5 2.5"/>',
   fraction: '<circle cx="12" cy="12" r="9"/><path d="M12 12 12 3a9 9 0 0 1 7.8 4.5Z" fill="currentColor" stroke="none"/><path d="M12 3v18M3 12h18" opacity=".7"/>',

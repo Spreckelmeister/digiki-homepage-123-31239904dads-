@@ -21,6 +21,12 @@
 - **Geld- & Größenrechnen** (Phase 2) – Baustein `unitcalc`: Rechnen (z. B.
   `350 g + 200 g`) und Umrechnen (z. B. `3 m = 300 cm`) für Geld, Länge, Gewicht,
   Volumen; Geld mit Komma-Darstellung (`4,30 €`).
+- **Geld zählen** (Phase 2.4 – Münz-/Scheinbilder) – Baustein `moneycount`:
+  zeigt einen zufälligen Mix echter Euro-**Münzen & Scheine** (druckfreundliche
+  Inline-SVGs, keine Bild-Assets), Kinder zählen zusammen und schreiben den
+  Betrag (`= ____ €`). Einstellbar: Betrag bis (1 €–100 €), Münzen pro Aufgabe,
+  Scheine an/aus, Anzahl/Spalten/Größe; „Aufgaben würfeln"; Beträge exakt; Lösung
+  im Lösungsblatt. Differenzierung leicht/mittel/schwer steuert Betrag & Stückzahl.
 - **Schriftliche Rechenverfahren** (Phase 2) – Baustein `writtenmath`:
   schriftliche **Addition, Subtraktion, Multiplikation und Division** in
   Stellenwert-Notation. Add./Sub. mit zuschaltbarer Überträge-Zeile; Multiplikation

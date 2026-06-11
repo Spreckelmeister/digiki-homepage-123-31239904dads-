@@ -213,6 +213,45 @@ function genUnitItems(kind, mode, op, max, count) {
   return out;
 }
 
+// ---- Geld zählen (Münz-/Schein-Bilder zusammenzählen) ----
+// Jede Aufgabe = ein zufälliger Münz-/Schein-Mix (in Cent), dessen Summe
+// den eingestellten Höchstbetrag nicht übersteigt. `pieces` steuert die
+// ungefähre Stückzahl (Schwierigkeit). Beträge sind exakt (ganze Cent).
+const MONEY_COINS = [1, 2, 5, 10, 20, 50, 100, 200];           // 1ct … 2€
+const MONEY_BILLS = [500, 1000, 2000, 5000, 10000];            // 5€ … 100€
+function genMoneyItems(maxEuro, pieces, withBills, count) {
+  const maxC = Math.max(50, Math.round((maxEuro || 2) * 100));
+  let pool = MONEY_COINS.filter(c => c <= maxC);
+  if (withBills) pool = pool.concat(MONEY_BILLS.filter(b => b <= maxC));
+  if (!pool.length) pool = [1];
+  const minCoin = pool[0];                 // kleinstes Stück (Pool ist aufsteigend)
+  const want = Math.max(2, pieces || 3);
+  const out = [];
+  for (let i = 0; i < (count || 4); i++) {
+    let parts = [], sum = 0, guard = 0;
+    const target = rint(Math.max(2, want - 1), want + 1);
+    while (parts.length < target && guard++ < 80) {
+      // Beim ersten Stück Platz für mindestens ein zweites lassen, damit
+      // eine einzelne große Münze nicht das ganze Budget aufbraucht.
+      const headroom = parts.length === 0 ? maxC - minCoin : maxC;
+      const fit = pool.filter(p => sum + p <= headroom);
+      if (!fit.length) break;
+      const cand = fit[rint(0, fit.length - 1)];
+      parts.push(cand); sum += cand;
+    }
+    // Mindestens zwei Stücke, damit es ein „Zusammenzählen" ist.
+    while (parts.length < 2) {
+      const fit = pool.filter(p => sum + p <= maxC);
+      if (!fit.length) break;
+      const c = fit[0]; parts.push(c); sum += c;
+    }
+    if (!parts.length) { parts = [pool[0]]; sum = pool[0]; }
+    parts.sort((a, b) => b - a);            // größte Stücke zuerst anzeigen
+    out.push({ coins: parts, total: sum });
+  }
+  return out;
+}
+
 // ---- Schriftliche Rechenverfahren (+, −, ×): Zahlen wählen ----
 // mdigits = Stellen des Multiplikators bei × (1 = einstellig, 2 = zweistellig);
 // innerhalb eines Blocks immer gleich → einheitliches Layout (eine bzw. zwei Linien).
@@ -396,6 +435,7 @@ function autoPrompt(b) {
   if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
   if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
   if (b.type === "unitcalc") return b.mode === "umrechnen" ? "Rechne in die andere Einheit um." : "Rechne mit den Größen. Vergiss die Einheit nicht.";
+  if (b.type === "moneycount") return "Wie viel Geld ist das? Zähle zusammen und schreibe den Betrag auf.";
   if (b.type === "writtenmath") return "Rechne schriftlich. Vergiss die Überträge nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "chain") return "Rechne der Reihe nach. Trage jedes Ergebnis in das nächste Kästchen ein.";
@@ -415,4 +455,4 @@ function autoPrompt(b) {
 }
 function promptText(b) { return b && b.prompt != null ? b.prompt : autoPrompt(b); }
 
-export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genWritten, genWrittenItems, genChain, genFractions, genMul, netApply, genNetStart, genRad, genGridBlanks };
+export const DKU = { syllabify, genRows, genWall, genTriangle, genWordsearch, clipartSvg, CLIP_LABELS, rint, autoPrompt, promptText, SC_ELIGIBLE, collectSolutions, seededShuffle, makeDecoys, genHouse, genChartBlanks, genUnitItems, genMoneyItems, genWritten, genWrittenItems, genChain, genFractions, genMul, netApply, genNetStart, genRad, genGridBlanks };

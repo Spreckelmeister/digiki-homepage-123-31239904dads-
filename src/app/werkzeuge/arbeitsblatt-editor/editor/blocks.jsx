@@ -375,6 +375,71 @@ import { Icon } from "./icons";
     );
   }
 
+  // ---------- Geld zählen (Münz-/Schein-Bilder) ----------
+  // Eine Münze (Kreis) oder ein Schein (Rechteck) als druckfreundliches
+  // Inline-SVG – keine externen Bild-Assets, läuft auf dem iPad.
+  function MoneyPiece({ cents, px }) {
+    const ui = "var(--ui)";
+    if (cents >= 500) {
+      const euro = cents / 100;
+      const B = {
+        500:   { bg: "#E4DECF", bd: "#8C8060" },
+        1000:  { bg: "#F4CEC6", bd: "#C0584B" },
+        2000:  { bg: "#C5D6EE", bd: "#3E6CA8" },
+        5000:  { bg: "#F6D9AC", bd: "#C5853A" },
+        10000: { bg: "#C6E4CB", bd: "#3E8F52" },
+      }[cents] || { bg: "#eee", bd: "#999" };
+      const w = Math.round(px * 1.7), h = Math.round(px * 0.92);
+      return (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: "block" }} aria-hidden="true">
+          <rect x="1.5" y="1.5" width={w - 3} height={h - 3} rx={Math.round(h * 0.16)} fill={B.bg} stroke={B.bd} strokeWidth="2" />
+          <rect x={w * 0.08} y={h * 0.24} width={w * 0.16} height={h * 0.52} rx="2" fill={B.bd} opacity="0.22" />
+          <text x="52%" y="56%" textAnchor="middle" dominantBaseline="middle" fontFamily={ui} fontWeight="800" fontSize={Math.round(h * 0.4)} fill={B.bd}>{euro} €</text>
+        </svg>
+      );
+    }
+    const C = cents >= 100
+      ? { ring: "#C9A14A", face: "#DADDE1", txt: "#3A3F45" }   // 1 €, 2 € (Gold-Ring, Silber-Kern)
+      : cents >= 10
+        ? { ring: "#B98A2E", face: "#ECC159", txt: "#5A3F12" } // 10/20/50 ct (Gold)
+        : { ring: "#9A5A28", face: "#CE8246", txt: "#4A2A12" }; // 1/2/5 ct (Kupfer)
+    const d = px, r = d / 2;
+    const val = cents >= 100 ? cents / 100 : cents;
+    const unit = cents >= 100 ? "€" : "ct";
+    return (
+      <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} style={{ display: "block" }} aria-hidden="true">
+        <circle cx={r} cy={r} r={r - 1.5} fill={C.ring} />
+        <circle cx={r} cy={r} r={r * 0.78} fill={C.face} />
+        <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle" fontFamily={ui} fontWeight="800" fontSize={d * (String(val).length > 1 ? 0.34 : 0.42)} fill={C.txt}>{val}</text>
+        <text x="50%" y="71%" textAnchor="middle" dominantBaseline="middle" fontFamily={ui} fontWeight="700" fontSize={d * 0.2} fill={C.txt}>{unit}</text>
+      </svg>
+    );
+  }
+  function MoneyCount({ block, solve }) {
+    const cols = block.cols || 1;
+    const rows = block.items || [];
+    const show = solve || block.showResult;
+    const sz = block.size || 24;
+    const px = Math.round(sz * 1.7);
+    const money = (c) => (c / 100).toFixed(2).replace(".", ",");
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "18px 34px" }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {(r.coins || []).map((c, j) => <MoneyPiece key={j} cents={c} px={px} />)}
+            </div>
+            <span style={{ fontSize: sz, color: "var(--muted)", fontFamily: "var(--ui)", fontWeight: 700 }}>=</span>
+            <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 5 }}>
+              <span data-answer={money(r.total)} style={{ display: "inline-flex", alignItems: "flex-end", justifyContent: "center", minWidth: sz * 3, height: sz * 1.15, paddingBottom: 2, borderBottom: "2px solid var(--ink-soft)", textAlign: "center", fontWeight: 700, fontFamily: "var(--ui)", fontSize: sz, color: show ? "var(--sol)" : "transparent" }}>{money(r.total)}</span>
+              <span style={{ fontWeight: 600, fontFamily: "var(--ui)", fontSize: sz }}>€</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   // ---------- Schriftliche Rechenverfahren (+, −, ×) ----------
   // Eine einzelne Rechnung
   function OneWritten({ a, b, res, op, block, solve }) {
@@ -1511,6 +1576,7 @@ import { Icon } from "./icons";
       case "lines":    return <Lines block={block} />;
       case "matharow": return withPrompt(block, <MathRows block={block} solve={solve} />);
       case "unitcalc": return withPrompt(block, <UnitRows block={block} solve={solve} />);
+      case "moneycount": return withPrompt(block, <MoneyCount block={block} solve={solve} />);
       case "writtenmath": return withPrompt(block, <WrittenMath block={block} solve={solve} />);
       case "chain":    return withPrompt(block, <Chain block={block} solve={solve} />);
       case "net":      return withPrompt(block, <Net block={block} solve={solve} />);

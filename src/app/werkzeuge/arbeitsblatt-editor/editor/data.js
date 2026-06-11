@@ -48,6 +48,7 @@
       { type: "hundredchart", label: "Hundertertafel", icon: "hundred", desc: "Zahlen 1–100, Felder ausblendbar" },
       { type: "numhouse", label: "Zahlenhaus",     icon: "numhouse", desc: "Zahlen zerlegen" },
       { type: "unitcalc", label: "Geld & Größen",  icon: "unit", desc: "Rechnen & Umrechnen mit Einheiten", hot: true },
+      { type: "moneycount", label: "Geld zählen",  icon: "coins", desc: "Münzen & Scheine zusammenzählen", hot: true },
       { type: "writtenmath", label: "Schriftlich rechnen", icon: "written", desc: "Plus, Minus, Mal, Geteilt" },
       { type: "chain",    label: "Rechenkette",     icon: "chain",    desc: "Pfeilrechnen" },
       { type: "net",      label: "Rechennetz",      icon: "net",      desc: "Pfeile: rechts & runter" },
