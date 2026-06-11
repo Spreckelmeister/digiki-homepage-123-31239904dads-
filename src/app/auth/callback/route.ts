@@ -23,6 +23,20 @@ export async function GET(request: Request) {
 
   const origin = requestUrl.origin;
 
+  // WICHTIG: Einen E-Mail-OTP (token_hash) NICHT per GET einlösen.
+  // Automatische Link-Scanner in Schul-/Firmennetzwerken rufen E-Mail-
+  // Links vorab auf; ein verifyOtp im GET würde den Einmal-Token dabei
+  // verbrauchen, bevor die Person klickt (auch der 8-stellige Code wäre
+  // dann tot, da es derselbe Token ist). Stattdessen leiten wir auf die
+  // Bestätigungsseite um, die den Token erst beim echten Klick einlöst.
+  // (Schützt auch bereits versendete E-Mails, die noch auf /auth/callback
+  //  zeigen.)
+  if (token_hash && type) {
+    const params = new URLSearchParams({ token_hash, type });
+    if (next) params.set("next", next);
+    return NextResponse.redirect(`${origin}/auth/bestaetigen?${params.toString()}`);
+  }
+
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -46,12 +60,7 @@ export async function GET(request: Request) {
       }
     );
 
-    if (token_hash && type) {
-      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
-      if (!error) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-    } else if (code) {
+    if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
         return NextResponse.redirect(`${origin}${next}`);
