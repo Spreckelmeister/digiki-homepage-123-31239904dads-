@@ -29,6 +29,25 @@ export interface SchoolQuotaUsage {
   leadership_limit: number;
 }
 
+/**
+ * Teilnahmeberechtigte Schule (aus der Bestandsaufnahme) inkl.
+ * Anmeldestatus. school_id ist null, wenn die Schule berechtigt ist,
+ * aber noch in keinem Import vorkam.
+ */
+export interface SchoolParticipation {
+  school_id: string | null;
+  school_key: string;
+  name: string;
+  city: string | null;
+  plz: string | null;
+  teachers_used: number;
+  leadership_used: number;
+  teacher_limit: number;
+  leadership_limit: number;
+  in_bestandsaufnahme: boolean;
+  has_registered: boolean;
+}
+
 export interface ImportBatchSummary {
   id: string;
   created_at: string;
@@ -77,10 +96,13 @@ export interface OverviewResponse {
     events_total: number;
     registrations_total: number;
     conflicts_open: number;
+    /** Teilnahmeberechtigte Schulen (aus der Bestandsaufnahme). */
     schools_total: number;
+    /** Davon mit mindestens einer Anmeldung. */
+    schools_registered: number;
   };
   events: TrainingEvent[];
-  quotas: SchoolQuotaUsage[];
+  schools: SchoolParticipation[];
   recent_batches: ImportBatchSummary[];
   is_admin: boolean;
 }

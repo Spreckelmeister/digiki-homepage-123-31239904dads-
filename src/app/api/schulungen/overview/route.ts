@@ -3,7 +3,11 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
-import type { OverviewResponse, TrainingEvent } from "@/lib/schulungen/types";
+import type {
+  OverviewResponse,
+  TrainingEvent,
+  SchoolParticipation,
+} from "@/lib/schulungen/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +22,7 @@ export async function GET() {
   const [
     eventsRes,
     regCountsRes,
-    quotasRes,
+    schoolsRes,
     batchesRes,
     conflictsCountRes,
     registrationsCountRes,
@@ -32,7 +36,7 @@ export async function GET() {
       .select("event_id")
       .eq("status", "registered"),
     admin
-      .from("school_quota_usage")
+      .from("school_participation")
       .select("*")
       .order("name", { ascending: true }),
     admin
@@ -60,17 +64,21 @@ export async function GET() {
     registration_count: countsByEvent.get(e.id) ?? 0,
   }));
 
-  const quotas = quotasRes.data ?? [];
+  const schools = (schoolsRes.data ?? []) as SchoolParticipation[];
+  // "Teilnahmeberechtigt" = aus der Bestandsaufnahme. Importierte
+  // Schulen ohne Bestandsaufnahme zählen nicht zur Soll-Menge.
+  const eligible = schools.filter((s) => s.in_bestandsaufnahme);
 
   const response: OverviewResponse = {
     stats: {
       events_total: events.length,
       registrations_total: registrationsCountRes.count ?? 0,
       conflicts_open: conflictsCountRes.count ?? 0,
-      schools_total: quotas.length,
+      schools_total: eligible.length,
+      schools_registered: eligible.filter((s) => s.has_registered).length,
     },
     events,
-    quotas,
+    schools,
     recent_batches: batchesRes.data ?? [],
     is_admin: auth.isAdmin,
   };
