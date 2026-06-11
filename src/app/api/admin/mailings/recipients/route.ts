@@ -6,7 +6,10 @@ import { createClient } from "@/lib/supabase/server";
  * Liefert die Empfänger für das Admin-Mailing-Tool, gruppiert nach Quelle:
  *  - accounts:      registrierte DigiKI-Konten (auth.users + profiles)
  *  - participants:  Schulungsteilnehmer (persons mit E-Mail aus den Importen)
- *  - contacts:      Ansprechpartner der Schulen (Bestandsaufnahme-Kontakte)
+ *
+ * Hinweis: Die Schul-Ansprechpartner (Bestandsaufnahme) werden bewusst NICHT
+ * als eigene Quelle geliefert – sie haben alle ein DigiKI-Konto und sind
+ * damit bereits über `accounts` erreichbar.
  *
  * Auth: Admin-only. Service-Role-Key nur serverseitig.
  */
@@ -123,35 +126,7 @@ export async function GET(_request: NextRequest) {
     })),
   ).sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "", "de"));
 
-  // ── 3. Ansprechpartner (Bestandsaufnahme-Kontakte) ─────────────────
-  const { data: contactsData } = await admin
-    .from("bestandsaufnahme_responses")
-    .select("id, contact_email, contact_person, school_name")
-    .not("contact_email", "is", null);
-
-  const contacts = dedupe(
-    ((contactsData ?? []) as unknown as Array<{
-      id: string;
-      contact_email: string;
-      contact_person: string | null;
-      school_name: string | null;
-    }>)
-      .filter(
-        (c) =>
-          c.contact_email.includes("@") &&
-          !(c.school_name ?? "").toLowerCase().includes("test") &&
-          !(c.school_name ?? "").toLowerCase().includes("admin"),
-      )
-      .map((c) => ({
-        id: c.id,
-        email: c.contact_email,
-        full_name: c.contact_person ?? null,
-        school: c.school_name ?? null,
-        confirmed: true,
-      })),
-  ).sort((a, b) => (a.school ?? "").localeCompare(b.school ?? "", "de"));
-
-  // ── 4. Dauerhaft gespeicherte manuelle Adressen ───────────────────
+  // ── 3. Dauerhaft gespeicherte manuelle Adressen ───────────────────
   const { data: extraData } = await admin
     .from("mailing_extra_recipients")
     .select("id, email, label")
@@ -171,7 +146,6 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json({
     accounts,
     participants,
-    contacts,
     manual,
     // Abwärtskompatibel: einige Stellen lesen evtl. noch `recipients`.
     recipients: accounts,

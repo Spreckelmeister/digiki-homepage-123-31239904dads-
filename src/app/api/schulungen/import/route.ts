@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
   // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Die
   // Erkennung ist tolerant: Schultyp-Wörter (Grundschule, GS, Schule …)
-  // werden ignoriert und abweichende Schreibweisen per Teilstring erkannt.
+  // werden ignoriert, danach exakter Abgleich (siehe schoolMatchKey).
   const { data: bestandSchools } = await admin
     .from("bestandsaufnahme_responses")
     .select("school_name")

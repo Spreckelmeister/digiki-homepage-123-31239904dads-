@@ -29,18 +29,16 @@ type Recipient = {
   confirmed: boolean;
 };
 
-type SourceKey = "accounts" | "participants" | "contacts" | "manual";
+type SourceKey = "accounts" | "participants" | "manual";
 type Sources = {
   accounts: Recipient[];
   participants: Recipient[];
-  contacts: Recipient[];
   manual: Recipient[];
 };
 
 const SOURCE_LABEL: Record<SourceKey, string> = {
   accounts: "DigiKI-Konten",
   participants: "Schulungsteilnehmer",
-  contacts: "Ansprechpartner",
   manual: "Manuell",
 };
 
@@ -105,7 +103,6 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
   const [sources, setSources] = useState<Sources>({
     accounts: [],
     participants: [],
-    contacts: [],
     manual: [],
   });
   const [recipientsLoading, setRecipientsLoading] = useState(true);
@@ -131,7 +128,6 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
       setSources({
         accounts: data.accounts ?? [],
         participants: data.participants ?? [],
-        contacts: data.contacts ?? [],
         manual: manualList,
       });
       // Gespeicherte manuelle Adressen sind dauerhaft im Verteiler →
@@ -211,7 +207,6 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
       [
         ...sources.accounts,
         ...sources.participants,
-        ...sources.contacts,
         ...sources.manual,
       ].forEach((r) => next.add(r.email.toLowerCase()));
       return next;
@@ -435,7 +430,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
               {!recipientsLoading && (
                 <p className="mt-2 text-xs text-text-light">
                   {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
-                  {countSelectedIn("contacts")} Ansprechpartner · {countSelectedIn("manual")} manuell
+                  {countSelectedIn("manual")} manuell
                 </p>
               )}
               {recipientsError && <p className="mt-2 text-sm text-red-700">{recipientsError}</p>}
@@ -466,7 +461,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
 
         {/* Tabs der Empfängerquellen */}
         <div className="flex flex-wrap gap-1 border-b border-border px-4 pt-3 md:px-6" role="tablist" aria-label="Empfängerquelle">
-          {(["accounts", "participants", "contacts", "manual"] as SourceKey[]).map((key) => {
+          {(["accounts", "participants", "manual"] as SourceKey[]).map((key) => {
             const active = tab === key;
             const cnt = countSelectedIn(key);
             const avail = sourceList(key).length;
@@ -994,7 +989,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </p>
                   <p className="mt-1 font-medium text-text">
                     {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
-                    {countSelectedIn("contacts")} Ansprechpartner · {countSelectedIn("manual")} manuell
+                    {countSelectedIn("manual")} manuell
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/40 p-3">
