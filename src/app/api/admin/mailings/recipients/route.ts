@@ -3,12 +3,12 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Liefert die vollständige Empfänger-Liste für das Admin-Mailing-Tool.
- * Quelle ist `auth.users` (= alle registrierten Accounts), angereichert mit
- * Profil-Daten (Name, Schule), damit der Admin im UI sieht, an wen
- * tatsächlich versendet wird.
+ * Liefert die Empfänger für das Admin-Mailing-Tool, gruppiert nach Quelle:
+ *  - accounts:      registrierte DigiKI-Konten (auth.users + profiles)
+ *  - participants:  Schulungsteilnehmer (persons mit E-Mail aus den Importen)
+ *  - contacts:      Ansprechpartner der Schulen (Bestandsaufnahme-Kontakte)
  *
- * Auth: Admin-only. Service-Role-Key wird ausschließlich serverseitig genutzt.
+ * Auth: Admin-only. Service-Role-Key nur serverseitig.
  */
 export async function GET(_request: NextRequest) {
   if (
@@ -45,14 +45,30 @@ export async function GET(_request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  // listUsers paginiert: erste 1000 reichen für unser Szenario (≈50 Schulen).
-  // Falls die Liste irgendwann darüber wächst, hier in einer Schleife
-  // weiterblättern (perPage max 1000).
+  type Entry = {
+    id: string;
+    email: string;
+    full_name: string | null;
+    school: string | null;
+    confirmed: boolean;
+  };
+
+  // Dedupe innerhalb einer Gruppe (case-insensitiv nach E-Mail).
+  const dedupe = (list: Entry[]): Entry[] => {
+    const seen = new Set<string>();
+    return list.filter((e) => {
+      const k = e.email.toLowerCase();
+      if (!e.email || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  };
+
+  // ── 1. DigiKI-Konten ───────────────────────────────────────────────
   const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({
     page: 1,
     perPage: 1000,
   });
-
   if (usersError) {
     console.error("[mailings/recipients] listUsers error:", usersError.message);
     return NextResponse.json(
@@ -60,40 +76,88 @@ export async function GET(_request: NextRequest) {
       { status: 500 },
     );
   }
-
-  // Profile zu allen User-IDs in einem Rutsch holen, damit wir Name + Schule
-  // anzeigen können. Fehlt ein Profil, bleibt das Feld leer – die E-Mail
-  // selbst ist die einzige zwingend nötige Information.
   const userIds = usersData.users.map((u) => u.id);
   const { data: profilesData } = await admin
     .from("profiles")
     .select("id, full_name, school")
     .in("id", userIds);
-  const profileById = new Map(
-    (profilesData ?? []).map((p) => [p.id, p]),
-  );
+  const profileById = new Map((profilesData ?? []).map((p) => [p.id, p]));
 
-  const recipients = usersData.users
-    .filter((u) => !!u.email)
-    .map((u) => {
-      const p = profileById.get(u.id);
-      return {
-        id: u.id,
-        email: u.email as string,
-        full_name: p?.full_name ?? null,
-        school: p?.school ?? null,
-        confirmed: !!u.email_confirmed_at,
-      };
-    })
-    // Bestätigte zuerst, danach unbestätigte; innerhalb alphabetisch nach E-Mail
-    .sort((a, b) => {
-      if (a.confirmed !== b.confirmed) return a.confirmed ? -1 : 1;
-      return a.email.localeCompare(b.email);
-    });
+  const accounts = dedupe(
+    usersData.users
+      .filter((u) => !!u.email)
+      .map((u) => {
+        const p = profileById.get(u.id);
+        return {
+          id: u.id,
+          email: u.email as string,
+          full_name: p?.full_name ?? null,
+          school: p?.school ?? null,
+          confirmed: !!u.email_confirmed_at,
+        };
+      }),
+  ).sort((a, b) => {
+    if (a.confirmed !== b.confirmed) return a.confirmed ? -1 : 1;
+    return a.email.localeCompare(b.email);
+  });
+
+  // ── 2. Schulungsteilnehmer (persons mit E-Mail) ────────────────────
+  const { data: personsData } = await admin
+    .from("persons")
+    .select("id, first_name, last_name, email, school:schools (name)")
+    .not("email", "is", null);
+
+  const participants = dedupe(
+    ((personsData ?? []) as unknown as Array<{
+      id: string;
+      first_name: string;
+      last_name: string;
+      email: string;
+      school: { name: string | null } | null;
+    }>).map((p) => ({
+      id: p.id,
+      email: p.email,
+      full_name: [p.last_name, p.first_name].filter(Boolean).join(", ") || null,
+      school: p.school?.name ?? null,
+      confirmed: true,
+    })),
+  ).sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "", "de"));
+
+  // ── 3. Ansprechpartner (Bestandsaufnahme-Kontakte) ─────────────────
+  const { data: contactsData } = await admin
+    .from("bestandsaufnahme_responses")
+    .select("id, contact_email, contact_person, school_name")
+    .not("contact_email", "is", null);
+
+  const contacts = dedupe(
+    ((contactsData ?? []) as unknown as Array<{
+      id: string;
+      contact_email: string;
+      contact_person: string | null;
+      school_name: string | null;
+    }>)
+      .filter(
+        (c) =>
+          c.contact_email.includes("@") &&
+          !(c.school_name ?? "").toLowerCase().includes("test") &&
+          !(c.school_name ?? "").toLowerCase().includes("admin"),
+      )
+      .map((c) => ({
+        id: c.id,
+        email: c.contact_email,
+        full_name: c.contact_person ?? null,
+        school: c.school_name ?? null,
+        confirmed: true,
+      })),
+  ).sort((a, b) => (a.school ?? "").localeCompare(b.school ?? "", "de"));
 
   return NextResponse.json({
-    recipients,
-    total: recipients.length,
-    confirmedCount: recipients.filter((r) => r.confirmed).length,
+    accounts,
+    participants,
+    contacts,
+    // Abwärtskompatibel: einige Stellen lesen evtl. noch `recipients`.
+    recipients: accounts,
+    total: accounts.length,
+    confirmedCount: accounts.filter((r) => r.confirmed).length,
   });
 }

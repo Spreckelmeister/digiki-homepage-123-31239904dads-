@@ -91,7 +91,13 @@ export async function POST(request: NextRequest) {
   const heading = typeof body.heading === "string" ? body.heading.trim() : "";
   const preheader = typeof body.preheader === "string" ? body.preheader.trim() : "";
   const mode =
-    body.mode === "bulk" ? "bulk" : body.mode === "selected" ? "selected" : "test";
+    body.mode === "bulk"
+      ? "bulk"
+      : body.mode === "selected"
+        ? "selected"
+        : body.mode === "list"
+          ? "list"
+          : "test";
   const audience = body.audience === "all" ? "all" : "confirmed";
   const testEmail =
     typeof body.testEmail === "string" ? body.testEmail.trim() : "";
@@ -132,6 +138,26 @@ export async function POST(request: NextRequest) {
       );
     }
     recipients = [testEmail];
+  } else if (mode === "list") {
+    // Empfänger sind eine vom (Admin-)Tool zusammengestellte Liste aus
+    // mehreren Quellen (Konten, Schulungsteilnehmer, Ansprechpartner) plus
+    // manuell hinzugefügte Adressen. Nur Format-Prüfung + Dedupe + Cap.
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const seen = new Set<string>();
+    recipients = selectedEmails
+      .filter((e) => {
+        const k = e.toLowerCase();
+        if (!EMAIL_RE.test(e) || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 2000);
+    if (recipients.length === 0) {
+      return NextResponse.json(
+        { error: "Keine gültigen Empfänger-Adressen angegeben." },
+        { status: 400 },
+      );
+    }
   } else {
     const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({
       page: 1,

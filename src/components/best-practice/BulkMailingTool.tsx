@@ -15,7 +15,6 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
-  UserCheck,
   Users,
   Wand2,
   X,
@@ -30,11 +29,25 @@ type Recipient = {
   confirmed: boolean;
 };
 
-type Audience = "confirmed" | "all" | "selected";
+type SourceKey = "accounts" | "participants" | "contacts" | "manual";
+type Sources = {
+  accounts: Recipient[];
+  participants: Recipient[];
+  contacts: Recipient[];
+};
+
+const SOURCE_LABEL: Record<SourceKey, string> = {
+  accounts: "DigiKI-Konten",
+  participants: "Schulungsteilnehmer",
+  contacts: "Ansprechpartner",
+  manual: "Manuell",
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 type SendResult = {
   ok: boolean;
-  mode: "test" | "bulk" | "selected";
+  mode: "test" | "bulk" | "selected" | "list";
   total: number;
   sent: number;
   failed: { email: string; error: string }[];
@@ -87,14 +100,22 @@ Sprachförderung.</p>
 <p>Viele Grüße,<br /><strong>Ihr DigiKI-Team</strong></p>`;
 
 export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) {
-  // ── Empfänger ────────────────────────────────────────────────────────────
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  // ── Empfänger (mehrere Quellen + manuelle Adressen) ──────────────────────
+  const [sources, setSources] = useState<Sources>({
+    accounts: [],
+    participants: [],
+    contacts: [],
+  });
   const [recipientsLoading, setRecipientsLoading] = useState(true);
   const [recipientsError, setRecipientsError] = useState<string | null>(null);
-  const [audience, setAudience] = useState<Audience>("confirmed");
-  // Einzelauswahl: ausgewählte E-Mails (lowercase als Schlüssel).
+  // Aus den Quellen ausgewählte E-Mails (lowercase als Schlüssel).
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Manuell hinzugefügte Adressen (nicht aus einer Quelle).
+  const [manual, setManual] = useState<string[]>([]);
+  const [manualInput, setManualInput] = useState("");
+  const [tab, setTab] = useState<SourceKey>("accounts");
   const [query, setQuery] = useState("");
+  const [accountFilter, setAccountFilter] = useState<"all" | "confirmed">("confirmed");
 
   async function loadRecipients() {
     setRecipientsLoading(true);
@@ -105,7 +126,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Fehler beim Laden");
-      setRecipients(data.recipients ?? []);
+      setSources({
+        accounts: data.accounts ?? [],
+        participants: data.participants ?? [],
+        contacts: data.contacts ?? [],
+      });
     } catch (err) {
       setRecipientsError(
         err instanceof Error ? err.message : "Unbekannter Fehler",
@@ -119,41 +144,50 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     void loadRecipients();
   }, []);
 
-  // Gruppen-Empfänger (für die Modi "Nur bestätigte" / "Alle").
-  const groupRecipients = useMemo(
-    () =>
-      audience === "confirmed"
-        ? recipients.filter((r) => r.confirmed)
-        : recipients,
-    [recipients, audience],
-  );
+  const sourceList = (key: SourceKey): Recipient[] =>
+    key === "accounts"
+      ? sources.accounts
+      : key === "participants"
+        ? sources.participants
+        : key === "contacts"
+          ? sources.contacts
+          : [];
 
-  // Tatsächlich ausgewählte Empfänger (Einzelauswahl).
-  const selectedRecipients = useMemo(
-    () => recipients.filter((r) => selected.has(r.email.toLowerCase())),
-    [recipients, selected],
-  );
-
-  // Wer bekommt die Mail beim Bulk-/Auswahl-Versand?
-  const targets =
-    audience === "selected" ? selectedRecipients : groupRecipients;
-
-  const confirmedCount = recipients.filter((r) => r.confirmed).length;
-  const unconfirmedCount = recipients.length - confirmedCount;
-
-  // Liste, die im Empfänger-Panel angezeigt wird. In der Einzelauswahl
-  // sind ALLE Accounts wählbar; sonst nur die jeweilige Gruppe.
-  const listSource = audience === "selected" ? recipients : groupRecipients;
-  const listShown = useMemo(() => {
+  // Liste im aktuellen Tab (Konto-Filter + Suche angewendet).
+  const currentList = useMemo(() => {
+    let list = sourceList(tab);
+    if (tab === "accounts" && accountFilter === "confirmed")
+      list = list.filter((r) => r.confirmed);
     const q = query.trim().toLowerCase();
-    if (!q) return listSource;
-    return listSource.filter(
-      (r) =>
-        r.email.toLowerCase().includes(q) ||
-        (r.full_name ?? "").toLowerCase().includes(q) ||
-        (r.school ?? "").toLowerCase().includes(q),
-    );
-  }, [listSource, query]);
+    if (q)
+      list = list.filter(
+        (r) =>
+          r.email.toLowerCase().includes(q) ||
+          (r.full_name ?? "").toLowerCase().includes(q) ||
+          (r.school ?? "").toLowerCase().includes(q),
+      );
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, sources, accountFilter, query]);
+
+  const countSelectedIn = (key: SourceKey) =>
+    sourceList(key).filter((r) => selected.has(r.email.toLowerCase())).length;
+
+  // Finale Empfängerliste: ausgewählte Quell-Adressen + manuelle, dedupliziert.
+  const finalEmails = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const add = (e: string) => {
+      const k = e.toLowerCase();
+      if (k && !seen.has(k)) {
+        seen.add(k);
+        out.push(e);
+      }
+    };
+    selected.forEach(add);
+    manual.forEach(add);
+    return out;
+  }, [selected, manual]);
 
   function toggleSelected(email: string) {
     const key = email.toLowerCase();
@@ -165,16 +199,44 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     });
   }
 
-  function selectAllShown() {
+  function addAllShown() {
     setSelected((prev) => {
       const next = new Set(prev);
-      listShown.forEach((r) => next.add(r.email.toLowerCase()));
+      currentList.forEach((r) => next.add(r.email.toLowerCase()));
       return next;
     });
   }
 
-  function clearSelection() {
+  function removeAllShown() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      currentList.forEach((r) => next.delete(r.email.toLowerCase()));
+      return next;
+    });
+  }
+
+  function clearAll() {
     setSelected(new Set());
+    setManual([]);
+  }
+
+  function addManual() {
+    const parts = manualInput
+      .split(/[\s,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const valid = parts.filter((p) => EMAIL_RE.test(p));
+    if (valid.length === 0) return;
+    setManual((prev) => {
+      const seen = new Set(prev.map((e) => e.toLowerCase()));
+      const fresh = valid.filter((e) => !seen.has(e.toLowerCase()));
+      return [...prev, ...fresh];
+    });
+    setManualInput("");
+  }
+
+  function removeManual(email: string) {
+    setManual((prev) => prev.filter((e) => e !== email));
   }
 
   // ── Editor-State ─────────────────────────────────────────────────────────
@@ -281,18 +343,12 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     setSendError(null);
     setSendResult(null);
     try {
-      const payload =
-        audience === "selected"
-          ? {
-              mode: "selected" as const,
-              recipients: selectedRecipients.map((r) => r.email),
-            }
-          : { mode: "bulk" as const, audience };
       const res = await fetch("/api/admin/mailings/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...payload,
+          mode: "list",
+          recipients: finalEmails,
           subject,
           html,
           useWrapper,
@@ -319,18 +375,14 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     <div className="space-y-8">
       {/* ═════════════════ Empfänger-Card ═════════════════ */}
       <section className="rounded-2xl border border-border bg-white shadow-sm">
-        <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+        {/* Kopf: Gesamtzahl + Aktionen */}
+        <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
           <div className="flex items-start gap-5">
-            <span
-              aria-hidden="true"
-              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-            >
+            <span aria-hidden="true" className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Users className="h-6 w-6" />
             </span>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-                Empfänger
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">Empfänger</p>
               <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-text">
                 {recipientsLoading ? (
                   <span className="inline-flex items-center gap-2 text-xl text-text-light">
@@ -338,129 +390,161 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </span>
                 ) : (
                   <>
-                    {targets.length}
-                    <span className="ml-2 text-base font-normal text-text-light">
-                      {audience === "selected" ? "ausgewählt" : `von ${recipients.length}`}
-                    </span>
+                    {finalEmails.length}
+                    <span className="ml-2 text-base font-normal text-text-light">ausgewählt</span>
                   </>
                 )}
               </p>
-              <p className="mt-2 text-sm text-text-light">
-                <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                  {confirmedCount} bestätigt
-                </span>
-                <span className="mx-2 text-border">·</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                  {unconfirmedCount} unbestätigt
-                </span>
-              </p>
-              {recipientsError && (
-                <p className="mt-2 text-sm text-red-700">{recipientsError}</p>
+              {!recipientsLoading && (
+                <p className="mt-2 text-xs text-text-light">
+                  {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
+                  {countSelectedIn("contacts")} Ansprechpartner · {manual.length} manuell
+                </p>
               )}
+              {recipientsError && <p className="mt-2 text-sm text-red-700">{recipientsError}</p>}
             </div>
           </div>
-
-          <div className="flex flex-col gap-3 md:items-end">
-            <div
-              role="radiogroup"
-              aria-label="Empfänger wählen"
-              className="inline-flex flex-wrap rounded-lg border border-border bg-bg p-1"
-            >
-              {([
-                { val: "confirmed", label: "Nur bestätigte" },
-                { val: "all", label: "Alle" },
-                { val: "selected", label: "Einzeln auswählen" },
-              ] as const).map((opt) => {
-                const active = audience === opt.val;
-                return (
-                  <button
-                    key={opt.val}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setAudience(opt.val)}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-text-light hover:text-text"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={loadRecipients}
-              disabled={recipientsLoading}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-light hover:text-primary transition-colors disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${
-                  recipientsLoading ? "animate-spin" : ""
-                }`}
-              />
+          <div className="flex items-center gap-3">
+            {finalEmails.length > 0 && (
+              <button type="button" onClick={clearAll} className="text-xs font-semibold text-text-light hover:text-red-700 hover:underline">
+                Auswahl zurücksetzen
+              </button>
+            )}
+            <button type="button" onClick={loadRecipients} disabled={recipientsLoading}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-light hover:text-primary transition-colors disabled:opacity-50">
+              <RefreshCw className={`h-3.5 w-3.5 ${recipientsLoading ? "animate-spin" : ""}`} />
               Liste aktualisieren
             </button>
           </div>
         </div>
 
-        {/* Empfänger-Liste. In der Einzelauswahl dauerhaft offen mit
-            Checkboxen; sonst zusammenklappbarer Schnellblick. */}
-        {!recipientsLoading && listSource.length > 0 && (
-          <div className="border-t border-border">
-            {audience === "selected" ? (
-              <RecipientPicker
-                listShown={listShown}
-                totalAvailable={listSource.length}
-                selected={selected}
-                query={query}
-                onQuery={setQuery}
-                onToggle={toggleSelected}
-                onSelectAllShown={selectAllShown}
-                onClear={clearSelection}
-                selectedCount={selectedRecipients.length}
-              />
-            ) : (
-              <details>
-                <summary className="cursor-pointer px-6 py-3 text-sm font-medium text-text-light hover:text-primary transition-colors md:px-8">
-                  Empfänger anzeigen ({groupRecipients.length})
-                </summary>
-                <ul className="max-h-64 overflow-y-auto px-6 pb-4 md:px-8">
-                  {groupRecipients.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-center justify-between border-b border-border/60 py-2 text-sm last:border-0"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-[13px] text-text">
-                          {r.email}
-                        </p>
-                        {(r.full_name || r.school) && (
-                          <p className="truncate text-xs text-text-light">
-                            {[r.full_name, r.school].filter(Boolean).join(" · ")}
-                          </p>
-                        )}
-                      </div>
-                      {r.confirmed ? (
-                        <span className="ml-3 inline-flex items-center gap-1 text-xs text-emerald-700">
-                          <ShieldCheck className="h-3 w-3" /> bestätigt
-                        </span>
-                      ) : (
-                        <span className="ml-3 inline-flex items-center gap-1 text-xs text-amber-700">
-                          <AlertTriangle className="h-3 w-3" /> offen
-                        </span>
-                      )}
+        {/* Tabs der Empfängerquellen */}
+        <div className="flex flex-wrap gap-1 border-b border-border px-4 pt-3 md:px-6" role="tablist" aria-label="Empfängerquelle">
+          {(["accounts", "participants", "contacts", "manual"] as SourceKey[]).map((key) => {
+            const active = tab === key;
+            const cnt = key === "manual" ? manual.length : countSelectedIn(key);
+            const avail = key === "manual" ? null : sourceList(key).length;
+            return (
+              <button key={key} type="button" role="tab" aria-selected={active}
+                onClick={() => { setTab(key); setQuery(""); }}
+                className={`inline-flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  active ? "border-b-2 border-primary text-primary" : "text-text-light hover:text-text"
+                }`}>
+                {SOURCE_LABEL[key]}
+                <span className={`rounded-full px-1.5 py-0.5 text-[11px] tabular-nums ${cnt > 0 ? "bg-primary/10 text-primary" : "bg-bg text-text-light"}`}>
+                  {cnt}{avail != null ? `/${avail}` : ""}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab-Inhalt */}
+        <div className="p-4 md:p-6">
+          {recipientsLoading ? (
+            <p className="py-6 text-sm text-text-light">Lade Empfänger …</p>
+          ) : tab === "manual" ? (
+            <div>
+              <p className="mb-3 text-sm text-text-light">
+                Adressen, die nirgendwo automatisch hinterlegt sind – z. B. externe
+                Gäste oder Kooperationspartner.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input type="text" value={manualInput} onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
+                  placeholder="name@schule.de, weitere@beispiel.de"
+                  className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-strong/40" />
+                <button type="button" onClick={addManual}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
+                  Hinzufügen
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-text-light">
+                Mehrere Adressen mit Komma, Semikolon oder Leerzeichen trennen.
+              </p>
+              {manual.length > 0 ? (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {manual.map((e) => (
+                    <li key={e} className="inline-flex items-center gap-1.5 rounded-full bg-bg px-2.5 py-1 text-xs text-text">
+                      {e}
+                      <button type="button" onClick={() => removeManual(e)} aria-label={`${e} entfernen`} className="text-text-light hover:text-red-700">
+                        <X className="h-3 w-3" />
+                      </button>
                     </li>
                   ))}
                 </ul>
-              </details>
-            )}
-          </div>
-        )}
+              ) : (
+                <p className="mt-3 text-sm text-text-light">Noch keine manuellen Adressen.</p>
+              )}
+            </div>
+          ) : (
+            <>
+              {tab === "accounts" && (
+                <div className="mb-3 inline-flex rounded-lg border border-border bg-bg p-1" role="radiogroup" aria-label="Konten filtern">
+                  {([["confirmed", "Nur bestätigte"], ["all", "Alle"]] as const).map(([v, l]) => (
+                    <button key={v} type="button" role="radio" aria-checked={accountFilter === v} onClick={() => setAccountFilter(v)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${accountFilter === v ? "bg-white text-primary shadow-sm" : "text-text-light hover:text-text"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light" aria-hidden="true" />
+                <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Suchen (Name, Schule, E-Mail) …" aria-label="Empfänger suchen"
+                  className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-strong/40" />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-primary">
+                  {countSelectedIn(tab)} von {sourceList(tab).length} ausgewählt
+                </span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={addAllShown} className="font-semibold text-primary hover:underline">
+                    {query.trim() ? `${currentList.length} Treffer hinzufügen` : "Alle hinzufügen"}
+                  </button>
+                  <button type="button" onClick={removeAllShown} className="font-semibold text-text-light hover:text-red-700 hover:underline">
+                    Entfernen
+                  </button>
+                </div>
+              </div>
+              <ul className="mt-3 max-h-72 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border" aria-label={SOURCE_LABEL[tab]}>
+                {currentList.length === 0 ? (
+                  <li className="px-3 py-4 text-sm text-text-light">
+                    {sourceList(tab).length === 0
+                      ? "Keine Einträge in dieser Quelle."
+                      : "Keine Treffer."}
+                  </li>
+                ) : (
+                  currentList.map((r) => {
+                    const checked = selected.has(r.email.toLowerCase());
+                    return (
+                      <li key={r.id}>
+                        <label className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm transition-colors ${checked ? "bg-primary/5" : "hover:bg-bg"}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleSelected(r.email)}
+                            className="h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-accent-strong" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium text-text">{r.full_name || r.email}</span>
+                            <span className="block truncate text-xs text-text-light">
+                              {r.full_name ? r.email : null}
+                              {r.full_name && r.school ? " · " : null}
+                              {r.school ?? null}
+                            </span>
+                          </span>
+                          {tab === "accounts" &&
+                            (r.confirmed ? (
+                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label="bestätigt" />
+                            ) : (
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-label="unbestätigt" />
+                            ))}
+                        </label>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </>
+          )}
+        </div>
       </section>
 
       {/* ═════════════════ Editor + Preview ═════════════════ */}
@@ -703,22 +787,20 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
             </div>
           </div>
 
-          {/* Versand an Gruppe oder Auswahl */}
+          {/* Versand an die zusammengestellte Empfängerliste */}
           <div className="border-t border-border pt-5">
             <button
               type="button"
               onClick={() => setShowConfirm(true)}
-              disabled={sending || !canSend || targets.length === 0}
+              disabled={sending || !canSend || finalEmails.length === 0}
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-strong px-5 py-3 text-base font-bold text-white transition-colors hover:bg-accent-strong/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="h-4 w-4" />
-              {audience === "selected"
-                ? `An ${targets.length} ausgewählte Empfänger versenden`
-                : `An ${targets.length} Empfänger versenden`}
+              An {finalEmails.length} Empfänger versenden
             </button>
             <p className="mt-2 text-center text-xs text-text-light">
-              {audience === "selected" && targets.length === 0
-                ? "Wählen Sie oben mindestens einen Empfänger aus."
+              {finalEmails.length === 0
+                ? "Wählen Sie oben mindestens einen Empfänger aus (oder fügen Sie eine Adresse hinzu)."
                 : "Versand erfolgt einzeln (kein BCC), DSGVO-konform."}
             </p>
           </div>
@@ -832,7 +914,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   id="confirm-title"
                   className="mt-1 text-lg font-bold text-primary"
                 >
-                  An {targets.length} Empfänger senden?
+                  An {finalEmails.length} Empfänger senden?
                 </h3>
               </div>
               <button
@@ -854,14 +936,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-border bg-bg/40 p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-light">
-                    Zielgruppe
+                    Zusammensetzung
                   </p>
                   <p className="mt-1 font-medium text-text">
-                    {audience === "confirmed"
-                      ? "Nur bestätigte Accounts"
-                      : audience === "all"
-                        ? "Alle Accounts"
-                        : "Ausgewählte Empfänger"}
+                    {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
+                    {countSelectedIn("contacts")} Ansprechpartner · {manual.length} manuell
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/40 p-3">
@@ -873,18 +952,18 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </p>
                 </div>
               </div>
-              {targets.length > 0 && (
+              {finalEmails.length > 0 && (
                 <details className="rounded-lg border border-border bg-bg/40 p-3">
                   <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-[0.15em] text-text-light">
                     Erste Empfänger anzeigen
                   </summary>
                   <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto font-mono text-xs text-text-light">
-                    {targets.slice(0, 10).map((r) => (
-                      <li key={r.id}>{r.email}</li>
+                    {finalEmails.slice(0, 10).map((e) => (
+                      <li key={e}>{e}</li>
                     ))}
-                    {targets.length > 10 && (
+                    {finalEmails.length > 10 && (
                       <li className="italic">
-                        … und {targets.length - 10} weitere
+                        … und {finalEmails.length - 10} weitere
                       </li>
                     )}
                   </ul>
@@ -914,131 +993,6 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/**
- * Empfänger-Auswahl für den Einzelversand: Suche + Checkboxen +
- * „Alle auswählen / Auswahl löschen". Adressen werden case-insensitiv
- * über die E-Mail identifiziert (selected enthält lowercase-Keys).
- */
-function RecipientPicker({
-  listShown,
-  totalAvailable,
-  selected,
-  query,
-  onQuery,
-  onToggle,
-  onSelectAllShown,
-  onClear,
-  selectedCount,
-}: {
-  listShown: Recipient[];
-  totalAvailable: number;
-  selected: Set<string>;
-  query: string;
-  onQuery: (q: string) => void;
-  onToggle: (email: string) => void;
-  onSelectAllShown: () => void;
-  onClear: () => void;
-  selectedCount: number;
-}) {
-  return (
-    <div className="px-6 py-4 md:px-8">
-      {/* Suche */}
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Nach Name, Schule oder E-Mail suchen …"
-          aria-label="Empfänger suchen"
-          className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-strong/40"
-        />
-      </div>
-
-      {/* Aktionsleiste */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
-          <UserCheck className="h-3.5 w-3.5" aria-hidden="true" />
-          {selectedCount} ausgewählt
-        </span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onSelectAllShown}
-            className="font-semibold text-primary hover:underline"
-          >
-            {query.trim()
-              ? `${listShown.length} Treffer auswählen`
-              : `Alle ${totalAvailable} auswählen`}
-          </button>
-          {selectedCount > 0 && (
-            <button
-              type="button"
-              onClick={onClear}
-              className="font-semibold text-text-light hover:text-red-700 hover:underline"
-            >
-              Auswahl löschen
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Liste mit Checkboxen */}
-      <ul className="mt-3 max-h-72 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border">
-        {listShown.length === 0 ? (
-          <li className="px-3 py-4 text-sm text-text-light">
-            Keine Empfänger gefunden.
-          </li>
-        ) : (
-          listShown.map((r) => {
-            const checked = selected.has(r.email.toLowerCase());
-            return (
-              <li key={r.id}>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                    checked ? "bg-primary/5" : "hover:bg-bg"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => onToggle(r.email)}
-                    className="h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-accent-strong"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-text">
-                      {r.full_name || r.email}
-                    </span>
-                    <span className="block truncate text-xs text-text-light">
-                      {r.full_name ? `${r.email}` : null}
-                      {r.full_name && r.school ? " · " : null}
-                      {r.school ?? null}
-                    </span>
-                  </span>
-                  {r.confirmed ? (
-                    <ShieldCheck
-                      className="h-3.5 w-3.5 shrink-0 text-emerald-600"
-                      aria-label="bestätigt"
-                    />
-                  ) : (
-                    <AlertTriangle
-                      className="h-3.5 w-3.5 shrink-0 text-amber-600"
-                      aria-label="unbestätigt"
-                    />
-                  )}
-                </label>
-              </li>
-            );
-          })
-        )}
-      </ul>
     </div>
   );
 }
