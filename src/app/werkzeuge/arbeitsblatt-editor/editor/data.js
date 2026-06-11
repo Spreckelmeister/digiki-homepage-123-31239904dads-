@@ -27,14 +27,6 @@
 
   // Block palette grouped
   const PALETTE = [
-    { group: "Deutschunterricht", items: [
-      { type: "syllable", label: "Silbentext",    icon: "syllable", desc: "Silben oder Selbstlaute färben", hot: true },
-      { type: "reading",  label: "Lesetext",      icon: "reading", desc: "Fließtext zum Lesen" },
-      { type: "cloze",    label: "Lückentext",    icon: "cloze",   desc: "Wörter einsetzen" },
-      { type: "wordplay", label: "Wörter & Sätze", icon: "wordplay", desc: "Schütteln, Wörterschlange, Großschreibung", hot: true },
-      { type: "wordsearch", label: "Wörtersuchsel", icon: "wordsearch", desc: "Wörter finden", hot: true },
-      { type: "lines",    label: "Schreiblinien", icon: "lines",   desc: "Lineatur, auch zum Nachspuren" },
-    ]},
     { group: "Allgemein", items: [
       { type: "title",    label: "Überschrift",   icon: "title",  desc: "Titelzeile" },
       { type: "task",     label: "Arbeitsauftrag", icon: "task",  desc: "Aufgabe mit Symbol" },
@@ -63,6 +55,14 @@
       { type: "sach",     label: "Sachaufgabe",     icon: "sach",     desc: "Frage · Rechnung · Antwort" },
       { type: "clock",    label: "Uhrzeit",        icon: "clock", desc: "Uhr ablesen" },
       { type: "selfcheck", label: "Selbstkontrolle", icon: "selfcheck", desc: "Lösungen zum Selbst-Prüfen", hot: true },
+    ]},
+    { group: "Deutschunterricht", items: [
+      { type: "syllable", label: "Silbentext",    icon: "syllable", desc: "Silben oder Selbstlaute färben", hot: true },
+      { type: "reading",  label: "Lesetext",      icon: "reading", desc: "Fließtext zum Lesen" },
+      { type: "cloze",    label: "Lückentext",    icon: "cloze",   desc: "Wörter einsetzen" },
+      { type: "wordplay", label: "Wörter & Sätze", icon: "wordplay", desc: "Schütteln, Wörterschlange, Großschreibung", hot: true },
+      { type: "wordsearch", label: "Wörtersuchsel", icon: "wordsearch", desc: "Wörter finden", hot: true },
+      { type: "lines",    label: "Schreiblinien", icon: "lines",   desc: "Lineatur, auch zum Nachspuren" },
     ]},
     { group: "Medien", items: [
       { type: "image",    label: "Bild / Clipart", icon: "image", desc: "mehrere, beschriften, zählen" },
