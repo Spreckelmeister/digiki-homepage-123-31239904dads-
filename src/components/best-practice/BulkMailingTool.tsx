@@ -34,6 +34,7 @@ type Sources = {
   accounts: Recipient[];
   participants: Recipient[];
   contacts: Recipient[];
+  manual: Recipient[];
 };
 
 const SOURCE_LABEL: Record<SourceKey, string> = {
@@ -100,19 +101,19 @@ Sprachförderung.</p>
 <p>Viele Grüße,<br /><strong>Ihr DigiKI-Team</strong></p>`;
 
 export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) {
-  // ── Empfänger (mehrere Quellen + manuelle Adressen) ──────────────────────
+  // ── Empfänger (mehrere Quellen + dauerhaft gespeicherte manuelle) ────────
   const [sources, setSources] = useState<Sources>({
     accounts: [],
     participants: [],
     contacts: [],
+    manual: [],
   });
   const [recipientsLoading, setRecipientsLoading] = useState(true);
   const [recipientsError, setRecipientsError] = useState<string | null>(null);
-  // Aus den Quellen ausgewählte E-Mails (lowercase als Schlüssel).
+  // Ausgewählte E-Mails (lowercase als Schlüssel) – über ALLE Quellen.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Manuell hinzugefügte Adressen (nicht aus einer Quelle).
-  const [manual, setManual] = useState<string[]>([]);
   const [manualInput, setManualInput] = useState("");
+  const [manualBusy, setManualBusy] = useState(false);
   const [tab, setTab] = useState<SourceKey>("accounts");
   const [query, setQuery] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | "confirmed">("confirmed");
@@ -126,10 +127,19 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Fehler beim Laden");
+      const manualList: Recipient[] = data.manual ?? [];
       setSources({
         accounts: data.accounts ?? [],
         participants: data.participants ?? [],
         contacts: data.contacts ?? [],
+        manual: manualList,
+      });
+      // Gespeicherte manuelle Adressen sind dauerhaft im Verteiler →
+      // standardmäßig vorausgewählt.
+      setSelected((prev) => {
+        const next = new Set(prev);
+        manualList.forEach((m) => next.add(m.email.toLowerCase()));
+        return next;
       });
     } catch (err) {
       setRecipientsError(
@@ -144,18 +154,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     void loadRecipients();
   }, []);
 
-  const sourceList = (key: SourceKey): Recipient[] =>
-    key === "accounts"
-      ? sources.accounts
-      : key === "participants"
-        ? sources.participants
-        : key === "contacts"
-          ? sources.contacts
-          : [];
+  const sourceList = (key: SourceKey): Recipient[] => sources[key];
 
   // Liste im aktuellen Tab (Konto-Filter + Suche angewendet).
   const currentList = useMemo(() => {
-    let list = sourceList(tab);
+    let list = sources[tab];
     if (tab === "accounts" && accountFilter === "confirmed")
       list = list.filter((r) => r.confirmed);
     const q = query.trim().toLowerCase();
@@ -167,27 +170,13 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           (r.school ?? "").toLowerCase().includes(q),
       );
     return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, sources, accountFilter, query]);
 
   const countSelectedIn = (key: SourceKey) =>
-    sourceList(key).filter((r) => selected.has(r.email.toLowerCase())).length;
+    sources[key].filter((r) => selected.has(r.email.toLowerCase())).length;
 
-  // Finale Empfängerliste: ausgewählte Quell-Adressen + manuelle, dedupliziert.
-  const finalEmails = useMemo(() => {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    const add = (e: string) => {
-      const k = e.toLowerCase();
-      if (k && !seen.has(k)) {
-        seen.add(k);
-        out.push(e);
-      }
-    };
-    selected.forEach(add);
-    manual.forEach(add);
-    return out;
-  }, [selected, manual]);
+  // Finale Empfängerliste = alle ausgewählten Adressen.
+  const finalEmails = useMemo(() => Array.from(selected), [selected]);
 
   function toggleSelected(email: string) {
     const key = email.toLowerCase();
@@ -215,28 +204,76 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     });
   }
 
+  // Wirklich ALLE Empfänger aus allen Quellen auf einen Klick.
+  function selectEverything() {
+    setSelected(() => {
+      const next = new Set<string>();
+      [
+        ...sources.accounts,
+        ...sources.participants,
+        ...sources.contacts,
+        ...sources.manual,
+      ].forEach((r) => next.add(r.email.toLowerCase()));
+      return next;
+    });
+  }
+
+  // Nur die Auswahl leeren – gespeicherte manuelle Adressen bleiben erhalten.
   function clearAll() {
     setSelected(new Set());
-    setManual([]);
   }
 
-  function addManual() {
-    const parts = manualInput
+  // Manuelle Adressen DAUERHAFT speichern (DB), neue gleich auswählen.
+  async function addManual() {
+    const emails = manualInput
       .split(/[\s,;]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
-    const valid = parts.filter((p) => EMAIL_RE.test(p));
-    if (valid.length === 0) return;
-    setManual((prev) => {
-      const seen = new Set(prev.map((e) => e.toLowerCase()));
-      const fresh = valid.filter((e) => !seen.has(e.toLowerCase()));
-      return [...prev, ...fresh];
-    });
-    setManualInput("");
+      .filter((p) => EMAIL_RE.test(p));
+    if (emails.length === 0 || manualBusy) return;
+    setManualBusy(true);
+    setRecipientsError(null);
+    try {
+      const res = await fetch("/api/admin/mailings/extra-recipients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emails }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Speichern fehlgeschlagen");
+      const manualList: Recipient[] = data.recipients ?? [];
+      setSources((prev) => ({ ...prev, manual: manualList }));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        emails.forEach((e) => next.add(e.toLowerCase()));
+        return next;
+      });
+      setManualInput("");
+    } catch (err) {
+      setRecipientsError(err instanceof Error ? err.message : "Fehler");
+    } finally {
+      setManualBusy(false);
+    }
   }
 
-  function removeManual(email: string) {
-    setManual((prev) => prev.filter((e) => e !== email));
+  async function removeManual(email: string) {
+    setSources((prev) => ({
+      ...prev,
+      manual: prev.manual.filter((m) => m.email !== email),
+    }));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(email.toLowerCase());
+      return next;
+    });
+    try {
+      await fetch("/api/admin/mailings/extra-recipients", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    } catch {
+      /* lokal schon entfernt; ein Reload synchronisiert wieder */
+    }
   }
 
   // ── Editor-State ─────────────────────────────────────────────────────────
@@ -398,13 +435,22 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
               {!recipientsLoading && (
                 <p className="mt-2 text-xs text-text-light">
                   {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
-                  {countSelectedIn("contacts")} Ansprechpartner · {manual.length} manuell
+                  {countSelectedIn("contacts")} Ansprechpartner · {countSelectedIn("manual")} manuell
                 </p>
               )}
               {recipientsError && <p className="mt-2 text-sm text-red-700">{recipientsError}</p>}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={selectEverything}
+              disabled={recipientsLoading}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Users className="h-4 w-4" aria-hidden="true" />
+              Alle auswählen
+            </button>
             {finalEmails.length > 0 && (
               <button type="button" onClick={clearAll} className="text-xs font-semibold text-text-light hover:text-red-700 hover:underline">
                 Auswahl zurücksetzen
@@ -422,8 +468,8 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
         <div className="flex flex-wrap gap-1 border-b border-border px-4 pt-3 md:px-6" role="tablist" aria-label="Empfängerquelle">
           {(["accounts", "participants", "contacts", "manual"] as SourceKey[]).map((key) => {
             const active = tab === key;
-            const cnt = key === "manual" ? manual.length : countSelectedIn(key);
-            const avail = key === "manual" ? null : sourceList(key).length;
+            const cnt = countSelectedIn(key);
+            const avail = sourceList(key).length;
             return (
               <button key={key} type="button" role="tab" aria-selected={active}
                 onClick={() => { setTab(key); setQuery(""); }}
@@ -447,34 +493,42 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
             <div>
               <p className="mb-3 text-sm text-text-light">
                 Adressen, die nirgendwo automatisch hinterlegt sind – z. B. externe
-                Gäste oder Kooperationspartner.
+                Gäste oder Kooperationspartner. Sie werden <strong>dauerhaft
+                gespeichert</strong> und bleiben im Verteiler.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input type="text" value={manualInput} onChange={(e) => setManualInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addManual(); } }}
                   placeholder="name@schule.de, weitere@beispiel.de"
                   className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-strong/40" />
-                <button type="button" onClick={addManual}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
-                  Hinzufügen
+                <button type="button" onClick={() => void addManual()} disabled={manualBusy}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50">
+                  {manualBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Speichern
                 </button>
               </div>
               <p className="mt-1.5 text-xs text-text-light">
                 Mehrere Adressen mit Komma, Semikolon oder Leerzeichen trennen.
               </p>
-              {manual.length > 0 ? (
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {manual.map((e) => (
-                    <li key={e} className="inline-flex items-center gap-1.5 rounded-full bg-bg px-2.5 py-1 text-xs text-text">
-                      {e}
-                      <button type="button" onClick={() => removeManual(e)} aria-label={`${e} entfernen`} className="text-text-light hover:text-red-700">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </li>
-                  ))}
+              {sources.manual.length > 0 ? (
+                <ul className="mt-3 max-h-72 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border">
+                  {sources.manual.map((r) => {
+                    const checked = selected.has(r.email.toLowerCase());
+                    return (
+                      <li key={r.id} className={`flex items-center gap-3 px-3 py-2.5 text-sm ${checked ? "bg-primary/5" : ""}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleSelected(r.email)}
+                          className="h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-accent-strong" />
+                        <span className="min-w-0 flex-1 truncate text-text">{r.email}</span>
+                        <button type="button" onClick={() => void removeManual(r.email)} aria-label={`${r.email} löschen`}
+                          className="shrink-0 rounded-md p-1 text-text-light transition-colors hover:bg-red-50 hover:text-red-700">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm text-text-light">Noch keine manuellen Adressen.</p>
+                <p className="mt-3 text-sm text-text-light">Noch keine gespeicherten Adressen.</p>
               )}
             </div>
           ) : (
@@ -940,7 +994,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </p>
                   <p className="mt-1 font-medium text-text">
                     {countSelectedIn("accounts")} Konten · {countSelectedIn("participants")} Teilnehmer ·{" "}
-                    {countSelectedIn("contacts")} Ansprechpartner · {manual.length} manuell
+                    {countSelectedIn("contacts")} Ansprechpartner · {countSelectedIn("manual")} manuell
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/40 p-3">

@@ -151,10 +151,28 @@ export async function GET(_request: NextRequest) {
       })),
   ).sort((a, b) => (a.school ?? "").localeCompare(b.school ?? "", "de"));
 
+  // ── 4. Dauerhaft gespeicherte manuelle Adressen ───────────────────
+  const { data: extraData } = await admin
+    .from("mailing_extra_recipients")
+    .select("id, email, label")
+    .order("created_at", { ascending: true });
+  const manual = dedupe(
+    ((extraData ?? []) as Array<{ id: string; email: string; label: string | null }>).map(
+      (m) => ({
+        id: m.id,
+        email: m.email,
+        full_name: m.label ?? null,
+        school: null,
+        confirmed: true,
+      }),
+    ),
+  );
+
   return NextResponse.json({
     accounts,
     participants,
     contacts,
+    manual,
     // Abwärtskompatibel: einige Stellen lesen evtl. noch `recipients`.
     recipients: accounts,
     total: accounts.length,
