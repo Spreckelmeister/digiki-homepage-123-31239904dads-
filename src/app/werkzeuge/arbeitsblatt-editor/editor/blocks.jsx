@@ -15,6 +15,22 @@ import { Icon } from "./icons";
   // ---------- Syllable text ----------
   function Syllable({ block }) {
     const sch = schemeOf(block.scheme);
+    // Modus „Selbstlaute": nur die Vokale werden farbig hervorgehoben –
+    // nutzt die gewählte Farbe des Silben-Schemas (erste Farbe).
+    if (block.mode === "selbstlaute") {
+      const VOWELS = "aeiouäöüAEIOUÄÖÜ";
+      const col = sch.arcs ? "var(--syl-red)" : sch.colors[0];
+      return (
+        <div className={fontClass(block.font)}
+             style={{ fontSize: block.size, lineHeight: 1.85, color: "var(--ink)", letterSpacing: ".2px", whiteSpace: "pre-wrap" }}>
+          {block.text.split("").map((ch, i) =>
+            VOWELS.indexOf(ch) >= 0
+              ? <span key={i} style={{ color: col, fontWeight: 700 }}>{ch}</span>
+              : <span key={i}>{ch}</span>
+          )}
+        </div>
+      );
+    }
     const words = block.text.split(/(\s+)/); // keep whitespace tokens
     return (
       <div className={fontClass(block.font)}
@@ -102,6 +118,85 @@ import { Icon } from "./icons";
             <span style={{ flex: 1 }}>{ln || "\u00a0"}</span>
           </p>
         ))}
+      </div>
+    );
+  }
+
+  // ---------- Wörter & Sätze (Schütteln · Wörterschlange · Großschreibung) ----------
+  function WordPlay({ block, solve }) {
+    const mode = block.mode || "woerter";
+    const sz = block.size || 24;
+    const seed = block.seed || 1;
+    const fc = fontClass(block.font);
+    const raw = block.text || "";
+    const words = raw.split(/[\s,]+/).map(w => w.trim()).filter(Boolean);
+    const sentences = raw.split("\n").map(s => s.trim()).filter(Boolean);
+
+    const ansLine = (w, key) => (
+      <span key={key} data-answer={w} style={{ display: "inline-block", minWidth: Math.max(70, w.length * sz * 0.62), borderBottom: "2px solid var(--ink-soft)", height: sz * 1.1, color: solve ? "var(--sol)" : "transparent", fontWeight: 700, textAlign: "center" }}>{w}</span>
+    );
+    // Buchstaben mischen – deterministisch und garantiert ungleich dem Original.
+    const scrambleLetters = (w, k) => {
+      const chars = w.toUpperCase().split("");
+      if (chars.length < 2) return chars;
+      let out = seededShuffle(chars, seed + k * 31);
+      if (out.join("") === chars.join("")) out = [...chars.slice(1), chars[0]];
+      return out;
+    };
+
+    if (mode === "woerter") {
+      const cols = Math.min(4, Math.max(1, block.cols || 3));
+      return (
+        <div className={fc} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "16px 28px", fontSize: sz, color: "var(--ink)" }}>
+          {words.map((w, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ letterSpacing: 4, fontWeight: 700 }}>{scrambleLetters(w, i).join(" ")}</span>
+              <span style={{ color: "var(--muted)" }}>→</span>
+              {ansLine(w, "a")}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (mode === "schlange") {
+      return (
+        <div className={fc} style={{ fontSize: sz, color: "var(--ink)", fontWeight: 700, letterSpacing: 2, lineHeight: 1.9, wordBreak: "break-word" }}>
+          {words.map((w, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span style={{ color: solve ? "var(--sol)" : "transparent", fontWeight: 800, margin: "0 1px" }}>|</span>}
+              <span>{w.toUpperCase()}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    // satz | gross: je Zeile eine Aufgabe + Schreiblinie, Lösung darunter.
+    return (
+      <div className={fc} style={{ fontSize: sz, color: "var(--ink)", display: "flex", flexDirection: "column", gap: 16 }}>
+        {sentences.map((s, i) => {
+          const sWords = s.split(/\s+/).filter(Boolean);
+          let shown;
+          if (mode === "satz") {
+            let order = seededShuffle(sWords.map((_, j) => j), seed + i * 17);
+            if (sWords.length > 1 && order.every((v, k) => v === k)) order = [...order.slice(1), order[0]];
+            shown = order.map(j => sWords[j]);
+          } else {
+            shown = [s.toLowerCase()];
+          }
+          return (
+            <div key={i}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: mode === "satz" ? 12 : 0, fontWeight: mode === "satz" ? 700 : 600 }}>
+                {mode === "satz"
+                  ? shown.map((w, j) => <span key={j} style={{ padding: "2px 10px", background: "var(--teal-50)", borderRadius: 8 }}>{w}</span>)
+                  : <span style={{ letterSpacing: ".3px" }}>{shown[0]}</span>}
+              </div>
+              <div style={{ borderBottom: "2px solid var(--ink-soft)", height: sz * 1.5, marginTop: 6 }} />
+              {solve && <div style={{ marginTop: 4, color: "var(--sol)", fontWeight: 700 }}>{s}</div>}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -1600,6 +1695,7 @@ import { Icon } from "./icons";
       case "syllable": return <Syllable block={block} />;
       case "cloze":    return <Cloze block={block} solve={solve} />;
       case "reading":  return <Reading block={block} />;
+      case "wordplay": return withPrompt(block, <WordPlay block={block} solve={solve} />);
       case "mc":       return <MultipleChoice block={block} solve={solve} />;
       case "match":    return <Match block={block} solve={solve} />;
       case "name":     return <NameField block={block} />;

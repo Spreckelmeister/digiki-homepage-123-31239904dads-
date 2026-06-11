@@ -54,7 +54,8 @@ function makeBlock(type, level) {
   const base = { id: nid(), type };
   switch (type) {
     case "title":    return { ...base, text: "Neue Überschrift", align: "center", size: 30 };
-    case "syllable": return { ...base, text: "Lies den Text in Silben. Im Wald lebt ein kleiner Igel.", scheme: "blaurot", font: "grundschrift", size: 26 };
+    case "syllable": return { ...base, mode: "silben", text: "Lies den Text in Silben. Im Wald lebt ein kleiner Igel.", scheme: "blaurot", font: "grundschrift", size: 26 };
+    case "wordplay": return { ...base, mode: "woerter", text: "Igel\nBaum\nWald\nNest\nBlatt", font: "grundschrift", size: 24, cols: 3, seed: DKU.rint(1, 99999) };
     case "cloze":    return { ...base, text: "Der __Hund__ läuft über die __Wiese__.", font: "grundschrift", size: 20, bank: true };
     case "reading":  return { ...base, text: "Schreibe hier deinen Lesetext.\nJeder Satz kommt in eine neue Zeile.", font: "druck", size: 18, numbers: false, align: "left" };
     case "lines":    return { ...base, count: 3, height: 28, variant: "haus", startDot: false };

@@ -35,6 +35,7 @@ const ICON_PATHS = {
   // palette block types
   title:   '<path d="M5 6h14M5 12h9M5 18h12"/>',
   syllable:'<rect x="3" y="6" width="8" height="12" rx="2"/><rect x="13" y="6" width="8" height="12" rx="2"/>',
+  wordplay: '<path d="M3 7h5l2 3M21 7h-5l-2 3"/><path d="M3 17h4l3-5M21 17h-4l-3-5"/><path d="m18 5-2 2 2 2M6 5l2 2-2 2" stroke-width="1.4"/>',
   reading: '<path d="M4 5h16M4 9h16M4 13h11M4 17h14"/>',
   cloze:   '<path d="M4 7h6M14 7h6M4 12h16M4 17h9"/><rect x="11" y="4.5" width="2.5" height="5" rx=".5" stroke-dasharray="2 1.4"/>',
   lines:   '<path d="M3 8h18M3 12h18M3 16h18" stroke-dasharray="0"/><path d="M3 12h18" opacity=".4"/>',

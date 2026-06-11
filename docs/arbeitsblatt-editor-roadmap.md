@@ -27,6 +27,28 @@
   Betrag (`= ____ €`). Einstellbar: Betrag bis (1 €–100 €), Münzen pro Aufgabe,
   Scheine an/aus, Anzahl/Spalten/Größe; „Aufgaben würfeln"; Beträge exakt; Lösung
   im Lösungsblatt. Differenzierung leicht/mittel/schwer steuert Betrag & Stückzahl.
+  Zweiter Modus **„Bezahlen"**: Zielbetrag vorgegeben, Kinder malen passende
+  Münzen/Scheine in ein Feld, Lösungsblatt zeigt eine gültige Kombination.
+- **Palette in zwei Deutsch-/Allgemein-Kategorien** (UX) – die frühere Gruppe
+  „Text & Sprache" ist aufgeteilt in **„Deutschunterricht"** (Silbentext,
+  Lesetext, Lückentext, Wörter & Sätze, Wörtersuchsel, Schreiblinien) und
+  **„Allgemein"** (Überschrift, Arbeitsauftrag, Ankreuzen, Zuordnen, Tabelle).
+- **Wörter & Sätze** (Phase 3.1 + 3.3) – Baustein `wordplay` mit vier Modi:
+  **Schüttelwörter** (Buchstaben mischen → Wort finden), **Schüttelsätze**
+  (Wortreihenfolge mischen → Satz ordnen), **Wörterschlange** (Wörter ohne Lücken
+  aneinander → trennen) und **Großschreibung** (Satz klein → richtig abschreiben).
+  Lehrkraft tippt Wörter/Sätze, der Rest passiert automatisch; deterministisches
+  „Neu mischen"; Lösungen im Lösungsblatt; Arbeitsauftrag je Modus automatisch.
+- **Selbstlaut-Hervorhebung** (Phase 3.2) – zusätzlicher Modus im Silben-Baustein
+  (`syllable.mode = "selbstlaute"`): färbt statt der Silben nur die Selbstlaute
+  (a, e, i, o, u + Umlaute) in der gewählten Schema-Farbe.
+- **Sach- & Lesetext-Vorrat** (Phase 3.4) – im Lesetext-Baustein eine kuratierte,
+  nach Kategorie (Tiere · Jahreszeiten & Natur · Sachwissen · Geschichten) und
+  Klassenstufe gruppierte Auswahl (`READING_TEXTS` in `data.js`, ~28 geprüfte,
+  grundschulgerechte Texte). Ein Tipp auf einen Eintrag setzt den Text ein und
+  bleibt frei editierbar; eigene Texte weiterhin direkt eingebbar. Ergänzt den
+  vorhandenen KI-Assistenten (Text on demand) um sofort verfügbare Fertigtexte.
+  **→ Damit ist Phase 3 (Deutsch-Werkzeuge) vollständig abgeschlossen.**
 - **Schriftliche Rechenverfahren** (Phase 2) – Baustein `writtenmath`:
   schriftliche **Addition, Subtraktion, Multiplikation und Division** in
   Stellenwert-Notation. Add./Sub. mit zuschaltbarer Überträge-Zeile; Multiplikation

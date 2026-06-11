@@ -141,17 +141,56 @@ import { Icon } from "./icons";
           requestAnimationFrame(() => { try { ta.focus(); ta.selectionStart = ta.selectionEnd = s + 1; } catch (_) {} });
         } else { patch({ text: (block.text || "") + "·" }); }
       };
+      const symode = block.mode || "silben";
       return (<>
+        <Section title="Hervorheben">
+          <Segmented value={symode} onChange={v => patch({ mode: v })} options={[{ v: "silben", label: "Silben" }, { v: "selbstlaute", label: "Selbstlaute" }]} />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
+            {symode === "selbstlaute" ? "Färbt nur die Selbstlaute (a, e, i, o, u und Umlaute)." : "Färbt die Silben abwechselnd zweifarbig."}
+          </p>
+        </Section>
         <Section title="Text">
           <TextArea value={block.text} onChange={v => patch({ text: v })} rows={5} placeholder="Text eingeben – Silben werden automatisch eingefärbt" />
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 9px", flex: "none" }} onMouseDown={e => e.preventDefault()} onClick={insertSep}>· Silbe trennen</button>
-            <span style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>Falsche Trennung? Setze · oder | an die richtige Stelle (z. B. Sa·la·man·der).</span>
-          </div>
+          {symode === "silben" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+              <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 9px", flex: "none" }} onMouseDown={e => e.preventDefault()} onClick={insertSep}>· Silbe trennen</button>
+              <span style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>Falsche Trennung? Setze · oder | an die richtige Stelle (z. B. Sa·la·man·der).</span>
+            </div>
+          )}
         </Section>
-        <Section title="Silben-Farben"><SchemePicker value={block.scheme} onChange={v => patch({ scheme: v })} /></Section>
+        <Section title={symode === "selbstlaute" ? "Farbe" : "Silben-Farben"}><SchemePicker value={block.scheme} onChange={v => patch({ scheme: v })} /></Section>
         <Section title="Schrift"><FontPicker value={block.font} onChange={v => patch({ font: v })} /></Section>
         <Section title="Größe"><Stepper value={block.size} min={16} max={44} step={2} onChange={v => patch({ size: v })} /></Section>
+      </>);
+    }
+
+    if (t === "wordplay") {
+      const wm = block.mode || "woerter";
+      const PH = {
+        woerter: "Ein Wort pro Zeile:\nIgel\nBaum\nWald",
+        satz: "Ein Satz pro Zeile:\nDer Igel sucht ein Versteck.\nIm Winter hält er Winterschlaf.",
+        schlange: "Wörter (werden aneinandergehängt):\nIgel Baum Wald Nest",
+        gross: "Ein Satz pro Zeile (richtig geschrieben):\nDer Igel lebt im Wald.\nAnna liest ein Buch.",
+      };
+      return (<>
+        <Section title="Übungstyp">
+          <Segmented value={wm} onChange={v => patch({ mode: v })} options={[{ v: "woerter", label: "Schüttelwörter" }, { v: "satz", label: "Schüttelsätze" }, { v: "schlange", label: "Wörterschlange" }, { v: "gross", label: "Großschreibung" }]} />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
+            {wm === "satz" ? "Die Wörter jedes Satzes werden gemischt – die Kinder bringen sie in die richtige Reihenfolge."
+              : wm === "schlange" ? "Die Wörter werden ohne Lücken aneinandergehängt – die Kinder trennen sie wieder."
+              : wm === "gross" ? "Der Satz erscheint komplett klein – die Kinder schreiben ihn mit richtiger Groß-/Kleinschreibung ab."
+              : "Die Buchstaben jedes Wortes werden gemischt – die Kinder finden das richtige Wort."}
+          </p>
+        </Section>
+        <Section title="Text">
+          <TextArea value={block.text} onChange={v => patch({ text: v })} rows={6} placeholder={PH[wm]} />
+        </Section>
+        {wm === "woerter" && <Section title="Spalten"><Row label="Spalten"><Stepper value={block.cols || 3} min={1} max={4} onChange={v => patch({ cols: v })} /></Row></Section>}
+        <Section title="Schrift"><FontPicker value={block.font} onChange={v => patch({ font: v })} /></Section>
+        <Section title="Größe"><Stepper value={block.size || 24} min={16} max={40} step={2} onChange={v => patch({ size: v })} /></Section>
+        {(wm === "woerter" || wm === "satz") && (
+          <Section><button className="btn" style={{ width: "100%" }} onClick={() => patch({ seed: Date.now() % 100000 })}><Icon name="redo" size={16} /> Neu mischen</button></Section>
+        )}
       </>);
     }
 
@@ -216,7 +255,22 @@ import { Icon } from "./icons";
       </>);
     }
 
-    if (t === "reading") return (<>
+    if (t === "reading") {
+      const TEXTS = DKI.READING_TEXTS || [];
+      const cats = [...new Set(TEXTS.map(x => x.cat))];
+      return (<>
+      <Section title="Text-Vorrat">
+        <select value="" onChange={e => { const x = TEXTS[+e.target.value]; if (x) patch({ text: x.text }); }}
+          style={{ width: "100%", border: "1.5px solid var(--teal)", background: "var(--teal-50)", color: "var(--teal-700)", borderRadius: 9, padding: "8px 10px", font: "inherit", fontSize: 12.5, fontWeight: 700, outline: "none", cursor: "pointer" }}>
+          <option value="" disabled>📚 Lese- oder Sachtext wählen …</option>
+          {cats.map(c => (
+            <optgroup key={c} label={c}>
+              {TEXTS.map((x, i) => x.cat === c ? <option key={i} value={i}>{"Kl. " + x.level + " · " + x.title}</option> : null)}
+            </optgroup>
+          ))}
+        </select>
+        <p style={{ fontSize: 11, color: "var(--muted)", margin: "7px 2px 0", lineHeight: 1.45 }}>Fertigen Text einsetzen und nach Bedarf anpassen. Eigene Texte schreibst du einfach unten hinein.</p>
+      </Section>
       <Section title="Text"><TextArea value={block.text} onChange={v => patch({ text: v })} rows={7} /></Section>
       <Section title="Optionen">
         <Row label="Zeilennummern"><Toggle value={!!block.numbers} onChange={v => patch({ numbers: v })} /></Row>
@@ -225,6 +279,7 @@ import { Icon } from "./icons";
       </Section>
       <Section title="Schrift"><FontPicker value={block.font} onChange={v => patch({ font: v })} /></Section>
     </>);
+    }
 
     if (t === "name") return (
       <Section title="Felder">
@@ -1186,7 +1241,7 @@ import { Icon } from "./icons";
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 800 }}>{blockMeta.label}</span>
               </div>
-              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "moneycount", "writtenmath", "imagelabel", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "fraction", "sach"].includes(sel.type) && (
+              {["matharow", "mathwall", "mathtri", "numline", "wordsearch", "wordplay", "clock", "dotfield", "hundredchart", "numhouse", "unitcalc", "moneycount", "writtenmath", "imagelabel", "chain", "net", "rechenrad", "malkreuz", "times", "placevalue", "fraction", "sach"].includes(sel.type) && (
                 <Section title="Arbeitsauftrag">
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 7px", lineHeight: 1.45 }}>Diese Anweisung steht über der Aufgabe. Leer lassen = ausblenden.</p>
                   <input value={sel.prompt != null ? sel.prompt : DKU.autoPrompt(sel)} onChange={e => patch({ prompt: e.target.value })}

@@ -438,6 +438,13 @@ function autoPrompt(b) {
   if (b.type === "moneycount") return b.mode === "bezahlen"
     ? "Bezahle den Betrag. Male die passenden Münzen und Scheine in das Feld."
     : "Wie viel Geld ist das? Zähle zusammen und schreibe den Betrag auf.";
+  if (b.type === "wordplay") {
+    const m = b.mode || "woerter";
+    return m === "satz" ? "Bringe die Wörter in die richtige Reihenfolge. Schreibe den Satz auf."
+      : m === "schlange" ? "Trenne die Wörter mit einem Strich. Schreibe sie richtig auf."
+      : m === "gross" ? "Schreibe den Satz richtig ab. Achte auf die Groß- und Kleinschreibung."
+      : "Ordne die Buchstaben und schreibe das richtige Wort auf.";
+  }
   if (b.type === "writtenmath") return "Rechne schriftlich. Vergiss die Überträge nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "chain") return "Rechne der Reihe nach. Trage jedes Ergebnis in das nächste Kästchen ein.";
