@@ -283,23 +283,37 @@ function ParticipantsModal({
                   </span>
                 </div>
               )}
-              {participants.some((p) => p.quota_warning && p.school_registered) && (
-                <div
-                  role="alert"
-                  className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
-                >
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>
-                    <strong>
-                      {participants.filter((p) => p.quota_warning && p.school_registered).length}{" "}
-                      Teilnehmende über der Schul-Quote
-                    </strong>{" "}
-                    (gelb markiert). Die Schule hat ihr Kontingent (max. 2
-                    Lehrkräfte / 1 Schulleitung) bereits ausgeschöpft – die
-                    Anmeldung wurde dennoch zugelassen.
-                  </span>
-                </div>
-              )}
+              {(() => {
+                const quotaParts = participants.filter(
+                  (p) => p.quota_warning && p.school_registered
+                );
+                if (quotaParts.length === 0) return null;
+                const pendingCount = quotaParts.filter((p) => p.quota_pending).length;
+                return (
+                  <div
+                    role="alert"
+                    className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong>
+                        {quotaParts.length} Teilnehmende über der Schul-Quote
+                      </strong>{" "}
+                      (gelb markiert). Die Schule hat ihr Kontingent (max. 2
+                      Lehrkräfte / 1 Schulleitung) bereits ausgeschöpft.{" "}
+                      {pendingCount > 0 ? (
+                        <>
+                          Bitte {pendingCount === quotaParts.length ? "" : `${pendingCount} davon `}
+                          oben unter „Offene Konflikte" entscheiden (Ablehnen oder
+                          Trotz Quote zulassen).
+                        </>
+                      ) : (
+                        <>Die Anmeldung wurde bereits zugelassen.</>
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -355,7 +369,9 @@ function ParticipantsModal({
                           ) : quota ? (
                             <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                               <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
-                              Über Schul-Quote
+                              {p.quota_pending
+                                ? "Über Quote – bitte oben bearbeiten"
+                                : "Über Quote – zugelassen"}
                             </span>
                           ) : null}
                         </td>

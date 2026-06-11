@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createServiceClient();
-  const [{ data, error }, bestandRes] = await Promise.all([
+  const [{ data, error }, bestandRes, conflictRes] = await Promise.all([
     admin
       .from("registrations")
       .select(
@@ -52,6 +52,14 @@ export async function GET(request: NextRequest) {
     admin
       .from("bestandsaufnahme_responses")
       .select("school_name, contact_email"),
+    // Noch OFFENE Konflikte dieser Schulung – um zu unterscheiden, ob eine
+    // Über-Quote-Anmeldung schon entschieden (zugelassen) wurde oder noch
+    // oben bearbeitet werden muss.
+    admin
+      .from("import_conflicts")
+      .select("person_id")
+      .eq("event_id", eventId)
+      .eq("status", "open"),
   ]);
 
   if (error) {
@@ -78,6 +86,12 @@ export async function GET(request: NextRequest) {
       schoolEmail.set(key, c.contact_email);
     }
   }
+  // Personen mit noch offenem Konflikt für diese Schulung.
+  const openConflictPersons = new Set<string>();
+  for (const c of (conflictRes.data ?? []) as Array<{ person_id: string | null }>) {
+    if (c.person_id) openConflictPersons.add(c.person_id);
+  }
+
   // Schul-Account-E-Mail für einen Schulnamen finden (exakt oder enthalten).
   const lookupSchoolEmail = (name: string | null | undefined): string | null => {
     if (!name) return null;
@@ -98,8 +112,9 @@ export async function GET(request: NextRequest) {
       // → Quoten-Hinweis (bleibt auch nach „Trotz Quote zulassen", da das
       //   Override klebrig ist; verschwindet erst beim manuellen Umziehen).
       const quotaWarning = isReg && r.quota_override === true;
+      const personId = r.person?.id ?? "";
       return {
-        person_id: r.person?.id ?? "",
+        person_id: personId,
         first_name: r.person?.first_name ?? "",
         last_name: r.person?.last_name ?? "",
         email: ownEmail ?? fallback,
@@ -108,6 +123,8 @@ export async function GET(request: NextRequest) {
         role: r.role,
         school_registered: isReg,
         quota_warning: quotaWarning,
+        // Noch offener Konflikt → muss oben erst entschieden werden.
+        quota_pending: quotaWarning && openConflictPersons.has(personId),
         email_via_school: !ownEmail && !!fallback,
       };
     }

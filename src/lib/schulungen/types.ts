@@ -105,9 +105,12 @@ export interface EventParticipant {
   /** false = Schule ist NICHT in der Bestandsaufnahme registriert → darf
    *  eigentlich nicht teilnehmen (rot markieren). */
   school_registered: boolean;
-  /** true = Anmeldung wurde trotz überschrittener Schul-Quote zugelassen
-   *  (registrierte Schule, aber über dem Limit) → mit Hinweis markieren. */
+  /** true = Anmeldung liegt über der Schul-Quote (registrierte Schule, aber
+   *  über dem Limit) → mit Hinweis markieren. */
   quota_warning: boolean;
+  /** true = der zugehörige Quoten-Konflikt ist noch OFFEN (oben unbearbeitet);
+   *  false = bereits entschieden (zugelassen). Nur relevant bei quota_warning. */
+  quota_pending: boolean;
   /** true = die angezeigte E-Mail stammt vom Schul-Account (Bestandsaufnahme),
    *  weil die Person selbst keine E-Mail hinterlegt hat. */
   email_via_school: boolean;

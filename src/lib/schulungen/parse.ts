@@ -76,9 +76,15 @@ const SCHOOL_STOPWORDS = new Set([
  * entfernt, Schultyp-Wörter (Grundschule, GS, Schule …) raus, Rest
  * zusammengezogen. „Grundschule Franz-Hecker-Schule" → „franzhecker",
  * „Franz-Hecker-Schule" → „franzhecker".
+ *
+ * Schul-Form-Zusätze stehen in den Exporten oft als Suffix NACH EINEM KOMMA
+ * („Lüstringer Bergschule, FöS SR"). Für den Abgleich wird nur der Namensteil
+ * vor dem ersten Komma verwendet, damit er zur Bestandsaufnahme („Lüstringer
+ * Bergschule") passt.
  */
 export function schoolMatchKey(name: string): string {
-  const cleaned = String(name ?? "")
+  const base = String(name ?? "").split(",")[0];
+  const cleaned = base
     .toLowerCase()
     .replace(/[^a-z0-9äöüß]+/g, " ")
     .trim();
