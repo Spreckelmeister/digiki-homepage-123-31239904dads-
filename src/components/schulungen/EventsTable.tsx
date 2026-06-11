@@ -219,7 +219,7 @@ function ParticipantsModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-2xl"
       >
         {/* Kopf */}
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6">

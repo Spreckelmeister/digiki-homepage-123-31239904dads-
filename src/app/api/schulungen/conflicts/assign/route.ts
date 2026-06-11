@@ -5,7 +5,11 @@ import {
   createServiceClient,
   isQuotaError,
 } from "@/lib/schulungen/server";
-import { schoolKeyFromName, schoolMatchKey } from "@/lib/schulungen/parse";
+import {
+  schoolKeyFromName,
+  schoolMatchKey,
+  NO_SCHOOL_NAME,
+} from "@/lib/schulungen/parse";
 
 export const runtime = "nodejs";
 
@@ -29,17 +33,22 @@ type Conflict = {
   role: "teacher" | "leadership";
   payload: { workshops?: string | null } | null;
   import_batch_id: string | null;
+  school: { name: string | null } | null;
 };
 
+const CONFLICT_SELECT =
+  "id, status, event_id, person_id, role, payload, import_batch_id, school:schools (name)";
+
 /**
- * Weist die Person eines (nicht zuweisbaren) Konflikts manuell einer
- * registrierten Schule zu. Die Anmeldung wird auf diese Schule umgezogen;
- * der DB-Trigger prüft dabei die Quote der Zielschule für die Rolle
- * (Lehrkraft/Schulleitung). Anschließend wird der Konflikt geschlossen.
+ * Weist die Person eines Konflikts manuell einer registrierten Schule zu.
  *
- * Das Dropdown im Dashboard bietet ohnehin nur Schulen mit freiem Pensum
- * an – die Trigger-Prüfung fängt nur seltene Races (zwischenzeitlich voll)
- * ab und meldet sie verständlich zurück.
+ * Bei einem ECHTEN Schulnamen wird zusätzlich ein dauerhafter Alias gespeichert
+ * (Import-Schulname → Zielschule). Dieser Alias
+ *  - wird beim Import automatisch angewendet (auch für weitere Lehrkräfte),
+ *  - überlebt das Zurücksetzen der Daten,
+ *  - kaskadiert sofort auf alle anderen offenen Konflikte derselben Schule.
+ * Bei fehlender Schulangabe gibt es keinen sinnvollen Schlüssel → die Zuordnung
+ * wird stattdessen als „gesperrt" (school_locked) markiert.
  */
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -68,20 +77,20 @@ export async function POST(request: NextRequest) {
 
   const { data: conflict } = await admin
     .from("import_conflicts")
-    .select("id, status, event_id, person_id, role, payload, import_batch_id")
+    .select(CONFLICT_SELECT)
     .eq("id", conflictId)
     .single();
 
   if (!conflict) {
     return NextResponse.json({ error: "Konflikt nicht gefunden" }, { status: 404 });
   }
-  if ((conflict as Conflict).status !== "open") {
+  const c = conflict as unknown as Conflict;
+  if (c.status !== "open") {
     return NextResponse.json(
       { error: "Konflikt wurde bereits bearbeitet" },
       { status: 409 }
     );
   }
-  const c = conflict as Conflict;
   if (!c.person_id) {
     return NextResponse.json(
       { error: "Konflikt enthält keine Person" },
@@ -104,89 +113,139 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Anmeldung auf die Zielschule umziehen (oder neu anlegen). Der Trigger
-  // setzt quota_override zurück (Schulwechsel) und prüft die Quote.
-  const payload = c.payload ?? {};
+  // Import-Schulname des Konflikts (für den Alias-Schlüssel). Bei fehlender
+  // Schule (Platzhalter) ist kein sinnvoller Alias möglich.
+  const importName = (c.school?.name ?? "").trim();
+  const noSchool = !importName || importName === NO_SCHOOL_NAME;
+  const aliasKey = noSchool ? "" : schoolMatchKey(importName);
+
+  // Alias dauerhaft speichern (nur bei echtem Schulnamen).
+  let aliasId: string | null = null;
+  if (aliasKey) {
+    const { data: aliasRow, error: aliasErr } = await admin
+      .from("school_aliases")
+      .upsert(
+        {
+          alias_key: aliasKey,
+          alias_label: importName,
+          canonical_name: schoolName,
+          is_auto: false,
+          created_by: auth.userId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "alias_key" }
+      )
+      .select("id")
+      .single();
+    if (aliasErr) {
+      return NextResponse.json(
+        { error: `Zuordnung konnte nicht gespeichert werden: ${aliasErr.message}` },
+        { status: 500 }
+      );
+    }
+    aliasId = aliasRow?.id ?? null;
+  }
+
+  // Den angefragten Konflikt zuweisen.
+  const res = await assignOne(admin, c, targetSchoolId, aliasId, noSchool, auth.userId);
+  if (!res.ok) {
+    return NextResponse.json(
+      {
+        error: res.quota
+          ? "Die gewählte Schule hat ihr Pensum für diese Rolle inzwischen ausgeschöpft – bitte eine andere Schule wählen."
+          : res.error,
+      },
+      { status: res.quota ? 409 : 500 }
+    );
+  }
+
+  // Kaskade: alle anderen offenen Konflikte derselben Schule automatisch
+  // mitzuordnen (Quote wird je Schule geprüft – volle bleiben offen).
+  let cascaded = 0;
+  if (aliasKey) {
+    const { data: others } = await admin
+      .from("import_conflicts")
+      .select(CONFLICT_SELECT)
+      .eq("status", "open")
+      .neq("id", c.id)
+      .limit(1000);
+    for (const o of (others ?? []) as unknown as Conflict[]) {
+      if (!o.person_id) continue;
+      if (schoolMatchKey((o.school?.name ?? "").trim()) !== aliasKey) continue;
+      const r = await assignOne(admin, o, targetSchoolId, aliasId, false, auth.userId);
+      if (r.ok) cascaded++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, cascaded });
+}
+
+type AssignResult = { ok: true } | { ok: false; quota?: boolean; error?: string };
+
+/**
+ * Zieht die Anmeldung einer Konflikt-Person auf die Zielschule um (oder legt
+ * sie an), setzt alias_id/school_locked und schließt den Konflikt.
+ */
+async function assignOne(
+  admin: SupabaseClient,
+  conflict: Conflict,
+  targetSchoolId: string,
+  aliasId: string | null,
+  lock: boolean,
+  userId: string
+): Promise<AssignResult> {
+  const payload = conflict.payload ?? {};
   const { data: existing } = await admin
     .from("registrations")
     .select("id")
-    .eq("event_id", c.event_id)
-    .eq("person_id", c.person_id)
+    .eq("event_id", conflict.event_id)
+    .eq("person_id", conflict.person_id)
     .maybeSingle();
 
   const regError = existing
     ? (
         await admin
           .from("registrations")
-          .update({ school_id: targetSchoolId, status: "registered" })
+          .update({
+            school_id: targetSchoolId,
+            status: "registered",
+            alias_id: aliasId,
+            school_locked: lock,
+          })
           .eq("id", existing.id)
       ).error
     : (
         await admin.from("registrations").insert({
-          event_id: c.event_id,
+          event_id: conflict.event_id,
           school_id: targetSchoolId,
-          person_id: c.person_id,
-          role: c.role,
+          person_id: conflict.person_id,
+          role: conflict.role,
           status: "registered",
+          alias_id: aliasId,
+          school_locked: lock,
           workshops: payload.workshops ?? null,
-          import_batch_id: c.import_batch_id,
+          import_batch_id: conflict.import_batch_id,
         })
       ).error;
 
   if (regError) {
-    if (isQuotaError(regError.message)) {
-      return NextResponse.json(
-        {
-          error:
-            "Die gewählte Schule hat ihr Pensum für diese Rolle inzwischen ausgeschöpft – bitte eine andere Schule wählen.",
-        },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      { error: `Zuweisung fehlgeschlagen: ${regError.message}` },
-      { status: 500 }
-    );
+    if (isQuotaError(regError.message)) return { ok: false, quota: true };
+    return { ok: false, error: `Zuweisung fehlgeschlagen: ${regError.message}` };
   }
 
-  // Person zur Zielschule umhängen, damit sie auch künftig (Re-Import,
-  // Quoten) zur richtigen Schule zählt – nur wenn das nicht mit einer
-  // gleichnamigen Person an der Zielschule kollidiert (UNIQUE-Constraint).
-  const { data: clash } = await admin
-    .from("persons")
-    .select("id, first_norm, last_norm")
-    .eq("id", c.person_id)
-    .maybeSingle();
-  if (clash) {
-    const { data: other } = await admin
-      .from("persons")
-      .select("id")
-      .eq("school_id", targetSchoolId)
-      .eq("last_norm", clash.last_norm)
-      .eq("first_norm", clash.first_norm)
-      .neq("id", c.person_id)
-      .maybeSingle();
-    if (!other) {
-      await admin
-        .from("persons")
-        .update({ school_id: targetSchoolId })
-        .eq("id", c.person_id);
-    }
-  }
+  // persons.school_id wird BEWUSST NICHT geändert (Re-Import-Matching ohne
+  // E-Mail bleibt stabil, keine Dubletten).
 
   const { error: updErr } = await admin
     .from("import_conflicts")
     .update({
       status: "approved",
-      resolved_by: auth.userId,
+      resolved_by: userId,
       resolved_at: new Date().toISOString(),
     })
-    .eq("id", c.id);
-  if (updErr) {
-    return NextResponse.json({ error: updErr.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
+    .eq("id", conflict.id);
+  if (updErr) return { ok: false, error: updErr.message };
+  return { ok: true };
 }
 
 /**

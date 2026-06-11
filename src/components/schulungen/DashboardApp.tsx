@@ -16,6 +16,7 @@ import SchoolsPanel from "./SchoolsPanel";
 import ConflictsTable from "./ConflictsTable";
 import EventsTable from "./EventsTable";
 import AccessPanel from "./AccessPanel";
+import AliasPanel from "./AliasPanel";
 import DangerZone from "./DangerZone";
 
 export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
@@ -137,9 +138,10 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
         {/* Alle Schulungen */}
         <EventsTable events={overview?.events ?? []} loading={loading} />
 
-        {/* Admin-Bereich: Zugriff verwalten + Daten zurücksetzen */}
+        {/* Admin-Bereich: Schul-Zuordnungen, Zugriff verwalten, Daten zurücksetzen */}
         {isAdmin && (
           <>
+            <AliasPanel onChanged={refresh} />
             <AccessPanel />
             <DangerZone onReset={refresh} />
           </>

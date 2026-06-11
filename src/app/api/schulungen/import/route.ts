@@ -9,6 +9,7 @@ import {
   parseRegistrationFile,
   normalizeKey,
   schoolKeyFromName,
+  schoolMatchKey,
   buildRegisteredSchools,
   matchRegisteredSchool,
   NO_SCHOOL_NAME,
@@ -140,6 +141,22 @@ export async function POST(request: NextRequest) {
   const registeredSchools = buildRegisteredSchools(
     (bestandSchools ?? []).map((b) => b.school_name as string | null)
   );
+
+  // Persistente Zuordnungsliste (Aliase): manuell gepflegte Abbildung
+  // „Import-Schulname → registrierte Schule". Wird VOR dem Auto-Matching
+  // geprüft und überlebt das Zurücksetzen der Daten.
+  const { data: aliasRows } = await admin
+    .from("school_aliases")
+    .select("id, alias_key, canonical_name");
+  const aliasMap = new Map<string, { id: string; canonical: string }>();
+  for (const a of (aliasRows ?? []) as Array<{
+    id: string;
+    alias_key: string;
+    canonical_name: string;
+  }>) {
+    aliasMap.set(a.alias_key, { id: a.id, canonical: a.canonical_name });
+  }
+
   const unregisteredRows: { name: string; school: string }[] = [];
 
   const counts = { new: 0, updated: 0, conflicts: 0, errors: 0, skipped: 0 };
@@ -168,28 +185,62 @@ export async function POST(request: NextRequest) {
       let processed = 0;
       for (const row of parsed.rows) {
         try {
-          // Kanonischer Name der registrierten Schule (oder null = nicht
-          // registriert). Ohne Schulangabe → Platzhalter-Schule. Bei Treffer
-          // wird die Schule unter dem Bestandsaufnahme-Namen geführt, damit
-          // importierte Schule und Bestandsaufnahme im Dashboard/Panel
-          // zusammenfallen.
+          // Schulzuordnung bestimmen (Reihenfolge):
+          //  1. Persistenter Alias (manuelle Zuordnungsliste) – greift auch
+          //     für weitere Lehrkräfte derselben Schule.
+          //  2. Automatisches, tolerantes Matching gegen die Bestandsaufnahme.
+          //  3. Sonst: kein Treffer → Konflikt (bzw. Platzhalter ohne Schule).
           const noSchool = row.schoolName.trim() === "";
-          const canonical = noSchool
-            ? null
-            : matchRegisteredSchool(row.schoolName, registeredSchools);
+          const importKey = noSchool ? "" : schoolMatchKey(row.schoolName);
+          const existingAlias = importKey ? aliasMap.get(importKey) : undefined;
+          let canonical: string | null;
+          let aliasId: string | null;
+          if (existingAlias) {
+            canonical = existingAlias.canonical;
+            aliasId = existingAlias.id;
+          } else if (!noSchool) {
+            canonical = matchRegisteredSchool(row.schoolName, registeredSchools);
+            // Auch automatische Treffer als Alias festhalten – so sind ALLE
+            // Verbindungen in der Zuordnungsliste sichtbar und rückgängig.
+            aliasId = canonical
+              ? await ensureAutoAlias(admin, importKey, row.schoolName.trim(), canonical, aliasMap)
+              : null;
+          } else {
+            canonical = null;
+            aliasId = null;
+          }
           const schoolId = await upsertSchool(
             admin,
             row,
-            noSchool ? NO_SCHOOL_NAME : canonical
+            noSchool && !canonical ? NO_SCHOOL_NAME : canonical
           );
           const personId = await upsertPerson(admin, row, schoolId);
+
+          // Manuell zugewiesene Schule schützen: Hat die Person für diese
+          // Schulung eine GESPERRTE Anmeldung (school_locked, via „Schule
+          // zuweisen"), bleibt ihre Schule + Konfliktentscheidung beim
+          // Re-Import unverändert – nur Workshops/Batch werden aktualisiert.
+          const { data: lockedReg } = await admin
+            .from("registrations")
+            .select("id, school_locked")
+            .eq("event_id", event.id)
+            .eq("person_id", personId)
+            .maybeSingle();
 
           // Kein Bestandsaufnahme-Treffer (Schule nicht registriert ODER gar
           // keine Schule angegeben)? → Person wird trotzdem direkt angemeldet
           // (erscheint unter dem Termin), aber als offener Konflikt markiert.
           // „Ablehnen" entfernt die Anmeldung wieder, „Zulassen" behält sie,
           // „Schule zuweisen" ordnet sie einer registrierten Schule zu.
-          if (!canonical) {
+          if (lockedReg?.school_locked) {
+            const fields: Record<string, unknown> = { import_batch_id: batchId };
+            if (row.workshops !== null) fields.workshops = row.workshops;
+            await admin
+              .from("registrations")
+              .update(fields)
+              .eq("id", lockedReg.id);
+            counts.updated++;
+          } else if (!canonical) {
             unregisteredRows.push({
               name: [row.lastName, row.firstName].filter(Boolean).join(", "),
               school: noSchool ? "— keine Schule angegeben —" : row.schoolName.trim(),
@@ -231,6 +282,7 @@ export async function POST(request: NextRequest) {
               schoolId,
               personId,
               batchId,
+              aliasId,
             });
             counts[result]++;
             if (result === "skipped") {
@@ -322,6 +374,41 @@ export async function POST(request: NextRequest) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+/**
+ * Hält einen automatischen Schul-Treffer als Alias fest (sichtbar in der
+ * Zuordnungsliste, rückgängig machbar). Überschreibt KEINE bestehenden
+ * (insb. manuellen) Aliase – `ignoreDuplicates`. Cached im aliasMap, damit
+ * weitere Zeilen derselben Schule keinen erneuten Upsert auslösen.
+ */
+async function ensureAutoAlias(
+  admin: SupabaseClient,
+  key: string,
+  label: string,
+  canonical: string,
+  cache: Map<string, { id: string; canonical: string }>
+): Promise<string | null> {
+  const cached = cache.get(key);
+  if (cached) return cached.id;
+  const { data: ins } = await admin
+    .from("school_aliases")
+    .upsert(
+      { alias_key: key, alias_label: label, canonical_name: canonical, is_auto: true },
+      { onConflict: "alias_key", ignoreDuplicates: true }
+    )
+    .select("id");
+  let id = (ins?.[0]?.id as string | undefined) ?? undefined;
+  if (!id) {
+    const { data: ex } = await admin
+      .from("school_aliases")
+      .select("id")
+      .eq("alias_key", key)
+      .maybeSingle();
+    id = ex?.id;
+  }
+  if (id) cache.set(key, { id, canonical });
+  return id ?? null;
 }
 
 /**
@@ -502,9 +589,10 @@ async function upsertRegistration(
     schoolId: string;
     personId: string;
     batchId: string;
+    aliasId: string | null;
   }
 ): Promise<"new" | "updated" | "conflicts" | "skipped"> {
-  const { row, eventId, kursNr, audience, schoolId, personId, batchId } = args;
+  const { row, eventId, kursNr, audience, schoolId, personId, batchId, aliasId } = args;
 
   const { data: existing } = await admin
     .from("registrations")
@@ -519,6 +607,7 @@ async function upsertRegistration(
   const updateFields: Record<string, unknown> = {
     school_id: schoolId,
     import_batch_id: batchId,
+    alias_id: aliasId,
   };
   if (row.workshops !== null) updateFields.workshops = row.workshops;
 
@@ -538,6 +627,7 @@ async function upsertRegistration(
           status: "registered",
           workshops: row.workshops,
           import_batch_id: batchId,
+          alias_id: aliasId,
         })
       ).error;
 
