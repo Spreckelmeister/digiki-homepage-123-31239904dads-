@@ -258,6 +258,9 @@ export const EDITOR_CSS = `
 .abe-scope .rail { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .abe-scope .rail > aside { flex: 1 1 auto; min-height: 0; width: 100%; }
 .abe-scope .rail-backdrop { display: none; }
+/* Ziehgriff zum Verstellen der Leistenbreite */
+.abe-scope .rail-resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--line); transition: background .12s, width .12s; }
+.abe-scope .rail-resize:hover::after { background: var(--teal); width: 3px; left: 2px; }
 
 /* Mobile-Toggle-Buttons in der Topbar – nur schmal sichtbar */
 .abe-scope .abe-mobile-only { display: none !important; }

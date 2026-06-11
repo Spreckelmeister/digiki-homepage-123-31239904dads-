@@ -29,6 +29,9 @@
   im Lösungsblatt. Differenzierung leicht/mittel/schwer steuert Betrag & Stückzahl.
   Zweiter Modus **„Bezahlen"**: Zielbetrag vorgegeben, Kinder malen passende
   Münzen/Scheine in ein Feld, Lösungsblatt zeigt eine gültige Kombination.
+- **Verstellbare Seitenleisten** (UX) – Bausteine- und Eigenschaften-Leiste lassen
+  sich am Desktop per Ziehgriff in der Breite anpassen (210–460 px, gespeichert in
+  `localStorage`); auf Tablet/Smartphone unverändert als Overlay.
 - **Palette in zwei Deutsch-/Allgemein-Kategorien** (UX) – die frühere Gruppe
   „Text & Sprache" ist aufgeteilt in **„Deutschunterricht"** (Silbentext,
   Lesetext, Lückentext, Wörter & Sätze, Wörtersuchsel, Schreiblinien) und

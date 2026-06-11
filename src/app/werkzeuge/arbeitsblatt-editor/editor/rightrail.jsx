@@ -174,7 +174,13 @@ import { Icon } from "./icons";
       };
       return (<>
         <Section title="Übungstyp">
-          <Segmented value={wm} onChange={v => patch({ mode: v })} options={[{ v: "woerter", label: "Schüttelwörter" }, { v: "satz", label: "Schüttelsätze" }, { v: "schlange", label: "Wörterschlange" }, { v: "gross", label: "Großschreibung" }]} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {[["woerter", "Schüttelwörter"], ["satz", "Schüttelsätze"], ["schlange", "Wörterschlange"], ["gross", "Großschreibung"]].map(([v, l]) => (
+              <button key={v} onClick={() => patch({ mode: v })}
+                style={{ padding: "9px 6px", borderRadius: 10, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+                  border: "1.5px solid " + (wm === v ? "var(--teal)" : "var(--line)"), background: wm === v ? "var(--teal-50)" : "#fff", color: wm === v ? "var(--teal-700)" : "var(--ink-soft)" }}>{l}</button>
+            ))}
+          </div>
           <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
             {wm === "satz" ? "Die Wörter jedes Satzes werden gemischt – die Kinder bringen sie in die richtige Reihenfolge."
               : wm === "schlange" ? "Die Wörter werden ohne Lücken aneinandergehängt – die Kinder trennen sie wieder."

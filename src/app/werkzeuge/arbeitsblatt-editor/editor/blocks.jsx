@@ -133,7 +133,7 @@ import { Icon } from "./icons";
     const sentences = raw.split("\n").map(s => s.trim()).filter(Boolean);
 
     const ansLine = (w, key) => (
-      <span key={key} data-answer={w} style={{ display: "inline-block", minWidth: Math.max(70, w.length * sz * 0.62), borderBottom: "2px solid var(--ink-soft)", height: sz * 1.1, color: solve ? "var(--sol)" : "transparent", fontWeight: 700, textAlign: "center" }}>{w}</span>
+      <span key={key} data-answer={w} style={{ display: "inline-block", minWidth: Math.max(70, w.length * sz * 0.62), borderBottom: "2px solid var(--ink-soft)", paddingBottom: 2, color: solve ? "var(--sol)" : "transparent", fontWeight: 700, textAlign: "center", whiteSpace: "nowrap" }}>{w}</span>
     );
     // Buchstaben mischen – deterministisch und garantiert ungleich dem Original.
     const scrambleLetters = (w, k) => {
@@ -149,8 +149,8 @@ import { Icon } from "./icons";
       return (
         <div className={fc} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "16px 28px", fontSize: sz, color: "var(--ink)" }}>
           {words.map((w, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ letterSpacing: 4, fontWeight: 700 }}>{scrambleLetters(w, i).join(" ")}</span>
+            <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ letterSpacing: 4, fontWeight: 700, whiteSpace: "nowrap" }}>{scrambleLetters(w, i).join(" ")}</span>
               <span style={{ color: "var(--muted)" }}>→</span>
               {ansLine(w, "a")}
             </div>

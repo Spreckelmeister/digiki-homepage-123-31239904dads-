@@ -145,6 +145,39 @@ export default function App() {
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const closeRails = () => { setLeftOpen(false); setRightOpen(false); };
+
+  // Verstellbare Breite der beiden Seitenleisten (nur Desktop).
+  const [railW, setRailW] = useState({ l: 264, r: 304 });
+  const [isWide, setIsWide] = useState(true);
+  const railWRef = useRef(railW);
+  useEffect(() => { railWRef.current = railW; }, [railW]);
+  useEffect(() => {
+    try { const s = JSON.parse(localStorage.getItem("abe-railw") || "null"); if (s && s.l && s.r) setRailW({ l: s.l, r: s.r }); } catch (_) {}
+    const mq = window.matchMedia("(min-width: 1101px)");
+    const upd = () => setIsWide(mq.matches);
+    upd();
+    mq.addEventListener ? mq.addEventListener("change", upd) : mq.addListener(upd);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", upd) : mq.removeListener(upd); };
+  }, []);
+  const startRailDrag = (side, e) => {
+    e.preventDefault();
+    const startX = e.clientX, startW = side === "l" ? railW.l : railW.r;
+    const MIN = 210, MAX = 460;
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX;
+      const w = Math.round(Math.min(MAX, Math.max(MIN, side === "l" ? startW + dx : startW - dx)));
+      setRailW(prev => ({ ...prev, [side]: w }));
+    };
+    const onUp = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = ""; document.body.style.userSelect = "";
+      try { localStorage.setItem("abe-railw", JSON.stringify(railWRef.current)); } catch (_) {}
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none";
+  };
   const hist = useRef({ past: [], future: [] });
   const pageRef = useRef(null);
   const canvasRef = useRef(null);
@@ -466,12 +499,14 @@ export default function App() {
         </button>
       )}
 
-      <div className="app-body">
-        <div className={"rail rail-left" + (leftOpen ? " open" : "")}>
+      <div className="app-body" style={isWide ? { gridTemplateColumns: `${railW.l}px 1fr ${railW.r}px` } : undefined}>
+        <div className={"rail rail-left" + (leftOpen ? " open" : "")} style={{ position: "relative" }}>
           <LeftRail
             onAdd={(t) => { addBlock(t); closeRails(); }}
             onTemplate={(id) => { loadTemplate(id); closeRails(); }}
             onClipart={(a) => { addClipart(a); closeRails(); }} />
+          {isWide && !preview && <div className="rail-resize" onPointerDown={e => startRailDrag("l", e)} title="Breite ziehen"
+            style={{ position: "absolute", top: 0, bottom: 0, right: -3, width: 7, cursor: "col-resize", zIndex: 30 }} />}
         </div>
 
         {/* Canvas */}
@@ -562,7 +597,9 @@ export default function App() {
           </div>
         </div>
 
-        <div className={"rail rail-right" + (rightOpen ? " open" : "")}>
+        <div className={"rail rail-right" + (rightOpen ? " open" : "")} style={{ position: "relative" }}>
+          {isWide && !preview && <div className="rail-resize" onPointerDown={e => startRailDrag("r", e)} title="Breite ziehen"
+            style={{ position: "absolute", top: 0, bottom: 0, left: -3, width: 7, cursor: "col-resize", zIndex: 30 }} />}
           <RightRail doc={doc} sel={sel} patch={patch} patchDoc={p => commit(pp => ({ ...pp, ...p }))} setLevel={v => commit(p => ({ ...p, level: v }))} onPickImage={() => {}} blockMeta={sel ? (META[sel.type] || { label: sel.type, icon: "layers" }) : {}} />
         </div>
 
