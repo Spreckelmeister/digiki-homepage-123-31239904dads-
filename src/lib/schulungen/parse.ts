@@ -145,27 +145,32 @@ export function buildRegisteredSchools(
   return out;
 }
 
-/**
- * True, wenn zwei Token-Mengen dieselbe Schule meinen: exakt gleich (auch bei
- * abweichender Reihenfolge) ODER die kleinere Menge (mit ≥2 Tokens) ist
- * vollständig in der größeren enthalten. Die ≥2-Regel verhindert, dass
- * generische Ein-Wort-Namen (oft Ortsnamen wie „Schwagstorf") fälschlich in
- * längere Namen „hineinmatchen"; markante Namen wie „Erich Kästner" dürfen
- * dagegen einen Orts-Zusatz haben („… Bohmte").
- */
-function tokensMatch(a: string[], b: string[]): boolean {
-  if (!a.length || !b.length) return false;
-  if (a.join("") === b.join("")) return true;
+/** Reihenfolge-unabhängige Gleichheit zweier Token-Mengen. */
+function tokensEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(b);
+  return a.every((t) => set.has(t));
+}
+
+/** True, wenn die kleinere Token-Menge vollständig in der größeren steckt. */
+function tokensContain(a: string[], b: string[]): boolean {
   const [small, big] = a.length <= b.length ? [a, b] : [b, a];
-  if (small.length < 2) return false;
+  if (!small.length) return false;
   const set = new Set(big);
   return small.every((t) => set.has(t));
 }
 
 /**
  * Findet die passende registrierte Schule und gibt deren kanonischen Namen
- * zurück (oder null). Der kanonische Name wird beim Import verwendet, damit
- * importierte Schulen und Bestandsaufnahme im Dashboard zusammenfallen.
+ * zurück (oder null). Strategie:
+ *  1. EXAKTER Token-Treffer gewinnt immer – so matcht „Grundschule Schwagstorf"
+ *     seinen eigenen Eintrag und NICHT „Ostercappeln-Schwagstorf".
+ *  2. Sonst ein lockerer Treffer (eine Token-Menge enthält die andere) – aber
+ *     NUR wenn er EINDEUTIG ist (genau eine registrierte Schule). So matcht
+ *     „Grundschule Epe" die einzige „Honigmoor-Schule Epe", während mehrdeutige
+ *     Fälle ein Konflikt bleiben (sicher, manuelle Zuweisung).
+ * Der kanonische Name wird beim Import verwendet, damit importierte Schulen und
+ * Bestandsaufnahme im Dashboard zusammenfallen.
  */
 export function matchRegisteredSchool(
   name: string,
@@ -174,9 +179,10 @@ export function matchRegisteredSchool(
   const tokens = schoolMatchTokens(name);
   if (!tokens.length) return null;
   for (const r of registered) {
-    if (tokensMatch(tokens, r.tokens)) return r.name;
+    if (tokensEqual(tokens, r.tokens)) return r.name;
   }
-  return null;
+  const loose = registered.filter((r) => tokensContain(tokens, r.tokens));
+  return loose.length === 1 ? loose[0].name : null;
 }
 
 /** true, wenn `name` zu einer der registrierten Schulen passt (tolerant). */
