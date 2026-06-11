@@ -917,3 +917,128 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     </div>
   );
 }
+
+/**
+ * Empfänger-Auswahl für den Einzelversand: Suche + Checkboxen +
+ * „Alle auswählen / Auswahl löschen". Adressen werden case-insensitiv
+ * über die E-Mail identifiziert (selected enthält lowercase-Keys).
+ */
+function RecipientPicker({
+  listShown,
+  totalAvailable,
+  selected,
+  query,
+  onQuery,
+  onToggle,
+  onSelectAllShown,
+  onClear,
+  selectedCount,
+}: {
+  listShown: Recipient[];
+  totalAvailable: number;
+  selected: Set<string>;
+  query: string;
+  onQuery: (q: string) => void;
+  onToggle: (email: string) => void;
+  onSelectAllShown: () => void;
+  onClear: () => void;
+  selectedCount: number;
+}) {
+  return (
+    <div className="px-6 py-4 md:px-8">
+      {/* Suche */}
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder="Nach Name, Schule oder E-Mail suchen …"
+          aria-label="Empfänger suchen"
+          className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-strong/40"
+        />
+      </div>
+
+      {/* Aktionsleiste */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+          <UserCheck className="h-3.5 w-3.5" aria-hidden="true" />
+          {selectedCount} ausgewählt
+        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onSelectAllShown}
+            className="font-semibold text-primary hover:underline"
+          >
+            {query.trim()
+              ? `${listShown.length} Treffer auswählen`
+              : `Alle ${totalAvailable} auswählen`}
+          </button>
+          {selectedCount > 0 && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="font-semibold text-text-light hover:text-red-700 hover:underline"
+            >
+              Auswahl löschen
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Liste mit Checkboxen */}
+      <ul className="mt-3 max-h-72 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border">
+        {listShown.length === 0 ? (
+          <li className="px-3 py-4 text-sm text-text-light">
+            Keine Empfänger gefunden.
+          </li>
+        ) : (
+          listShown.map((r) => {
+            const checked = selected.has(r.email.toLowerCase());
+            return (
+              <li key={r.id}>
+                <label
+                  className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
+                    checked ? "bg-primary/5" : "hover:bg-bg"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(r.email)}
+                    className="h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-accent-strong"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-text">
+                      {r.full_name || r.email}
+                    </span>
+                    <span className="block truncate text-xs text-text-light">
+                      {r.full_name ? `${r.email}` : null}
+                      {r.full_name && r.school ? " · " : null}
+                      {r.school ?? null}
+                    </span>
+                  </span>
+                  {r.confirmed ? (
+                    <ShieldCheck
+                      className="h-3.5 w-3.5 shrink-0 text-emerald-600"
+                      aria-label="bestätigt"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                      aria-label="unbestätigt"
+                    />
+                  )}
+                </label>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </div>
+  );
+}

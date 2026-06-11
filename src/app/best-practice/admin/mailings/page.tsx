@@ -31,7 +31,8 @@ export default async function AdminMailingsPage() {
                 E-Mails
               </h1>
               <p className="text-lg text-white/70">
-                HTML-E-Mails an alle registrierten DigiKI-Accounts versenden.
+                Formatierte HTML-E-Mails an alle, an bestätigte oder an
+                einzelne DigiKI-Accounts versenden.
               </p>
               <AdminNav />
             </div>
