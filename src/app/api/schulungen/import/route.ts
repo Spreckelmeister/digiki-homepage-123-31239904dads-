@@ -148,16 +148,34 @@ export async function POST(request: NextRequest) {
   const skippedRows = [...parsed.skipped];
 
   for (const row of parsed.rows) {
-    // Schul-Registrierung prüfen (unabhängig vom Import-Ergebnis).
-    if (!registeredSet.has(schoolKeyFromName(row.schoolName))) {
-      unregisteredRows.push({
-        name: [row.lastName, row.firstName].filter(Boolean).join(", "),
-        school: row.schoolName.trim(),
-      });
-    }
     try {
       const schoolId = await upsertSchool(admin, row);
       const personId = await upsertPerson(admin, row, schoolId);
+
+      // Schule nicht bei DigiKI registriert (= nicht in der Bestandsaufnahme)?
+      // → als Konflikt erfassen statt direkt anzumelden. So erscheint die
+      //   Person in der Konflikt-Box und es muss bewusst entschieden werden
+      //   („Trotzdem zulassen" oder „Ablehnen").
+      if (!registeredSet.has(schoolKeyFromName(row.schoolName))) {
+        unregisteredRows.push({
+          name: [row.lastName, row.firstName].filter(Boolean).join(", "),
+          school: row.schoolName.trim(),
+        });
+        const recorded = await recordConflict(admin, {
+          batchId,
+          eventId: event.id,
+          schoolId,
+          personId,
+          role: event.audience,
+          reason:
+            "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
+          payload: { ...row, kurs_nr: event.kurs_nr },
+        });
+        if (recorded === "skipped_rejected") counts.skipped++;
+        else counts.conflicts++;
+        continue;
+      }
+
       const result = await upsertRegistration(admin, {
         row,
         eventId: event.id,

@@ -132,8 +132,14 @@ export default function ConflictsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {conflicts.map((c) => (
-                <tr key={c.id} className="align-top">
+              {conflicts.map((c) => {
+                // Schul-Konflikt (Schule nicht bei DigiKI registriert) vs.
+                // Quoten-Konflikt – unterschiedlich einfärben.
+                const schoolIssue = (c.reason || "")
+                  .toLowerCase()
+                  .includes("registriert");
+                return (
+                <tr key={c.id} className={`align-top ${schoolIssue ? "bg-red-50/50" : ""}`}>
                   <td className="py-3 pr-4">
                     <div className="font-semibold text-text">
                       {c.school?.name ?? "–"}
@@ -172,7 +178,13 @@ export default function ConflictsTable({
                     )}
                   </td>
                   <td className="max-w-xs py-3 pr-4">
-                    <span className="inline-flex rounded-md bg-accent/10 px-2 py-1 text-[11px] font-medium leading-snug text-accent-text">
+                    <span
+                      className={`inline-flex rounded-md px-2 py-1 text-[11px] font-medium leading-snug ${
+                        schoolIssue
+                          ? "bg-red-100 text-red-700"
+                          : "bg-accent/10 text-accent-text"
+                      }`}
+                    >
                       {c.reason}
                     </span>
                   </td>
@@ -198,12 +210,13 @@ export default function ConflictsTable({
                             aria-hidden="true"
                           />
                         )}
-                        Trotz Quote zulassen
+                        {schoolIssue ? "Trotzdem zulassen" : "Trotz Quote zulassen"}
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
