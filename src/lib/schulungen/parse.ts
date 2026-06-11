@@ -88,15 +88,13 @@ export function schoolMatchKey(name: string): string {
 }
 
 /**
- * Gleicht zwei Schul-Schlüssel ab: exakt gleich ODER der eine enthält den
- * anderen (für abweichende Schreibweisen / Zusätze wie „FöS GE/ES").
- * Mindestlänge 4 verhindert triviale Teiltreffer.
+ * Gleicht zwei Schul-Schlüssel ab: exakt gleich (nach Entfernen der
+ * Schultyp-Wörter). Bewusst KEIN Teilstring-Vergleich – sonst würde z. B.
+ * „Schwagstorf" fälschlich „Ostercappeln/Schwagstorf" treffen, obwohl das
+ * zwei verschiedene Schulen sind.
  */
 export function schoolKeyMatches(a: string, b: string): boolean {
-  if (!a || !b) return false;
-  if (a === b) return true;
-  if (a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a))) return true;
-  return false;
+  return !!a && a === b;
 }
 
 /** true, wenn `name` zu einer der registrierten Schulen passt (tolerant). */
