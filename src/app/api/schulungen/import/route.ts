@@ -153,9 +153,10 @@ export async function POST(request: NextRequest) {
       const personId = await upsertPerson(admin, row, schoolId);
 
       // Schule nicht bei DigiKI registriert (= nicht in der Bestandsaufnahme)?
-      // → als Konflikt erfassen statt direkt anzumelden. So erscheint die
-      //   Person in der Konflikt-Box und es muss bewusst entschieden werden
-      //   („Trotzdem zulassen" oder „Ablehnen").
+      // → Person wird trotzdem direkt angemeldet (erscheint unter dem Termin),
+      //   aber als offener Konflikt markiert. „Ablehnen" entfernt die
+      //   Anmeldung wieder, „Zulassen" behält sie (Warnung in der
+      //   Teilnehmerliste bleibt). Frühere Entscheidung wird respektiert.
       if (!registeredSet.has(schoolKeyFromName(row.schoolName))) {
         unregisteredRows.push({
           name: [row.lastName, row.firstName].filter(Boolean).join(", "),
@@ -171,7 +172,22 @@ export async function POST(request: NextRequest) {
             "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
           payload: { ...row, kurs_nr: event.kurs_nr },
         });
-        if (recorded === "skipped_rejected") counts.skipped++;
+        if (recorded === "skipped_rejected") {
+          // Bewusst abgelehnt → nicht (wieder) anmelden.
+          counts.skipped++;
+          continue;
+        }
+        // Anmeldung anlegen/aktualisieren (Quote umgehen – der Schul-Status
+        // ist der entscheidende Punkt, nicht die Quote).
+        await registerOverride(admin, {
+          eventId: event.id,
+          schoolId,
+          personId,
+          role: event.audience,
+          workshops: row.workshops,
+          batchId,
+        });
+        if (recorded === "skipped_approved") counts.updated++;
         else counts.conflicts++;
         continue;
       }
@@ -484,9 +500,56 @@ async function upsertRegistration(
     reason: friendlyQuotaReason(error.message, audience),
     payload: { ...row, kurs_nr: kursNr },
   });
-  // War der Konflikt für diese Person/Schulung bereits abgelehnt, wird
-  // er nicht erneut geöffnet – die Admin-Entscheidung bleibt bestehen.
-  return recorded === "skipped_rejected" ? "skipped" : "conflicts";
+  // Wurde der Konflikt zuvor schon entschieden (abgelehnt/zugelassen),
+  // wird er nicht erneut geöffnet – die Admin-Entscheidung bleibt bestehen.
+  return recorded === "recorded" ? "conflicts" : "skipped";
+}
+
+/**
+ * Meldet eine Person direkt an und umgeht dabei die Quote (quota_override).
+ * Für Teilnehmende nicht registrierter Schulen: Sie sollen unter dem Termin
+ * erscheinen, werden aber separat als Konflikt geführt.
+ */
+async function registerOverride(
+  admin: SupabaseClient,
+  args: {
+    eventId: string;
+    schoolId: string;
+    personId: string;
+    role: "teacher" | "leadership";
+    workshops: string | null;
+    batchId: string;
+  }
+): Promise<void> {
+  const { eventId, schoolId, personId, role, workshops, batchId } = args;
+  const { data: existing } = await admin
+    .from("registrations")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("person_id", personId)
+    .maybeSingle();
+
+  const fields: Record<string, unknown> = {
+    school_id: schoolId,
+    quota_override: true,
+    status: "registered",
+    import_batch_id: batchId,
+  };
+  if (workshops !== null) fields.workshops = workshops;
+
+  const { error } = existing
+    ? await admin.from("registrations").update(fields).eq("id", existing.id)
+    : await admin.from("registrations").insert({
+        event_id: eventId,
+        school_id: schoolId,
+        person_id: personId,
+        role,
+        status: "registered",
+        quota_override: true,
+        workshops,
+        import_batch_id: batchId,
+      });
+  if (error) throw new Error(`Anmeldung konnte nicht angelegt werden: ${error.message}`);
 }
 
 function friendlyQuotaReason(triggerMessage: string, role: string): string {
@@ -509,14 +572,14 @@ async function recordConflict(
     reason: string;
     payload: Record<string, unknown>;
   }
-): Promise<"recorded" | "skipped_rejected"> {
+): Promise<"recorded" | "skipped_rejected" | "skipped_approved"> {
   // Bestehende Konflikt-Entscheidung für dieselbe Person/Schulung prüfen.
   const { data: prior } = await admin
     .from("import_conflicts")
     .select("id, status")
     .eq("event_id", conflict.eventId)
     .eq("person_id", conflict.personId)
-    .in("status", ["open", "rejected"])
+    .in("status", ["open", "rejected", "approved"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -525,6 +588,10 @@ async function recordConflict(
   // Konflikt anlegen (Idempotenz bei Re-Import).
   if (prior?.status === "rejected") {
     return "skipped_rejected";
+  }
+  // Bereits zugelassen → nicht erneut als Konflikt öffnen.
+  if (prior?.status === "approved") {
+    return "skipped_approved";
   }
 
   if (prior?.status === "open") {

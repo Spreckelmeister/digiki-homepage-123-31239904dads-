@@ -195,11 +195,18 @@ function ParticipantsModal({
   }, [onClose]);
 
   function copyEmails() {
-    const emails = participants
-      .map((p) => p.email)
-      .filter(Boolean)
-      .join("; ");
-    if (emails) navigator.clipboard?.writeText(emails).catch(() => {});
+    // Dedupe (Schul-Account-E-Mails können bei mehreren Personen gleich sein).
+    const seen = new Set<string>();
+    const list: string[] = [];
+    participants.forEach((p) => {
+      if (!p.email) return;
+      const k = p.email.toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        list.push(p.email);
+      }
+    });
+    if (list.length) navigator.clipboard?.writeText(list.join("; ")).catch(() => {});
   }
 
   return (
@@ -318,12 +325,19 @@ function ParticipantsModal({
                         </td>
                         <td className="py-2.5">
                           {p.email ? (
-                            <a
-                              href={`mailto:${p.email}`}
-                              className="break-all text-primary hover:underline"
-                            >
-                              {p.email}
-                            </a>
+                            <>
+                              <a
+                                href={`mailto:${p.email}`}
+                                className="break-all text-primary hover:underline"
+                              >
+                                {p.email}
+                              </a>
+                              {p.email_via_school && (
+                                <span className="mt-0.5 block text-[10px] font-medium text-text-light">
+                                  Schul-Account (keine eigene E-Mail)
+                                </span>
+                              )}
+                            </>
                           ) : (
                             <span className="text-text-light">–</span>
                           )}

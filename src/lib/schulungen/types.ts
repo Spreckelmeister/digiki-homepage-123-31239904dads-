@@ -105,6 +105,9 @@ export interface EventParticipant {
   /** false = Schule ist NICHT in der Bestandsaufnahme registriert → darf
    *  eigentlich nicht teilnehmen (rot markieren). */
   school_registered: boolean;
+  /** true = die angezeigte E-Mail stammt vom Schul-Account (Bestandsaufnahme),
+   *  weil die Person selbst keine E-Mail hinterlegt hat. */
+  email_via_school: boolean;
 }
 
 export interface OverviewResponse {

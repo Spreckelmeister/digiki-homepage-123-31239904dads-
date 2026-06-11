@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import {
   requireSchulungenAccess,
   createServiceClient,
@@ -15,14 +16,31 @@ const ALLOWED_ORIGINS = [
 type ResolveBody = {
   conflictId?: unknown;
   action?: unknown; // "reject" | "approve"
+  all?: unknown; // true = alle offenen Konflikte auf einmal
 };
 
+type Conflict = {
+  id: string;
+  status: string;
+  event_id: string;
+  school_id: string | null;
+  person_id: string | null;
+  role: string;
+  payload: { workshops?: string | null } | null;
+  import_batch_id: string | null;
+};
+
+const SELECT =
+  "id, status, event_id, school_id, person_id, role, payload, import_batch_id";
+
 /**
- * Löst einen Import-Konflikt auf:
- * - "reject":  Konflikt schließen, keine Anmeldung anlegen.
- * - "approve": Anmeldung MIT quota_override=true anlegen ("Trotz Quote
- *   zulassen") – der DB-Trigger lässt überschriebene Zeilen durch und
- *   das Flag bleibt bei späteren Re-Importen erhalten.
+ * Löst Import-Konflikte auf (einzeln per conflictId oder alle offenen per
+ * all:true):
+ * - "reject":  Konflikt ablehnen UND eine ggf. vorhandene Anmeldung
+ *   entfernen (Schulen ohne Registrierung werden direkt angemeldet, daher
+ *   muss „Ablehnen" sie wieder löschen).
+ * - "approve": Anmeldung mit quota_override sicherstellen und Konflikt als
+ *   zugelassen markieren.
  */
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -40,18 +58,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const conflictId = typeof body.conflictId === "string" ? body.conflictId : "";
-  const action = body.action === "approve" ? "approve" : body.action === "reject" ? "reject" : null;
-
-  if (!conflictId || !action) {
-    return NextResponse.json({ error: "Ungültige Parameter" }, { status: 400 });
+  const action =
+    body.action === "approve" ? "approve" : body.action === "reject" ? "reject" : null;
+  if (!action) {
+    return NextResponse.json({ error: "Ungültige Aktion" }, { status: 400 });
   }
 
   const admin = createServiceClient();
 
+  // ── Bulk: alle offenen Konflikte ──────────────────────────────────
+  if (body.all === true) {
+    const { data: list, error } = await admin
+      .from("import_conflicts")
+      .select(SELECT)
+      .eq("status", "open")
+      .limit(1000);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    let done = 0;
+    for (const c of (list ?? []) as Conflict[]) {
+      const res = await resolveOne(admin, c, action, auth.userId);
+      if (res.ok) done++;
+    }
+    return NextResponse.json({ ok: true, action, resolved: done });
+  }
+
+  // ── Einzeln ───────────────────────────────────────────────────────
+  const conflictId = typeof body.conflictId === "string" ? body.conflictId : "";
+  if (!conflictId) {
+    return NextResponse.json({ error: "Ungültige Parameter" }, { status: 400 });
+  }
+
   const { data: conflict } = await admin
     .from("import_conflicts")
-    .select("id, status, event_id, school_id, person_id, role, payload, import_batch_id")
+    .select(SELECT)
     .eq("id", conflictId)
     .single();
 
@@ -65,16 +106,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (action === "approve") {
-    if (!conflict.person_id || !conflict.school_id) {
-      return NextResponse.json(
-        { error: "Konflikt enthält keine vollständigen Personendaten" },
-        { status: 422 }
-      );
+  const res = await resolveOne(admin, conflict as Conflict, action, auth.userId);
+  if (!res.ok) {
+    return NextResponse.json({ error: res.error }, { status: res.status });
+  }
+  return NextResponse.json({ ok: true, action });
+}
+
+async function resolveOne(
+  admin: SupabaseClient,
+  conflict: Conflict,
+  action: "approve" | "reject",
+  userId: string
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  if (action === "reject") {
+    // Ablehnen: eine ggf. bestehende Anmeldung entfernen (bei Schul-
+    // Konflikten wurde direkt angemeldet) und Konflikt als abgelehnt
+    // markieren.
+    if (conflict.person_id) {
+      await admin
+        .from("registrations")
+        .delete()
+        .eq("event_id", conflict.event_id)
+        .eq("person_id", conflict.person_id);
     }
-
-    const payload = (conflict.payload ?? {}) as { workshops?: string | null };
-
+  } else {
+    // Zulassen: Anmeldung sicherstellen (mit quota_override).
+    if (!conflict.person_id || !conflict.school_id) {
+      return { ok: false, error: "Konflikt enthält keine vollständigen Personendaten", status: 422 };
+    }
+    const payload = conflict.payload ?? {};
     const { data: existing } = await admin
       .from("registrations")
       .select("id, status")
@@ -82,51 +143,33 @@ export async function POST(request: NextRequest) {
       .eq("person_id", conflict.person_id)
       .maybeSingle();
 
-    // Wurde die Person zwischenzeitlich regulär angemeldet (z. B. weil
-    // ein Platz frei wurde), ist der Konflikt obsolet. Dann KEIN
-    // quota_override setzen und den aktuelleren school_id-Snapshot nicht
-    // mit dem veralteten Wert aus dem Konflikt überschreiben.
-    if (existing && existing.status === "registered") {
-      await admin
-        .from("import_conflicts")
-        .update({
-          status: "approved",
-          resolved_by: auth.userId,
-          resolved_at: new Date().toISOString(),
-        })
-        .eq("id", conflict.id);
-      return NextResponse.json({ ok: true, action: "approve", note: "already_registered" });
-    }
-
-    const error = existing
-      ? (
-          await admin
-            .from("registrations")
-            .update({
+    if (!(existing && existing.status === "registered")) {
+      const error = existing
+        ? (
+            await admin
+              .from("registrations")
+              .update({
+                status: "registered",
+                quota_override: true,
+                school_id: conflict.school_id,
+              })
+              .eq("id", existing.id)
+          ).error
+        : (
+            await admin.from("registrations").insert({
+              event_id: conflict.event_id,
+              school_id: conflict.school_id,
+              person_id: conflict.person_id,
+              role: conflict.role,
               status: "registered",
               quota_override: true,
-              school_id: conflict.school_id,
+              workshops: payload.workshops ?? null,
+              import_batch_id: conflict.import_batch_id,
             })
-            .eq("id", existing.id)
-        ).error
-      : (
-          await admin.from("registrations").insert({
-            event_id: conflict.event_id,
-            school_id: conflict.school_id,
-            person_id: conflict.person_id,
-            role: conflict.role,
-            status: "registered",
-            quota_override: true,
-            workshops: payload.workshops ?? null,
-            import_batch_id: conflict.import_batch_id,
-          })
-        ).error;
-
-    if (error) {
-      return NextResponse.json(
-        { error: `Anmeldung konnte nicht angelegt werden: ${error.message}` },
-        { status: 500 }
-      );
+          ).error;
+      if (error) {
+        return { ok: false, error: `Anmeldung konnte nicht angelegt werden: ${error.message}`, status: 500 };
+      }
     }
   }
 
@@ -134,14 +177,12 @@ export async function POST(request: NextRequest) {
     .from("import_conflicts")
     .update({
       status: action === "approve" ? "approved" : "rejected",
-      resolved_by: auth.userId,
+      resolved_by: userId,
       resolved_at: new Date().toISOString(),
     })
     .eq("id", conflict.id);
-
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return { ok: false, error: updateError.message, status: 500 };
   }
-
-  return NextResponse.json({ ok: true, action });
+  return { ok: true };
 }

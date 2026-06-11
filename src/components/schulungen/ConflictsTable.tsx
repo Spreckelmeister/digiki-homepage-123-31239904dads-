@@ -32,14 +32,14 @@ export default function ConflictsTable({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  async function resolve(conflictId: string, action: "reject" | "approve") {
-    setBusyId(conflictId);
+  async function send(payload: object, busyKey: string) {
+    setBusyId(busyKey);
     setActionError(null);
     try {
       const res = await fetch("/api/schulungen/conflicts/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conflictId, action }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -54,6 +54,12 @@ export default function ConflictsTable({
       setBusyId(null);
     }
   }
+
+  const resolve = (conflictId: string, action: "reject" | "approve") =>
+    send({ conflictId, action }, conflictId);
+
+  const resolveAll = (action: "reject" | "approve") =>
+    send({ all: true, action }, "__all__");
 
   return (
     <section
@@ -72,9 +78,34 @@ export default function ConflictsTable({
           Offene Konflikte
         </h2>
         {!loading && !error && (
-          <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-accent-text">
-            {conflicts.length}
-          </span>
+          <div className="flex items-center gap-2">
+            {conflicts.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => resolveAll("reject")}
+                  className="rounded-lg border border-border bg-white px-2.5 py-1 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Alle ablehnen
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => resolveAll("approve")}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busyId === "__all__" && (
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                  )}
+                  Alle zulassen
+                </button>
+              </>
+            )}
+            <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-accent-text">
+              {conflicts.length}
+            </span>
+          </div>
         )}
       </div>
 

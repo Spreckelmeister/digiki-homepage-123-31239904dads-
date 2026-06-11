@@ -3,6 +3,7 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
+import { schoolKeyFromName } from "@/lib/schulungen/parse";
 import type { EventParticipant, ParticipantRole } from "@/lib/schulungen/types";
 
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createServiceClient();
-  const [{ data, error }, registeredRes] = await Promise.all([
+  const [{ data, error }, registeredRes, contactsRes] = await Promise.all([
     admin
       .from("registrations")
       .select(
@@ -46,6 +47,11 @@ export async function GET(request: NextRequest) {
       .from("school_participation")
       .select("school_key")
       .eq("in_bestandsaufnahme", true),
+    // Schul-Account-E-Mails (Bestandsaufnahme-Kontakt) als Fallback.
+    admin
+      .from("bestandsaufnahme_responses")
+      .select("school_name, contact_email")
+      .not("contact_email", "is", null),
   ]);
 
   if (error) {
@@ -58,17 +64,36 @@ export async function GET(request: NextRequest) {
       .filter((k): k is string => !!k)
   );
 
+  // school_key → Schul-Account-E-Mail (erste pro Schule).
+  const schoolEmail = new Map<string, string>();
+  for (const c of (contactsRes.data ?? []) as Array<{
+    school_name: string | null;
+    contact_email: string | null;
+  }>) {
+    if (!c.school_name || !c.contact_email) continue;
+    const key = schoolKeyFromName(c.school_name);
+    if (key && !schoolEmail.has(key)) schoolEmail.set(key, c.contact_email);
+  }
+
   const participants: EventParticipant[] = ((data ?? []) as unknown as Row[]).map(
-    (r) => ({
-      person_id: r.person?.id ?? "",
-      first_name: r.person?.first_name ?? "",
-      last_name: r.person?.last_name ?? "",
-      email: r.person?.email ?? null,
-      school_name: r.school?.name ?? null,
-      school_city: r.school?.city ?? null,
-      role: r.role,
-      school_registered: !!r.school?.school_key && registered.has(r.school.school_key),
-    })
+    (r) => {
+      const key = r.school?.school_key ?? "";
+      const isReg = !!key && registered.has(key);
+      const ownEmail = r.person?.email ?? null;
+      // Ohne eigene E-Mail + Schule registriert → Schul-Account-E-Mail.
+      const fallback = !ownEmail && isReg ? schoolEmail.get(key) ?? null : null;
+      return {
+        person_id: r.person?.id ?? "",
+        first_name: r.person?.first_name ?? "",
+        last_name: r.person?.last_name ?? "",
+        email: ownEmail ?? fallback,
+        school_name: r.school?.name ?? null,
+        school_city: r.school?.city ?? null,
+        role: r.role,
+        school_registered: isReg,
+        email_via_school: !ownEmail && !!fallback,
+      };
+    }
   );
 
   // Sortierung: nach Schule, dann Nachname – ergibt eine saubere Übersicht.
