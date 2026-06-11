@@ -416,12 +416,36 @@ import { Icon } from "./icons";
     );
   }
   function MoneyCount({ block, solve }) {
+    const mode = block.mode || "zaehlen";
     const cols = block.cols || 1;
     const rows = block.items || [];
     const show = solve || block.showResult;
     const sz = block.size || 24;
     const px = Math.round(sz * 1.7);
     const money = (c) => (c / 100).toFixed(2).replace(".", ",");
+
+    // Modus „Bezahlen": Zielbetrag ist vorgegeben, die Kinder malen die
+    // passenden Münzen/Scheine in das Feld. Im Lösungsblatt erscheint eine
+    // gültige Kombination (der generierte Mix).
+    if (mode === "bezahlen") {
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "16px 28px" }}>
+          {rows.map((r, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--ui)", fontWeight: 800, fontSize: Math.round(sz * 1.15), color: "var(--ink)", whiteSpace: "nowrap" }}>
+                {money(r.total)} €
+              </span>
+              <span style={{ fontSize: sz, color: "var(--muted)", fontFamily: "var(--ui)", fontWeight: 700 }}>=</span>
+              <div style={{ flex: 1, minWidth: px * 3, minHeight: Math.round(px * 1.5), display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "8px 12px", border: "2px dashed var(--ink-soft)", borderRadius: 12, background: "rgba(0,0,0,0.015)" }}>
+                {show ? (r.coins || []).map((c, j) => <MoneyPiece key={j} cents={c} px={px} />) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Modus „Zählen": Münzen/Scheine sind abgebildet → Betrag schreiben.
     return (
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "18px 34px" }}>
         {rows.map((r, i) => (

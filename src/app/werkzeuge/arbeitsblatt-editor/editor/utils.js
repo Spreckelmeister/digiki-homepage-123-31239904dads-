@@ -435,7 +435,9 @@ function autoPrompt(b) {
   if (b.type === "hundredchart") return "Trage die fehlenden Zahlen in die Hundertertafel ein.";
   if (b.type === "numhouse") return "Zerlege die Zahl. Trage die fehlenden Zahlen in die Kästchen ein.";
   if (b.type === "unitcalc") return b.mode === "umrechnen" ? "Rechne in die andere Einheit um." : "Rechne mit den Größen. Vergiss die Einheit nicht.";
-  if (b.type === "moneycount") return "Wie viel Geld ist das? Zähle zusammen und schreibe den Betrag auf.";
+  if (b.type === "moneycount") return b.mode === "bezahlen"
+    ? "Bezahle den Betrag. Male die passenden Münzen und Scheine in das Feld."
+    : "Wie viel Geld ist das? Zähle zusammen und schreibe den Betrag auf.";
   if (b.type === "writtenmath") return "Rechne schriftlich. Vergiss die Überträge nicht.";
   if (b.type === "imagelabel") return "Beschrifte das Bild. Schreibe zu jeder Nummer das passende Wort.";
   if (b.type === "chain") return "Rechne der Reihe nach. Trage jedes Ergebnis in das nächste Kästchen ein.";

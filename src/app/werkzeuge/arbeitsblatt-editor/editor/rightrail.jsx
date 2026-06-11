@@ -860,9 +860,18 @@ import { Icon } from "./icons";
     }
 
     if (t === "moneycount") {
+      const mode = block.mode || "zaehlen";
       const max = block.max || 2;
       const MAXES = [[1, "1 €"], [2, "2 €"], [5, "5 €"], [10, "10 €"], [20, "20 €"], [100, "100 €"]];
       return (<>
+        <Section title="Aufgabentyp">
+          <Segmented value={mode} onChange={v => patch({ mode: v })} options={[{ v: "zaehlen", label: "Zählen" }, { v: "bezahlen", label: "Bezahlen" }]} />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "9px 2px 0", lineHeight: 1.5 }}>
+            {mode === "bezahlen"
+              ? "Der Betrag ist vorgegeben – die Kinder malen die passenden Münzen/Scheine in das Feld. Im Lösungsblatt erscheint eine gültige Kombination."
+              : "Münzen/Scheine sind abgebildet – die Kinder zählen zusammen und schreiben den Betrag."}
+          </p>
+        </Section>
         <Section title="Betrag bis">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
             {MAXES.map(([v, l]) => (
