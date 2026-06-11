@@ -8,6 +8,7 @@ type Alias = {
   alias_key: string;
   alias_label: string;
   canonical_name: string;
+  is_auto: boolean;
   created_at: string;
   usage: number;
 };
@@ -27,6 +28,7 @@ export default function AliasPanel({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "manual" | "auto">("all");
 
   async function load() {
     setLoading(true);
@@ -73,14 +75,23 @@ export default function AliasPanel({
     }
   }
 
+  const counts = {
+    all: aliases.length,
+    manual: aliases.filter((a) => !a.is_auto).length,
+    auto: aliases.filter((a) => a.is_auto).length,
+  };
   const q = query.trim().toLowerCase();
-  const visible = q
-    ? aliases.filter(
-        (a) =>
-          a.alias_label.toLowerCase().includes(q) ||
-          a.canonical_name.toLowerCase().includes(q)
-      )
-    : aliases;
+  const visible = aliases.filter((a) => {
+    if (filter === "manual" && a.is_auto) return false;
+    if (filter === "auto" && !a.is_auto) return false;
+    if (
+      q &&
+      !a.alias_label.toLowerCase().includes(q) &&
+      !a.canonical_name.toLowerCase().includes(q)
+    )
+      return false;
+    return true;
+  });
 
   return (
     <section
@@ -118,6 +129,36 @@ export default function AliasPanel({
           </div>
         )}
       </div>
+
+      {!loading && aliases.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3 md:px-6">
+          {(
+            [
+              ["all", "Alle"],
+              ["manual", "Manuell"],
+              ["auto", "Automatisch"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                filter === key
+                  ? "bg-primary text-white"
+                  : "bg-bg text-text-light hover:bg-primary/5 hover:text-primary"
+              }`}
+            >
+              {label}
+              <span
+                className={`tabular-nums ${filter === key ? "text-white/80" : "text-text-light"}`}
+              >
+                {counts[key]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div
@@ -160,6 +201,15 @@ export default function AliasPanel({
                   {a.canonical_name}
                 </span>
               </div>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  a.is_auto
+                    ? "bg-bg text-text-light"
+                    : "bg-primary/10 text-primary"
+                }`}
+              >
+                {a.is_auto ? "automatisch" : "manuell"}
+              </span>
               <span className="shrink-0 rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold tabular-nums text-text-light">
                 {a.usage} {a.usage === 1 ? "Anmeldung" : "Anmeldungen"}
               </span>

@@ -24,7 +24,8 @@ export async function GET() {
   const [{ data: aliases, error }, { data: regs }] = await Promise.all([
     admin
       .from("school_aliases")
-      .select("id, alias_key, alias_label, canonical_name, created_at")
+      .select("id, alias_key, alias_label, canonical_name, is_auto, created_at")
+      .order("is_auto", { ascending: true })
       .order("alias_label", { ascending: true }),
     admin.from("registrations").select("alias_id").not("alias_id", "is", null),
   ]);
@@ -82,18 +83,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Zuordnung nicht gefunden" }, { status: 404 });
   }
 
-  // Aktuelle Bestandsaufnahme → prüfen, ob der Import-Name jetzt automatisch
-  // erkannt würde (dann keine Konflikte mehr nötig).
-  const { data: bestand } = await admin
-    .from("bestandsaufnahme_responses")
-    .select("school_name")
-    .not("school_name", "is", null);
-  const registeredSchools = buildRegisteredSchools(
-    (bestand ?? []).map((b) => b.school_name as string | null)
-  );
-  const canonical = matchRegisteredSchool(alias.alias_label, registeredSchools);
-  const revertName = canonical ?? alias.alias_label;
-  const revertSchoolId = await upsertSchoolByName(admin, revertName);
+  // Zurück auf den ursprünglichen Import-Schulnamen, damit der Admin neu
+  // entscheiden kann (manuell zuweisen ODER beim nächsten Import automatisch
+  // neu zuordnen lassen).
+  const revertSchoolId = await upsertSchoolByName(admin, alias.alias_label);
 
   // Betroffene Anmeldungen einsammeln.
   const { data: affected } = await admin
@@ -128,47 +121,45 @@ export async function DELETE(request: NextRequest) {
     if (insErr) continue;
     reverted++;
 
-    // Ohne automatischen Treffer → Konflikt wieder öffnen.
-    if (!canonical) {
-      const { data: prior } = await admin
+    // Konflikt wieder öffnen, damit die Zuordnung neu entschieden wird.
+    const { data: prior } = await admin
+      .from("import_conflicts")
+      .select("id")
+      .eq("event_id", r.event_id)
+      .eq("person_id", r.person_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const reason =
+      "Schulzuordnung wurde entfernt – bitte erneut zuweisen (oder beim nächsten Import automatisch neu zuordnen lassen)";
+    if (prior) {
+      await admin
         .from("import_conflicts")
-        .select("id")
-        .eq("event_id", r.event_id)
-        .eq("person_id", r.person_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const reason =
-        "Schule nicht bei DigiKI registriert (Zuordnung wurde entfernt) – bitte erneut zuweisen";
-      if (prior) {
-        await admin
-          .from("import_conflicts")
-          .update({
-            status: "open",
-            school_id: revertSchoolId,
-            role: r.role,
-            reason,
-            resolved_by: null,
-            resolved_at: null,
-          })
-          .eq("id", prior.id);
-      } else {
-        await admin.from("import_conflicts").insert({
-          import_batch_id: r.import_batch_id,
-          event_id: r.event_id,
+        .update({
+          status: "open",
           school_id: revertSchoolId,
-          person_id: r.person_id,
           role: r.role,
           reason,
-          payload: { workshops: r.workshops },
-        });
-      }
+          resolved_by: null,
+          resolved_at: null,
+        })
+        .eq("id", prior.id);
+    } else {
+      await admin.from("import_conflicts").insert({
+        import_batch_id: r.import_batch_id,
+        event_id: r.event_id,
+        school_id: revertSchoolId,
+        person_id: r.person_id,
+        role: r.role,
+        reason,
+        payload: { workshops: r.workshops },
+      });
     }
   }
 
   await admin.from("school_aliases").delete().eq("id", id);
 
-  return NextResponse.json({ ok: true, reverted, reopened: canonical ? 0 : reverted });
+  return NextResponse.json({ ok: true, reverted });
 }
 
 /** Schulname → schools.id (vorhandene wiederverwenden, sonst anlegen). */
