@@ -3,6 +3,7 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
+import { isRegisteredSchool, schoolMatchKey } from "@/lib/schulungen/parse";
 import type { ConflictItem } from "@/lib/schulungen/types";
 
 export const runtime = "nodejs";
@@ -39,5 +40,48 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ conflicts: (data ?? []) as unknown as ConflictItem[] });
+  let conflicts = (data ?? []) as unknown as ConflictItem[];
+
+  // Selbstheilung: Ein „Schule nicht registriert"-Konflikt ist eine LIVE-
+  // Bedingung. Füllt die Schule die Bestandsaufnahme erst nach dem Import aus
+  // (oder verbessert sich das Matching), ist der gespeicherte offene Konflikt
+  // veraltet. Solche Konflikte werden hier automatisch geschlossen, damit sie
+  // nicht fälschlich als offen erscheinen.
+  if (status === "open" || status === "all") {
+    const schoolConflicts = conflicts.filter(
+      (c) => c.status === "open" && /registriert/i.test(c.reason) && c.school?.name
+    );
+    if (schoolConflicts.length > 0) {
+      const { data: bestand } = await admin
+        .from("bestandsaufnahme_responses")
+        .select("school_name")
+        .not("school_name", "is", null);
+      const registeredKeys = [
+        ...new Set(
+          (bestand ?? [])
+            .map((b) => b.school_name as string | null)
+            .filter((n): n is string => !!n && !/test|admin/i.test(n))
+            .map((n) => schoolMatchKey(n))
+            .filter(Boolean)
+        ),
+      ];
+      const staleIds = schoolConflicts
+        .filter((c) => isRegisteredSchool(c.school!.name, registeredKeys))
+        .map((c) => c.id);
+      if (staleIds.length > 0) {
+        await admin
+          .from("import_conflicts")
+          .update({
+            status: "approved",
+            resolved_by: auth.userId,
+            resolved_at: new Date().toISOString(),
+          })
+          .in("id", staleIds);
+        const stale = new Set(staleIds);
+        conflicts = conflicts.filter((c) => !stale.has(c.id));
+      }
+    }
+  }
+
+  return NextResponse.json({ conflicts });
 }

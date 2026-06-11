@@ -15,7 +15,6 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   role: ParticipantRole;
-  quota_override: boolean | null;
   person: {
     id: string;
     first_name: string;
@@ -41,7 +40,6 @@ export async function GET(request: NextRequest) {
       .from("registrations")
       .select(
         `role,
-         quota_override,
          person:persons (id, first_name, last_name, email),
          school:schools (name, city, school_key)`
       )
@@ -52,14 +50,15 @@ export async function GET(request: NextRequest) {
     admin
       .from("bestandsaufnahme_responses")
       .select("school_name, contact_email"),
-    // Noch OFFENE Konflikte dieser Schulung – um zu unterscheiden, ob eine
-    // Über-Quote-Anmeldung schon entschieden (zugelassen) wurde oder noch
-    // oben bearbeitet werden muss.
+    // Konflikte dieser Schulung (offen + zugelassen) – um Über-Quote-
+    // Anmeldungen zu erkennen (Grund enthält „Quote") und zu unterscheiden,
+    // ob sie noch oben bearbeitet werden müssen (offen) oder schon
+    // entschieden sind (zugelassen).
     admin
       .from("import_conflicts")
-      .select("person_id")
+      .select("person_id, status, reason")
       .eq("event_id", eventId)
-      .eq("status", "open"),
+      .in("status", ["open", "approved"]),
   ]);
 
   if (error) {
@@ -86,10 +85,18 @@ export async function GET(request: NextRequest) {
       schoolEmail.set(key, c.contact_email);
     }
   }
-  // Personen mit noch offenem Konflikt für diese Schulung.
-  const openConflictPersons = new Set<string>();
-  for (const c of (conflictRes.data ?? []) as Array<{ person_id: string | null }>) {
-    if (c.person_id) openConflictPersons.add(c.person_id);
+  // Quoten-Konflikte je Person: Wert = true, wenn (noch) offen. Nur Konflikte,
+  // deren Grund „Quote" enthält (Schul-Konflikte werden hier ignoriert – die
+  // werden über school_registered abgebildet).
+  const quotaConflict = new Map<string, boolean>();
+  for (const c of (conflictRes.data ?? []) as Array<{
+    person_id: string | null;
+    status: string;
+    reason: string | null;
+  }>) {
+    if (!c.person_id || !/quote/i.test(c.reason ?? "")) continue;
+    const open = c.status === "open";
+    quotaConflict.set(c.person_id, (quotaConflict.get(c.person_id) ?? false) || open);
   }
 
   // Schul-Account-E-Mail für einen Schulnamen finden (exakt oder enthalten).
@@ -108,11 +115,12 @@ export async function GET(request: NextRequest) {
       const ownEmail = r.person?.email ?? null;
       // Ohne eigene E-Mail + Schule registriert → Schul-Account-E-Mail.
       const fallback = !ownEmail && isReg ? lookupSchoolEmail(r.school?.name) : null;
-      // Registrierte Schule, aber per Override über der Quote zugelassen
-      // → Quoten-Hinweis (bleibt auch nach „Trotz Quote zulassen", da das
-      //   Override klebrig ist; verschwindet erst beim manuellen Umziehen).
-      const quotaWarning = isReg && r.quota_override === true;
+      // Über der Quote = registrierte Schule MIT einem Quoten-Konflikt
+      // (offen oder zugelassen). Auf den Konflikt-Grund gestützt, nicht auf
+      // das (klebrige) Override-Flag – so erscheint eine ehemals nicht
+      // erkannte, jetzt registrierte Schule NICHT fälschlich als „über Quote".
       const personId = r.person?.id ?? "";
+      const quotaWarning = isReg && quotaConflict.has(personId);
       return {
         person_id: personId,
         first_name: r.person?.first_name ?? "",
@@ -123,8 +131,8 @@ export async function GET(request: NextRequest) {
         role: r.role,
         school_registered: isReg,
         quota_warning: quotaWarning,
-        // Noch offener Konflikt → muss oben erst entschieden werden.
-        quota_pending: quotaWarning && openConflictPersons.has(personId),
+        // Quoten-Konflikt noch offen → muss oben erst entschieden werden.
+        quota_pending: quotaWarning && quotaConflict.get(personId) === true,
         email_via_school: !ownEmail && !!fallback,
       };
     }
