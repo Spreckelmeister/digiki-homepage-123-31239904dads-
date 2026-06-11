@@ -8,6 +8,7 @@ import {
   schoolKeyMatches,
   buildRegisteredSchools,
   isRegisteredSchool,
+  NO_SCHOOL_NAME,
 } from "@/lib/schulungen/parse";
 import type { EventParticipant, ParticipantRole } from "@/lib/schulungen/types";
 
@@ -118,16 +119,18 @@ export async function GET(request: NextRequest) {
       // das (klebrige) Override-Flag – so erscheint eine ehemals nicht
       // erkannte, jetzt registrierte Schule NICHT fälschlich als „über Quote".
       const personId = r.person?.id ?? "";
+      const schoolMissing = r.school?.name === NO_SCHOOL_NAME;
       const quotaWarning = isReg && quotaConflict.has(personId);
       return {
         person_id: personId,
         first_name: r.person?.first_name ?? "",
         last_name: r.person?.last_name ?? "",
         email: ownEmail ?? fallback,
-        school_name: r.school?.name ?? null,
+        school_name: schoolMissing ? null : r.school?.name ?? null,
         school_city: r.school?.city ?? null,
         role: r.role,
         school_registered: isReg,
+        school_missing: schoolMissing,
         quota_warning: quotaWarning,
         // Quoten-Konflikt noch offen → muss oben erst entschieden werden.
         quota_pending: quotaWarning && quotaConflict.get(personId) === true,

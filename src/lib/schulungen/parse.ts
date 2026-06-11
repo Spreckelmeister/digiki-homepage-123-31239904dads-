@@ -11,6 +11,14 @@ import * as XLSX from "xlsx";
 
 export type ExcelFormat = "nlc" | "educa";
 
+/**
+ * Platzhalter-Schule für Teilnehmende ohne Schulangabe. Sie werden trotzdem
+ * importiert (mit Hinweis) und können im Dashboard manuell einer Schule
+ * zugewiesen werden. registrations.school_id ist NOT NULL, daher ein echter
+ * Platzhalter statt NULL.
+ */
+export const NO_SCHOOL_NAME = "Keine Schule angegeben";
+
 export interface ParsedRow {
   /** 1-basierte Zeilennummer in der Excel-Datei (inkl. Kopfzeile). */
   row: number;
@@ -291,13 +299,10 @@ export function parseRegistrationFile(buffer: Buffer | ArrayBuffer): ParseResult
         skipped.push({ row: rowNumber, reason: "Kein Name angegeben" });
         continue;
       }
-      if (emptyish(schoolName)) {
-        skipped.push({
-          row: rowNumber,
-          reason: `Keine Schule angegeben (${lastName || firstName}) – ohne Schule kann keine Quote geprüft werden`,
-        });
-        continue;
-      }
+      // Ohne Schule wird die Person TROTZDEM importiert (leerer Schulname) –
+      // sie erscheint im Dashboard mit Hinweis und kann manuell einer Schule
+      // zugewiesen werden.
+      const schoolNameOut = emptyish(schoolName) ? "" : schoolName;
 
       if (sheetFormat === "nlc") {
         rows.push({
@@ -305,7 +310,7 @@ export function parseRegistrationFile(buffer: Buffer | ArrayBuffer): ParseResult
           firstName,
           lastName,
           email: parseEmail(cell(raw, headers, "mt_email")),
-          schoolName,
+          schoolName: schoolNameOut,
           schoolStreet: orNull(cell(raw, headers, "sh_strasse")),
           schoolPlz: orNull(cell(raw, headers, "sh_plz")),
           schoolCity: orNull(cell(raw, headers, "sh_st_namel")),
@@ -319,7 +324,7 @@ export function parseRegistrationFile(buffer: Buffer | ArrayBuffer): ParseResult
           firstName,
           lastName,
           email: null,
-          schoolName,
+          schoolName: schoolNameOut,
           schoolStreet: null,
           schoolPlz: null,
           schoolCity: null,

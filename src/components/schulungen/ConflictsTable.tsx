@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Loader2, School, Search, ShieldAlert } from "lucide-react";
 import {
   ROLE_LABELS,
   type ConflictItem,
@@ -23,6 +23,173 @@ function formatDate(iso: string | null): string {
  * - Ablehnen: Konflikt schließen, keine Anmeldung anlegen.
  * - Trotz Quote zulassen: Anmeldung mit Override anlegen.
  */
+/**
+ * Durchsuchbares Auswahl-Popover für die manuelle Schul-Zuweisung. Zeigt nur
+ * Schulen mit freiem Pensum für die Rolle; Suche nach Name/Ort. Das Popover
+ * wird `fixed` positioniert, damit es nicht vom Tabellen-Overflow abgeschnitten
+ * wird.
+ */
+function AssignPicker({
+  schools,
+  role,
+  disabled,
+  onPick,
+}: {
+  schools: SchoolParticipation[];
+  role: ParticipantRole;
+  disabled: boolean;
+  onPick: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const reposition = useCallback(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const width = Math.max(260, Math.min(320, r.width));
+    setCoords({
+      top: r.bottom + 4,
+      left: Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8)),
+      width,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    reposition();
+    const onScroll = () => reposition();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      if (btnRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open, reposition]);
+
+  const limitLabel = role === "leadership" ? "Leitung" : "Lehrkräfte";
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? schools.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.city ?? "").toLowerCase().includes(q)
+      )
+    : schools;
+  const noFree = schools.length === 0;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={disabled || noFree}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span className="inline-flex items-center gap-1.5 truncate">
+          <School className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+          {noFree ? "Keine Schule frei" : "Schule zuweisen …"}
+        </span>
+        <svg
+          className={`h-3.5 w-3.5 shrink-0 text-text-light transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && coords && (
+        <div
+          ref={panelRef}
+          role="listbox"
+          aria-label={`Schule zuweisen (${ROLE_LABELS[role] ?? role})`}
+          style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width }}
+          className="z-50 overflow-hidden rounded-xl border border-border bg-white text-left shadow-xl"
+        >
+          <div className="border-b border-border p-2">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-light"
+                aria-hidden="true"
+              />
+              <input
+                autoFocus
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Schule suchen …"
+                aria-label="Schule suchen"
+                className="w-full rounded-md border border-border bg-bg py-1.5 pl-8 pr-2.5 text-xs text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+          <ul className="max-h-64 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-3 text-xs text-text-light">Keine Schule gefunden.</li>
+            ) : (
+              filtered.map((s) => {
+                const used = role === "leadership" ? s.leadership_used : s.teachers_used;
+                const limit = role === "leadership" ? s.leadership_limit : s.teacher_limit;
+                return (
+                  <li key={s.school_key}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      onClick={() => {
+                        onPick(s.name);
+                        setOpen(false);
+                        setQuery("");
+                      }}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left transition-colors hover:bg-primary/5"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-medium text-text">
+                          {s.name}
+                        </span>
+                        {s.city && (
+                          <span className="block truncate text-[10px] text-text-light">
+                            {s.city}
+                          </span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-text-light">
+                        {used}/{limit} {limitLabel}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
 /** Schulen, die für die Rolle noch Platz im Pensum haben. */
 function freeSchoolsFor(
   schools: SchoolParticipation[],
@@ -204,11 +371,12 @@ export default function ConflictsTable({
             </thead>
             <tbody className="divide-y divide-border/60">
               {conflicts.map((c) => {
-                // Schul-Konflikt (Schule nicht bei DigiKI registriert) vs.
-                // Quoten-Konflikt – unterschiedlich einfärben.
-                const schoolIssue = (c.reason || "")
-                  .toLowerCase()
-                  .includes("registriert");
+                // Schul-Konflikt (Schule nicht registriert ODER keine Schule
+                // angegeben) vs. Quoten-Konflikt – unterschiedlich einfärben.
+                // Nur Schul-Konflikte bekommen den Zuweisungs-Picker.
+                const reasonLc = (c.reason || "").toLowerCase();
+                const schoolIssue =
+                  reasonLc.includes("registriert") || reasonLc.includes("keine schule");
                 return (
                 <tr key={c.id} className={`align-top ${schoolIssue ? "bg-red-50/50" : ""}`}>
                   <td className="py-3 pr-4">
@@ -264,44 +432,16 @@ export default function ConflictsTable({
                       {/* Manuelle Zuweisung NUR bei nicht zuweisbaren Schulen
                           (Schule nicht registriert). Bei reinen Quoten-
                           Konflikten ist die Schule korrekt – dort soll man
-                          keine andere Schule wählen können. */}
-                      {schoolIssue && (() => {
-                        const free = freeByRole[c.role] ?? [];
-                        const limitLabel =
-                          c.role === "leadership" ? "Leitung" : "Lehrkräfte";
-                        return (
-                          <select
-                            aria-label={`Person einer registrierten Schule zuweisen (${ROLE_LABELS[c.role] ?? c.role})`}
-                            value=""
-                            disabled={busyId !== null || free.length === 0}
-                            onChange={(e) => {
-                              if (e.target.value) assign(c.id, e.target.value);
-                            }}
-                            className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <option value="">
-                              {free.length === 0
-                                ? "Keine Schule frei"
-                                : "↪ Schule zuweisen …"}
-                            </option>
-                            {free.map((s) => {
-                              const used =
-                                c.role === "leadership"
-                                  ? s.leadership_used
-                                  : s.teachers_used;
-                              const limit =
-                                c.role === "leadership"
-                                  ? s.leadership_limit
-                                  : s.teacher_limit;
-                              return (
-                                <option key={s.school_key} value={s.name}>
-                                  {s.name} ({used}/{limit} {limitLabel})
-                                </option>
-                              );
-                            })}
-                          </select>
-                        );
-                      })()}
+                          keine andere Schule wählen können. Durchsuchbares
+                          Popover statt langer Liste. */}
+                      {schoolIssue && (
+                        <AssignPicker
+                          schools={freeByRole[c.role] ?? []}
+                          role={c.role}
+                          disabled={busyId !== null}
+                          onPick={(name) => assign(c.id, name)}
+                        />
+                      )}
                       <div className="flex items-stretch gap-1.5">
                         <button
                           type="button"

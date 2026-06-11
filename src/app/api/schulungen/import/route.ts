@@ -11,6 +11,7 @@ import {
   schoolKeyFromName,
   buildRegisteredSchools,
   matchRegisteredSchool,
+  NO_SCHOOL_NAME,
   type ParsedRow,
 } from "@/lib/schulungen/parse";
 import type { ImportFileResult } from "@/lib/schulungen/types";
@@ -168,22 +169,30 @@ export async function POST(request: NextRequest) {
       for (const row of parsed.rows) {
         try {
           // Kanonischer Name der registrierten Schule (oder null = nicht
-          // registriert). Bei Treffer wird die Schule unter dem Bestands-
-          // aufnahme-Namen geführt, damit importierte Schule und
-          // Bestandsaufnahme im Dashboard/Panel zusammenfallen.
-          const canonical = matchRegisteredSchool(row.schoolName, registeredSchools);
-          const schoolId = await upsertSchool(admin, row, canonical);
+          // registriert). Ohne Schulangabe → Platzhalter-Schule. Bei Treffer
+          // wird die Schule unter dem Bestandsaufnahme-Namen geführt, damit
+          // importierte Schule und Bestandsaufnahme im Dashboard/Panel
+          // zusammenfallen.
+          const noSchool = row.schoolName.trim() === "";
+          const canonical = noSchool
+            ? null
+            : matchRegisteredSchool(row.schoolName, registeredSchools);
+          const schoolId = await upsertSchool(
+            admin,
+            row,
+            noSchool ? NO_SCHOOL_NAME : canonical
+          );
           const personId = await upsertPerson(admin, row, schoolId);
 
-          // Schule nicht bei DigiKI registriert (= nicht in der
-          // Bestandsaufnahme)? → Person wird trotzdem direkt angemeldet
-          // (erscheint unter dem Termin), aber als offener Konflikt
-          // markiert. „Ablehnen" entfernt die Anmeldung wieder,
-          // „Zulassen" behält sie. Frühere Entscheidung wird respektiert.
+          // Kein Bestandsaufnahme-Treffer (Schule nicht registriert ODER gar
+          // keine Schule angegeben)? → Person wird trotzdem direkt angemeldet
+          // (erscheint unter dem Termin), aber als offener Konflikt markiert.
+          // „Ablehnen" entfernt die Anmeldung wieder, „Zulassen" behält sie,
+          // „Schule zuweisen" ordnet sie einer registrierten Schule zu.
           if (!canonical) {
             unregisteredRows.push({
               name: [row.lastName, row.firstName].filter(Boolean).join(", "),
-              school: row.schoolName.trim(),
+              school: noSchool ? "— keine Schule angegeben —" : row.schoolName.trim(),
             });
             const recorded = await recordConflict(admin, {
               batchId,
@@ -191,8 +200,9 @@ export async function POST(request: NextRequest) {
               schoolId,
               personId,
               role: event.audience,
-              reason:
-                "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
+              reason: noSchool
+                ? "Keine Schule angegeben – bitte im Dashboard eine Schule zuweisen"
+                : "Schule nicht bei DigiKI registriert (Bestandsaufnahme fehlt) – Teilnahme eigentlich nicht möglich",
               payload: { ...row, kurs_nr: event.kurs_nr },
             });
             if (recorded === "skipped_rejected") {

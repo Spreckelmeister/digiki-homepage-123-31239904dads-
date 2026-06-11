@@ -267,22 +267,42 @@ function ParticipantsModal({
             </p>
           ) : (
             <>
-              {participants.some((p) => !p.school_registered) && (
-                <div
-                  role="alert"
-                  className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-                >
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>
-                    <strong>
-                      {participants.filter((p) => !p.school_registered).length}{" "}
-                      Teilnehmende von nicht registrierten Schulen
-                    </strong>{" "}
-                    (rot markiert). Diese Schulen haben die Bestandsaufnahme
-                    nicht ausgefüllt und sind eigentlich nicht teilnahmeberechtigt.
-                  </span>
-                </div>
-              )}
+              {(() => {
+                const missing = participants.filter((p) => p.school_missing).length;
+                const unreg = participants.filter(
+                  (p) => !p.school_registered && !p.school_missing
+                ).length;
+                if (missing + unreg === 0) return null;
+                return (
+                  <div
+                    role="alert"
+                    className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      {unreg > 0 && (
+                        <>
+                          <strong>
+                            {unreg} Teilnehmende von nicht registrierten Schulen
+                          </strong>{" "}
+                          (rot markiert). Diese Schulen haben die Bestandsaufnahme
+                          nicht ausgefüllt und sind eigentlich nicht
+                          teilnahmeberechtigt.{" "}
+                        </>
+                      )}
+                      {missing > 0 && (
+                        <>
+                          <strong>
+                            {missing} Teilnehmende ohne Schulangabe
+                          </strong>{" "}
+                          (rot markiert) – bitte oben im Konflikt eine Schule
+                          zuweisen.
+                        </>
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
               {(() => {
                 const quotaParts = participants.filter(
                   (p) => p.quota_warning && p.school_registered
@@ -354,14 +374,19 @@ function ParticipantsModal({
                         </td>
                         <td className="py-2.5 pr-4">
                           <span className={!p.school_registered ? "font-medium text-red-800" : quota ? "font-medium text-amber-900" : "text-text"}>
-                            {p.school_name ?? "–"}
+                            {p.school_name ?? (p.school_missing ? "—" : "–")}
                           </span>
-                          {p.school_city && (
+                          {p.school_city && !p.school_missing && (
                             <span className="block text-[11px] text-text-light">
                               {p.school_city}
                             </span>
                           )}
-                          {!p.school_registered ? (
+                          {p.school_missing ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                              Keine Schule angegeben
+                            </span>
+                          ) : !p.school_registered ? (
                             <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
                               <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
                               Schule nicht registriert

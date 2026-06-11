@@ -105,6 +105,9 @@ export interface EventParticipant {
   /** false = Schule ist NICHT in der Bestandsaufnahme registriert → darf
    *  eigentlich nicht teilnehmen (rot markieren). */
   school_registered: boolean;
+  /** true = es wurde GAR KEINE Schule angegeben (Platzhalter) → muss noch
+   *  zugewiesen werden. */
+  school_missing: boolean;
   /** true = Anmeldung liegt über der Schul-Quote (registrierte Schule, aber
    *  über dem Limit) → mit Hinweis markieren. */
   quota_warning: boolean;
