@@ -61,15 +61,22 @@ export function schoolKeyFromName(name: string): string {
   return normalizeKey(name).replace(/[.,;]+$/, "").trim();
 }
 
-// Schultyp-Wörter, die für den Abgleich ignoriert werden – damit z. B.
-// „Grundschule Franz-Hecker-Schule" und „Franz-Hecker-Schule" als dieselbe
-// Schule erkannt werden.
+// Schultyp-Wörter (Abkürzungen / einzelne Tokens), die für den Abgleich
+// ignoriert werden – damit z. B. „GS Wissingen" und „Grundschule Wissingen"
+// dieselbe Schule sind.
 const SCHOOL_STOPWORDS = new Set([
-  "grundschule", "gs", "schule", "schulen", "förderschule", "foerderschule",
-  "fös", "foes", "fos", "hauptschule", "hs", "grund", "haupt", "oberschule",
-  "obs", "gesamtschule", "igs", "kgs", "ggs", "ogs", "realschule", "rs",
-  "gymnasium", "gym", "und",
+  "grundschule", "gs", "vgs", "schule", "schulen", "förderschule",
+  "foerderschule", "fös", "foes", "fos", "hauptschule", "hs", "grund",
+  "haupt", "oberschule", "obs", "gesamtschule", "igs", "kgs", "ggs", "ogs",
+  "realschule", "rs", "gymnasium", "gym", "und",
 ]);
+
+// Schultyp-Wörter, die AUCH als Wortbestandteil entfernt werden, damit
+// zusammengesetzte Namen zusammenfallen: „Johannisgrundschule" und
+// „Johannisschule" → „johannis". POSIX/JS matchen das längste Vorkommen,
+// daher fällt „grundschule" vor „schule".
+const SCHOOL_TYPE_RE =
+  /grundschule|förderschule|foerderschule|hauptschule|oberschule|gesamtschule|realschule|berufsschule|schulen|schule/g;
 
 /**
  * Toleranter Vergleichsschlüssel für Schulnamen: alles klein, Trennzeichen
@@ -87,6 +94,9 @@ export function schoolMatchKey(name: string): string {
   const cleaned = base
     .toLowerCase()
     .replace(/[^a-z0-9äöüß]+/g, " ")
+    // Schultyp-Wörter auch innerhalb zusammengesetzter Wörter entfernen.
+    .replace(SCHOOL_TYPE_RE, " ")
+    .replace(/\s+/g, " ")
     .trim();
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   const kept = tokens.filter((t) => !SCHOOL_STOPWORDS.has(t));
