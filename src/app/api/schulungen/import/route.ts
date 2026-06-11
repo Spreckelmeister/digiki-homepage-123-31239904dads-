@@ -9,8 +9,8 @@ import {
   parseRegistrationFile,
   normalizeKey,
   schoolKeyFromName,
-  schoolMatchKey,
-  isRegisteredSchool,
+  buildRegisteredSchools,
+  matchRegisteredSchool,
   type ParsedRow,
 } from "@/lib/schulungen/parse";
 import type { ImportFileResult } from "@/lib/schulungen/types";
@@ -129,22 +129,16 @@ export async function POST(request: NextRequest) {
     batchId = created.id;
   }
 
-  // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Die
-  // Erkennung ist tolerant: Schultyp-Wörter (Grundschule, GS, Schule …)
-  // werden ignoriert, danach exakter Abgleich (siehe schoolMatchKey).
+  // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Die Erkennung
+  // ist tolerant (Schultyp-Wörter/Komma-Zusätze ignoriert, markante Namen
+  // dürfen einen Orts-Zusatz haben – siehe matchRegisteredSchool).
   const { data: bestandSchools } = await admin
     .from("bestandsaufnahme_responses")
     .select("school_name")
     .not("school_name", "is", null);
-  const registeredKeys = [
-    ...new Set(
-      (bestandSchools ?? [])
-        .map((b) => b.school_name as string | null)
-        .filter((n): n is string => !!n && !/test|admin/i.test(n))
-        .map((n) => schoolMatchKey(n))
-        .filter(Boolean)
-    ),
-  ];
+  const registeredSchools = buildRegisteredSchools(
+    (bestandSchools ?? []).map((b) => b.school_name as string | null)
+  );
   const unregisteredRows: { name: string; school: string }[] = [];
 
   const counts = { new: 0, updated: 0, conflicts: 0, errors: 0, skipped: 0 };
@@ -173,7 +167,12 @@ export async function POST(request: NextRequest) {
       let processed = 0;
       for (const row of parsed.rows) {
         try {
-          const schoolId = await upsertSchool(admin, row);
+          // Kanonischer Name der registrierten Schule (oder null = nicht
+          // registriert). Bei Treffer wird die Schule unter dem Bestands-
+          // aufnahme-Namen geführt, damit importierte Schule und
+          // Bestandsaufnahme im Dashboard/Panel zusammenfallen.
+          const canonical = matchRegisteredSchool(row.schoolName, registeredSchools);
+          const schoolId = await upsertSchool(admin, row, canonical);
           const personId = await upsertPerson(admin, row, schoolId);
 
           // Schule nicht bei DigiKI registriert (= nicht in der
@@ -181,7 +180,7 @@ export async function POST(request: NextRequest) {
           // (erscheint unter dem Termin), aber als offener Konflikt
           // markiert. „Ablehnen" entfernt die Anmeldung wieder,
           // „Zulassen" behält sie. Frühere Entscheidung wird respektiert.
-          if (!isRegisteredSchool(row.schoolName, registeredKeys)) {
+          if (!canonical) {
             unregisteredRows.push({
               name: [row.lastName, row.firstName].filter(Boolean).join(", "),
               school: row.schoolName.trim(),
@@ -320,9 +319,16 @@ export async function POST(request: NextRequest) {
  * überschrieben, wenn die Datei sie liefert (educa-Export hat z. B.
  * keine Adresse und soll NLC-Adressdaten nicht löschen).
  */
-async function upsertSchool(admin: SupabaseClient, row: ParsedRow): Promise<string> {
-  const key = schoolKeyFromName(row.schoolName);
-  const name = row.schoolName.replace(/\s+$/, "");
+async function upsertSchool(
+  admin: SupabaseClient,
+  row: ParsedRow,
+  canonicalName?: string | null
+): Promise<string> {
+  // Bei erkannter Registrierung den Bestandsaufnahme-Namen verwenden, sonst
+  // den Namen aus der Importdatei.
+  const displayName = (canonicalName ?? row.schoolName).replace(/\s+$/, "");
+  const key = schoolKeyFromName(displayName);
+  const name = displayName;
 
   const { data: existing } = await admin
     .from("schools")

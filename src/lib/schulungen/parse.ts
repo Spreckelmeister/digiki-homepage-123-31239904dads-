@@ -89,7 +89,11 @@ const SCHOOL_TYPE_RE =
  * vor dem ersten Komma verwendet, damit er zur Bestandsaufnahme („Lüstringer
  * Bergschule") passt.
  */
-export function schoolMatchKey(name: string): string {
+/**
+ * Markante Tokens eines Schulnamens (Komma-Suffix weg, Schultyp-Wörter raus,
+ * Stoppwörter raus). „Grundschule Erich Kästner-Schule" → ["erich","kästner"].
+ */
+export function schoolMatchTokens(name: string): string[] {
   const base = String(name ?? "").split(",")[0];
   const cleaned = base
     .toLowerCase()
@@ -100,23 +104,87 @@ export function schoolMatchKey(name: string): string {
     .trim();
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   const kept = tokens.filter((t) => !SCHOOL_STOPWORDS.has(t));
-  return (kept.length ? kept : tokens).join("");
+  return kept.length ? kept : tokens;
+}
+
+export function schoolMatchKey(name: string): string {
+  return schoolMatchTokens(name).join("");
 }
 
 /**
- * Gleicht zwei Schul-Schlüssel ab: exakt gleich (nach Entfernen der
- * Schultyp-Wörter). Bewusst KEIN Teilstring-Vergleich – sonst würde z. B.
- * „Schwagstorf" fälschlich „Ostercappeln/Schwagstorf" treffen, obwohl das
- * zwei verschiedene Schulen sind.
+ * Gleicht zwei (konkatenierte) Schul-Schlüssel exakt ab. Wird für die präzise
+ * Schul-E-Mail-Zuordnung genutzt; für die Registriert-Erkennung siehe
+ * tokensMatch/matchRegisteredSchool.
  */
 export function schoolKeyMatches(a: string, b: string): boolean {
   return !!a && a === b;
 }
 
+/** Eine registrierte (teilnahmeberechtigte) Schule aus der Bestandsaufnahme. */
+export interface RegisteredSchool {
+  /** Kanonischer Anzeigename (so wie in der Bestandsaufnahme hinterlegt). */
+  name: string;
+  tokens: string[];
+  key: string;
+}
+
+/** Bestandsaufnahme-Namen → dedupte Liste registrierter Schulen. */
+export function buildRegisteredSchools(
+  names: Array<string | null | undefined>
+): RegisteredSchool[] {
+  const out: RegisteredSchool[] = [];
+  const seen = new Set<string>();
+  for (const n of names) {
+    if (!n || /test|admin/i.test(n)) continue;
+    const tokens = schoolMatchTokens(n);
+    const key = tokens.join("");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: n.trim(), tokens, key });
+  }
+  return out;
+}
+
+/**
+ * True, wenn zwei Token-Mengen dieselbe Schule meinen: exakt gleich (auch bei
+ * abweichender Reihenfolge) ODER die kleinere Menge (mit ≥2 Tokens) ist
+ * vollständig in der größeren enthalten. Die ≥2-Regel verhindert, dass
+ * generische Ein-Wort-Namen (oft Ortsnamen wie „Schwagstorf") fälschlich in
+ * längere Namen „hineinmatchen"; markante Namen wie „Erich Kästner" dürfen
+ * dagegen einen Orts-Zusatz haben („… Bohmte").
+ */
+function tokensMatch(a: string[], b: string[]): boolean {
+  if (!a.length || !b.length) return false;
+  if (a.join("") === b.join("")) return true;
+  const [small, big] = a.length <= b.length ? [a, b] : [b, a];
+  if (small.length < 2) return false;
+  const set = new Set(big);
+  return small.every((t) => set.has(t));
+}
+
+/**
+ * Findet die passende registrierte Schule und gibt deren kanonischen Namen
+ * zurück (oder null). Der kanonische Name wird beim Import verwendet, damit
+ * importierte Schulen und Bestandsaufnahme im Dashboard zusammenfallen.
+ */
+export function matchRegisteredSchool(
+  name: string,
+  registered: RegisteredSchool[]
+): string | null {
+  const tokens = schoolMatchTokens(name);
+  if (!tokens.length) return null;
+  for (const r of registered) {
+    if (tokensMatch(tokens, r.tokens)) return r.name;
+  }
+  return null;
+}
+
 /** true, wenn `name` zu einer der registrierten Schulen passt (tolerant). */
-export function isRegisteredSchool(name: string, registeredKeys: string[]): boolean {
-  const key = schoolMatchKey(name);
-  return registeredKeys.some((rk) => schoolKeyMatches(key, rk));
+export function isRegisteredSchool(
+  name: string,
+  registered: RegisteredSchool[]
+): boolean {
+  return matchRegisteredSchool(name, registered) !== null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

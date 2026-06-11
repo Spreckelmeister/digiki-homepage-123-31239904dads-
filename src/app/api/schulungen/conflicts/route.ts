@@ -3,7 +3,7 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
-import { isRegisteredSchool, schoolMatchKey } from "@/lib/schulungen/parse";
+import { buildRegisteredSchools, isRegisteredSchool } from "@/lib/schulungen/parse";
 import type { ConflictItem } from "@/lib/schulungen/types";
 
 export const runtime = "nodejs";
@@ -56,17 +56,11 @@ export async function GET(request: NextRequest) {
         .from("bestandsaufnahme_responses")
         .select("school_name")
         .not("school_name", "is", null);
-      const registeredKeys = [
-        ...new Set(
-          (bestand ?? [])
-            .map((b) => b.school_name as string | null)
-            .filter((n): n is string => !!n && !/test|admin/i.test(n))
-            .map((n) => schoolMatchKey(n))
-            .filter(Boolean)
-        ),
-      ];
+      const registeredSchools = buildRegisteredSchools(
+        (bestand ?? []).map((b) => b.school_name as string | null)
+      );
       const staleIds = schoolConflicts
-        .filter((c) => isRegisteredSchool(c.school!.name, registeredKeys))
+        .filter((c) => isRegisteredSchool(c.school!.name, registeredSchools))
         .map((c) => c.id);
       if (staleIds.length > 0) {
         await admin

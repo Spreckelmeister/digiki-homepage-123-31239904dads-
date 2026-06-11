@@ -6,6 +6,7 @@ import {
 import {
   schoolMatchKey,
   schoolKeyMatches,
+  buildRegisteredSchools,
   isRegisteredSchool,
 } from "@/lib/schulungen/parse";
 import type { EventParticipant, ParticipantRole } from "@/lib/schulungen/types";
@@ -65,23 +66,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Tolerante Erkennung: registrierte Schul-Schlüssel + Mapping auf die
-  // Schul-Account-E-Mail. Schultyp-Wörter werden ignoriert.
-  const registeredKeys: string[] = [];
-  const seenKey = new Set<string>();
-  const schoolEmail = new Map<string, string>(); // matchKey → contact_email
-  for (const c of (bestandRes.data ?? []) as Array<{
+  // Tolerante Erkennung der registrierten Schulen + Mapping auf die
+  // Schul-Account-E-Mail (für den Fallback). Schultyp-Wörter werden ignoriert.
+  const bestandRows = (bestandRes.data ?? []) as Array<{
     school_name: string | null;
     contact_email: string | null;
-  }>) {
+  }>;
+  const registeredSchools = buildRegisteredSchools(
+    bestandRows.map((c) => c.school_name)
+  );
+  const schoolEmail = new Map<string, string>(); // matchKey → contact_email
+  for (const c of bestandRows) {
     if (!c.school_name || /test|admin/i.test(c.school_name)) continue;
     const key = schoolMatchKey(c.school_name);
-    if (!key) continue;
-    if (!seenKey.has(key)) {
-      seenKey.add(key);
-      registeredKeys.push(key);
-    }
-    if (c.contact_email && !schoolEmail.has(key)) {
+    if (key && c.contact_email && !schoolEmail.has(key)) {
       schoolEmail.set(key, c.contact_email);
     }
   }
@@ -111,7 +109,7 @@ export async function GET(request: NextRequest) {
 
   const participants: EventParticipant[] = ((data ?? []) as unknown as Row[]).map(
     (r) => {
-      const isReg = isRegisteredSchool(r.school?.name ?? "", registeredKeys);
+      const isReg = isRegisteredSchool(r.school?.name ?? "", registeredSchools);
       const ownEmail = r.person?.email ?? null;
       // Ohne eigene E-Mail + Schule registriert → Schul-Account-E-Mail.
       const fallback = !ownEmail && isReg ? lookupSchoolEmail(r.school?.name) : null;
