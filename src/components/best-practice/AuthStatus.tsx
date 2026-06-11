@@ -46,13 +46,14 @@ export default function AuthStatus({
   if (!profile) return null;
 
   return (
-    <div className="flex items-center gap-4 text-sm">
-      <span className="text-white/70">
-        Angemeldet als <strong className="text-white">{profile.full_name}</strong>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm md:justify-end">
+      <span className="whitespace-nowrap text-white/70">
+        Angemeldet als{" "}
+        <strong className="text-white">{profile.full_name}</strong>
       </span>
       <Link
         href="/best-practice/konto"
-        className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
+        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-white/70 hover:text-white transition-colors"
       >
         <User className="w-4 h-4" aria-hidden="true" />
         Konto
@@ -60,7 +61,7 @@ export default function AuthStatus({
       {profile.role === "admin" && (
         <Link
           href="/best-practice/admin"
-          className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-white/70 hover:text-white transition-colors"
         >
           <Settings className="w-4 h-4" aria-hidden="true" />
           Admin
@@ -68,7 +69,7 @@ export default function AuthStatus({
       )}
       <button
         onClick={handleLogout}
-        className="inline-flex items-center gap-1 text-white/70 hover:text-white transition-colors"
+        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-white/70 hover:text-white transition-colors"
       >
         <LogOut className="w-4 h-4" aria-hidden="true" />
         Abmelden
