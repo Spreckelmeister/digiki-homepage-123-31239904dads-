@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
-import { ROLE_LABELS, type ConflictItem } from "@/lib/schulungen/types";
+import {
+  ROLE_LABELS,
+  type ConflictItem,
+  type ParticipantRole,
+  type SchoolParticipation,
+} from "@/lib/schulungen/types";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -18,25 +23,54 @@ function formatDate(iso: string | null): string {
  * - Ablehnen: Konflikt schließen, keine Anmeldung anlegen.
  * - Trotz Quote zulassen: Anmeldung mit Override anlegen.
  */
+/** Schulen, die für die Rolle noch Platz im Pensum haben. */
+function freeSchoolsFor(
+  schools: SchoolParticipation[],
+  role: ParticipantRole
+): SchoolParticipation[] {
+  return schools
+    .filter(
+      (s) =>
+        s.in_bestandsaufnahme &&
+        (role === "leadership"
+          ? s.leadership_used < s.leadership_limit
+          : s.teachers_used < s.teacher_limit)
+    )
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
 export default function ConflictsTable({
   conflicts,
   onResolved,
+  schools = [],
   loading = false,
   error = null,
 }: {
   conflicts: ConflictItem[];
   onResolved: () => Promise<void> | void;
+  /** Registrierte Schulen inkl. Quotennutzung – Quelle für die Zuweisung. */
+  schools?: SchoolParticipation[];
   loading?: boolean;
   error?: string | null;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  async function send(payload: object, busyKey: string) {
+  // Freie Schulen je Rolle einmal vorberechnen (für die Dropdowns).
+  const freeByRole = useMemo(
+    () => ({
+      teacher: freeSchoolsFor(schools, "teacher"),
+      leadership: freeSchoolsFor(schools, "leadership"),
+    }),
+    [schools]
+  );
+
+  async function post(url: string, payload: object, busyKey: string) {
     setBusyId(busyKey);
     setActionError(null);
     try {
-      const res = await fetch("/api/schulungen/conflicts/resolve", {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -55,11 +89,17 @@ export default function ConflictsTable({
     }
   }
 
+  const send = (payload: object, busyKey: string) =>
+    post("/api/schulungen/conflicts/resolve", payload, busyKey);
+
   const resolve = (conflictId: string, action: "reject" | "approve") =>
     send({ conflictId, action }, conflictId);
 
   const resolveAll = (action: "reject" | "approve") =>
     send({ all: true, action }, "__all__");
+
+  const assign = (conflictId: string, schoolName: string) =>
+    post("/api/schulungen/conflicts/assign", { conflictId, schoolName }, conflictId);
 
   return (
     <section
@@ -220,29 +260,70 @@ export default function ConflictsTable({
                     </span>
                   </td>
                   <td className="py-3 pl-4 text-right">
-                    <div className="inline-flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center">
-                      <button
-                        type="button"
-                        disabled={busyId !== null}
-                        onClick={() => resolve(c.id, "reject")}
-                        className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Ablehnen
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId !== null}
-                        onClick={() => resolve(c.id, "approve")}
-                        className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {busyId === c.id && (
-                          <Loader2
-                            className="h-3 w-3 animate-spin"
-                            aria-hidden="true"
-                          />
-                        )}
-                        {schoolIssue ? "Trotzdem zulassen" : "Trotz Quote zulassen"}
-                      </button>
+                    <div className="inline-flex flex-col items-stretch gap-1.5">
+                      {/* Manuelle Zuweisung: nur Schulen mit freiem Pensum
+                          für die Rolle dieses Konflikts (Lehrkraft/Leitung). */}
+                      {(() => {
+                        const free = freeByRole[c.role] ?? [];
+                        const limitLabel =
+                          c.role === "leadership" ? "Leitung" : "Lehrkräfte";
+                        return (
+                          <select
+                            aria-label={`Person einer registrierten Schule zuweisen (${ROLE_LABELS[c.role] ?? c.role})`}
+                            value=""
+                            disabled={busyId !== null || free.length === 0}
+                            onChange={(e) => {
+                              if (e.target.value) assign(c.id, e.target.value);
+                            }}
+                            className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="">
+                              {free.length === 0
+                                ? "Keine Schule frei"
+                                : "↪ Schule zuweisen …"}
+                            </option>
+                            {free.map((s) => {
+                              const used =
+                                c.role === "leadership"
+                                  ? s.leadership_used
+                                  : s.teachers_used;
+                              const limit =
+                                c.role === "leadership"
+                                  ? s.leadership_limit
+                                  : s.teacher_limit;
+                              return (
+                                <option key={s.school_key} value={s.name}>
+                                  {s.name} ({used}/{limit} {limitLabel})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        );
+                      })()}
+                      <div className="flex items-stretch gap-1.5">
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() => resolve(c.id, "reject")}
+                          className="flex-1 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Ablehnen
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() => resolve(c.id, "approve")}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {busyId === c.id && (
+                            <Loader2
+                              className="h-3 w-3 animate-spin"
+                              aria-hidden="true"
+                            />
+                          )}
+                          {schoolIssue ? "Trotzdem zulassen" : "Trotz Quote zulassen"}
+                        </button>
+                      </div>
                     </div>
                   </td>
                 </tr>

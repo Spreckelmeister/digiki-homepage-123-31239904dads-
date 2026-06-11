@@ -126,6 +126,7 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
         <ConflictsTable
           conflicts={conflicts}
           onResolved={refresh}
+          schools={overview?.schools ?? []}
           loading={loading}
           error={conflictsError}
         />
