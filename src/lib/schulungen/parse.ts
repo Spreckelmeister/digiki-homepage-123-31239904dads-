@@ -61,6 +61,50 @@ export function schoolKeyFromName(name: string): string {
   return normalizeKey(name).replace(/[.,;]+$/, "").trim();
 }
 
+// Schultyp-Wörter, die für den Abgleich ignoriert werden – damit z. B.
+// „Grundschule Franz-Hecker-Schule" und „Franz-Hecker-Schule" als dieselbe
+// Schule erkannt werden.
+const SCHOOL_STOPWORDS = new Set([
+  "grundschule", "gs", "schule", "schulen", "förderschule", "foerderschule",
+  "fös", "foes", "fos", "hauptschule", "hs", "grund", "haupt", "oberschule",
+  "obs", "gesamtschule", "igs", "kgs", "ggs", "ogs", "realschule", "rs",
+  "gymnasium", "gym", "und",
+]);
+
+/**
+ * Toleranter Vergleichsschlüssel für Schulnamen: alles klein, Trennzeichen
+ * entfernt, Schultyp-Wörter (Grundschule, GS, Schule …) raus, Rest
+ * zusammengezogen. „Grundschule Franz-Hecker-Schule" → „franzhecker",
+ * „Franz-Hecker-Schule" → „franzhecker".
+ */
+export function schoolMatchKey(name: string): string {
+  const cleaned = String(name ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, " ")
+    .trim();
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  const kept = tokens.filter((t) => !SCHOOL_STOPWORDS.has(t));
+  return (kept.length ? kept : tokens).join("");
+}
+
+/**
+ * Gleicht zwei Schul-Schlüssel ab: exakt gleich ODER der eine enthält den
+ * anderen (für abweichende Schreibweisen / Zusätze wie „FöS GE/ES").
+ * Mindestlänge 4 verhindert triviale Teiltreffer.
+ */
+export function schoolKeyMatches(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a))) return true;
+  return false;
+}
+
+/** true, wenn `name` zu einer der registrierten Schulen passt (tolerant). */
+export function isRegisteredSchool(name: string, registeredKeys: string[]): boolean {
+  const key = schoolMatchKey(name);
+  return registeredKeys.some((rk) => schoolKeyMatches(key, rk));
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function parseEmail(value: unknown): string | null {

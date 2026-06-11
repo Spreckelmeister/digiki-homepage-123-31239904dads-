@@ -3,7 +3,11 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
-import { schoolKeyFromName } from "@/lib/schulungen/parse";
+import {
+  schoolMatchKey,
+  schoolKeyMatches,
+  isRegisteredSchool,
+} from "@/lib/schulungen/parse";
 import type { EventParticipant, ParticipantRole } from "@/lib/schulungen/types";
 
 export const runtime = "nodejs";
@@ -31,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createServiceClient();
-  const [{ data, error }, registeredRes, contactsRes] = await Promise.all([
+  const [{ data, error }, bestandRes] = await Promise.all([
     admin
       .from("registrations")
       .select(
@@ -42,46 +46,52 @@ export async function GET(request: NextRequest) {
       .eq("event_id", eventId)
       .eq("status", "registered")
       .limit(500),
-    // Registrierte Schulen = in der Bestandsaufnahme vorhanden.
-    admin
-      .from("school_participation")
-      .select("school_key")
-      .eq("in_bestandsaufnahme", true),
-    // Schul-Account-E-Mails (Bestandsaufnahme-Kontakt) als Fallback.
+    // Bestandsaufnahme-Schulen (registriert) inkl. Kontakt-E-Mail (Fallback).
     admin
       .from("bestandsaufnahme_responses")
-      .select("school_name, contact_email")
-      .not("contact_email", "is", null),
+      .select("school_name, contact_email"),
   ]);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const registered = new Set(
-    (registeredRes.data ?? [])
-      .map((s) => s.school_key as string | null)
-      .filter((k): k is string => !!k)
-  );
-
-  // school_key → Schul-Account-E-Mail (erste pro Schule).
-  const schoolEmail = new Map<string, string>();
-  for (const c of (contactsRes.data ?? []) as Array<{
+  // Tolerante Erkennung: registrierte Schul-Schlüssel + Mapping auf die
+  // Schul-Account-E-Mail. Schultyp-Wörter werden ignoriert.
+  const registeredKeys: string[] = [];
+  const seenKey = new Set<string>();
+  const schoolEmail = new Map<string, string>(); // matchKey → contact_email
+  for (const c of (bestandRes.data ?? []) as Array<{
     school_name: string | null;
     contact_email: string | null;
   }>) {
-    if (!c.school_name || !c.contact_email) continue;
-    const key = schoolKeyFromName(c.school_name);
-    if (key && !schoolEmail.has(key)) schoolEmail.set(key, c.contact_email);
+    if (!c.school_name || /test|admin/i.test(c.school_name)) continue;
+    const key = schoolMatchKey(c.school_name);
+    if (!key) continue;
+    if (!seenKey.has(key)) {
+      seenKey.add(key);
+      registeredKeys.push(key);
+    }
+    if (c.contact_email && !schoolEmail.has(key)) {
+      schoolEmail.set(key, c.contact_email);
+    }
   }
+  // Schul-Account-E-Mail für einen Schulnamen finden (exakt oder enthalten).
+  const lookupSchoolEmail = (name: string | null | undefined): string | null => {
+    if (!name) return null;
+    const k = schoolMatchKey(name);
+    for (const [mk, email] of schoolEmail) {
+      if (schoolKeyMatches(k, mk)) return email;
+    }
+    return null;
+  };
 
   const participants: EventParticipant[] = ((data ?? []) as unknown as Row[]).map(
     (r) => {
-      const key = r.school?.school_key ?? "";
-      const isReg = !!key && registered.has(key);
+      const isReg = isRegisteredSchool(r.school?.name ?? "", registeredKeys);
       const ownEmail = r.person?.email ?? null;
       // Ohne eigene E-Mail + Schule registriert → Schul-Account-E-Mail.
-      const fallback = !ownEmail && isReg ? schoolEmail.get(key) ?? null : null;
+      const fallback = !ownEmail && isReg ? lookupSchoolEmail(r.school?.name) : null;
       return {
         person_id: r.person?.id ?? "",
         first_name: r.person?.first_name ?? "",

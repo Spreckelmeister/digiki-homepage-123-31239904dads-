@@ -9,6 +9,8 @@ import {
   parseRegistrationFile,
   normalizeKey,
   schoolKeyFromName,
+  schoolMatchKey,
+  isRegisteredSchool,
   type ParsedRow,
 } from "@/lib/schulungen/parse";
 import type { ImportFileResult } from "@/lib/schulungen/types";
@@ -127,18 +129,22 @@ export async function POST(request: NextRequest) {
     batchId = created.id;
   }
 
-  // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Teilnehmende
-  // von NICHT registrierten Schulen dürfen eigentlich nicht teilnehmen und
-  // werden als Warnung zurückgemeldet.
-  const { data: regSchools } = await admin
-    .from("school_participation")
-    .select("school_key")
-    .eq("in_bestandsaufnahme", true);
-  const registeredSet = new Set(
-    (regSchools ?? [])
-      .map((s) => s.school_key as string | null)
-      .filter((k): k is string => !!k)
-  );
+  // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Die
+  // Erkennung ist tolerant: Schultyp-Wörter (Grundschule, GS, Schule …)
+  // werden ignoriert und abweichende Schreibweisen per Teilstring erkannt.
+  const { data: bestandSchools } = await admin
+    .from("bestandsaufnahme_responses")
+    .select("school_name")
+    .not("school_name", "is", null);
+  const registeredKeys = [
+    ...new Set(
+      (bestandSchools ?? [])
+        .map((b) => b.school_name as string | null)
+        .filter((n): n is string => !!n && !/test|admin/i.test(n))
+        .map((n) => schoolMatchKey(n))
+        .filter(Boolean)
+    ),
+  ];
   const unregisteredRows: { name: string; school: string }[] = [];
 
   const counts = { new: 0, updated: 0, conflicts: 0, errors: 0, skipped: 0 };
@@ -157,7 +163,7 @@ export async function POST(request: NextRequest) {
       //   aber als offener Konflikt markiert. „Ablehnen" entfernt die
       //   Anmeldung wieder, „Zulassen" behält sie (Warnung in der
       //   Teilnehmerliste bleibt). Frühere Entscheidung wird respektiert.
-      if (!registeredSet.has(schoolKeyFromName(row.schoolName))) {
+      if (!isRegisteredSchool(row.schoolName, registeredKeys)) {
         unregisteredRows.push({
           name: [row.lastName, row.firstName].filter(Boolean).join(", "),
           school: row.schoolName.trim(),
