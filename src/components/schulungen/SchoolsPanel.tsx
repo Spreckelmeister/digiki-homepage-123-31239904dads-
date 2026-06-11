@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CircleSlash, Search } from "lucide-react";
+import { AlertTriangle, CircleSlash, Search } from "lucide-react";
 import type { SchoolParticipation } from "@/lib/schulungen/types";
 
 type Filter = "all" | "registered" | "pending";
@@ -152,16 +152,33 @@ export default function SchoolsPanel({
 function SchoolCard({ school }: { school: SchoolParticipation }) {
   const pending = !school.has_registered;
   const notEligible = !school.in_bestandsaufnahme;
+  // Über der Quote = mehr Anmeldungen als erlaubt (kommt durch
+  // „Trotz Quote zulassen" / Override zustande). Schule rot markieren.
+  const teacherOver = school.teachers_used > school.teacher_limit;
+  const leadershipOver = school.leadership_used > school.leadership_limit;
+  const overQuota = teacherOver || leadershipOver;
+
+  // Zahl pro Rolle: rot bei Überschreitung, Akzent bei genau voll.
+  const countClass = (used: number, limit: number) =>
+    used > limit
+      ? "text-red-700"
+      : used >= limit
+        ? "text-accent-text"
+        : "text-text";
 
   return (
     <li
       className={`rounded-xl border p-3.5 ${
-        pending ? "border-dashed border-border bg-bg/40" : "border-border bg-bg/60"
+        overQuota
+          ? "border-red-300 bg-red-50/60"
+          : pending
+            ? "border-dashed border-border bg-bg/40"
+            : "border-border bg-bg/60"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-text">
+          <p className={`truncate text-sm font-semibold ${overQuota ? "text-red-800" : "text-text"}`}>
             {school.name}
           </p>
           {school.city && (
@@ -169,6 +186,12 @@ function SchoolCard({ school }: { school: SchoolParticipation }) {
               {school.plz ? `${school.plz} ` : ""}
               {school.city}
             </p>
+          )}
+          {overQuota && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+              Über Quote
+            </span>
           )}
         </div>
         {pending ? (
@@ -179,24 +202,12 @@ function SchoolCard({ school }: { school: SchoolParticipation }) {
         ) : (
           <p className="shrink-0 text-right text-[11px] leading-relaxed text-text-light">
             Lehrkräfte{" "}
-            <span
-              className={`font-bold tabular-nums ${
-                school.teachers_used >= school.teacher_limit
-                  ? "text-accent-text"
-                  : "text-text"
-              }`}
-            >
+            <span className={`font-bold tabular-nums ${countClass(school.teachers_used, school.teacher_limit)}`}>
               {school.teachers_used}/{school.teacher_limit}
             </span>
             <br />
             Leitung{" "}
-            <span
-              className={`font-bold tabular-nums ${
-                school.leadership_used >= school.leadership_limit
-                  ? "text-accent-text"
-                  : "text-text"
-              }`}
-            >
+            <span className={`font-bold tabular-nums ${countClass(school.leadership_used, school.leadership_limit)}`}>
               {school.leadership_used}/{school.leadership_limit}
             </span>
           </p>
@@ -251,7 +262,7 @@ function QuotaBar({
       >
         <div
           className={`h-1.5 rounded-full transition-all ${
-            used > limit ? "bg-accent" : color
+            used > limit ? "bg-red-500" : color
           }`}
           style={{ width: `${percent}%` }}
         />
