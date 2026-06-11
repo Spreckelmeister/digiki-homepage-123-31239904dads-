@@ -17,9 +17,10 @@ type SendBody = {
   eyebrow?: unknown;
   heading?: unknown;
   preheader?: unknown;
-  mode?: unknown; // "test" | "bulk"
+  mode?: unknown; // "test" | "bulk" | "selected"
   audience?: unknown; // "all" | "confirmed"
   testEmail?: unknown;
+  recipients?: unknown; // string[] – nur für mode "selected"
 };
 
 /**
@@ -89,10 +90,17 @@ export async function POST(request: NextRequest) {
   const eyebrow = typeof body.eyebrow === "string" ? body.eyebrow.trim() : "";
   const heading = typeof body.heading === "string" ? body.heading.trim() : "";
   const preheader = typeof body.preheader === "string" ? body.preheader.trim() : "";
-  const mode = body.mode === "bulk" ? "bulk" : "test";
+  const mode =
+    body.mode === "bulk" ? "bulk" : body.mode === "selected" ? "selected" : "test";
   const audience = body.audience === "all" ? "all" : "confirmed";
   const testEmail =
     typeof body.testEmail === "string" ? body.testEmail.trim() : "";
+  const selectedEmails = Array.isArray(body.recipients)
+    ? body.recipients
+        .filter((e): e is string => typeof e === "string")
+        .map((e) => e.trim())
+        .filter((e) => e.includes("@"))
+    : [];
 
   if (!subject || subject.length > 200) {
     return NextResponse.json(
@@ -135,12 +143,37 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-    recipients = usersData.users
+
+    const accountEmails = usersData.users
       .filter((u) => !!u.email)
       .filter((u) =>
-        audience === "confirmed" ? !!u.email_confirmed_at : true,
+        audience === "confirmed" && mode === "bulk"
+          ? !!u.email_confirmed_at
+          : true,
       )
       .map((u) => u.email as string);
+
+    if (mode === "selected") {
+      // Sicherheit: nur an tatsächliche Account-Adressen senden – das Tool
+      // ist kein offenes Relay. Auswahl case-insensitiv gegen die
+      // Account-Liste abgleichen.
+      if (selectedEmails.length === 0) {
+        return NextResponse.json(
+          { error: "Bitte mindestens einen Empfänger auswählen." },
+          { status: 400 },
+        );
+      }
+      const accountSet = new Set(accountEmails.map((e) => e.toLowerCase()));
+      recipients = selectedEmails.filter((e) => accountSet.has(e.toLowerCase()));
+      if (recipients.length === 0) {
+        return NextResponse.json(
+          { error: "Keiner der ausgewählten Empfänger ist ein gültiger Account." },
+          { status: 400 },
+        );
+      }
+    } else {
+      recipients = accountEmails;
+    }
 
     // Duplikate raus (case-insensitive)
     const seen = new Set<string>();

@@ -11,9 +11,11 @@ import {
   Loader2,
   Mail,
   RefreshCw,
+  Search,
   Send,
   ShieldCheck,
   Sparkles,
+  UserCheck,
   Users,
   Wand2,
   X,
@@ -28,9 +30,11 @@ type Recipient = {
   confirmed: boolean;
 };
 
+type Audience = "confirmed" | "all" | "selected";
+
 type SendResult = {
   ok: boolean;
-  mode: "test" | "bulk";
+  mode: "test" | "bulk" | "selected";
   total: number;
   sent: number;
   failed: { email: string; error: string }[];
@@ -87,7 +91,10 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientsLoading, setRecipientsLoading] = useState(true);
   const [recipientsError, setRecipientsError] = useState<string | null>(null);
-  const [audience, setAudience] = useState<"all" | "confirmed">("confirmed");
+  const [audience, setAudience] = useState<Audience>("confirmed");
+  // Einzelauswahl: ausgewählte E-Mails (lowercase als Schlüssel).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
 
   async function loadRecipients() {
     setRecipientsLoading(true);
@@ -112,15 +119,63 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     void loadRecipients();
   }, []);
 
-  const filtered = useMemo(
+  // Gruppen-Empfänger (für die Modi "Nur bestätigte" / "Alle").
+  const groupRecipients = useMemo(
     () =>
       audience === "confirmed"
         ? recipients.filter((r) => r.confirmed)
         : recipients,
     [recipients, audience],
   );
+
+  // Tatsächlich ausgewählte Empfänger (Einzelauswahl).
+  const selectedRecipients = useMemo(
+    () => recipients.filter((r) => selected.has(r.email.toLowerCase())),
+    [recipients, selected],
+  );
+
+  // Wer bekommt die Mail beim Bulk-/Auswahl-Versand?
+  const targets =
+    audience === "selected" ? selectedRecipients : groupRecipients;
+
   const confirmedCount = recipients.filter((r) => r.confirmed).length;
   const unconfirmedCount = recipients.length - confirmedCount;
+
+  // Liste, die im Empfänger-Panel angezeigt wird. In der Einzelauswahl
+  // sind ALLE Accounts wählbar; sonst nur die jeweilige Gruppe.
+  const listSource = audience === "selected" ? recipients : groupRecipients;
+  const listShown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return listSource;
+    return listSource.filter(
+      (r) =>
+        r.email.toLowerCase().includes(q) ||
+        (r.full_name ?? "").toLowerCase().includes(q) ||
+        (r.school ?? "").toLowerCase().includes(q),
+    );
+  }, [listSource, query]);
+
+  function toggleSelected(email: string) {
+    const key = email.toLowerCase();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function selectAllShown() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      listShown.forEach((r) => next.add(r.email.toLowerCase()));
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
 
   // ── Editor-State ─────────────────────────────────────────────────────────
   const [subject, setSubject] = useState("");
@@ -226,12 +281,18 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     setSendError(null);
     setSendResult(null);
     try {
+      const payload =
+        audience === "selected"
+          ? {
+              mode: "selected" as const,
+              recipients: selectedRecipients.map((r) => r.email),
+            }
+          : { mode: "bulk" as const, audience };
       const res = await fetch("/api/admin/mailings/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "bulk",
-          audience,
+          ...payload,
           subject,
           html,
           useWrapper,
@@ -277,9 +338,9 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </span>
                 ) : (
                   <>
-                    {filtered.length}
+                    {targets.length}
                     <span className="ml-2 text-base font-normal text-text-light">
-                      von {recipients.length}
+                      {audience === "selected" ? "ausgewählt" : `von ${recipients.length}`}
                     </span>
                   </>
                 )}
@@ -304,12 +365,13 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           <div className="flex flex-col gap-3 md:items-end">
             <div
               role="radiogroup"
-              aria-label="Empfänger filtern"
-              className="inline-flex rounded-lg border border-border bg-bg p-1"
+              aria-label="Empfänger wählen"
+              className="inline-flex flex-wrap rounded-lg border border-border bg-bg p-1"
             >
               {([
                 { val: "confirmed", label: "Nur bestätigte" },
                 { val: "all", label: "Alle" },
+                { val: "selected", label: "Einzeln auswählen" },
               ] as const).map((opt) => {
                 const active = audience === opt.val;
                 return (
@@ -346,41 +408,58 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           </div>
         </div>
 
-        {/* Empfänger-Schnellblick (zusammenklappbar) */}
-        {!recipientsLoading && filtered.length > 0 && (
-          <details className="border-t border-border">
-            <summary className="cursor-pointer px-6 py-3 text-sm font-medium text-text-light hover:text-primary transition-colors md:px-8">
-              Empfänger anzeigen ({filtered.length})
-            </summary>
-            <ul className="max-h-64 overflow-y-auto px-6 pb-4 md:px-8">
-              {filtered.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between border-b border-border/60 py-2 text-sm last:border-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-[13px] text-text">
-                      {r.email}
-                    </p>
-                    {(r.full_name || r.school) && (
-                      <p className="truncate text-xs text-text-light">
-                        {[r.full_name, r.school].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
-                  </div>
-                  {r.confirmed ? (
-                    <span className="ml-3 inline-flex items-center gap-1 text-xs text-emerald-700">
-                      <ShieldCheck className="h-3 w-3" /> bestätigt
-                    </span>
-                  ) : (
-                    <span className="ml-3 inline-flex items-center gap-1 text-xs text-amber-700">
-                      <AlertTriangle className="h-3 w-3" /> offen
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
+        {/* Empfänger-Liste. In der Einzelauswahl dauerhaft offen mit
+            Checkboxen; sonst zusammenklappbarer Schnellblick. */}
+        {!recipientsLoading && listSource.length > 0 && (
+          <div className="border-t border-border">
+            {audience === "selected" ? (
+              <RecipientPicker
+                listShown={listShown}
+                totalAvailable={listSource.length}
+                selected={selected}
+                query={query}
+                onQuery={setQuery}
+                onToggle={toggleSelected}
+                onSelectAllShown={selectAllShown}
+                onClear={clearSelection}
+                selectedCount={selectedRecipients.length}
+              />
+            ) : (
+              <details>
+                <summary className="cursor-pointer px-6 py-3 text-sm font-medium text-text-light hover:text-primary transition-colors md:px-8">
+                  Empfänger anzeigen ({groupRecipients.length})
+                </summary>
+                <ul className="max-h-64 overflow-y-auto px-6 pb-4 md:px-8">
+                  {groupRecipients.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between border-b border-border/60 py-2 text-sm last:border-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-[13px] text-text">
+                          {r.email}
+                        </p>
+                        {(r.full_name || r.school) && (
+                          <p className="truncate text-xs text-text-light">
+                            {[r.full_name, r.school].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                      {r.confirmed ? (
+                        <span className="ml-3 inline-flex items-center gap-1 text-xs text-emerald-700">
+                          <ShieldCheck className="h-3 w-3" /> bestätigt
+                        </span>
+                      ) : (
+                        <span className="ml-3 inline-flex items-center gap-1 text-xs text-amber-700">
+                          <AlertTriangle className="h-3 w-3" /> offen
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
         )}
       </section>
 
@@ -624,19 +703,23 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
             </div>
           </div>
 
-          {/* Bulk-Senden */}
+          {/* Versand an Gruppe oder Auswahl */}
           <div className="border-t border-border pt-5">
             <button
               type="button"
               onClick={() => setShowConfirm(true)}
-              disabled={sending || !canSend || filtered.length === 0}
+              disabled={sending || !canSend || targets.length === 0}
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-strong px-5 py-3 text-base font-bold text-white transition-colors hover:bg-accent-strong/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="h-4 w-4" />
-              An {filtered.length} Empfänger versenden
+              {audience === "selected"
+                ? `An ${targets.length} ausgewählte Empfänger versenden`
+                : `An ${targets.length} Empfänger versenden`}
             </button>
             <p className="mt-2 text-center text-xs text-text-light">
-              Versand erfolgt einzeln (kein BCC), DSGVO-konform.
+              {audience === "selected" && targets.length === 0
+                ? "Wählen Sie oben mindestens einen Empfänger aus."
+                : "Versand erfolgt einzeln (kein BCC), DSGVO-konform."}
             </p>
           </div>
 
@@ -749,7 +832,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   id="confirm-title"
                   className="mt-1 text-lg font-bold text-primary"
                 >
-                  An {filtered.length} Empfänger senden?
+                  An {targets.length} Empfänger senden?
                 </h3>
               </div>
               <button
@@ -776,7 +859,9 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   <p className="mt-1 font-medium text-text">
                     {audience === "confirmed"
                       ? "Nur bestätigte Accounts"
-                      : "Alle Accounts"}
+                      : audience === "all"
+                        ? "Alle Accounts"
+                        : "Ausgewählte Empfänger"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/40 p-3">
@@ -788,18 +873,18 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   </p>
                 </div>
               </div>
-              {filtered.length > 0 && (
+              {targets.length > 0 && (
                 <details className="rounded-lg border border-border bg-bg/40 p-3">
                   <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-[0.15em] text-text-light">
                     Erste Empfänger anzeigen
                   </summary>
                   <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto font-mono text-xs text-text-light">
-                    {filtered.slice(0, 10).map((r) => (
+                    {targets.slice(0, 10).map((r) => (
                       <li key={r.id}>{r.email}</li>
                     ))}
-                    {filtered.length > 10 && (
+                    {targets.length > 10 && (
                       <li className="italic">
-                        … und {filtered.length - 10} weitere
+                        … und {targets.length - 10} weitere
                       </li>
                     )}
                   </ul>
