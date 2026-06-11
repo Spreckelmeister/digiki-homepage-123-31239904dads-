@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   role: ParticipantRole;
+  quota_override: boolean | null;
   person: {
     id: string;
     first_name: string;
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
       .from("registrations")
       .select(
         `role,
+         quota_override,
          person:persons (id, first_name, last_name, email),
          school:schools (name, city, school_key)`
       )
@@ -92,6 +94,10 @@ export async function GET(request: NextRequest) {
       const ownEmail = r.person?.email ?? null;
       // Ohne eigene E-Mail + Schule registriert → Schul-Account-E-Mail.
       const fallback = !ownEmail && isReg ? lookupSchoolEmail(r.school?.name) : null;
+      // Registrierte Schule, aber per Override über der Quote zugelassen
+      // → Quoten-Hinweis (bleibt auch nach „Trotz Quote zulassen", da das
+      //   Override klebrig ist; verschwindet erst beim manuellen Umziehen).
+      const quotaWarning = isReg && r.quota_override === true;
       return {
         person_id: r.person?.id ?? "",
         first_name: r.person?.first_name ?? "",
@@ -101,6 +107,7 @@ export async function GET(request: NextRequest) {
         school_city: r.school?.city ?? null,
         role: r.role,
         school_registered: isReg,
+        quota_warning: quotaWarning,
         email_via_school: !ownEmail && !!fallback,
       };
     }

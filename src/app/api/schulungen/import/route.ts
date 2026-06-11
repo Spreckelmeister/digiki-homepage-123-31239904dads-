@@ -540,9 +540,21 @@ async function upsertRegistration(
     reason: friendlyQuotaReason(error.message, audience),
     payload: { ...row, kurs_nr: kursNr },
   });
-  // Wurde der Konflikt zuvor schon entschieden (abgelehnt/zugelassen),
-  // wird er nicht erneut geöffnet – die Admin-Entscheidung bleibt bestehen.
-  return recorded === "recorded" ? "conflicts" : "skipped";
+  // Zuvor abgelehnt → Entscheidung respektieren, nicht (wieder) anmelden.
+  if (recorded === "skipped_rejected") return "skipped";
+  // Person trotz Quotenüberschreitung direkt anmelden (Override), damit sie
+  // unter dem Termin erscheint – in der Teilnehmerliste mit Quoten-Hinweis.
+  // „Ablehnen" entfernt die Anmeldung wieder, „Trotz Quote zulassen" behält
+  // sie und schließt den Konflikt.
+  await registerOverride(admin, {
+    eventId,
+    schoolId,
+    personId,
+    role: audience,
+    workshops: row.workshops,
+    batchId,
+  });
+  return recorded === "skipped_approved" ? "updated" : "conflicts";
 }
 
 /**

@@ -283,6 +283,23 @@ function ParticipantsModal({
                   </span>
                 </div>
               )}
+              {participants.some((p) => p.quota_warning && p.school_registered) && (
+                <div
+                  role="alert"
+                  className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <strong>
+                      {participants.filter((p) => p.quota_warning && p.school_registered).length}{" "}
+                      Teilnehmende über der Schul-Quote
+                    </strong>{" "}
+                    (gelb markiert). Die Schule hat ihr Kontingent (max. 2
+                    Lehrkräfte / 1 Schulleitung) bereits ausgeschöpft – die
+                    Anmeldung wurde dennoch zugelassen.
+                  </span>
+                </div>
+              )}
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -293,13 +310,27 @@ function ParticipantsModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {participants.map((p, i) => (
+                    {participants.map((p, i) => {
+                      // Priorität: nicht registrierte Schule (rot) vor
+                      // Quotenüberschreitung (gelb).
+                      const quota = p.quota_warning && p.school_registered;
+                      const rowBg = !p.school_registered
+                        ? "bg-red-50/70"
+                        : quota
+                          ? "bg-amber-50/70"
+                          : "";
+                      const nameColor = !p.school_registered
+                        ? "text-red-800"
+                        : quota
+                          ? "text-amber-900"
+                          : "text-text";
+                      return (
                       <tr
                         key={`${p.person_id}-${i}`}
-                        className={`align-top ${p.school_registered ? "" : "bg-red-50/70"}`}
+                        className={`align-top ${rowBg}`}
                       >
                         <td className="py-2.5 pr-4">
-                          <span className={`font-semibold ${p.school_registered ? "text-text" : "text-red-800"}`}>
+                          <span className={`font-semibold ${nameColor}`}>
                             {p.last_name}
                             {p.first_name ? `, ${p.first_name}` : ""}
                           </span>
@@ -308,7 +339,7 @@ function ParticipantsModal({
                           </span>
                         </td>
                         <td className="py-2.5 pr-4">
-                          <span className={p.school_registered ? "text-text" : "font-medium text-red-800"}>
+                          <span className={!p.school_registered ? "font-medium text-red-800" : quota ? "font-medium text-amber-900" : "text-text"}>
                             {p.school_name ?? "–"}
                           </span>
                           {p.school_city && (
@@ -316,12 +347,17 @@ function ParticipantsModal({
                               {p.school_city}
                             </span>
                           )}
-                          {!p.school_registered && (
+                          {!p.school_registered ? (
                             <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
                               <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
                               Schule nicht registriert
                             </span>
-                          )}
+                          ) : quota ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                              Über Schul-Quote
+                            </span>
+                          ) : null}
                         </td>
                         <td className="py-2.5">
                           {p.email ? (
@@ -343,7 +379,8 @@ function ParticipantsModal({
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

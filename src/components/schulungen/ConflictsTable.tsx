@@ -261,9 +261,11 @@ export default function ConflictsTable({
                   </td>
                   <td className="py-3 pl-4 text-right">
                     <div className="inline-flex flex-col items-stretch gap-1.5">
-                      {/* Manuelle Zuweisung: nur Schulen mit freiem Pensum
-                          für die Rolle dieses Konflikts (Lehrkraft/Leitung). */}
-                      {(() => {
+                      {/* Manuelle Zuweisung NUR bei nicht zuweisbaren Schulen
+                          (Schule nicht registriert). Bei reinen Quoten-
+                          Konflikten ist die Schule korrekt – dort soll man
+                          keine andere Schule wählen können. */}
+                      {schoolIssue && (() => {
                         const free = freeByRole[c.role] ?? [];
                         const limitLabel =
                           c.role === "leadership" ? "Leitung" : "Lehrkräfte";
