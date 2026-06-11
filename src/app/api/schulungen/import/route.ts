@@ -127,6 +127,20 @@ export async function POST(request: NextRequest) {
     batchId = created.id;
   }
 
+  // Registrierte Schulen (= in der Bestandsaufnahme vorhanden). Teilnehmende
+  // von NICHT registrierten Schulen dürfen eigentlich nicht teilnehmen und
+  // werden als Warnung zurückgemeldet.
+  const { data: regSchools } = await admin
+    .from("school_participation")
+    .select("school_key")
+    .eq("in_bestandsaufnahme", true);
+  const registeredSet = new Set(
+    (regSchools ?? [])
+      .map((s) => s.school_key as string | null)
+      .filter((k): k is string => !!k)
+  );
+  const unregisteredRows: { name: string; school: string }[] = [];
+
   const counts = { new: 0, updated: 0, conflicts: 0, errors: 0, skipped: 0 };
   const errorMessages: string[] = [];
   // Bereits geparste Leer-/Fehlzeilen plus während des Imports
@@ -134,6 +148,13 @@ export async function POST(request: NextRequest) {
   const skippedRows = [...parsed.skipped];
 
   for (const row of parsed.rows) {
+    // Schul-Registrierung prüfen (unabhängig vom Import-Ergebnis).
+    if (!registeredSet.has(schoolKeyFromName(row.schoolName))) {
+      unregisteredRows.push({
+        name: [row.lastName, row.firstName].filter(Boolean).join(", "),
+        school: row.schoolName.trim(),
+      });
+    }
     try {
       const schoolId = await upsertSchool(admin, row);
       const personId = await upsertPerson(admin, row, schoolId);
@@ -170,6 +191,7 @@ export async function POST(request: NextRequest) {
     updated: counts.updated,
     conflicts: counts.conflicts,
     errors: counts.errors + skippedRows.length,
+    unregistered: unregisteredRows.length,
   };
 
   // Batch-Zähler fortschreiben (Dateien werden sequentiell verarbeitet).
@@ -211,6 +233,7 @@ export async function POST(request: NextRequest) {
       ...fileSummary,
       skipped: skippedRows,
       error_messages: errorMessages,
+      unregistered_rows: unregisteredRows.slice(0, 100),
     },
     batch_totals: totals,
   };

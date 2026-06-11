@@ -68,6 +68,8 @@ export interface ImportFileSummary {
   updated: number;
   conflicts: number;
   errors: number;
+  /** Anzahl Zeilen, deren Schule NICHT in der Bestandsaufnahme registriert ist. */
+  unregistered: number;
 }
 
 export interface ConflictItem {
@@ -91,6 +93,20 @@ export interface ConflictItem {
   } | null;
 }
 
+/** Eine teilnehmende Person einer Schulung (für die Teilnehmer-Übersicht). */
+export interface EventParticipant {
+  person_id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  school_name: string | null;
+  school_city: string | null;
+  role: ParticipantRole;
+  /** false = Schule ist NICHT in der Bestandsaufnahme registriert → darf
+   *  eigentlich nicht teilnehmen (rot markieren). */
+  school_registered: boolean;
+}
+
 export interface OverviewResponse {
   stats: {
     events_total: number;
@@ -112,6 +128,8 @@ export interface ImportFileResult {
   file: ImportFileSummary & {
     skipped: { row: number; reason: string }[];
     error_messages: string[];
+    /** Teilnehmende, deren Schule nicht in der Bestandsaufnahme registriert ist. */
+    unregistered_rows: { name: string; school: string }[];
   };
   batch_totals: Pick<
     ImportBatchSummary,

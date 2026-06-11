@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import {
+  AlertTriangle,
   CheckCircle2,
   FileSpreadsheet,
   Loader2,
@@ -17,6 +18,34 @@ interface SelectedFile {
   key: string;
   file: File;
   eventId: string;
+  /** true, wenn die Schulung automatisch über den Dateinamen erkannt wurde. */
+  auto: boolean;
+}
+
+function normAlnum(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Versucht, eine Datei anhand der KOS-Nummer (oder NLC-ID) im Dateinamen
+ * genau einer Schulung zuzuordnen – z. B. „KOS.2638.166.xlsx",
+ * „KOS 2638 166 (2).xlsx" oder „2638.166.xlsx". Gibt nur bei einem
+ * eindeutigen Treffer eine Event-ID zurück, sonst "" (manuelle Auswahl).
+ */
+function matchEventByFilename(filename: string, events: TrainingEvent[]): string {
+  const base = filename.replace(/\.[^.]+$/, "");
+  const fn = normAlnum(base); // "kos26381664"
+  const fnDigits = base.replace(/\D/g, ""); // "26381664"
+  const hits = events.filter((e) => {
+    const k = normAlnum(e.kurs_nr || "");
+    const kDigits = (e.kurs_nr || "").replace(/\D/g, "");
+    const nlc = (e.nlc_event_id || "").replace(/\D/g, "");
+    if (k && fn.includes(k)) return true;
+    if (kDigits.length >= 6 && fnDigits.includes(kDigits)) return true;
+    if (nlc.length >= 4 && fnDigits.includes(nlc)) return true;
+    return false;
+  });
+  return hits.length === 1 ? hits[0].id : "";
 }
 
 interface FileOutcome {
@@ -75,11 +104,15 @@ export default function UploadCard({
       const known = new Set(prev.map((s) => `${s.file.name}|${s.file.size}`));
       const fresh = incoming
         .filter((f) => !known.has(`${f.name}|${f.size}`))
-        .map((file) => ({
-          key: `${file.name}|${file.size}|${file.lastModified}`,
-          file,
-          eventId: "",
-        }));
+        .map((file) => {
+          const matched = matchEventByFilename(file.name, events);
+          return {
+            key: `${file.name}|${file.size}|${file.lastModified}`,
+            file,
+            eventId: matched,
+            auto: !!matched,
+          };
+        });
       return [...prev, ...fresh];
     });
     setOutcomes([]);
@@ -88,13 +121,13 @@ export default function UploadCard({
 
   function setEventId(key: string, eventId: string) {
     setSelected((prev) =>
-      prev.map((s) => (s.key === key ? { ...s, eventId } : s))
+      prev.map((s) => (s.key === key ? { ...s, eventId, auto: false } : s))
     );
   }
 
   function applyToAll(eventId: string) {
     if (!eventId) return;
-    setSelected((prev) => prev.map((s) => ({ ...s, eventId })));
+    setSelected((prev) => prev.map((s) => ({ ...s, eventId, auto: false })));
   }
 
   function removeFile(key: string) {
@@ -220,7 +253,8 @@ export default function UploadCard({
           Excel-Dateien hier ablegen oder auswählen
         </p>
         <p className="mt-1 text-xs text-text-light">
-          Jede Datei wird anschließend einer Schulung zugeordnet.
+          Heißt die Datei wie die KOS-Nummer (z. B. „KOS.2638.166.xlsx"), wird die
+          Schulung automatisch zugeordnet – sonst einfach unten auswählen.
         </p>
       </label>
 
@@ -272,6 +306,12 @@ export default function UploadCard({
                         ))}
                       </optgroup>
                     </select>
+                    {item.auto && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                        automatisch erkannt
+                      </span>
+                    )}
                     {selected.length > 1 && item.eventId && (
                       <button
                         type="button"
@@ -408,6 +448,27 @@ export default function UploadCard({
                         </ul>
                       </details>
                     )}
+                  {o.ok && o.summary && o.summary.unregistered > 0 && (
+                    <details className="ml-5 mt-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-red-800">
+                      <summary className="flex cursor-pointer items-center gap-1.5 font-semibold">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        {o.summary.unregistered} Teilnehmende von nicht
+                        registrierten Schulen
+                      </summary>
+                      <p className="mt-1 text-[11px] text-red-700">
+                        Diese Schulen haben die Bestandsaufnahme nicht ausgefüllt
+                        und sind eigentlich nicht teilnahmeberechtigt:
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        {o.summary.unregistered_rows.map((u, ui) => (
+                          <li key={`u-${ui}`}>
+                            <span className="font-medium">{u.name}</span> ·{" "}
+                            {u.school}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>

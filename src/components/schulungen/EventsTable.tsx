@@ -1,7 +1,12 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
-import type { TrainingEvent } from "@/lib/schulungen/types";
+import { useEffect, useState } from "react";
+import { AlertTriangle, ArrowUpRight, Loader2, Mail, Users, X } from "lucide-react";
+import {
+  ROLE_LABELS,
+  type EventParticipant,
+  type TrainingEvent,
+} from "@/lib/schulungen/types";
 
 function dateParts(iso: string | null) {
   if (!iso) return null;
@@ -18,9 +23,18 @@ function dateParts(iso: string | null) {
   };
 }
 
+function formatDate(iso: string | null): string {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(iso + "T00:00:00"));
+}
+
 /**
- * Alle KOS-Schulungen mit Anmeldezahl. Das Datum-Cluster greift das
- * Termin-Design der öffentlichen Seite (KosFortbildungenSection) auf.
+ * Alle KOS-Schulungen mit Anmeldezahl. Klick auf eine Schulung öffnet die
+ * Teilnehmer-Übersicht (Name · Schule · E-Mail).
  */
 export default function EventsTable({
   events,
@@ -29,11 +43,10 @@ export default function EventsTable({
   events: TrainingEvent[];
   loading: boolean;
 }) {
+  const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
+
   const groups: { label: string; items: TrainingEvent[] }[] = [
-    {
-      label: "Lehrkräfte",
-      items: events.filter((e) => e.audience === "teacher"),
-    },
+    { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
     {
       label: "Schulleitungen",
       items: events.filter((e) => e.audience === "leadership"),
@@ -59,6 +72,9 @@ export default function EventsTable({
           <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
         </a>
       </div>
+      <p className="mt-1 text-xs text-text-light">
+        Auf eine Schulung tippen, um die Teilnehmenden zu sehen.
+      </p>
 
       {loading ? (
         <p className="mt-4 text-sm text-text-light">Lade Schulungen …</p>
@@ -74,44 +90,47 @@ export default function EventsTable({
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
                   return (
-                    <li
-                      key={event.id}
-                      className="flex items-center gap-3 py-2.5"
-                    >
-                      <div className="flex w-14 shrink-0 flex-col items-center rounded-lg bg-bg px-1.5 py-1.5 text-center">
-                        {parts ? (
-                          <>
-                            <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-text-light">
-                              {parts.weekday}
-                            </span>
-                            <span className="text-lg font-bold leading-none text-primary tabular-nums">
-                              {parts.day}
-                            </span>
-                            <span className="text-[9px] font-medium uppercase text-text-light">
-                              {parts.month} {parts.year}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs text-text-light">–</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-mono text-xs text-text">
-                          {event.kurs_nr}
-                        </p>
-                        <p className="truncate text-[11px] text-text-light">
-                          {event.title}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
-                          (event.registration_count ?? 0) > 0
-                            ? "bg-primary/10 text-primary"
-                            : "bg-bg text-text-light"
-                        }`}
+                    <li key={event.id}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenEvent(event)}
+                        className="flex w-full items-center gap-3 rounded-lg py-2.5 pr-1 text-left transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        {event.registration_count ?? 0} Anm.
-                      </span>
+                        <div className="flex w-14 shrink-0 flex-col items-center rounded-lg bg-bg px-1.5 py-1.5 text-center">
+                          {parts ? (
+                            <>
+                              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-text-light">
+                                {parts.weekday}
+                              </span>
+                              <span className="text-lg font-bold leading-none text-primary tabular-nums">
+                                {parts.day}
+                              </span>
+                              <span className="text-[9px] font-medium uppercase text-text-light">
+                                {parts.month} {parts.year}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-text-light">–</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-xs text-text">
+                            {event.kurs_nr}
+                          </p>
+                          <p className="truncate text-[11px] text-text-light">
+                            {event.title}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                            (event.registration_count ?? 0) > 0
+                              ? "bg-primary/10 text-primary"
+                              : "bg-bg text-text-light"
+                          }`}
+                        >
+                          {event.registration_count ?? 0} Anm.
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
@@ -120,6 +139,224 @@ export default function EventsTable({
           ))}
         </div>
       )}
+
+      {openEvent && (
+        <ParticipantsModal
+          event={openEvent}
+          onClose={() => setOpenEvent(null)}
+        />
+      )}
     </section>
+  );
+}
+
+function ParticipantsModal({
+  event,
+  onClose,
+}: {
+  event: TrainingEvent;
+  onClose: () => void;
+}) {
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/schulungen/participants?event_id=${encodeURIComponent(event.id)}`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(body?.error ?? "Teilnehmende konnten nicht geladen werden");
+        return body.participants as EventParticipant[];
+      })
+      .then((list) => {
+        if (active) setParticipants(list);
+      })
+      .catch((err) => {
+        if (active) setError(err instanceof Error ? err.message : "Fehler beim Laden");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [event.id]);
+
+  // Esc schließt das Modal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function copyEmails() {
+    const emails = participants
+      .map((p) => p.email)
+      .filter(Boolean)
+      .join("; ");
+    if (emails) navigator.clipboard?.writeText(emails).catch(() => {});
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Teilnehmende ${event.kurs_nr}`}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
+      >
+        {/* Kopf */}
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <p className="font-mono text-sm font-semibold text-text">
+                {event.kurs_nr}
+              </p>
+              <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold text-text-light">
+                {event.audience === "leadership" ? "Schulleitung" : "Lehrkräfte"}
+              </span>
+            </div>
+            <p className="mt-1 truncate text-sm text-text-light">
+              {event.title}
+              {event.start_date ? ` · ${formatDate(event.start_date)}` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="shrink-0 rounded-lg p-1.5 text-text-light transition-colors hover:bg-bg hover:text-text"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Inhalt */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 md:px-6">
+          {loading ? (
+            <p className="flex items-center gap-2 py-8 text-sm text-text-light">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Lade Teilnehmende …
+            </p>
+          ) : error ? (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {error}
+            </p>
+          ) : participants.length === 0 ? (
+            <p className="py-8 text-sm text-text-light">
+              Für diese Schulung sind noch keine Teilnehmenden angemeldet.
+            </p>
+          ) : (
+            <>
+              {participants.some((p) => !p.school_registered) && (
+                <div
+                  role="alert"
+                  className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <strong>
+                      {participants.filter((p) => !p.school_registered).length}{" "}
+                      Teilnehmende von nicht registrierten Schulen
+                    </strong>{" "}
+                    (rot markiert). Diese Schulen haben die Bestandsaufnahme
+                    nicht ausgefüllt und sind eigentlich nicht teilnahmeberechtigt.
+                  </span>
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-text-light">
+                      <th scope="col" className="py-2 pr-4 font-semibold">Name</th>
+                      <th scope="col" className="py-2 pr-4 font-semibold">Schule</th>
+                      <th scope="col" className="py-2 font-semibold">E-Mail</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {participants.map((p, i) => (
+                      <tr
+                        key={`${p.person_id}-${i}`}
+                        className={`align-top ${p.school_registered ? "" : "bg-red-50/70"}`}
+                      >
+                        <td className="py-2.5 pr-4">
+                          <span className={`font-semibold ${p.school_registered ? "text-text" : "text-red-800"}`}>
+                            {p.last_name}
+                            {p.first_name ? `, ${p.first_name}` : ""}
+                          </span>
+                          <span className="ml-2 rounded-full bg-bg px-1.5 py-0.5 text-[10px] font-medium text-text-light">
+                            {ROLE_LABELS[p.role] ?? p.role}
+                          </span>
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <span className={p.school_registered ? "text-text" : "font-medium text-red-800"}>
+                            {p.school_name ?? "–"}
+                          </span>
+                          {p.school_city && (
+                            <span className="block text-[11px] text-text-light">
+                              {p.school_city}
+                            </span>
+                          )}
+                          {!p.school_registered && (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                              Schule nicht registriert
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5">
+                          {p.email ? (
+                            <a
+                              href={`mailto:${p.email}`}
+                              className="break-all text-primary hover:underline"
+                            >
+                              {p.email}
+                            </a>
+                          ) : (
+                            <span className="text-text-light">–</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Fuß */}
+        {!loading && !error && participants.length > 0 && (
+          <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-3 md:px-6">
+            <span className="text-xs text-text-light">
+              {participants.length}{" "}
+              {participants.length === 1 ? "Teilnehmende:r" : "Teilnehmende"} ·{" "}
+              {participants.filter((p) => p.email).length} mit E-Mail
+            </span>
+            <button
+              type="button"
+              onClick={copyEmails}
+              disabled={participants.every((p) => !p.email)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+              E-Mail-Adressen kopieren
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
