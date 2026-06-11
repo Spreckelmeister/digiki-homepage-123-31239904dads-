@@ -28,22 +28,24 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [overviewRes, conflictsRes] = await Promise.all([
-        fetch("/api/schulungen/overview"),
-        fetch("/api/schulungen/conflicts?status=open"),
-      ]);
+      // schulungsteam (nicht-Admin) sieht nur „Alle Schulungen" → keine
+      // Konflikte laden.
+      const overviewRes = await fetch("/api/schulungen/overview");
       if (!overviewRes.ok) {
         const body = await overviewRes.json().catch(() => null);
         throw new Error(body?.error ?? "Daten konnten nicht geladen werden");
       }
       setOverview((await overviewRes.json()) as OverviewResponse);
-      if (conflictsRes.ok) {
-        const body = (await conflictsRes.json()) as { conflicts: ConflictItem[] };
-        setConflicts(body.conflicts);
-        setConflictsError(null);
-      } else {
-        const body = await conflictsRes.json().catch(() => null);
-        setConflictsError(body?.error ?? "Konflikte konnten nicht geladen werden");
+      if (isAdmin) {
+        const conflictsRes = await fetch("/api/schulungen/conflicts?status=open");
+        if (conflictsRes.ok) {
+          const body = (await conflictsRes.json()) as { conflicts: ConflictItem[] };
+          setConflicts(body.conflicts);
+          setConflictsError(null);
+        } else {
+          const body = await conflictsRes.json().catch(() => null);
+          setConflictsError(body?.error ?? "Konflikte konnten nicht geladen werden");
+        }
       }
       setLoadError(null);
     } catch (err) {
@@ -53,7 +55,7 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     refresh();
@@ -68,49 +70,6 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
   return (
     <main className="bg-bg pb-16">
       <div className="mx-auto max-w-7xl space-y-6 px-4 pt-8 sm:px-6 lg:px-8">
-        {/* Stat-Karten */}
-        <section
-          aria-label="Kennzahlen"
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <StatCard
-            icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
-            label="Schulungen"
-            value={loading ? "–" : String(stats?.events_total ?? 0)}
-            hint="Termine gesamt"
-          />
-          <StatCard
-            icon={<Users className="h-4 w-4" aria-hidden="true" />}
-            label="Anmeldungen"
-            value={loading ? "–" : String(stats?.registrations_total ?? 0)}
-            hint="aktiv"
-          />
-          <StatCard
-            icon={<AlertTriangle className="h-4 w-4" aria-hidden="true" />}
-            label="Offene Konflikte"
-            value={loading ? "–" : String(stats?.conflicts_open ?? 0)}
-            hint={stats && stats.conflicts_open > 0 ? "bitte prüfen" : "alles klar"}
-            tone={stats && stats.conflicts_open > 0 ? "warn" : "default"}
-          />
-          {/* Akzent-Karte: angemeldete Schulen */}
-          <div className="rounded-2xl bg-gradient-to-br from-primary to-primary-light p-5 text-white shadow-sm">
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
-              <School className="h-4 w-4" aria-hidden="true" />
-              Schulen angemeldet
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-bold tabular-nums">
-                {schoolsValue}
-              </span>
-              <span className="text-xs text-white/80">
-                {!loading && stats && stats.schools_total > 0
-                  ? `${stats.schools_total - stats.schools_registered} offen`
-                  : "von berechtigt"}
-              </span>
-            </div>
-          </div>
-        </section>
-
         {loadError && (
           <div
             role="alert"
@@ -120,28 +79,79 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
           </div>
         )}
 
-        {/* Import (volle Breite) */}
-        <UploadCard events={overview?.events ?? []} onImported={refresh} />
-
-        {/* Konflikte */}
-        <ConflictsTable
-          conflicts={conflicts}
-          onResolved={refresh}
-          schools={overview?.schools ?? []}
-          loading={loading}
-          error={conflictsError}
-        />
-
-        {/* Alle Schulen + Quoten (volle Breite, Raster) */}
-        <SchoolsPanel schools={overview?.schools ?? []} loading={loading} />
-
-        {/* Alle Schulungen */}
-        <EventsTable events={overview?.events ?? []} loading={loading} />
-
-        {/* Admin-Bereich: Schul-Zuordnungen, Zugriff verwalten, Daten zurücksetzen */}
+        {/* Volles Dashboard nur für Admins. schulungsteam (per E-Mail
+            zugelassen) sieht ausschließlich „Alle Schulungen". */}
         {isAdmin && (
           <>
+            {/* Stat-Karten */}
+            <section
+              aria-label="Kennzahlen"
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              <StatCard
+                icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
+                label="Schulungen"
+                value={loading ? "–" : String(stats?.events_total ?? 0)}
+                hint="Termine gesamt"
+              />
+              <StatCard
+                icon={<Users className="h-4 w-4" aria-hidden="true" />}
+                label="Anmeldungen"
+                value={loading ? "–" : String(stats?.registrations_total ?? 0)}
+                hint="aktiv"
+              />
+              <StatCard
+                icon={<AlertTriangle className="h-4 w-4" aria-hidden="true" />}
+                label="Offene Konflikte"
+                value={loading ? "–" : String(stats?.conflicts_open ?? 0)}
+                hint={stats && stats.conflicts_open > 0 ? "bitte prüfen" : "alles klar"}
+                tone={stats && stats.conflicts_open > 0 ? "warn" : "default"}
+              />
+              {/* Akzent-Karte: angemeldete Schulen */}
+              <div className="rounded-2xl bg-gradient-to-br from-primary to-primary-light p-5 text-white shadow-sm">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
+                  <School className="h-4 w-4" aria-hidden="true" />
+                  Schulen angemeldet
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tabular-nums">
+                    {schoolsValue}
+                  </span>
+                  <span className="text-xs text-white/80">
+                    {!loading && stats && stats.schools_total > 0
+                      ? `${stats.schools_total - stats.schools_registered} offen`
+                      : "von berechtigt"}
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* Import (volle Breite) */}
+            <UploadCard events={overview?.events ?? []} onImported={refresh} />
+
+            {/* Konflikte */}
+            <ConflictsTable
+              conflicts={conflicts}
+              onResolved={refresh}
+              schools={overview?.schools ?? []}
+              loading={loading}
+              error={conflictsError}
+            />
+
+            {/* Gespeicherte Schul-Zuordnungen (einklappbar, direkt bei den Konflikten) */}
             <AliasPanel onChanged={refresh} />
+
+            {/* Alle Schulen + Quoten (volle Breite, Raster) */}
+            <SchoolsPanel schools={overview?.schools ?? []} loading={loading} />
+          </>
+        )}
+
+        {/* Alle Schulungen – für alle Dashboard-Nutzer sichtbar */}
+        <EventsTable events={overview?.events ?? []} loading={loading} />
+
+        {/* Admin-Bereich: Zugriff verwalten + Daten zurücksetzen */}
+        {isAdmin && (
+          <>
             <AccessPanel />
             <DangerZone onReset={refresh} />
           </>

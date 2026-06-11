@@ -88,17 +88,21 @@ export async function GET() {
   // Schulen ohne Bestandsaufnahme zählen nicht zur Soll-Menge.
   const eligible = schools.filter((s) => s.in_bestandsaufnahme);
 
+  // schulungsteam (nicht-Admin) sieht nur „Alle Schulungen" → die
+  // detaillierten Schul-/Quoten- und Import-Daten werden nicht ausgeliefert.
   const response: OverviewResponse = {
     stats: {
       events_total: events.length,
       registrations_total: registrationsCountRes.count ?? 0,
-      conflicts_open: conflictsCountRes.count ?? 0,
-      schools_total: eligible.length,
-      schools_registered: eligible.filter((s) => s.has_registered).length,
+      conflicts_open: auth.isAdmin ? conflictsCountRes.count ?? 0 : 0,
+      schools_total: auth.isAdmin ? eligible.length : 0,
+      schools_registered: auth.isAdmin
+        ? eligible.filter((s) => s.has_registered).length
+        : 0,
     },
     events,
-    schools,
-    recent_batches: batchesRes.data ?? [],
+    schools: auth.isAdmin ? schools : [],
+    recent_batches: auth.isAdmin ? batchesRes.data ?? [] : [],
     is_admin: auth.isAdmin,
   };
 

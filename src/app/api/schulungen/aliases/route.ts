@@ -17,7 +17,7 @@ const ALLOWED_ORIGINS = [
 
 /** Liste der gespeicherten Schul-Zuordnungen (Aliase) inkl. Nutzungszahl. */
 export async function GET() {
-  const auth = await requireSchulungenAccess();
+  const auth = await requireSchulungenAccess({ adminOnly: true });
   if (!auth.ok) return auth.response;
 
   const admin = createServiceClient();
@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const auth = await requireSchulungenAccess();
+  const auth = await requireSchulungenAccess({ adminOnly: true });
   if (!auth.ok) return auth.response;
 
   let id = "";

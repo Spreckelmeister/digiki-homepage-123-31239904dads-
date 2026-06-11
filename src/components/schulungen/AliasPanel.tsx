@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Link2, Loader2, Search, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Link2,
+  Loader2,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 type Alias = {
   id: string;
@@ -29,6 +36,7 @@ export default function AliasPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "manual" | "auto">("all");
+  const [expanded, setExpanded] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -98,93 +106,118 @@ export default function AliasPanel({
       aria-labelledby="aliases-heading"
       className="rounded-2xl border border-border bg-white shadow-sm"
     >
-      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
-        <div>
-          <h2
+      {/* Kopf = Klapp-Button (standardmäßig zugeklappt → kompakt). */}
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-bg/50 md:px-6"
+      >
+        <span className="min-w-0">
+          <span
             id="aliases-heading"
             className="flex items-center gap-2 text-base font-bold text-text"
           >
-            <Link2 className="h-4 w-4 text-primary" aria-hidden="true" />
+            <Link2 className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             Gespeicherte Schul-Zuordnungen
-          </h2>
-          <p className="mt-1 text-xs text-text-light">
-            Werden beim Import automatisch angewendet und bleiben auch nach dem
-            Zurücksetzen erhalten. Entfernen macht die Zuordnung rückgängig.
-          </p>
-        </div>
-        {aliases.length > 0 && (
-          <div className="relative w-full sm:w-56">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Zuordnung suchen …"
-              aria-label="Zuordnung suchen"
-              className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-        )}
-      </div>
-
-      {!loading && aliases.length > 0 && (
-        <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3 md:px-6">
-          {(
-            [
-              ["all", "Alle"],
-              ["manual", "Manuell"],
-              ["auto", "Automatisch"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                filter === key
-                  ? "bg-primary text-white"
-                  : "bg-bg text-text-light hover:bg-primary/5 hover:text-primary"
-              }`}
-            >
-              {label}
-              <span
-                className={`tabular-nums ${filter === key ? "text-white/80" : "text-text-light"}`}
-              >
-                {counts[key]}
+            {!loading && (
+              <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-bold tabular-nums text-text-light">
+                {aliases.length}
               </span>
-            </button>
-          ))}
-        </div>
-      )}
+            )}
+          </span>
+          {!expanded && (
+            <span className="mt-1 block text-xs text-text-light">
+              Werden beim Import automatisch angewendet · zum Verwalten ausklappen
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={`h-5 w-5 shrink-0 text-text-light transition-transform ${expanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
 
-      {error && (
-        <div
-          role="alert"
-          className="mx-5 mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 md:mx-6"
-        >
-          {error}
-        </div>
-      )}
+      {expanded && (
+        <div className="border-t border-border">
+          <div className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between md:px-6">
+            <p className="text-xs text-text-light">
+              Werden beim Import automatisch angewendet und bleiben auch nach dem
+              Zurücksetzen erhalten. Entfernen macht die Zuordnung rückgängig.
+            </p>
+            {aliases.length > 0 && (
+              <div className="relative w-full sm:w-56 sm:shrink-0">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
+                  aria-hidden="true"
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Zuordnung suchen …"
+                  aria-label="Zuordnung suchen"
+                  className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            )}
+          </div>
 
-      {loading ? (
-        <div className="px-5 py-8 text-sm text-text-light md:px-6">
-          Lade Zuordnungen …
-        </div>
-      ) : aliases.length === 0 ? (
-        <div className="px-5 py-8 text-sm text-text-light md:px-6">
-          Noch keine gespeicherten Zuordnungen. Sie entstehen automatisch, wenn
-          Sie oben in einem Konflikt „Schule zuweisen" nutzen.
-        </div>
-      ) : visible.length === 0 ? (
-        <div className="px-5 py-8 text-sm text-text-light md:px-6">
-          Keine Zuordnung gefunden.
-        </div>
-      ) : (
-        <ul className="divide-y divide-border/60 px-5 py-2 md:px-6">
-          {visible.map((a) => (
+          {!loading && aliases.length > 0 && (
+            <div className="flex flex-wrap gap-2 border-t border-border px-5 py-3 md:px-6">
+              {(
+                [
+                  ["all", "Alle"],
+                  ["manual", "Manuell"],
+                  ["auto", "Automatisch"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    filter === key
+                      ? "bg-primary text-white"
+                      : "bg-bg text-text-light hover:bg-primary/5 hover:text-primary"
+                  }`}
+                >
+                  {label}
+                  <span
+                    className={`tabular-nums ${filter === key ? "text-white/80" : "text-text-light"}`}
+                  >
+                    {counts[key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div
+              role="alert"
+              className="mx-5 mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 md:mx-6"
+            >
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="px-5 py-8 text-sm text-text-light md:px-6">
+              Lade Zuordnungen …
+            </div>
+          ) : aliases.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-text-light md:px-6">
+              Noch keine gespeicherten Zuordnungen. Sie entstehen automatisch,
+              wenn Sie oben in einem Konflikt „Schule zuweisen" nutzen.
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-text-light md:px-6">
+              Keine Zuordnung gefunden.
+            </div>
+          ) : (
+            <ul className="max-h-[28rem] divide-y divide-border/60 overflow-y-auto px-5 py-2 md:px-6">
+              {visible.map((a) => (
             <li
               key={a.id}
               className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3"
@@ -228,7 +261,9 @@ export default function AliasPanel({
               </button>
             </li>
           ))}
-        </ul>
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );

@@ -146,5 +146,17 @@ export async function GET(request: NextRequest) {
       a.last_name.localeCompare(b.last_name, "de")
   );
 
-  return NextResponse.json({ participants });
+  // schulungsteam (nicht-Admin) sieht KEINE Warn-Annotationen (Überbuchung,
+  // nicht registrierte Schule, keine Schule) – nur Name/Schule/E-Mail.
+  const visible = auth.isAdmin
+    ? participants
+    : participants.map((p) => ({
+        ...p,
+        school_registered: true,
+        school_missing: false,
+        quota_warning: false,
+        quota_pending: false,
+      }));
+
+  return NextResponse.json({ participants: visible });
 }

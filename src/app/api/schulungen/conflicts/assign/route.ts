@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const auth = await requireSchulungenAccess();
+  const auth = await requireSchulungenAccess({ adminOnly: true });
   if (!auth.ok) return auth.response;
 
   let body: AssignBody;
