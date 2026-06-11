@@ -1485,24 +1485,31 @@ import { Icon } from "./icons";
     const labels = ["E", "Z", "H", "T", "ZT", "HT"].slice(0, places).reverse();
     const numbers = block.numbers || [234];
     const digits = (n) => String(Math.abs(Math.round(n))).padStart(places, "0").slice(-places).split("");
-    const th = { border: "1.5px solid var(--ink-soft)", background: "var(--teal-50)", padding: "6px 0", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--teal-700)", width: 44, textAlign: "center" };
-    const td = { border: "1.5px solid var(--ink-soft)", width: 44, height: 40, textAlign: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 20, color: solve ? "var(--sol)" : "transparent" };
+    const W = 44, cellH = 40, headH = 30, line = "1.5px solid var(--ink-soft)";
+    // Außenkante = Rahmen des Containers (stabil), innere Gitterlinien per
+    // borderRight/Bottom – so verschwindet beim Zoom-Scale keine untere
+    // Randlinie mehr (anders als bei <table> + borderCollapse-Haarlinien).
+    const head = { width: W, height: headH, background: "var(--teal-50)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 800, fontSize: 15, color: "var(--teal-700)" };
+    const cell = { width: W, height: cellH, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 20, color: solve ? "var(--sol)" : "transparent" };
     return (
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <table style={{ borderCollapse: "collapse" }}>
-          <thead><tr>
-            <th style={{ border: "none", width: 64 }} />
-            {labels.map((l, i) => <th key={i} style={th}>{l}</th>)}
-          </tr></thead>
-          <tbody>
-            {numbers.map((n, r) => (
-              <tr key={r}>
-                <td style={{ fontFamily: "var(--ui)", fontWeight: 700, fontSize: 19, color: "var(--ink)", textAlign: "right", paddingRight: 12 }}>{n}</td>
-                {digits(n).map((d, c) => <td key={c} data-answer={String(d)} style={td}>{d}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+        {/* Zahlen-Spalte – steht außerhalb des Gitters */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ height: headH }} />
+          {numbers.map((n, r) => (
+            <div key={r} style={{ height: cellH, display: "flex", alignItems: "center", justifyContent: "flex-end", fontFamily: "var(--ui)", fontWeight: 700, fontSize: 19, color: "var(--ink)" }}>{n}</div>
+          ))}
+        </div>
+        {/* Umrandetes Gitter mit fester Außenkante */}
+        <div style={{ border: line, borderRadius: 6, overflow: "hidden", background: "#fff", display: "grid", gridTemplateColumns: `repeat(${places}, ${W}px)` }}>
+          {labels.map((l, i) => (
+            <div key={"h" + i} style={{ ...head, borderRight: i === places - 1 ? "none" : line, borderBottom: line }}>{l}</div>
+          ))}
+          {numbers.map((n, r) => digits(n).map((d, c) => (
+            <div key={r + "-" + c} data-answer={String(d)}
+              style={{ ...cell, borderRight: c === places - 1 ? "none" : line, borderBottom: r === numbers.length - 1 ? "none" : line }}>{d}</div>
+          )))}
+        </div>
       </div>
     );
   }
