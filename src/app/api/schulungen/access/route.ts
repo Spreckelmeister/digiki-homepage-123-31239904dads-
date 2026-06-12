@@ -172,19 +172,45 @@ async function handleInvite(
 
   // Account anlegen (E-Mail gilt als bestätigt – Einladung durch Admin; ein
   // zufälliges Wegwerf-Passwort, das die Person über den Link sofort ersetzt).
-  // Web-Crypto mit Math.random-Fallback (kein optionaler Node-Builtin-Import),
-  // < 72 Zeichen (bcrypt-Limit), mit Groß-/Kleinbuchstabe, Zahl, Sonderzeichen.
+  // WICHTIG: Das Passwort muss < 72 Zeichen bleiben (bcrypt-Limit) – sonst
+  // antwortet GoTrue mit einem 500 „Internal Server Error". Web-Crypto mit
+  // Math.random-Fallback (kein optionaler Node-Builtin-Import); ein einzelnes
+  // UUID + Präfix sind ~40 Zeichen und enthalten Groß-/Klein-/Zahl/Sonderzeichen.
   const rand = () =>
     globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
-  const tempPassword = `Aa1!${rand()}${rand()}`;
+  const tempPassword = `Aa1!${rand()}`;
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     password: tempPassword,
+    user_metadata: { full_name: email },
   });
   if (createErr || !created?.user) {
+    // Duplikat trotz Vorab-Prüfung (z. B. paginierte listUsers-Lücke) sauber
+    // als 409 melden statt als generischer 500.
+    const msg = createErr?.message?.toLowerCase() ?? "";
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already been registered") ||
+      msg.includes("user already exists") ||
+      msg.includes("already been used") ||
+      msg.includes("duplicate key")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Diese E-Mail-Adresse hat bereits einen DigiKI-Account und kann nicht als Schulungsmitglied eingeladen werden.",
+        },
+        { status: 409 }
+      );
+    }
+    console.error("[schulungen/access] createUser error:", createErr?.message);
     return NextResponse.json(
-      { error: createErr?.message ?? "Account konnte nicht angelegt werden" },
+      {
+        error: `Account konnte nicht angelegt werden${
+          createErr?.message ? `: ${createErr.message}` : ""
+        }`,
+      },
       { status: 500 }
     );
   }
