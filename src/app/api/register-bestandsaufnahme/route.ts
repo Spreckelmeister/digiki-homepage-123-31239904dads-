@@ -258,14 +258,15 @@ export async function POST(request: NextRequest) {
   const userId = userData.user.id;
 
   // ── Bestätigungs-Link generieren ───────────────────────────────────────────
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
+  // Trailing-Slash entfernen, sonst entsteht „…de//auth/bestaetigen" (ungültig).
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
   const { data: linkData, error: linkError } =
     await adminSupabase.auth.admin.generateLink({
       type: "signup",
       email: loginEmail,
       password,
       options: {
-        redirectTo: `${siteUrl}/auth/callback?next=/best-practice/datenbank`,
+        redirectTo: `${siteUrl}/auth/bestaetigen?next=/best-practice/datenbank`,
       },
     });
 
@@ -290,12 +291,14 @@ export async function POST(request: NextRequest) {
   // verwenden! Supabase's eingebaute Verify-Route würde sonst nach
   // erfolgreichem Token-Check zur "Site URL" (https://digiki-os.de)
   // redirecten, wenn unsere `redirectTo` nicht in der Allowlist steht.
-  // Mit `token_hash` + unserer eigenen /auth/callback-Route haben wir
-  // die volle Kontrolle über den Ziel-Redirect (-> /best-practice/datenbank).
+  // Mit `token_hash` + unserer Bestätigungsseite /auth/bestaetigen haben wir
+  // die volle Kontrolle über den Ziel-Redirect (-> /best-practice/datenbank)
+  // UND der Token wird NUR per Button-Klick eingelöst – so verbrauchen
+  // automatische Link-Scanner (Schulnetze) ihn nicht schon beim GET.
   const tokenHash = linkData.properties.hashed_token;
   const nextPath = "/best-practice/datenbank";
   const confirmationUrl =
-    `${siteUrl}/auth/callback` +
+    `${siteUrl}/auth/bestaetigen` +
     `?token_hash=${encodeURIComponent(tokenHash)}` +
     `&type=signup` +
     `&next=${encodeURIComponent(nextPath)}`;

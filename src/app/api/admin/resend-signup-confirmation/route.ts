@@ -143,13 +143,14 @@ export async function POST(request: NextRequest) {
   // als bestätigt markiert – das ersetzt also die ursprüngliche Signup-
   // Bestätigung. Vorteil gegenüber type:"signup": funktioniert ohne dass
   // wir das Klartext-Passwort des Users kennen müssen.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
+  // Trailing-Slash entfernen, sonst entsteht „…de//auth/bestaetigen" (ungültig).
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
   const { data: linkData, error: linkError } =
     await admin.auth.admin.generateLink({
       type: "magiclink",
       email: targetEmail,
       options: {
-        redirectTo: `${siteUrl}/auth/callback?next=/best-practice/datenbank`,
+        redirectTo: `${siteUrl}/auth/bestaetigen?next=/best-practice/datenbank`,
       },
     });
 
@@ -167,12 +168,14 @@ export async function POST(request: NextRequest) {
   // WICHTIG: NICHT `action_link` verwenden – Supabase's eingebaute
   // Verify-Route würde nach Erfolg zur "Site URL" (Startseite) zurück-
   // redirecten, wenn unsere redirectTo nicht in der Allowlist steht.
-  // Stattdessen bauen wir die URL zu unserer eigenen Callback-Route,
-  // die token_hash + type direkt verifiziert.
+  // Stattdessen bauen wir die URL zu unserer Bestätigungsseite
+  // /auth/bestaetigen, die token_hash + type NUR per Button-Klick einlöst –
+  // so verbrauchen automatische Link-Scanner (Schulnetze) den Einmal-Token
+  // nicht schon beim bloßen GET (genau der Fehler bei abgelaufenen Links/Codes).
   const tokenHash = linkData.properties.hashed_token;
   const nextPath = "/best-practice/datenbank";
   const confirmationUrl =
-    `${siteUrl}/auth/callback` +
+    `${siteUrl}/auth/bestaetigen` +
     `?token_hash=${encodeURIComponent(tokenHash)}` +
     `&type=magiclink` +
     `&next=${encodeURIComponent(nextPath)}`;
@@ -211,7 +214,9 @@ export async function POST(request: NextRequest) {
     const emailSafe = escapeHtml(targetEmail);
     const confirmationUrlSafe = escapeHtml(confirmationUrl);
     const otpCodeSafe = escapeHtml(otpCode);
-    const codeEinloesenUrl = `${siteUrl}/best-practice/code-einloesen?type=signup`;
+    // Resend nutzt einen magiclink-Token → Code-Seite gleich mit type=magiclink
+    // vorbelegen (sonst greift erst der Typ-Fallback der Code-Seite).
+    const codeEinloesenUrl = `${siteUrl}/best-practice/code-einloesen?type=magiclink`;
     const codeEinloesenUrlSafe = escapeHtml(codeEinloesenUrl);
     const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
