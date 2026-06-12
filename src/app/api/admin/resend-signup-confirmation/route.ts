@@ -56,13 +56,17 @@ export async function POST(request: NextRequest) {
   }
 
   // Body
-  let body: { userId?: unknown };
+  let body: { userId?: unknown; override?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { userId } = body;
+  const { userId, override } = body;
+  // override === true → Admin überschreibt die 24h-Sperre bewusst (nur über
+  // die Detail-Karte mit Warnhinweis; der Schnellversand der Tabelle sendet
+  // dieses Flag NICHT). Nur Admins erreichen diese Route ohnehin.
+  const forceOverride = override === true;
   if (typeof userId !== "string" || !userId.trim()) {
     return NextResponse.json({ error: "Fehlende Felder" }, { status: 400 });
   }
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
       : null;
   const signupIso = userData.user.created_at ?? null;
   const block = getResendBlock(signupIso, lastResendIso);
-  if (block) {
+  if (block && !forceOverride) {
     const error =
       block.reason === "signup-grace"
         ? `Die Anmeldung ist erst seit Kurzem eingegangen. Wir geben der Schule zunächst Gelegenheit, ihre E-Mail-Adresse selbst zu bestätigen – eine erneute Bestätigungs-Mail kann erst in ${block.formatted} versendet werden.`

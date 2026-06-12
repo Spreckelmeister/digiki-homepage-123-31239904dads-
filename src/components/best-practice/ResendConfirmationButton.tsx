@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock3, MailWarning, RefreshCw } from "lucide-react";
+import { AlertTriangle, Clock3, MailWarning, RefreshCw } from "lucide-react";
 import { getResendBlock } from "@/lib/auth/resendCooldown";
 
 interface Props {
@@ -50,6 +50,10 @@ export default function ResendConfirmationButton({
     signupAt ?? null,
   );
 
+  // Admin-Override der 24h-Sperre (nur hier in der Detail-Karte, bewusst per
+  // Haken + Warnhinweis).
+  const [overrideChecked, setOverrideChecked] = useState(false);
+
   // Cooldown jede Minute neu berechnen, damit „verfügbar in X" live tickt.
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -62,16 +66,20 @@ export default function ResendConfirmationButton({
 
   const block = getResendBlock(localSignupAt, localLastResend);
   const isLocked = block !== null;
+  // Senden möglich, wenn nicht gesperrt – oder gesperrt UND der Admin den
+  // Override-Haken gesetzt hat.
+  const canSend = !isLocked || overrideChecked;
+  const overriding = isLocked && overrideChecked;
 
   async function handleResend() {
-    if (isLocked) return;
+    if (!canSend || sending) return;
     setSending(true);
     setMessage(null);
     try {
       const res = await fetch("/api/admin/resend-signup-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, override: overrideChecked }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -102,6 +110,8 @@ export default function ResendConfirmationButton({
         return;
       }
       setLocalLastResend(new Date().toISOString());
+      // Haken zurücksetzen, damit ein erneutes Überschreiben bewusst erfolgt.
+      setOverrideChecked(false);
       setMessage({
         type: "ok",
         text: `Neue Bestätigungs-Mail an ${currentEmail} verschickt – mit 8-stelligem Code und 24-Stunden-Hinweis.`,
@@ -182,26 +192,55 @@ export default function ResendConfirmationButton({
           </div>
         )}
 
+        {/* Override: 24h-Sperre bewusst umgehen (mit Warnhinweis). */}
+        {isLocked && (
+          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3">
+            <input
+              type="checkbox"
+              checked={overrideChecked}
+              onChange={(e) => setOverrideChecked(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 text-amber-700 focus:ring-amber-500"
+            />
+            <span className="text-[12.5px] leading-relaxed text-amber-900">
+              <span className="flex items-center gap-1.5 font-semibold">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                24-Stunden-Sperre überschreiben und trotzdem jetzt senden
+              </span>
+              <span className="mt-0.5 block text-amber-800">
+                Die Schule erhält dann ggf. zwei Bestätigungs-Mails kurz
+                hintereinander. Nur nutzen, wenn die vorherige Mail nachweislich
+                nicht ankam oder der Link defekt war.
+              </span>
+            </span>
+          </label>
+        )}
+
         <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={handleResend}
-            disabled={sending || isLocked}
-            className="group inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:bg-text-light/30 disabled:text-white/70 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            disabled={sending || !canSend}
+            className={`group inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:bg-text-light/30 disabled:text-white/70 disabled:hover:translate-y-0 disabled:hover:shadow-sm ${overriding ? "bg-accent-strong hover:bg-accent-strong/90" : "bg-primary hover:bg-primary/90"}`}
           >
-            {isLocked ? (
+            {sending ? (
+              <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : overriding ? (
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            ) : isLocked ? (
               <Clock3 className="h-4 w-4" aria-hidden="true" />
             ) : (
               <RefreshCw
-                className={`h-4 w-4 ${sending ? "animate-spin" : "transition-transform group-hover:rotate-180"}`}
+                className="h-4 w-4 transition-transform group-hover:rotate-180"
                 aria-hidden="true"
               />
             )}
             {sending
               ? "Wird versendet..."
-              : isLocked && block
-                ? `Erneut möglich in ${block.formatted}`
-                : "Bestätigungs-Mail erneut senden"}
+              : overriding
+                ? "Trotzdem jetzt senden"
+                : isLocked && block
+                  ? `Erneut möglich in ${block.formatted}`
+                  : "Bestätigungs-Mail erneut senden"}
           </button>
 
           {message && (
