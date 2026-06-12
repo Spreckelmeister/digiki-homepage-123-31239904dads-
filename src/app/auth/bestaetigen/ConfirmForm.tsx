@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
@@ -67,14 +67,20 @@ export default function ConfirmForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   const [done, setDone] = useState(false);
+  // Schützt vor Doppel-Einlösung: Ein zweiter (schneller) Klick würde sonst den
+  // bereits verbrauchten Einmal-Token erneut prüfen → „ungültig".
+  const submittingRef = useRef(false);
 
   const linkBroken = !tokenHash || !type;
 
   async function handleConfirm() {
-    if (linkBroken || loading) return;
+    if (linkBroken || loading || submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError("");
+    setErrorDetail("");
 
     const supabase = createClient();
     const { error: verifyError } = await supabase.auth.verifyOtp({
@@ -91,7 +97,10 @@ export default function ConfirmForm() {
       } else {
         setError("Die Bestätigung ist fehlgeschlagen. Bitte versuchen Sie es erneut.");
       }
+      // Technische Original-Meldung von Supabase – hilft beim Support/Debugging.
+      setErrorDetail(`${verifyError.message} (Typ: ${type})`);
       setLoading(false);
+      submittingRef.current = false;
       return;
     }
 
@@ -153,6 +162,11 @@ export default function ConfirmForm() {
       {error && (
         <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
+          {errorDetail && (
+            <span className="mt-2 block text-xs text-red-500/80">
+              Technischer Hinweis: {errorDetail}
+            </span>
+          )}
         </div>
       )}
 
