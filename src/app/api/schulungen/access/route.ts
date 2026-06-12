@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import nodemailer from "nodemailer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -95,10 +94,24 @@ export async function POST(request: NextRequest) {
 
   const admin = createServiceClient();
 
-  if (action === "grant") {
-    return handleInvite(admin, email);
+  // Alle unerwarteten Fehler abfangen und die echte Meldung zurückgeben,
+  // statt einem generischen „Internal Server Error".
+  try {
+    return action === "grant"
+      ? await handleInvite(admin, email)
+      : await handleRevoke(admin, email);
+  } catch (err) {
+    console.error("[schulungen/access] unhandled error:", err);
+    return NextResponse.json(
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Unerwarteter Fehler bei der Verarbeitung.",
+      },
+      { status: 500 }
+    );
   }
-  return handleRevoke(admin, email);
 }
 
 /** Sucht einen Auth-User per E-Mail (seitenweise). */
@@ -158,8 +171,12 @@ async function handleInvite(
   }
 
   // Account anlegen (E-Mail gilt als bestätigt – Einladung durch Admin; ein
-  // zufälliges Passwort, das die Person über den Link selbst ersetzt).
-  const tempPassword = `${randomUUID()}${randomUUID().toUpperCase()}9!`;
+  // zufälliges Wegwerf-Passwort, das die Person über den Link sofort ersetzt).
+  // Web-Crypto mit Math.random-Fallback (kein optionaler Node-Builtin-Import),
+  // < 72 Zeichen (bcrypt-Limit), mit Groß-/Kleinbuchstabe, Zahl, Sonderzeichen.
+  const rand = () =>
+    globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+  const tempPassword = `Aa1!${rand()}${rand()}`;
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
