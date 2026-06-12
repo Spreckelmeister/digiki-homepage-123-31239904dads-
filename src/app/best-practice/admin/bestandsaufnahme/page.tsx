@@ -25,7 +25,7 @@ export default async function BestandsaufnahmeAdminPage() {
       // student_support, ai_usage), damit die Vorauswahlen unter der
       // Suchleiste tatsächlich filtern können. user_id brauchen wir
       // für die Verknüpfung mit dem E-Mail-Bestätigungs-Status.
-      "id, user_id, school_name, school_location, student_count, respondent_role, status, created_at, share_practice, pioneer_interest, has_best_practice, student_support, ai_usage"
+      "id, user_id, school_name, school_location, student_count, respondent_role, status, created_at, contact_phone, share_practice, pioneer_interest, has_best_practice, student_support, ai_usage"
     )
     .not("school_name", "ilike", "%test%")
     .not("school_name", "ilike", "%admin%")
@@ -43,6 +43,9 @@ export default async function BestandsaufnahmeAdminPage() {
   const emailConfirmedEntries: [string, string | null][] = [];
   const lastResendEntries: [string, string | null][] = [];
   const signupAtEntries: [string, string | null][] = [];
+  // Letzter Login je user_id – für die Admin-Übersicht („zuletzt angemeldet"),
+  // damit man Schulen vor einem Anruf einordnen kann.
+  const lastSignInEntries: [string, string | null][] = [];
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.SUPABASE_SERVICE_ROLE_KEY &&
@@ -73,8 +76,10 @@ export default async function BestandsaufnahmeAdminPage() {
             : null;
         lastResendEntries.push([u.id, lastResend]);
         // Anmeldezeitpunkt für die Signup-Grace-Sperre (erst nach 24h
-        // darf eine erneute Bestätigungs-Mail versendet werden).
+        // darf eine erneute Bestätigungs-Mail versendet werden) – dient
+        // zugleich als „erste Anmeldung" in der Übersicht.
         signupAtEntries.push([u.id, u.created_at ?? null]);
+        lastSignInEntries.push([u.id, u.last_sign_in_at ?? null]);
       }
     } catch (err) {
       console.error("[bestandsaufnahme-admin] listUsers failed:", err);
@@ -172,6 +177,7 @@ export default async function BestandsaufnahmeAdminPage() {
             emailConfirmedEntries={emailConfirmedEntries}
             lastResendEntries={lastResendEntries}
             signupAtEntries={signupAtEntries}
+            lastSignInEntries={lastSignInEntries}
           />
         </div>
       </section>

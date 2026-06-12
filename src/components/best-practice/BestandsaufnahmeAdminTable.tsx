@@ -30,6 +30,7 @@ type Row = {
   respondent_role: string | null;
   status: string;
   created_at: string;
+  contact_phone: string | null;
   // Filter-relevante Felder
   share_practice: string | null;
   pioneer_interest: string | null;
@@ -78,6 +79,18 @@ const FMT_DAY_TIME = new Intl.DateTimeFormat("de-DE", {
   hour: "2-digit",
   minute: "2-digit",
 });
+
+/** ISO-Zeitstempel → „11. Jun 2026, 16:41" bzw. „—" wenn leer. */
+function fmtDateTime(iso: string | null | undefined): string {
+  return iso ? FMT_DAY_TIME.format(new Date(iso)) : "—";
+}
+
+/** Telefonnummer → tel:-Link (nur Ziffern und +), oder null wenn unbrauchbar. */
+function telHref(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  return cleaned.length >= 4 ? `tel:${cleaned}` : null;
+}
 
 // Versions-Dropdown – kompakter Selector mit Liste der Einreichungen
 function VersionPicker({
@@ -190,6 +203,7 @@ export default function BestandsaufnahmeAdminTable({
   emailConfirmedEntries,
   lastResendEntries,
   signupAtEntries,
+  lastSignInEntries,
 }: {
   rows: Row[];
   /** Tupel-Liste statt Map, weil Server Components keine Map-Props
@@ -198,9 +212,10 @@ export default function BestandsaufnahmeAdminTable({
   /** Letzter Versandzeitstempel pro user_id, für die 24h-Sperre des
    *  Resend-Buttons. */
   lastResendEntries?: [string, string | null][];
-  /** Signup-Zeitstempel pro user_id, damit die 24h-Sperre ab Anmeldung
-   *  clientseitig angezeigt werden kann. */
+  /** Signup-Zeitstempel pro user_id, dient zugleich als „erste Anmeldung". */
   signupAtEntries?: [string, string | null][];
+  /** Letzter Login pro user_id („zuletzt angemeldet"). */
+  lastSignInEntries?: [string, string | null][];
 }) {
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<Set<FilterId>>(new Set());
@@ -220,6 +235,10 @@ export default function BestandsaufnahmeAdminTable({
   const signupAtMap = useMemo(
     () => new Map(signupAtEntries ?? []),
     [signupAtEntries],
+  );
+  const lastSignInMap = useMemo(
+    () => new Map(lastSignInEntries ?? []),
+    [lastSignInEntries],
   );
 
   const groups = useMemo(() => groupBySchool(rows), [rows]);
@@ -500,6 +519,18 @@ export default function BestandsaufnahmeAdminTable({
                   >
                     Datum
                   </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-light"
+                  >
+                    Telefon
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-light"
+                  >
+                    Anmeldung
+                  </th>
                   <th scope="col" className="px-4 py-3">
                     <span className="sr-only">Aktionen</span>
                   </th>
@@ -554,6 +585,40 @@ export default function BestandsaufnahmeAdminTable({
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-text-light align-top">
                         {FMT_DAY.format(new Date(selected.created_at))}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm align-top">
+                        {selected.contact_phone ? (
+                          telHref(selected.contact_phone) ? (
+                            <a
+                              href={telHref(selected.contact_phone)!}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              {selected.contact_phone}
+                            </a>
+                          ) : (
+                            <span className="text-text">{selected.contact_phone}</span>
+                          )
+                        ) : (
+                          <span className="text-text-light">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm align-top">
+                        <div className="text-text">
+                          Zuletzt:{" "}
+                          {fmtDateTime(
+                            selected.user_id
+                              ? lastSignInMap.get(selected.user_id) ?? null
+                              : null,
+                          )}
+                        </div>
+                        <div className="text-[11px] text-text-light">
+                          Erstmals:{" "}
+                          {fmtDateTime(
+                            selected.user_id
+                              ? signupAtMap.get(selected.user_id) ?? null
+                              : null,
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right align-top">
                         <div className="inline-flex items-center gap-1.5">
@@ -638,9 +703,44 @@ export default function BestandsaufnahmeAdminTable({
                     {selected.school_location} · {selected.student_count}{" "}
                     Schüler/innen
                   </p>
-                  <p className="mb-3 text-xs text-text-light">
+                  <p className="mb-2 text-xs text-text-light">
                     {FMT_DAY_LONG.format(new Date(selected.created_at))}
                   </p>
+                  <div className="mb-3 space-y-0.5 rounded-lg bg-bg/60 px-3 py-2 text-xs">
+                    <p className="text-text-light">
+                      <span className="font-medium text-text">Telefon:</span>{" "}
+                      {selected.contact_phone ? (
+                        telHref(selected.contact_phone) ? (
+                          <a
+                            href={telHref(selected.contact_phone)!}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {selected.contact_phone}
+                          </a>
+                        ) : (
+                          <span className="text-text">{selected.contact_phone}</span>
+                        )
+                      ) : (
+                        "—"
+                      )}
+                    </p>
+                    <p className="text-text-light">
+                      <span className="font-medium text-text">Zuletzt angemeldet:</span>{" "}
+                      {fmtDateTime(
+                        selected.user_id
+                          ? lastSignInMap.get(selected.user_id) ?? null
+                          : null,
+                      )}
+                    </p>
+                    <p className="text-text-light">
+                      <span className="font-medium text-text">Erstmals:</span>{" "}
+                      {fmtDateTime(
+                        selected.user_id
+                          ? signupAtMap.get(selected.user_id) ?? null
+                          : null,
+                      )}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/best-practice/admin/bestandsaufnahme/${selected.id}`}
