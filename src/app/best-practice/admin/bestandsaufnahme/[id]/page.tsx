@@ -54,6 +54,7 @@ export default async function BestandsaufnahmeDetailPage({
   let emailConfirmedAt: string | null = null;
   let lastResendAt: string | null = null;
   let signupAt: string | null = null;
+  let lastSignInAt: string | null = null;
   if (
     r.user_id &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -74,6 +75,7 @@ export default async function BestandsaufnahmeDetailPage({
       lastResendAt = meta.last_confirmation_resend_at;
     }
     signupAt = userData?.user?.created_at ?? null;
+    lastSignInAt = userData?.user?.last_sign_in_at ?? null;
   }
 
   return (
@@ -142,6 +144,81 @@ export default async function BestandsaufnahmeDetailPage({
               currentEmail={r.contact_email}
             />
           )}
+
+          {/* Kontakt & Anmeldung – für telefonische Rückfragen */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-border">
+            <h2 className="text-lg font-semibold text-primary mb-4">
+              📞 Kontakt &amp; Anmeldung
+            </h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  Telefon
+                </dt>
+                <dd className="mt-1 text-sm">
+                  {r.contact_phone ? (
+                    <a
+                      href={`tel:${String(r.contact_phone).replace(/[^\d+]/g, "")}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {r.contact_phone}
+                    </a>
+                  ) : (
+                    <span className="text-text-light">—</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  Ansprechperson
+                </dt>
+                <dd className="mt-1 text-sm text-text">
+                  {r.contact_person || "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  E-Mail
+                </dt>
+                <dd className="mt-1 text-sm">
+                  {r.contact_email ? (
+                    <a
+                      href={`mailto:${r.contact_email}`}
+                      className="font-medium text-primary hover:underline break-all"
+                    >
+                      {r.contact_email}
+                    </a>
+                  ) : (
+                    <span className="text-text-light">—</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  Schulleitung
+                </dt>
+                <dd className="mt-1 text-sm text-text">
+                  {r.principal_name || "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  Zuletzt angemeldet
+                </dt>
+                <dd className="mt-1 text-sm text-text">
+                  {fmtDateTime(lastSignInAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-text-light uppercase tracking-wider">
+                  Erstmals angemeldet
+                </dt>
+                <dd className="mt-1 text-sm text-text">
+                  {fmtDateTime(signupAt)}
+                </dd>
+              </div>
+            </dl>
+          </div>
 
           {/* Teil A */}
           <Section title="🏫 Teil A: Allgemeine Angaben">
@@ -381,6 +458,18 @@ export default async function BestandsaufnahmeDetailPage({
 }
 
 // ── Helper UI components ────────────────────────────────────────────────────
+
+/** ISO-Zeitstempel → „11. Juni 2026, 16:41" bzw. „— (nie)" wenn leer. */
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return "— (nie)";
+  return new Date(iso).toLocaleString("de-DE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function Section({
   title,
