@@ -41,7 +41,7 @@ export default function LoginForm() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -56,7 +56,22 @@ export default function LoginForm() {
       return;
     }
 
-    router.push(redirectTo);
+    // Schulungsteam-Mitglieder landen direkt im Schulungs-Dashboard – nicht in
+    // der Best-Practice-Datenbank (auf die sie keinen Zugriff haben). Schlägt
+    // die Rollen-Abfrage fehl, fängt die Middleware das Confinement ohnehin ab.
+    let target = redirectTo;
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      if (profile?.role?.toLowerCase() === "schulungsteam") {
+        target = "/schulungsdashboard";
+      }
+    }
+
+    router.push(target);
     router.refresh();
   }
 

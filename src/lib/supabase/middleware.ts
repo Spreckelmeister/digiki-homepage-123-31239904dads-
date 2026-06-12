@@ -59,46 +59,70 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin routes: check admin role
-  if (request.nextUrl.pathname.startsWith("/best-practice/admin") && user) {
+  // Rolle einmal laden, wenn sie für eine der folgenden Regeln gebraucht wird.
+  const path = request.nextUrl.pathname;
+  let role: string | undefined;
+  if (
+    user &&
+    (path.startsWith("/best-practice") || path.startsWith("/schulungsdashboard"))
+  ) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
+    role = profile?.role?.toLowerCase();
+  }
 
-    if (!profile || profile.role?.toLowerCase() !== "admin") {
+  // Schulungsteam ist NUR auf das Schulungs-Dashboard beschränkt. Im
+  // /best-practice-Bereich sind ausschließlich Self-Service-Seiten (Konto,
+  // Passwort) + Login erlaubt – alles andere leitet ins Dashboard um. (Steht
+  // VOR der Admin-/Dashboard-Prüfung, damit kein Doppel-Redirect entsteht.)
+  if (user && role === "schulungsteam" && path.startsWith("/best-practice")) {
+    const allowed = [
+      "/best-practice/konto",
+      "/best-practice/passwort-vergessen",
+      "/best-practice/passwort-zuruecksetzen",
+      "/best-practice/code-einloesen",
+      "/best-practice/login",
+    ].some((p) => path === p || path.startsWith(`${p}/`));
+    if (!allowed) {
       const url = request.nextUrl.clone();
-      url.pathname = "/best-practice/datenbank";
+      url.pathname = "/schulungsdashboard";
+      url.search = "";
       return NextResponse.redirect(url);
     }
   }
 
-  // Schulungs-Dashboard: nur admin + schulungsteam
-  if (request.nextUrl.pathname.startsWith("/schulungsdashboard") && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    const role = profile?.role?.toLowerCase();
-    if (role !== "admin" && role !== "schulungsteam") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/best-practice/datenbank";
-      return NextResponse.redirect(url);
-    }
+  // Admin-Bereich: nur Admins.
+  if (path.startsWith("/best-practice/admin") && user && role !== "admin") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/best-practice/datenbank";
+    return NextResponse.redirect(url);
   }
 
-  // If logged in and visiting login/register, redirect to datenbank
+  // Schulungs-Dashboard: nur admin + schulungsteam.
+  if (
+    path.startsWith("/schulungsdashboard") &&
+    user &&
+    role !== "admin" &&
+    role !== "schulungsteam"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/best-practice/datenbank";
+    return NextResponse.redirect(url);
+  }
+
+  // If logged in and visiting login/register, redirect away.
   // Exception: ?confirmed=true means the user just verified their email and should see the login page
   const isAuthRoute =
-    request.nextUrl.pathname === "/best-practice/login" ||
-    request.nextUrl.pathname === "/best-practice/registrieren";
+    path === "/best-practice/login" || path === "/best-practice/registrieren";
 
   if (isAuthRoute && user && !request.nextUrl.searchParams.get("confirmed")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/best-practice/datenbank";
+    // Schulungsteam → direkt ins Dashboard, sonst zur Datenbank.
+    url.pathname =
+      role === "schulungsteam" ? "/schulungsdashboard" : "/best-practice/datenbank";
     return NextResponse.redirect(url);
   }
 

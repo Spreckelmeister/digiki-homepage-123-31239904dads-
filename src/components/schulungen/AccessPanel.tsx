@@ -60,8 +60,8 @@ export default function AccessPanel() {
         tone: "ok",
         text:
           action === "grant"
-            ? `${targetEmail} hat jetzt Zugriff auf das Dashboard.`
-            : `Zugriff für ${targetEmail} wurde entfernt.`,
+            ? `Einladung an ${targetEmail} gesendet – mit Link zum Passwort-Festlegen.`
+            : `${targetEmail} wurde entfernt (Zugang gelöscht).`,
       });
       setEmail("");
       await load();
@@ -85,12 +85,13 @@ export default function AccessPanel() {
         className="flex items-center gap-2 text-base font-bold text-text"
       >
         <KeyRound className="h-4 w-4 text-primary" aria-hidden="true" />
-        Dashboard-Zugriff verwalten
+        Schulungsteam einladen &amp; verwalten
       </h2>
       <p className="mt-1 text-xs text-text-light">
-        Eingeladene Personen erhalten die Rolle „Schulungsteam“ und sehen
-        ausschließlich dieses Dashboard zusätzlich. Die Person benötigt ein
-        bestehendes Konto (Registrierung über den Best-Practice-Bereich).
+        E-Mail eintragen → die Person wird ins Schulungsteam eingeladen und
+        erhält eine E-Mail mit Link zum Passwort-Festlegen. Sie sieht danach
+        <strong> ausschließlich dieses Dashboard</strong> (kein DigiKI-Account).
+        E-Mails mit bestehendem DigiKI-Account können nicht eingeladen werden.
       </p>
 
       <form
@@ -122,7 +123,7 @@ export default function AccessPanel() {
           ) : (
             <UserPlus className="h-4 w-4" aria-hidden="true" />
           )}
-          Zugriff erteilen
+          Einladen
         </button>
       </form>
 
@@ -170,11 +171,20 @@ export default function AccessPanel() {
             <button
               type="button"
               disabled={busy || !user.email}
-              onClick={() => user.email && mutate(user.email, "revoke")}
+              onClick={() => {
+                if (!user.email) return;
+                if (
+                  window.confirm(
+                    `„${user.email}" aus dem Schulungsteam entfernen?\n\nDer Zugang wird vollständig gelöscht – die Person kann sich danach nicht mehr anmelden.`
+                  )
+                ) {
+                  mutate(user.email, "revoke");
+                }
+              }}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
-              Zugriff entziehen
+              Entfernen
             </button>
           </li>
         ))}

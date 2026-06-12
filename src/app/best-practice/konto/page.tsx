@@ -31,8 +31,16 @@ export default async function KontoPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <BackButton
-                fallbackHref="/best-practice/datenbank"
-                fallbackLabel="Zurück zur Datenbank"
+                fallbackHref={
+                  profile?.role?.toLowerCase() === "schulungsteam"
+                    ? "/schulungsdashboard"
+                    : "/best-practice/datenbank"
+                }
+                fallbackLabel={
+                  profile?.role?.toLowerCase() === "schulungsteam"
+                    ? "Zum Schulungs-Dashboard"
+                    : "Zurück zur Datenbank"
+                }
                 className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
               />
               <h1 className="text-3xl md:text-4xl font-bold text-white">

@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
@@ -45,20 +43,10 @@ export default async function SchulungsdashboardPage() {
                 Anmeldungen importieren, Quoten im Blick behalten, Konflikte
                 klären.
               </p>
-              {/* Navigation zu den übrigen Admin-Tools – nur Admins haben
-                  dort Zugriff. Schulungsteam-Konten sehen nur dieses
-                  Dashboard und bekommen einen Link zur Datenbank. */}
-              {isAdmin ? (
-                <AdminNav />
-              ) : (
-                <Link
-                  href="/best-practice/datenbank"
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                >
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  Zur Best-Practice-Datenbank
-                </Link>
-              )}
+              {/* Navigation zu den übrigen Admin-Tools – nur Admins. Schulungs-
+                  team-Konten sehen ausschließlich dieses Dashboard (kein Link
+                  nach außen). */}
+              {isAdmin && <AdminNav />}
             </div>
             <AuthStatus initialProfile={profile} />
           </div>
