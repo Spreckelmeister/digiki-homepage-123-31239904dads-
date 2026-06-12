@@ -57,7 +57,10 @@ Beispiele-exel/DiGiKI Gruppe1.xlsx
 Beispiele-exel/educa__10_06_2026 (3).xlsx
 Beispiele-exel/educa__10_06_2026 (4).xlsx
 Beispiele-exel/educa__10_06_2026 (5).xlsx
+# Proprietäre Referenz-Vorlagen (Chef/Krafft) – dürfen NICHT auf Git
+Arbeitsblatt-Editor-Pro.html
 Arbeitsblatt-Editor-ProV2.html
+zahlen-strasse_Krafft.html
 .gitignore
 Schulungsdashboard.html
 Vokabeln.html
