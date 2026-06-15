@@ -45,25 +45,32 @@ export default function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 mt-4" aria-label="Admin-Navigation">
-      {tabs.map((tab) => {
-        const isActive = tab.match(pathname);
-        const Icon = tab.icon;
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-white/20 text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Icon className="w-4 h-4" aria-hidden="true" />
-            {tab.label}
-          </Link>
-        );
-      })}
+    /* Auf Mobilgeräten scrollt die Tab-Leiste horizontal – Scrollbar wird
+     * ausgeblendet. Auf Desktop ändert sich nichts (alle Tabs passen rein). */
+    <nav
+      aria-label="Admin-Navigation"
+      className="mt-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <div className="flex gap-1 w-max md:w-auto">
+        {tabs.map((tab) => {
+          const isActive = tab.match(pathname);
+          const Icon = tab.icon;
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-white/20 text-white"
+                  : "text-white/60 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }
