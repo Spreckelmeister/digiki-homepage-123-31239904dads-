@@ -18,6 +18,7 @@ import EventsTable from "./EventsTable";
 import AccessPanel from "./AccessPanel";
 import AliasPanel from "./AliasPanel";
 import DangerZone from "./DangerZone";
+import MobileDashboard from "./MobileDashboard";
 
 export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
@@ -68,7 +69,22 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
       : `${stats.schools_registered}/${stats.schools_total}`;
 
   return (
-    <main className="bg-bg pb-16">
+    <main className="bg-bg">
+      {/* ── Mobile-Ansicht (< md) ── komplett eigenständiges Layout */}
+      <div className="md:hidden">
+        <MobileDashboard
+          isAdmin={isAdmin}
+          overview={overview}
+          conflicts={conflicts}
+          loading={loading}
+          loadError={loadError}
+          conflictsError={conflictsError}
+          onRefresh={refresh}
+        />
+      </div>
+
+      {/* ── Desktop-Ansicht (≥ md) ── unverändert */}
+      <div className="hidden md:block pb-16">
       <div className="mx-auto max-w-7xl space-y-6 px-4 pt-8 sm:px-6 lg:px-8">
         {loadError && (
           <div
@@ -157,6 +173,7 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
           </>
         )}
       </div>
+      </div>{/* Ende Desktop-Wrapper */}
     </main>
   );
 }
