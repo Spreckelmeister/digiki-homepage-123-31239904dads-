@@ -426,12 +426,12 @@ function MobileConflictCard({
   readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
-  const [assignSchoolId, setAssignSchoolId] = useState("");
+  const [assignSchoolName, setAssignSchoolName] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   const isQuota = conflict.reason.toLowerCase().includes("quote");
   const freeSchools = schools.filter((s) => {
-    if (!s.school_id) return false;
+    if (!s.in_bestandsaufnahme) return false;
     return conflict.role === "teacher"
       ? s.teacher_limit > s.teachers_used
       : s.leadership_limit > s.leadership_used;
@@ -458,14 +458,14 @@ function MobileConflictCard({
   }
 
   async function assign() {
-    if (!assignSchoolId) return;
+    if (!assignSchoolName) return;
     setBusy(true);
     setErr(null);
     try {
       const r = await fetch("/api/schulungen/conflicts/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conflict_id: conflict.id, school_id: assignSchoolId }),
+        body: JSON.stringify({ conflictId: conflict.id, schoolName: assignSchoolName }),
       });
       if (!r.ok) {
         const b = await r.json().catch(() => null);
@@ -539,14 +539,14 @@ function MobileConflictCard({
           {!isQuota && freeSchools.length > 0 && (
             <div className="mb-3 flex gap-2">
               <select
-                value={assignSchoolId}
-                onChange={(e) => setAssignSchoolId(e.target.value)}
+                value={assignSchoolName}
+                onChange={(e) => setAssignSchoolName(e.target.value)}
                 disabled={busy}
                 className="flex-1 rounded-lg border border-border bg-bg px-2 py-2 text-xs text-text focus:border-primary focus:outline-none"
               >
                 <option value="">Schule zuweisen …</option>
                 {freeSchools.map((s) => (
-                  <option key={s.school_key} value={s.school_id!}>
+                  <option key={s.school_key} value={s.name}>
                     {s.name}
                     {s.city ? ` (${s.city})` : ""}
                   </option>
@@ -554,7 +554,7 @@ function MobileConflictCard({
               </select>
               <button
                 type="button"
-                disabled={busy || !assignSchoolId}
+                disabled={busy || !assignSchoolName}
                 onClick={assign}
                 className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
               >
