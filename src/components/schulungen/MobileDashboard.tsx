@@ -192,12 +192,12 @@ function ParticipantSheet({
                           {ROLE_LABELS[p.role]}
                         </p>
                       </div>
-                      {isAdmin && !p.school_registered && !p.school_missing && (
+                      {!p.school_registered && !p.school_missing && (
                         <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
                           Nicht registriert
                         </span>
                       )}
-                      {isAdmin && quota && (
+                      {quota && (
                         <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                           {p.quota_pending ? "Über Quote – offen" : "Über Quote"}
                         </span>
@@ -272,14 +272,24 @@ function ParticipantSheet({
 // ─── Event List (Schulungen-Tab) ───────────────────────────────────────────────
 function MobileEventsList({
   events,
+  conflicts,
   loading,
   isAdmin,
 }: {
   events: TrainingEvent[];
+  conflicts: ConflictItem[];
   loading: boolean;
   isAdmin: boolean;
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
+
+  const conflictsByEvent = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of conflicts) {
+      if (c.event?.id) map.set(c.event.id, (map.get(c.event.id) ?? 0) + 1);
+    }
+    return map;
+  }, [conflicts]);
 
   const groups = [
     { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
@@ -326,7 +336,11 @@ function MobileEventsList({
                         <button
                           type="button"
                           onClick={() => setOpenEvent(event)}
-                          className="flex w-full items-center gap-3 rounded-xl border border-border bg-white px-3 py-2.5 text-left shadow-sm transition-colors active:bg-bg"
+                          className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left shadow-sm transition-colors active:bg-bg ${
+                            conflictsByEvent.has(event.id)
+                              ? "border-amber-200 bg-amber-50/40"
+                              : "border-border bg-white"
+                          }`}
                         >
                           {/* Date chip */}
                           <div className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-bg px-1 py-1.5 text-center">
@@ -357,16 +371,24 @@ function MobileEventsList({
                             </p>
                           </div>
 
-                          {/* Count */}
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
-                              count > 0
-                                ? "bg-primary/10 text-primary"
-                                : "bg-bg text-text-light"
-                            }`}
-                          >
-                            {count} Anm.
-                          </span>
+                          {/* Count + Konflikt-Badge */}
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                                count > 0
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-bg text-text-light"
+                              }`}
+                            >
+                              {count} Anm.
+                            </span>
+                            {conflictsByEvent.has(event.id) && (
+                              <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                                {conflictsByEvent.get(event.id)} Konflikt{(conflictsByEvent.get(event.id) ?? 0) > 1 ? "e" : ""}
+                              </span>
+                            )}
+                          </div>
                         </button>
                       </li>
                     );
@@ -491,7 +513,7 @@ function MobileConflictCard({
 
       {/* Schule */}
       {conflict.school && (
-        <div className="mb-3 flex items-center gap-1.5 text-[11px] text-text-light">
+        <div className="flex items-center gap-1.5 text-[11px] text-text-light">
           <School className="h-3 w-3 shrink-0" aria-hidden="true" />
           <span>
             {conflict.school.name}
@@ -499,6 +521,15 @@ function MobileConflictCard({
           </span>
         </div>
       )}
+
+      {/* Vollständiger Konfliktgrund */}
+      <div
+        className={`mt-2 mb-3 rounded-md px-2.5 py-2 text-xs leading-snug ${
+          isQuota ? "bg-amber-50 text-amber-900" : "bg-red-50 text-red-900"
+        }`}
+      >
+        {conflict.reason}
+      </div>
 
       {/* School picker + Aktions-Buttons nur für Admins */}
       {!readOnly && (
@@ -883,6 +914,7 @@ export default function MobileDashboard({
       {tab === "schulungen" && (
         <MobileEventsList
           events={overview?.events ?? []}
+          conflicts={conflicts}
           loading={loading}
           isAdmin={isAdmin}
         />
