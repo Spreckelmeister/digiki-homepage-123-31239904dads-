@@ -11,6 +11,7 @@ import {
   Mail,
   Phone,
   School,
+  Search,
   Settings,
   Users,
   X,
@@ -427,6 +428,8 @@ function MobileConflictCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [assignSchoolName, setAssignSchoolName] = useState("");
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [schoolOpen, setSchoolOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const isQuota = conflict.reason.toLowerCase().includes("quote");
@@ -537,29 +540,67 @@ function MobileConflictCard({
       {!readOnly && (
         <>
           {!isQuota && freeSchools.length > 0 && (
-            <div className="mb-3 flex gap-2">
-              <select
-                value={assignSchoolName}
-                onChange={(e) => setAssignSchoolName(e.target.value)}
-                disabled={busy}
-                className="flex-1 rounded-lg border border-border bg-bg px-2 py-2 text-xs text-text focus:border-primary focus:outline-none"
-              >
-                <option value="">Schule zuweisen …</option>
-                {freeSchools.map((s) => (
-                  <option key={s.school_key} value={s.name}>
-                    {s.name}
-                    {s.city ? ` (${s.city})` : ""}
-                  </option>
-                ))}
-              </select>
+            <div className="mb-3 space-y-2">
+              {/* Durchsuchbares Schul-Dropdown */}
+              <div className="relative">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-text-light" aria-hidden="true" />
+                  <input
+                    type="text"
+                    placeholder="Schule suchen …"
+                    value={schoolQuery}
+                    disabled={busy}
+                    onFocus={() => setSchoolOpen(true)}
+                    onBlur={() => setTimeout(() => setSchoolOpen(false), 150)}
+                    onChange={(e) => {
+                      setSchoolQuery(e.target.value);
+                      setAssignSchoolName("");
+                      setSchoolOpen(true);
+                    }}
+                    className="w-full rounded-lg border border-border bg-bg py-2 pl-7 pr-2 text-xs text-text placeholder:text-text-light focus:border-primary focus:outline-none"
+                  />
+                </div>
+                {schoolOpen && (
+                  <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-y-auto rounded-lg border border-border bg-white shadow-lg">
+                    {freeSchools
+                      .filter((s) => {
+                        const q = schoolQuery.toLowerCase();
+                        return (
+                          !q ||
+                          s.name.toLowerCase().includes(q) ||
+                          (s.city ?? "").toLowerCase().includes(q)
+                        );
+                      })
+                      .map((s) => (
+                        <li key={s.school_key}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setAssignSchoolName(s.name);
+                              setSchoolQuery(s.name + (s.city ? ` (${s.city})` : ""));
+                              setSchoolOpen(false);
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-xs text-text hover:bg-bg"
+                          >
+                            <span className="font-medium">{s.name}</span>
+                            {s.city && (
+                              <span className="ml-1 text-text-light">({s.city})</span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
               <button
                 type="button"
                 disabled={busy || !assignSchoolName}
                 onClick={assign}
-                className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
               >
                 {busy ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                 ) : (
                   "Zuweisen"
                 )}
@@ -1252,6 +1293,7 @@ export default function MobileDashboard({
 }) {
   const [tab, setTab] = useState<Tab>("schulungen");
   const [selectedSchool, setSelectedSchool] = useState<SchoolParticipation | null>(null);
+  const [conflictSearch, setConflictSearch] = useState("");
 
   return (
     /* pb-20 = Platz für die fixierte Tab-Bar am unteren Bildschirmrand */
@@ -1289,6 +1331,19 @@ export default function MobileDashboard({
               {conflictsError}
             </p>
           )}
+          {/* Suchfeld */}
+          {!loading && conflicts.length > 0 && (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-light" aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Name oder Schule suchen …"
+                value={conflictSearch}
+                onChange={(e) => setConflictSearch(e.target.value)}
+                className="w-full rounded-xl border border-border bg-white py-2.5 pl-8 pr-3 text-sm text-text placeholder:text-text-light focus:border-primary focus:outline-none"
+              />
+            </div>
+          )}
           {!loading && conflicts.length === 0 && !conflictsError && (
             <div className="rounded-xl border border-border bg-white p-8 text-center text-sm text-text-light">
               Keine offenen Konflikte – alles klar!
@@ -1300,15 +1355,33 @@ export default function MobileDashboard({
               Lade …
             </div>
           )}
-          {conflicts.map((c) => (
-            <MobileConflictCard
-              key={c.id}
-              conflict={c}
-              schools={overview?.schools ?? []}
-              onResolved={onRefresh}
-              readOnly={!isAdmin}
-            />
-          ))}
+          {(() => {
+            const q = conflictSearch.trim().toLowerCase();
+            const filtered = q
+              ? conflicts.filter(
+                  (c) =>
+                    [c.person?.last_name, c.person?.first_name, c.school?.name, c.event?.kurs_nr]
+                      .filter(Boolean)
+                      .some((v) => v!.toLowerCase().includes(q))
+                )
+              : conflicts;
+            if (!loading && q && filtered.length === 0) {
+              return (
+                <p className="py-6 text-center text-sm text-text-light">
+                  Keine Treffer für „{conflictSearch}"
+                </p>
+              );
+            }
+            return filtered.map((c) => (
+              <MobileConflictCard
+                key={c.id}
+                conflict={c}
+                schools={overview?.schools ?? []}
+                onResolved={onRefresh}
+                readOnly={!isAdmin}
+              />
+            ));
+          })()}
         </div>
       )}
 
