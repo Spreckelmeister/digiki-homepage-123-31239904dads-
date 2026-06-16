@@ -963,10 +963,18 @@ function MobileSchoolsList({
   onSelect: (school: SchoolParticipation) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "registered" | "pending">("all");
+
+  const eligible = useMemo(() => schools.filter((s) => s.in_bestandsaufnahme), [schools]);
+  const registeredCount = useMemo(() => eligible.filter((s) => s.has_registered).length, [eligible]);
+  const pendingCount = eligible.length - registeredCount;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return [...schools]
+    let list = schools;
+    if (filter === "registered") list = list.filter((s) => s.has_registered);
+    if (filter === "pending") list = list.filter((s) => s.in_bestandsaufnahme && !s.has_registered);
+    return [...list]
       .filter(
         (s) =>
           !q ||
@@ -978,7 +986,7 @@ function MobileSchoolsList({
           Number(a.has_registered) - Number(b.has_registered) ||
           a.name.localeCompare(b.name, "de")
       );
-  }, [schools, query]);
+  }, [schools, query, filter]);
 
   if (loading) {
     return (
@@ -989,23 +997,42 @@ function MobileSchoolsList({
     );
   }
 
-  const eligible = schools.filter((s) => s.in_bestandsaufnahme);
-  const registered = eligible.filter((s) => s.has_registered).length;
-
   return (
     <div className="px-4 py-3">
-      {/* Summary tiles */}
+      {/* Filter-Kacheln */}
       <div className="mb-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-primary/5 p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-primary">{registered}</p>
-          <p className="mt-0.5 text-[11px] text-text-light">Angemeldet</p>
-        </div>
-        <div className="rounded-xl border border-border bg-white p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-text-light">
-            {eligible.length - registered}
+        <button
+          type="button"
+          onClick={() => setFilter(filter === "registered" ? "all" : "registered")}
+          className={`rounded-xl p-3 text-center transition-colors ${
+            filter === "registered"
+              ? "bg-primary text-white"
+              : "bg-primary/5 hover:bg-primary/10"
+          }`}
+        >
+          <p className={`text-2xl font-bold tabular-nums ${filter === "registered" ? "text-white" : "text-primary"}`}>
+            {registeredCount}
           </p>
-          <p className="mt-0.5 text-[11px] text-text-light">Ausstehend</p>
-        </div>
+          <p className={`mt-0.5 text-[11px] font-semibold ${filter === "registered" ? "text-white/80" : "text-text-light"}`}>
+            Angemeldet
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter(filter === "pending" ? "all" : "pending")}
+          className={`rounded-xl border p-3 text-center transition-colors ${
+            filter === "pending"
+              ? "border-accent bg-accent/10"
+              : "border-border bg-white hover:bg-bg"
+          }`}
+        >
+          <p className={`text-2xl font-bold tabular-nums ${filter === "pending" ? "text-accent-text" : "text-text-light"}`}>
+            {pendingCount}
+          </p>
+          <p className={`mt-0.5 text-[11px] font-semibold ${filter === "pending" ? "text-accent-text/80" : "text-text-light"}`}>
+            Ausstehend
+          </p>
+        </button>
       </div>
 
       {/* Search */}
@@ -1190,8 +1217,8 @@ function MobileTabBar({
             {tab.label}
             {/* Conflict badge */}
             {tab.key === "konflikte" && conflictCount > 0 && (
-              <span className="absolute right-[22%] top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                {conflictCount > 9 ? "9+" : conflictCount}
+              <span className="absolute right-[18%] top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                {conflictCount}
               </span>
             )}
             {/* Active indicator */}

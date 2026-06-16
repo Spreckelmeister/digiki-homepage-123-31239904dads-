@@ -156,7 +156,11 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
         <SchoolsPanel schools={overview?.schools ?? []} loading={loading} />
 
         {/* Alle Schulungen – für alle Dashboard-Nutzer sichtbar */}
-        <EventsTable events={overview?.events ?? []} loading={loading} />
+        <EventsTable
+          events={overview?.events ?? []}
+          conflicts={conflicts}
+          loading={loading}
+        />
 
         {/* Admin-Bereich: Zugriff verwalten + Daten zurücksetzen */}
         {isAdmin && (

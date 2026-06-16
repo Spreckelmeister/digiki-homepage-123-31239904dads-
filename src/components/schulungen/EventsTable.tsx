@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {
   ROLE_LABELS,
+  type ConflictItem,
   type EventParticipant,
   type TrainingEvent,
 } from "@/lib/schulungen/types";
@@ -46,13 +47,22 @@ function formatDate(iso: string | null): string {
  */
 export default function EventsTable({
   events,
+  conflicts = [],
   loading,
 }: {
   events: TrainingEvent[];
+  conflicts?: ConflictItem[];
   loading: boolean;
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [expanded, setExpanded] = useState(true);
+
+  const conflictsByEvent = new Map<string, number>();
+  for (const c of conflicts) {
+    if (c.event?.id) {
+      conflictsByEvent.set(c.event.id, (conflictsByEvent.get(c.event.id) ?? 0) + 1);
+    }
+  }
 
   const groups: { label: string; items: TrainingEvent[] }[] = [
     { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
@@ -120,9 +130,17 @@ export default function EventsTable({
                       <button
                         type="button"
                         onClick={() => setOpenEvent(event)}
-                        className="flex w-full items-center gap-3 rounded-lg py-2.5 pr-1 text-left transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className={`flex w-full items-center gap-3 rounded-lg py-2.5 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                          conflictsByEvent.has(event.id)
+                            ? "hover:bg-amber-50/60"
+                            : "hover:bg-bg"
+                        }`}
                       >
-                        <div className="flex w-14 shrink-0 flex-col items-center rounded-lg bg-bg px-1.5 py-1.5 text-center">
+                        <div
+                          className={`flex w-14 shrink-0 flex-col items-center rounded-lg px-1.5 py-1.5 text-center ${
+                            conflictsByEvent.has(event.id) ? "bg-amber-50" : "bg-bg"
+                          }`}
+                        >
                           {parts ? (
                             <>
                               <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-text-light">
@@ -147,15 +165,26 @@ export default function EventsTable({
                             {event.title}
                           </p>
                         </div>
-                        <span
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
-                            (event.registration_count ?? 0) > 0
-                              ? "bg-primary/10 text-primary"
-                              : "bg-bg text-text-light"
-                          }`}
-                        >
-                          {event.registration_count ?? 0} Anm.
-                        </span>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                              (event.registration_count ?? 0) > 0
+                                ? "bg-primary/10 text-primary"
+                                : "bg-bg text-text-light"
+                            }`}
+                          >
+                            {event.registration_count ?? 0} Anm.
+                          </span>
+                          {conflictsByEvent.has(event.id) && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                              {conflictsByEvent.get(event.id)}{" "}
+                              {(conflictsByEvent.get(event.id) ?? 0) === 1
+                                ? "Konflikt"
+                                : "Konflikte"}
+                            </span>
+                          )}
+                        </div>
                       </button>
                     </li>
                   );

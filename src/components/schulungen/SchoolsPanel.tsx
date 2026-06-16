@@ -1,8 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, CircleSlash, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  ChevronDown,
+  CircleSlash,
+  GraduationCap,
+  Loader2,
+  Mail,
+  Phone,
+  School,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import type { SchoolParticipation } from "@/lib/schulungen/types";
+import { ROLE_LABELS } from "@/lib/schulungen/types";
 
 type Filter = "all" | "registered" | "pending";
 
@@ -21,6 +35,7 @@ export default function SchoolsPanel({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolParticipation | null>(null);
 
   // Tab-Zähler passen exakt zu den jeweils gefilterten Listen.
   // "eligible*" (= aus der Bestandsaufnahme) speist die Kopfzeile, da
@@ -157,17 +172,34 @@ export default function SchoolsPanel({
           aria-label="Schulen mit Quotennutzung"
         >
           {visible.map((school) => (
-            <SchoolCard key={school.school_key} school={school} />
+            <SchoolCard
+              key={school.school_key}
+              school={school}
+              onSelect={setSelectedSchool}
+            />
           ))}
         </ul>
       )}
         </div>
       )}
+
+      {selectedSchool && (
+        <SchoolDetailDialog
+          school={selectedSchool}
+          onClose={() => setSelectedSchool(null)}
+        />
+      )}
     </section>
   );
 }
 
-function SchoolCard({ school }: { school: SchoolParticipation }) {
+function SchoolCard({
+  school,
+  onSelect,
+}: {
+  school: SchoolParticipation;
+  onSelect: (s: SchoolParticipation) => void;
+}) {
   const pending = !school.has_registered;
   const notEligible = !school.in_bestandsaufnahme;
   // Über der Quote = mehr Anmeldungen als erlaubt (kommt durch
@@ -185,15 +217,18 @@ function SchoolCard({ school }: { school: SchoolParticipation }) {
         : "text-text";
 
   return (
-    <li
-      className={`rounded-xl border p-3.5 ${
-        overQuota
-          ? "border-red-300 bg-red-50/60"
-          : pending
-            ? "border-dashed border-border bg-bg/40"
-            : "border-border bg-bg/60"
-      }`}
-    >
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(school)}
+        className={`w-full rounded-xl border p-3.5 text-left transition-colors hover:brightness-[0.97] active:brightness-95 ${
+          overQuota
+            ? "border-red-300 bg-red-50/60"
+            : pending
+              ? "border-dashed border-border bg-bg/40"
+              : "border-border bg-bg/60"
+        }`}
+      >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={`truncate text-sm font-semibold ${overQuota ? "text-red-800" : "text-text"}`}>
@@ -254,7 +289,348 @@ function SchoolCard({ school }: { school: SchoolParticipation }) {
           />
         </div>
       )}
+      </button>
     </li>
+  );
+}
+
+// ─── School Detail Dialog (Desktop) ───────────────────────────────────────────
+type SchoolDetailData = {
+  contact: {
+    email: string | null;
+    phone: string | null;
+    contact_person: string | null;
+    principal_name: string | null;
+  } | null;
+  registrations: Array<{
+    role: string;
+    person: { id: string; first_name: string; last_name: string; email: string | null } | null;
+    event: { id: string; kurs_nr: string; title: string; start_date: string | null } | null;
+  }>;
+  conflicts: Array<{
+    id: string;
+    reason: string;
+    role: string;
+    person: { id: string; first_name: string; last_name: string; email: string | null } | null;
+    event: { id: string; kurs_nr: string; title: string; start_date: string | null } | null;
+  }>;
+};
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "–";
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(iso + "T00:00:00"));
+}
+
+function SchoolDetailDialog({
+  school,
+  onClose,
+}: {
+  school: SchoolParticipation;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<SchoolDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/schulungen/school-detail?name=${encodeURIComponent(school.name)}`)
+      .then(async (r) => {
+        const body = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(body?.error ?? "Fehler");
+        return body as SchoolDetailData;
+      })
+      .then((d) => { if (active) setData(d); })
+      .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Fehler"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [school.name]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  type PersonEntry = {
+    person_id: string;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    role: string;
+    events: Array<{ kurs_nr: string; title: string; start_date: string | null }>;
+    conflictReasons: string[];
+  };
+
+  const persons = useMemo<PersonEntry[]>(() => {
+    if (!data) return [];
+    const map = new Map<string, PersonEntry>();
+    for (const r of data.registrations) {
+      if (!r.person) continue;
+      const pid = r.person.id;
+      if (!map.has(pid)) {
+        map.set(pid, {
+          person_id: pid,
+          first_name: r.person.first_name,
+          last_name: r.person.last_name,
+          email: r.person.email,
+          role: r.role,
+          events: [],
+          conflictReasons: [],
+        });
+      }
+      if (r.event) map.get(pid)!.events.push(r.event);
+    }
+    for (const c of data.conflicts) {
+      if (!c.person) continue;
+      const pid = c.person.id;
+      if (map.has(pid)) map.get(pid)!.conflictReasons.push(c.reason);
+    }
+    return [...map.values()].sort((a, b) =>
+      a.last_name.localeCompare(b.last_name, "de")
+    );
+  }, [data]);
+
+  const tOver = school.teachers_used > school.teacher_limit;
+  const lOver = school.leadership_used > school.leadership_limit;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={school.name}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <School className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-text">{school.name}</h2>
+                {(tOver || lOver) && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                    Über Quote
+                  </span>
+                )}
+              </div>
+              {school.city && (
+                <p className="text-sm text-text-light">
+                  {school.plz ? `${school.plz} ` : ""}
+                  {school.city}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="shrink-0 rounded-lg p-1.5 text-text-light hover:bg-bg hover:text-text"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-16 text-sm text-text-light">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Lade Details …
+            </div>
+          ) : error ? (
+            <p className="m-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {error}
+            </p>
+          ) : (
+            <div className="p-6 space-y-6">
+
+              {/* Kontaktinfo */}
+              {data?.contact &&
+                (data.contact.contact_person ||
+                  data.contact.principal_name ||
+                  data.contact.email ||
+                  data.contact.phone) && (
+                <div>
+                  <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+                    Kontakt
+                  </h3>
+                  <div className="rounded-xl border border-border bg-bg p-4 space-y-2.5">
+                    {data.contact.contact_person && (
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <Users className="h-4 w-4 shrink-0 text-text-light" aria-hidden="true" />
+                        <span className="text-text">{data.contact.contact_person}</span>
+                        <span className="text-xs text-text-light">(Ansprechpartner)</span>
+                      </div>
+                    )}
+                    {data.contact.principal_name && (
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <GraduationCap className="h-4 w-4 shrink-0 text-text-light" aria-hidden="true" />
+                        <span className="text-text">{data.contact.principal_name}</span>
+                        <span className="text-xs text-text-light">(Schulleitung)</span>
+                      </div>
+                    )}
+                    {data.contact.email && (
+                      <a
+                        href={`mailto:${data.contact.email}`}
+                        className="flex items-center gap-2.5 text-sm text-primary hover:underline"
+                      >
+                        <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {data.contact.email}
+                      </a>
+                    )}
+                    {data.contact.phone && (
+                      <a
+                        href={`tel:${data.contact.phone.replace(/\s/g, "")}`}
+                        className="flex items-center gap-2.5 text-sm text-primary hover:underline"
+                      >
+                        <Phone className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {data.contact.phone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Angemeldete Personen */}
+              <div>
+                <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+                  Angemeldete Personen · {persons.length}
+                </h3>
+                {persons.length === 0 ? (
+                  <p className="rounded-xl border border-border bg-bg px-4 py-6 text-center text-sm text-text-light">
+                    Noch keine Anmeldungen für diese Schule.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {persons.map((p) => {
+                      const hasConflict = p.conflictReasons.length > 0;
+                      return (
+                        <li
+                          key={p.person_id}
+                          className={`rounded-xl border p-4 ${
+                            hasConflict
+                              ? "border-red-200 bg-red-50/40"
+                              : "border-border bg-bg/60"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p
+                                  className={`font-semibold ${
+                                    hasConflict ? "text-red-800" : "text-text"
+                                  }`}
+                                >
+                                  {p.last_name}
+                                  {p.first_name ? `, ${p.first_name}` : ""}
+                                </p>
+                                <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold text-text-light">
+                                  {ROLE_LABELS[p.role as keyof typeof ROLE_LABELS] ?? p.role}
+                                </span>
+                                {hasConflict && (
+                                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                                    Konflikt
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Schulungen */}
+                              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                                {p.events.map((ev) => (
+                                  <span
+                                    key={ev.kurs_nr}
+                                    className="flex items-center gap-1.5 text-xs text-text-light"
+                                  >
+                                    <CalendarDays className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                    <span className="font-mono font-semibold text-text">
+                                      {ev.kurs_nr}
+                                    </span>
+                                    {ev.start_date && (
+                                      <span>· {formatDate(ev.start_date)}</span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Konflikt-Gründe */}
+                              {p.conflictReasons.map((reason, i) => (
+                                <div
+                                  key={i}
+                                  className="mt-2 rounded-md bg-red-100 px-3 py-1.5 text-xs leading-snug text-red-800"
+                                >
+                                  {reason}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* E-Mail */}
+                            {p.email && (
+                              <a
+                                href={`mailto:${p.email}`}
+                                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text hover:bg-bg"
+                              >
+                                <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                                E-Mail
+                              </a>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Weitere Konflikte ohne Anmeldung */}
+              {(() => {
+                const personIds = new Set(persons.map((p) => p.person_id));
+                const orphans = (data?.conflicts ?? []).filter(
+                  (c) => c.person && !personIds.has(c.person.id)
+                );
+                if (orphans.length === 0) return null;
+                return (
+                  <div>
+                    <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+                      Weitere offene Konflikte
+                    </h3>
+                    <ul className="space-y-2">
+                      {orphans.map((c) => (
+                        <li
+                          key={c.id}
+                          className="rounded-xl border border-red-200 bg-red-50/40 p-4"
+                        >
+                          <p className="font-semibold text-red-800">
+                            {c.person?.last_name}
+                            {c.person?.first_name ? `, ${c.person.first_name}` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-red-700">{c.reason}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
