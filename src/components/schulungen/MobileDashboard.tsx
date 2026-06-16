@@ -427,7 +427,7 @@ function MobileConflictCard({
   const [assignSchoolId, setAssignSchoolId] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
-  const isQuota = conflict.reason.toLowerCase().includes("quota");
+  const isQuota = conflict.reason.toLowerCase().includes("quote");
   const freeSchools = schools.filter((s) => {
     if (!s.school_id) return false;
     return conflict.role === "teacher"
