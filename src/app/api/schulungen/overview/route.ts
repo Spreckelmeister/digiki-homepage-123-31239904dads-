@@ -94,14 +94,12 @@ export async function GET() {
     stats: {
       events_total: events.length,
       registrations_total: registrationsCountRes.count ?? 0,
-      conflicts_open: auth.isAdmin ? conflictsCountRes.count ?? 0 : 0,
-      schools_total: auth.isAdmin ? eligible.length : 0,
-      schools_registered: auth.isAdmin
-        ? eligible.filter((s) => s.has_registered).length
-        : 0,
+      conflicts_open: conflictsCountRes.count ?? 0,
+      schools_total: eligible.length,
+      schools_registered: eligible.filter((s) => s.has_registered).length,
     },
     events,
-    schools: auth.isAdmin ? schools : [],
+    schools,
     recent_batches: auth.isAdmin ? batchesRes.data ?? [] : [],
     is_admin: auth.isAdmin,
   };

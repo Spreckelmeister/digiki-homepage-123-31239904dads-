@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * per ?batch_id=… oder ?status=…).
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireSchulungenAccess({ adminOnly: true });
+  const auth = await requireSchulungenAccess();
   if (!auth.ok) return auth.response;
 
   const admin = createServiceClient();

@@ -394,10 +394,12 @@ function MobileConflictCard({
   conflict,
   schools,
   onResolved,
+  readOnly = false,
 }: {
   conflict: ConflictItem;
   schools: SchoolParticipation[];
   onResolved: () => void;
+  readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [assignSchoolId, setAssignSchoolId] = useState("");
@@ -498,63 +500,66 @@ function MobileConflictCard({
         </div>
       )}
 
-      {/* School picker (nur für Schul-Konflikte) */}
-      {!isQuota && freeSchools.length > 0 && (
-        <div className="mb-3 flex gap-2">
-          <select
-            value={assignSchoolId}
-            onChange={(e) => setAssignSchoolId(e.target.value)}
-            disabled={busy}
-            className="flex-1 rounded-lg border border-border bg-bg px-2 py-2 text-xs text-text focus:border-primary focus:outline-none"
-          >
-            <option value="">Schule zuweisen …</option>
-            {freeSchools.map((s) => (
-              <option key={s.school_key} value={s.school_id!}>
-                {s.name}
-                {s.city ? ` (${s.city})` : ""}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            disabled={busy || !assignSchoolId}
-            onClick={assign}
-            className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-          >
-            {busy ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            ) : (
-              "Zuweisen"
-            )}
-          </button>
-        </div>
-      )}
-
-      {err && <p className="mb-2 text-xs text-red-700">{err}</p>}
-
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => resolve("reject")}
-          className="flex-1 rounded-lg border border-border px-3 py-2.5 text-xs font-semibold text-text-light transition-colors hover:border-red-300 hover:text-red-700 disabled:opacity-50"
-        >
-          Ablehnen
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => resolve("approve")}
-          className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          {busy ? (
-            <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-          ) : (
-            "Zulassen"
+      {/* School picker + Aktions-Buttons nur für Admins */}
+      {!readOnly && (
+        <>
+          {!isQuota && freeSchools.length > 0 && (
+            <div className="mb-3 flex gap-2">
+              <select
+                value={assignSchoolId}
+                onChange={(e) => setAssignSchoolId(e.target.value)}
+                disabled={busy}
+                className="flex-1 rounded-lg border border-border bg-bg px-2 py-2 text-xs text-text focus:border-primary focus:outline-none"
+              >
+                <option value="">Schule zuweisen …</option>
+                {freeSchools.map((s) => (
+                  <option key={s.school_key} value={s.school_id!}>
+                    {s.name}
+                    {s.city ? ` (${s.city})` : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={busy || !assignSchoolId}
+                onClick={assign}
+                className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  "Zuweisen"
+                )}
+              </button>
+            </div>
           )}
-        </button>
-      </div>
+
+          {err && <p className="mb-2 text-xs text-red-700">{err}</p>}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => resolve("reject")}
+              className="flex-1 rounded-lg border border-border px-3 py-2.5 text-xs font-semibold text-text-light transition-colors hover:border-red-300 hover:text-red-700 disabled:opacity-50"
+            >
+              Ablehnen
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => resolve("approve")}
+              className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                "Zulassen"
+              )}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -771,13 +776,15 @@ function MobileStatsBar({
 function MobileTabBar({
   active,
   conflictCount,
+  isAdmin,
   onChange,
 }: {
   active: Tab;
   conflictCount: number;
+  isAdmin: boolean;
   onChange: (t: Tab) => void;
 }) {
-  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  const allTabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     {
       key: "schulungen",
       label: "Schulungen",
@@ -799,13 +806,14 @@ function MobileTabBar({
       icon: <Settings className="h-5 w-5" aria-hidden="true" />,
     },
   ];
+  const tabs = isAdmin ? allTabs : allTabs.filter((t) => t.key !== "verwaltung");
 
   return (
     <nav
       aria-label="Dashboard-Navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white"
     >
-      <div className="grid grid-cols-4">
+      <div className={isAdmin ? "grid grid-cols-4" : "grid grid-cols-3"}>
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -867,10 +875,8 @@ export default function MobileDashboard({
         </div>
       )}
 
-      {/* Stat-Zeile ganz oben (nur Admins) */}
-      {isAdmin && (
-        <MobileStatsBar stats={overview?.stats} loading={loading} />
-      )}
+      {/* Stat-Zeile ganz oben */}
+      <MobileStatsBar stats={overview?.stats} loading={loading} />
 
       {/* ── Tab-Inhalte ── */}
 
@@ -882,7 +888,7 @@ export default function MobileDashboard({
         />
       )}
 
-      {isAdmin && tab === "konflikte" && (
+      {tab === "konflikte" && (
         <div className="space-y-3 px-4 py-3">
           {conflictsError && (
             <p
@@ -909,12 +915,13 @@ export default function MobileDashboard({
               conflict={c}
               schools={overview?.schools ?? []}
               onResolved={onRefresh}
+              readOnly={!isAdmin}
             />
           ))}
         </div>
       )}
 
-      {isAdmin && tab === "schulen" && (
+      {tab === "schulen" && (
         <MobileSchoolsList
           schools={overview?.schools ?? []}
           loading={loading}
@@ -929,14 +936,13 @@ export default function MobileDashboard({
         </div>
       )}
 
-      {/* Fixierte Tab-Bar (nur Admins; schulungsteam sieht nur Schulungen) */}
-      {isAdmin && (
-        <MobileTabBar
-          active={tab}
-          conflictCount={overview?.stats?.conflicts_open ?? 0}
-          onChange={setTab}
-        />
-      )}
+      {/* Fixierte Tab-Bar */}
+      <MobileTabBar
+        active={tab}
+        conflictCount={overview?.stats?.conflicts_open ?? 0}
+        isAdmin={isAdmin}
+        onChange={setTab}
+      />
     </div>
   );
 }

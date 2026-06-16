@@ -220,6 +220,7 @@ export default function ConflictsTable({
   schools = [],
   loading = false,
   error = null,
+  readOnly = false,
 }: {
   conflicts: ConflictItem[];
   onResolved: () => Promise<void> | void;
@@ -227,6 +228,8 @@ export default function ConflictsTable({
   schools?: SchoolParticipation[];
   loading?: boolean;
   error?: string | null;
+  /** Wenn true: Nur anzeigen, keine Aktions-Buttons (für schulungsteam). */
+  readOnly?: boolean;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -299,7 +302,7 @@ export default function ConflictsTable({
         </h2>
         {!loading && !error && (
           <div className="flex items-center gap-2">
-            {conflicts.length > 0 && (
+            {conflicts.length > 0 && !readOnly && (
               <>
                 <button
                   type="button"
@@ -380,9 +383,11 @@ export default function ConflictsTable({
                 <th scope="col" className="py-2 pr-4 font-semibold">
                   Grund
                 </th>
-                <th scope="col" className="py-2 pl-4 text-right font-semibold">
-                  Aktion
-                </th>
+                {!readOnly && (
+                  <th scope="col" className="py-2 pl-4 text-right font-semibold">
+                    Aktion
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -443,13 +448,9 @@ export default function ConflictsTable({
                       {c.reason}
                     </span>
                   </td>
+                  {!readOnly && (
                   <td className="py-3 pl-4 text-right">
                     <div className="inline-flex flex-col items-stretch gap-1.5">
-                      {/* Manuelle Zuweisung NUR bei nicht zuweisbaren Schulen
-                          (Schule nicht registriert). Bei reinen Quoten-
-                          Konflikten ist die Schule korrekt – dort soll man
-                          keine andere Schule wählen können. Durchsuchbares
-                          Popover statt langer Liste. */}
                       {schoolIssue && (
                         <AssignPicker
                           schools={freeByRole[c.role] ?? []}
@@ -484,6 +485,7 @@ export default function ConflictsTable({
                       </div>
                     </div>
                   </td>
+                  )}
                 </tr>
                 );
               })}
