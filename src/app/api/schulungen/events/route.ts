@@ -173,3 +173,70 @@ export async function DELETE(request: NextRequest) {
     registrations_removed: regCount ?? 0,
   });
 }
+
+/**
+ * PATCH – Schulung aktualisieren.
+ *
+ * Body (JSON):
+ *   id: string (UUID)
+ *   kurs_nr?: string
+ *   start_date?: string
+ *   title?: string
+ *   audience?: "teacher" | "leadership"
+ *   anmeldung_url?: string
+ */
+export async function PATCH(request: NextRequest) {
+  const auth = await requireSchulungenAccess({ adminOnly: true });
+  if (!auth.ok) return auth.response;
+
+  let body: {
+    id: string;
+    kurs_nr?: string;
+    start_date?: string;
+    audience?: string;
+    title?: string;
+    anmeldung_url?: string;
+  };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
+  }
+
+  const eventId = (body.id ?? "").trim();
+  if (!eventId) {
+    return NextResponse.json(
+      { error: "Keine Schulungs-ID angegeben." },
+      { status: 400 }
+    );
+  }
+
+  const updates: Record<string, any> = {};
+  if (body.kurs_nr !== undefined) updates.kurs_nr = body.kurs_nr.trim();
+  if (body.start_date !== undefined) updates.start_date = body.start_date.trim();
+  if (body.audience !== undefined) updates.audience = body.audience === "leadership" ? "leadership" : "teacher";
+  if (body.title !== undefined) updates.title = body.title.trim();
+  if (body.anmeldung_url !== undefined) updates.anmeldung_url = body.anmeldung_url.trim() || null;
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Keine Änderungen übermittelt." }, { status: 400 });
+  }
+
+  const admin = createServiceClient();
+
+  const { data: updated, error } = await admin
+    .from("training_events")
+    .update(updates)
+    .eq("id", eventId)
+    .select("id, kurs_nr, title, audience, start_date, anmeldung_url")
+    .single();
+
+  if (error || !updated) {
+    return NextResponse.json(
+      { error: error?.message ?? "Schulung konnte nicht aktualisiert werden." },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ event: updated });
+}

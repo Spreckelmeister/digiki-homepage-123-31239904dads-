@@ -11,23 +11,33 @@ import {
   X,
 } from "lucide-react";
 
+import type { TrainingEvent } from "@/lib/schulungen/types";
+
 /**
- * Modal zum Anlegen einer neuen KOS-Schulung. Im DigiKI-Stil gestaltet:
- * abgerundete Karte auf dunklem Backdrop, Teal-Akzentfarben, sanfte
- * Animationen. Nur für Admins sichtbar (Caller prüft isAdmin).
+ * Modal zum Anlegen oder Bearbeiten einer KOS-Schulung.
+ * Nur für Admins sichtbar (Caller prüft isAdmin).
  */
 export default function AddEventModal({
+  eventToEdit,
   onCreated,
   onClose,
 }: {
+  eventToEdit?: TrainingEvent;
   onCreated: () => void;
   onClose: () => void;
 }) {
-  const [kursNr, setKursNr] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [audience, setAudience] = useState<"teacher" | "leadership">("teacher");
-  const [title, setTitle] = useState("");
-  const [anmeldungUrl, setAnmeldungUrl] = useState("");
+  const [kursNr, setKursNr] = useState(eventToEdit?.kurs_nr ?? "");
+  const [startDate, setStartDate] = useState(eventToEdit?.start_date ?? "");
+  const [audience, setAudience] = useState<"teacher" | "leadership">(
+    eventToEdit?.audience ?? "teacher"
+  );
+  const [title, setTitle] = useState(
+    eventToEdit?.title &&
+      !eventToEdit.title.startsWith("KOS-Fortbildung ")
+      ? eventToEdit.title
+      : ""
+  );
+  const [anmeldungUrl, setAnmeldungUrl] = useState(eventToEdit?.anmeldung_url ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -56,21 +66,29 @@ export default function AddEventModal({
     setError(null);
 
     try {
-      const res = await fetch("/api/schulungen/events", {
-        method: "POST",
+      const isEdit = !!eventToEdit;
+      const url = "/api/schulungen/events";
+      const method = isEdit ? "PATCH" : "POST";
+      const bodyPayload: any = {
+        kurs_nr: kursNr.trim(),
+        start_date: startDate,
+        audience,
+        title: title.trim() || undefined,
+        anmeldung_url: anmeldungUrl.trim() || undefined,
+      };
+      if (isEdit) {
+        bodyPayload.id = eventToEdit.id;
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kurs_nr: kursNr.trim(),
-          start_date: startDate,
-          audience,
-          title: title.trim() || undefined,
-          anmeldung_url: anmeldungUrl.trim() || undefined,
-        }),
+        body: JSON.stringify(bodyPayload),
       });
 
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(body?.error ?? "Schulung konnte nicht angelegt werden.");
+        throw new Error(body?.error ?? `Schulung konnte nicht ${isEdit ? "aktualisiert" : "angelegt"} werden.`);
       }
 
       setSuccess(true);
@@ -107,10 +125,10 @@ export default function AddEventModal({
             </span>
             <div>
               <h2 className="text-base font-bold text-text">
-                Neue Schulung anlegen
+                {eventToEdit ? "Schulung bearbeiten" : "Neue Schulung anlegen"}
               </h2>
               <p className="text-xs text-text-light">
-                KOS-Fortbildung zum Dashboard hinzufügen
+                {eventToEdit ? "Details der KOS-Fortbildung ändern" : "KOS-Fortbildung zum Dashboard hinzufügen"}
               </p>
             </div>
           </div>
@@ -302,7 +320,7 @@ export default function AddEventModal({
             )}
             {success && (
               <p className="rounded-lg bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">
-                ✓ Schulung wurde erfolgreich angelegt!
+                ✓ Schulung wurde erfolgreich {eventToEdit ? "aktualisiert" : "angelegt"}!
               </p>
             )}
           </div>
@@ -330,7 +348,7 @@ export default function AddEventModal({
               ) : (
                 <Plus className="h-4 w-4" aria-hidden="true" />
               )}
-              Schulung anlegen
+              {eventToEdit ? "Speichern" : "Schulung anlegen"}
             </button>
           </div>
         </form>

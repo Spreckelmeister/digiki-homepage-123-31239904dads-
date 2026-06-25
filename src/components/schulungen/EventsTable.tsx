@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Loader2,
   Mail,
+  PenLine,
   Plus,
   Trash2,
   Users,
@@ -67,6 +68,7 @@ export default function EventsTable({
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [expanded, setExpanded] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<TrainingEvent | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -279,18 +281,31 @@ export default function EventsTable({
                               </button>
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmDeleteId(event.id);
-                                setDeleteError(null);
-                              }}
-                              aria-label={`Schulung ${event.kurs_nr} löschen`}
-                              className="rounded-full border border-red-200 bg-white p-1.5 text-red-400 opacity-0 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 group-hover/event:opacity-100"
-                            >
-                              <Trash2 className="h-3 w-3" aria-hidden="true" />
-                            </button>
+                            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/event:opacity-100">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingEvent(event);
+                                  setShowAddModal(true);
+                                }}
+                                className="rounded-lg bg-white p-1.5 text-text-light shadow-sm transition-colors hover:bg-bg hover:text-primary"
+                                aria-label="Schulung bearbeiten"
+                              >
+                                <PenLine className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteId(event.id);
+                                }}
+                                className="rounded-lg bg-white p-1.5 text-text-light shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
+                                aria-label="Schulung löschen"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       )}
@@ -326,8 +341,16 @@ export default function EventsTable({
 
       {showAddModal && (
         <AddEventModal
-          onCreated={() => onChanged?.()}
-          onClose={() => setShowAddModal(false)}
+          eventToEdit={editingEvent || undefined}
+          onCreated={() => {
+            setEditingEvent(null);
+            onChanged?.();
+            setShowAddModal(false);
+          }}
+          onClose={() => {
+            setEditingEvent(null);
+            setShowAddModal(false);
+          }}
         />
       )}
     </section>

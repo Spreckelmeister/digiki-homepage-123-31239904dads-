@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Loader2,
   Mail,
+  PenLine,
   Phone,
   Plus,
   School,
@@ -333,6 +334,7 @@ function MobileEventsList({
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<TrainingEvent | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -532,20 +534,34 @@ function MobileEventsList({
                               </div>
                             </button>
 
-                            {/* Admin: delete button */}
+                            {/* Admin: edit + delete button */}
                             {isAdmin && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setConfirmDeleteId(event.id);
-                                  setDeleteError(null);
-                                }}
-                                aria-label={`Schulung ${event.kurs_nr} löschen`}
-                                className="absolute -right-1 -top-1 rounded-full border border-red-200 bg-white p-1.5 text-red-400 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
-                              >
-                                <Trash2 className="h-3 w-3" aria-hidden="true" />
-                              </button>
+                              <div className="absolute -right-1 -top-1 flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingEvent(event);
+                                    setShowAddModal(true);
+                                  }}
+                                  aria-label={`Schulung ${event.kurs_nr} bearbeiten`}
+                                  className="rounded-full border border-border bg-white p-1.5 text-text-light shadow-sm transition-colors hover:bg-bg hover:text-primary"
+                                >
+                                  <PenLine className="h-3 w-3" aria-hidden="true" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmDeleteId(event.id);
+                                    setDeleteError(null);
+                                  }}
+                                  aria-label={`Schulung ${event.kurs_nr} löschen`}
+                                  className="rounded-full border border-red-200 bg-white p-1.5 text-red-400 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                </button>
+                              </div>
                             )}
                           </div>
                         )}
@@ -570,8 +586,15 @@ function MobileEventsList({
 
       {showAddModal && (
         <AddEventModal
-          onCreated={() => onRefresh?.()}
-          onClose={() => setShowAddModal(false)}
+          eventToEdit={editingEvent || undefined}
+          onCreated={() => {
+            setEditingEvent(null);
+            onRefresh?.();
+          }}
+          onClose={() => {
+            setEditingEvent(null);
+            setShowAddModal(false);
+          }}
         />
       )}
     </>
