@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
             row,
             noSchool && !canonical ? NO_SCHOOL_NAME : canonical
           );
-          const personId = await upsertPerson(admin, row, schoolId);
+          const personId = await upsertPerson(admin, row, schoolId, event.id);
 
           // Manuell zugewiesene Schule schützen: Hat die Person für diese
           // Schulung eine GESPERRTE Anmeldung (school_locked, via „Schule
@@ -476,7 +476,8 @@ async function upsertSchool(
 async function upsertPerson(
   admin: SupabaseClient,
   row: ParsedRow,
-  schoolId: string
+  schoolId: string,
+  eventId: string
 ): Promise<string> {
   const firstNorm = normalizeKey(row.firstName);
   const lastNorm = normalizeKey(row.lastName);
@@ -545,6 +546,33 @@ async function upsertPerson(
       }
     }
     return byName.id;
+  }
+
+  // Fallback: Ist die Person (unter gleichem Namen) bereits für *genau diese*
+  // Schulung angemeldet? Das passiert, wenn ein Admin im Dashboard die Schule
+  // korrigiert hat, die erneute Excel-Datei aber noch den alten Schulnamen
+  // enthält. Ohne diesen Check würde eine neue Person + Doppel-Anmeldung entstehen.
+  const { data: sameNamePersons } = await admin
+    .from("persons")
+    .select("id, email")
+    .eq("last_norm", lastNorm)
+    .eq("first_norm", firstNorm);
+
+  if (sameNamePersons && sameNamePersons.length > 0) {
+    const { data: eventReg } = await admin
+      .from("registrations")
+      .select("person_id")
+      .eq("event_id", eventId)
+      .in("person_id", sameNamePersons.map((p) => p.id))
+      .maybeSingle();
+
+    if (eventReg) {
+      const p = sameNamePersons.find((x) => x.id === eventReg.person_id)!;
+      if (row.email && !p.email) {
+        await admin.from("persons").update({ email: row.email }).eq("id", p.id);
+      }
+      return p.id;
+    }
   }
 
   const { data: created, error } = await admin
