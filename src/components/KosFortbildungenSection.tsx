@@ -79,13 +79,13 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
           target="_blank"
           rel="noopener noreferrer"
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-            deadlinePast || termin.registration_deadline
+            deadlinePast
               ? "border-border bg-bg text-text hover:border-border-strong hover:bg-bg-alt"
               : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary/5"
           }`}
           aria-label={`Zum NLC-Eintrag für ${termin.kurs_nr} am ${day}. ${month} ${year}`}
         >
-          {deadlinePast || termin.registration_deadline ? "Zum NLC-Eintrag" : "Anmelden"}
+          {deadlinePast ? "Zum NLC-Eintrag" : "Anmelden"}
           <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
         </a>
       ) : (
