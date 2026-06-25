@@ -239,7 +239,7 @@ export default function EventsTable({
 
                       {/* Admin: Löschen-Button + Confirm */}
                       {isAdmin && (
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                        <div className="absolute -right-1 -top-1">
                           {confirmDeleteId === event.id ? (
                             <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2 py-1.5 shadow-lg animate-[modalIn_0.15s_ease-out_both]">
                               <span className="text-[11px] text-red-800">
@@ -287,9 +287,9 @@ export default function EventsTable({
                                 setDeleteError(null);
                               }}
                               aria-label={`Schulung ${event.kurs_nr} löschen`}
-                              className="rounded-lg p-1.5 text-text-light/40 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover/event:opacity-100"
+                              className="rounded-full border border-red-200 bg-white p-1.5 text-red-400 opacity-0 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 group-hover/event:opacity-100"
                             >
-                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              <Trash2 className="h-3 w-3" aria-hidden="true" />
                             </button>
                           )}
                         </div>
