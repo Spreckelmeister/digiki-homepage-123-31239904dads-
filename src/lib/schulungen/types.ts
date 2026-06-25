@@ -14,6 +14,7 @@ export interface TrainingEvent {
   end_date: string | null;
   location: string | null;
   anmeldung_url: string | null;
+  registration_link?: string | null;
   /** Anzahl aktiver Anmeldungen (nur in der Overview-Antwort gefüllt). */
   registration_count?: number;
 }

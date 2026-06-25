@@ -1,5 +1,6 @@
 import { ArrowUpRight, CalendarDays, GraduationCap, Info, Users } from "lucide-react";
-import { kosFortbildungen, type KosFortbildungTermin } from "@/data/project";
+import { createClient } from "@/lib/supabase/server";
+import type { TrainingEvent } from "@/lib/schulungen/types";
 
 // Wochentag (Mi.) + großer Tag + Monatsname – scannbar, ähnlich zu
 // Event-Cards aus Eventbrite/Lu.ma. Bewusst mit Intl statt fixer Lookup-
@@ -15,8 +16,10 @@ function formatDateParts(iso: string) {
   return { weekday, day, month, year };
 }
 
-function TerminRow({ termin }: { termin: KosFortbildungTermin }) {
-  const { weekday, day, month, year } = formatDateParts(termin.start);
+function TerminRow({ termin }: { termin: TrainingEvent }) {
+  const { weekday, day, month, year } = formatDateParts(termin.start_date || "");
+  const hasLink = !!termin.anmeldung_url;
+
   return (
     <li className="group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0">
       {/* Datum-Cluster */}
@@ -38,21 +41,27 @@ function TerminRow({ termin }: { termin: KosFortbildungTermin }) {
           {day}. {month} {year}
         </p>
         <p className="mt-0.5 font-mono text-[12px] text-text-light">
-          {termin.kursNr}
+          {termin.kurs_nr}
         </p>
       </div>
 
       {/* Anmelde-Link */}
-      <a
-        href={termin.anmeldungUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary/5"
-        aria-label={`Zur Anmeldung für ${termin.kursNr} am ${day}. ${month} ${year} (öffnet im NLC-Portal)`}
-      >
-        Anmelden
-        <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-      </a>
+      {hasLink ? (
+        <a
+          href={termin.anmeldung_url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary/5"
+          aria-label={`Zur Anmeldung für ${termin.kurs_nr} am ${day}. ${month} ${year} (öffnet im NLC-Portal)`}
+        >
+          Anmelden
+          <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+        </a>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg px-3 py-1.5 text-xs font-semibold text-text-light">
+          Demnächst
+        </span>
+      )}
     </li>
   );
 }
@@ -64,7 +73,7 @@ interface ZielgruppeCardProps {
   eyebrow: string;
   title: string;
   description: string;
-  termine: KosFortbildungTermin[];
+  termine: TrainingEvent[];
 }
 
 function ZielgruppeCard({
@@ -105,15 +114,32 @@ function ZielgruppeCard({
         </div>
       </header>
       <ul className="divide-y-0 px-6 py-4">
-        {termine.map((t) => (
-          <TerminRow key={t.kursNr} termin={t} />
-        ))}
+        {termine.length === 0 ? (
+          <li className="py-4 text-sm text-text-light text-center">
+            Aktuell keine Termine veröffentlicht.
+          </li>
+        ) : (
+          termine.map((t) => (
+            <TerminRow key={t.id} termin={t} />
+          ))
+        )}
       </ul>
     </article>
   );
 }
 
-export default function KosFortbildungenSection() {
+export default async function KosFortbildungenSection() {
+  const supabase = await createClient();
+  const { data: events } = await supabase
+    .from("training_events")
+    .select("*")
+    .order("start_date", { ascending: true });
+
+  const safeEvents = (events || []) as TrainingEvent[];
+
+  const schulleitung = safeEvents.filter((e) => e.audience === "leadership");
+  const lehrkraefte = safeEvents.filter((e) => e.audience === "teacher");
+
   return (
     <section
       id="kos-fortbildungen"
@@ -171,7 +197,7 @@ export default function KosFortbildungenSection() {
             eyebrow="Schulleitungen"
             title="Schulungen für Schulleitungen"
             description="Strategische Einbindung von Digitalisierung und KI in den Schulalltag."
-            termine={kosFortbildungen.schulleitung}
+            termine={schulleitung}
           />
           <ZielgruppeCard
             icon={<Users className="h-5 w-5" />}
@@ -180,7 +206,7 @@ export default function KosFortbildungenSection() {
             eyebrow="Lehrkräfte"
             title="Schulungen für Lehrkräfte"
             description="Praxisnaher Einsatz digitaler Tools und KI im Unterricht."
-            termine={kosFortbildungen.lehrkraefte}
+            termine={lehrkraefte}
           />
         </div>
 

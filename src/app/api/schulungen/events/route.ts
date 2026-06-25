@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     start_date?: string;
     audience?: string;
     title?: string;
+    anmeldung_url?: string;
   };
   try {
     body = await request.json();
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
     (audience === "leadership"
       ? "KOS-Fortbildung Schulleitungen"
       : "KOS-Fortbildung Lehrkräfte");
+  const anmeldungUrl = (body.anmeldung_url ?? "").trim() || null;
 
   if (!kursNr) {
     return NextResponse.json(
@@ -78,8 +80,9 @@ export async function POST(request: NextRequest) {
       title,
       audience,
       start_date: startDate,
+      anmeldung_url: anmeldungUrl,
     })
-    .select("id, kurs_nr, title, audience, start_date")
+    .select("id, kurs_nr, title, audience, start_date, anmeldung_url")
     .single();
 
   if (error || !created) {

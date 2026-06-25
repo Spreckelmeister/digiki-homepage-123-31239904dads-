@@ -27,6 +27,7 @@ export default function AddEventModal({
   const [startDate, setStartDate] = useState("");
   const [audience, setAudience] = useState<"teacher" | "leadership">("teacher");
   const [title, setTitle] = useState("");
+  const [anmeldungUrl, setAnmeldungUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -63,6 +64,7 @@ export default function AddEventModal({
           start_date: startDate,
           audience,
           title: title.trim() || undefined,
+          anmeldung_url: anmeldungUrl.trim() || undefined,
         }),
       });
 
@@ -263,6 +265,30 @@ export default function AddEventModal({
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          {/* Anmeldelink (optional) */}
+          <div>
+            <label
+              htmlFor="add-event-url"
+              className="mb-1.5 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+                Anmeldelink
+              </span>
+              <span className="text-[10px] font-medium text-text-light/60">
+                optional
+              </span>
+            </label>
+            <input
+              id="add-event-url"
+              type="url"
+              autoComplete="off"
+              placeholder="https://nlc.info/app/edb/event/..."
+              value={anmeldungUrl}
+              onChange={(e) => setAnmeldungUrl(e.target.value)}
               className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
