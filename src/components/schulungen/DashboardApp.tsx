@@ -160,6 +160,8 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
           events={overview?.events ?? []}
           conflicts={conflicts}
           loading={loading}
+          isAdmin={isAdmin}
+          onChanged={refresh}
         />
 
         {/* Admin-Bereich: Zugriff verwalten + Daten zurücksetzen */}

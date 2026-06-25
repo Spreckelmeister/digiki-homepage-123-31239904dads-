@@ -10,9 +10,11 @@ import {
   Loader2,
   Mail,
   Phone,
+  Plus,
   School,
   Search,
   Settings,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -27,6 +29,7 @@ import { ROLE_LABELS } from "@/lib/schulungen/types";
 import UploadCard from "./UploadCard";
 import AccessPanel from "./AccessPanel";
 import DangerZone from "./DangerZone";
+import AddEventModal from "./AddEventModal";
 
 type Tab = "schulungen" | "konflikte" | "schulen" | "verwaltung";
 
@@ -278,13 +281,19 @@ function MobileEventsList({
   conflicts,
   loading,
   isAdmin,
+  onRefresh,
 }: {
   events: TrainingEvent[];
   conflicts: ConflictItem[];
   loading: boolean;
   isAdmin: boolean;
+  onRefresh?: () => void;
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const conflictsByEvent = useMemo(() => {
     const map = new Map<string, number>();
@@ -299,6 +308,30 @@ function MobileEventsList({
     { label: "Schulleitungen", items: events.filter((e) => e.audience === "leadership") },
   ];
 
+  async function handleDelete(eventId: string) {
+    setDeletingId(eventId);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/schulungen/events", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: eventId }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Schulung konnte nicht gelöscht werden.");
+      }
+      setConfirmDeleteId(null);
+      onRefresh?.();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Schulung konnte nicht gelöscht werden."
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <>
       <div className="px-4 pb-4 pt-3">
@@ -306,16 +339,37 @@ function MobileEventsList({
           <p className="text-xs text-text-light">
             Schulung antippen, um die Teilnehmenden zu sehen.
           </p>
-          <a
-            href="https://www.digiki-os.de/fuer-schulen#kos-fortbildungen"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
-          >
-            Website
-            <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-primary to-primary-light px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm"
+              >
+                <Plus className="h-3 w-3" aria-hidden="true" />
+                Hinzufügen
+              </button>
+            )}
+            <a
+              href="https://www.digiki-os.de/fuer-schulen#kos-fortbildungen"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Website
+              <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+            </a>
+          </div>
         </div>
+
+        {deleteError && (
+          <p
+            role="alert"
+            className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+          >
+            {deleteError}
+          </p>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-text-light">
@@ -334,65 +388,125 @@ function MobileEventsList({
                   {group.items.map((event) => {
                     const dp = dateParts(event.start_date);
                     const count = event.registration_count ?? 0;
+                    const isConfirming = confirmDeleteId === event.id;
                     return (
                       <li key={event.id}>
-                        <button
-                          type="button"
-                          onClick={() => setOpenEvent(event)}
-                          className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left shadow-sm transition-colors active:bg-bg ${
-                            conflictsByEvent.has(event.id)
-                              ? "border-amber-200 bg-amber-50/40"
-                              : "border-border bg-white"
-                          }`}
-                        >
-                          {/* Date chip */}
-                          <div className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-bg px-1 py-1.5 text-center">
-                            {dp ? (
-                              <>
-                                <span className="text-[9px] font-bold uppercase tracking-wide text-text-light">
-                                  {dp.weekday}
-                                </span>
-                                <span className="text-base font-bold leading-none text-primary tabular-nums">
-                                  {dp.day}
-                                </span>
-                                <span className="text-[9px] font-medium uppercase text-text-light">
-                                  {dp.month}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-text-light">–</span>
-                            )}
+                        {/* Confirm-delete overlay */}
+                        {isAdmin && isConfirming ? (
+                          <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-3 py-3 animate-[modalIn_0.15s_ease-out_both]">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-red-800">
+                                {event.kurs_nr} löschen?
+                              </p>
+                              {count > 0 && (
+                                <p className="text-[10px] text-red-700">
+                                  {count} Anmeldung{count !== 1 ? "en" : ""} betroffen
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <button
+                                type="button"
+                                disabled={deletingId === event.id}
+                                onClick={() => handleDelete(event.id)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+                              >
+                                {deletingId === event.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                ) : (
+                                  <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                )}
+                                Löschen
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmDeleteId(null);
+                                  setDeleteError(null);
+                                }}
+                                className="rounded-lg border border-border bg-white px-3 py-2 text-[11px] font-bold text-text-light"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
                           </div>
-
-                          {/* Info */}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-mono text-xs font-semibold text-text">
-                              {event.kurs_nr}
-                            </p>
-                            <p className="truncate text-[11px] text-text-light">
-                              {event.title}
-                            </p>
-                          </div>
-
-                          {/* Count + Konflikt-Badge */}
-                          <div className="flex shrink-0 flex-col items-end gap-1">
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
-                                count > 0
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-bg text-text-light"
+                        ) : (
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setOpenEvent(event)}
+                              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left shadow-sm transition-colors active:bg-bg ${
+                                conflictsByEvent.has(event.id)
+                                  ? "border-amber-200 bg-amber-50/40"
+                                  : "border-border bg-white"
                               }`}
                             >
-                              {count} Anm.
-                            </span>
-                            {conflictsByEvent.has(event.id) && (
-                              <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                                <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
-                                {conflictsByEvent.get(event.id)} Konflikt{(conflictsByEvent.get(event.id) ?? 0) > 1 ? "e" : ""}
-                              </span>
+                              {/* Date chip */}
+                              <div className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-bg px-1 py-1.5 text-center">
+                                {dp ? (
+                                  <>
+                                    <span className="text-[9px] font-bold uppercase tracking-wide text-text-light">
+                                      {dp.weekday}
+                                    </span>
+                                    <span className="text-base font-bold leading-none text-primary tabular-nums">
+                                      {dp.day}
+                                    </span>
+                                    <span className="text-[9px] font-medium uppercase text-text-light">
+                                      {dp.month}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-text-light">–</span>
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-mono text-xs font-semibold text-text">
+                                  {event.kurs_nr}
+                                </p>
+                                <p className="truncate text-[11px] text-text-light">
+                                  {event.title}
+                                </p>
+                              </div>
+
+                              {/* Count + Konflikt-Badge */}
+                              <div className="flex shrink-0 flex-col items-end gap-1">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                                    count > 0
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-bg text-text-light"
+                                  }`}
+                                >
+                                  {count} Anm.
+                                </span>
+                                {conflictsByEvent.has(event.id) && (
+                                  <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                    <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                                    {conflictsByEvent.get(event.id)} Konflikt{(conflictsByEvent.get(event.id) ?? 0) > 1 ? "e" : ""}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+
+                            {/* Admin: delete button */}
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteId(event.id);
+                                  setDeleteError(null);
+                                }}
+                                aria-label={`Schulung ${event.kurs_nr} löschen`}
+                                className="absolute -right-1 -top-1 rounded-full border border-red-200 bg-white p-1.5 text-red-400 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Trash2 className="h-3 w-3" aria-hidden="true" />
+                              </button>
                             )}
                           </div>
-                        </button>
+                        )}
                       </li>
                     );
                   })}
@@ -408,6 +522,13 @@ function MobileEventsList({
           event={openEvent}
           isAdmin={isAdmin}
           onClose={() => setOpenEvent(null)}
+        />
+      )}
+
+      {showAddModal && (
+        <AddEventModal
+          onCreated={() => onRefresh?.()}
+          onClose={() => setShowAddModal(false)}
         />
       )}
     </>
@@ -1318,6 +1439,7 @@ export default function MobileDashboard({
           conflicts={conflicts}
           loading={loading}
           isAdmin={isAdmin}
+          onRefresh={onRefresh}
         />
       )}
 

@@ -7,6 +7,8 @@ import {
   ChevronDown,
   Loader2,
   Mail,
+  Plus,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -16,6 +18,7 @@ import {
   type EventParticipant,
   type TrainingEvent,
 } from "@/lib/schulungen/types";
+import AddEventModal from "./AddEventModal";
 
 function dateParts(iso: string | null) {
   if (!iso) return null;
@@ -44,18 +47,29 @@ function formatDate(iso: string | null): string {
 /**
  * Alle KOS-Schulungen mit Anmeldezahl. Klick auf eine Schulung öffnet die
  * Teilnehmer-Übersicht (Name · Schule · E-Mail).
+ *
+ * Admins sehen zusätzlich einen „+ Schulung"-Button sowie pro Schulung
+ * einen Löschen-Button.
  */
 export default function EventsTable({
   events,
   conflicts = [],
   loading,
+  isAdmin = false,
+  onChanged,
 }: {
   events: TrainingEvent[];
   conflicts?: ConflictItem[];
   loading: boolean;
+  isAdmin?: boolean;
+  onChanged?: () => void;
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const conflictsByEvent = new Map<string, number>();
   for (const c of conflicts) {
@@ -71,6 +85,30 @@ export default function EventsTable({
       items: events.filter((e) => e.audience === "leadership"),
     },
   ];
+
+  async function handleDelete(eventId: string) {
+    setDeletingId(eventId);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/schulungen/events", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: eventId }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Schulung konnte nicht gelöscht werden.");
+      }
+      setConfirmDeleteId(null);
+      onChanged?.();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Schulung konnte nicht gelöscht werden."
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <section
@@ -95,15 +133,27 @@ export default function EventsTable({
             />
           </button>
         </h2>
-        <a
-          href="https://www.digiki-os.de/fuer-schulen#kos-fortbildungen"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
-        >
-          Termine auf der Website
-          <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary-light px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md"
+            >
+              <Plus className="h-3 w-3" aria-hidden="true" />
+              Schulung hinzufügen
+            </button>
+          )}
+          <a
+            href="https://www.digiki-os.de/fuer-schulen#kos-fortbildungen"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            Termine auf der Website
+            <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+          </a>
+        </div>
       </div>
 
       {expanded && (
@@ -126,7 +176,7 @@ export default function EventsTable({
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
                   return (
-                    <li key={event.id}>
+                    <li key={event.id} className="group/event relative">
                       <button
                         type="button"
                         onClick={() => setOpenEvent(event)}
@@ -186,6 +236,64 @@ export default function EventsTable({
                           )}
                         </div>
                       </button>
+
+                      {/* Admin: Löschen-Button + Confirm */}
+                      {isAdmin && (
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                          {confirmDeleteId === event.id ? (
+                            <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2 py-1.5 shadow-lg animate-[modalIn_0.15s_ease-out_both]">
+                              <span className="text-[11px] text-red-800">
+                                Löschen?
+                                {(event.registration_count ?? 0) > 0 && (
+                                  <span className="font-semibold">
+                                    {" "}({event.registration_count} Anm.)
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={deletingId === event.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(event.id);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                              >
+                                {deletingId === event.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                ) : (
+                                  <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                )}
+                                Ja
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteId(null);
+                                  setDeleteError(null);
+                                }}
+                                className="rounded-md border border-border px-2 py-1 text-[10px] font-bold text-text-light hover:bg-bg"
+                              >
+                                Nein
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteId(event.id);
+                                setDeleteError(null);
+                              }}
+                              aria-label={`Schulung ${event.kurs_nr} löschen`}
+                              className="rounded-lg p-1.5 text-text-light/40 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover/event:opacity-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -194,6 +302,16 @@ export default function EventsTable({
               ))}
             </div>
           )}
+
+          {/* Delete error */}
+          {deleteError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            >
+              {deleteError}
+            </p>
+          )}
         </div>
       )}
 
@@ -201,6 +319,13 @@ export default function EventsTable({
         <ParticipantsModal
           event={openEvent}
           onClose={() => setOpenEvent(null)}
+        />
+      )}
+
+      {showAddModal && (
+        <AddEventModal
+          onCreated={() => onChanged?.()}
+          onClose={() => setShowAddModal(false)}
         />
       )}
     </section>
