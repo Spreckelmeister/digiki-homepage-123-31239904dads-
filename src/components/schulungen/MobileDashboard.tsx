@@ -62,11 +62,13 @@ function ParticipantSheet({
   event: TrainingEvent;
   isAdmin: boolean;
   onClose: () => void;
+  onChanged?: () => void;
 }) {
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -102,6 +104,28 @@ function ParticipantSheet({
       navigator.clipboard?.writeText(list.join("; ")).catch(() => {});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleDeleteParticipant(personId: string) {
+    if (!confirm("Möchtest du diese Person wirklich aus der Schulung entfernen?")) return;
+    setDeletingId(personId);
+    try {
+      const res = await fetch("/api/schulungen/participants", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: event.id, person_id: personId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Fehler beim Löschen");
+      }
+      setParticipants((prev) => prev.filter((p) => p.person_id !== personId));
+      onChanged?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Person konnte nicht gelöscht werden.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -178,9 +202,9 @@ function ParticipantSheet({
                     ? "bg-amber-50/60"
                     : "";
                 return (
-                  <li key={`${p.person_id}-${i}`} className={`py-3 ${bg}`}>
+                  <li key={`${p.person_id}-${i}`} className={`py-3 ${bg} relative`}>
                     {/* Name + badges */}
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2 pr-8">
                       <div className="min-w-0">
                         <p
                           className={`text-sm font-semibold leading-snug ${
@@ -239,6 +263,23 @@ function ParticipantSheet({
                         <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {p.email}
                       </a>
+                    )}
+
+                    {/* Admin: delete button */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteParticipant(p.person_id)}
+                        disabled={deletingId === p.person_id}
+                        className="absolute right-2 top-3 rounded-lg p-1.5 text-text-light/50 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        aria-label="Person aus der Schulung entfernen"
+                      >
+                        {deletingId === p.person_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </button>
                     )}
                   </li>
                 );
@@ -522,6 +563,7 @@ function MobileEventsList({
           event={openEvent}
           isAdmin={isAdmin}
           onClose={() => setOpenEvent(null)}
+          onChanged={onRefresh}
         />
       )}
 

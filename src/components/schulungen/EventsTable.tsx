@@ -318,7 +318,9 @@ export default function EventsTable({
       {openEvent && (
         <ParticipantsModal
           event={openEvent}
+          isAdmin={isAdmin}
           onClose={() => setOpenEvent(null)}
+          onChanged={onChanged}
         />
       )}
 
@@ -334,14 +336,19 @@ export default function EventsTable({
 
 function ParticipantsModal({
   event,
+  isAdmin,
   onClose,
+  onChanged,
 }: {
   event: TrainingEvent;
+  isAdmin?: boolean;
   onClose: () => void;
+  onChanged?: () => void;
 }) {
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -389,6 +396,28 @@ function ParticipantsModal({
       }
     });
     if (list.length) navigator.clipboard?.writeText(list.join("; ")).catch(() => {});
+  }
+
+  async function handleDeleteParticipant(personId: string) {
+    if (!confirm("Möchtest du diese Person wirklich aus der Schulung entfernen?")) return;
+    setDeletingId(personId);
+    try {
+      const res = await fetch("/api/schulungen/participants", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: event.id, person_id: personId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Fehler beim Löschen");
+      }
+      setParticipants((prev) => prev.filter((p) => p.person_id !== personId));
+      onChanged?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Person konnte nicht gelöscht werden.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -523,6 +552,7 @@ function ParticipantsModal({
                       <th scope="col" className="py-2 pr-4 font-semibold">Name</th>
                       <th scope="col" className="py-2 pr-4 font-semibold">Schule</th>
                       <th scope="col" className="py-2 font-semibold">E-Mail</th>
+                      {isAdmin && <th scope="col" className="py-2 w-10"></th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
@@ -601,6 +631,23 @@ function ParticipantsModal({
                             <span className="text-text-light">–</span>
                           )}
                         </td>
+                        {isAdmin && (
+                          <td className="py-2.5 text-right align-middle">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteParticipant(p.person_id)}
+                              disabled={deletingId === p.person_id}
+                              className="inline-flex rounded-lg p-1.5 text-text-light/50 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                              title="Person aus der Schulung entfernen"
+                            >
+                              {deletingId === p.person_id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              )}
+                            </button>
+                          </td>
+                        )}
                       </tr>
                       );
                     })}

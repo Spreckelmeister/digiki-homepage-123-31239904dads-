@@ -148,3 +148,55 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ participants });
 }
+
+/** 
+ * DELETE – Einen einzelnen Teilnehmenden aus einer Schulung entfernen.
+ * 
+ * Body (JSON):
+ *   event_id: string
+ *   person_id: string
+ */
+export async function DELETE(request: NextRequest) {
+  const auth = await requireSchulungenAccess({ adminOnly: true });
+  if (!auth.ok) return auth.response;
+
+  let body: { event_id?: string; person_id?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
+  }
+
+  const { event_id, person_id } = body;
+  if (!event_id || !person_id) {
+    return NextResponse.json(
+      { error: "event_id und person_id sind erforderlich." },
+      { status: 400 }
+    );
+  }
+
+  const admin = createServiceClient();
+
+  // Zugehörige Konflikte löschen
+  await admin
+    .from("import_conflicts")
+    .delete()
+    .eq("event_id", event_id)
+    .eq("person_id", person_id);
+
+  // Anmeldung löschen
+  const { error } = await admin
+    .from("registrations")
+    .delete()
+    .eq("event_id", event_id)
+    .eq("person_id", person_id);
+
+  if (error) {
+    return NextResponse.json(
+      { error: `Teilnehmer konnte nicht entfernt werden: ${error.message}` },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ deleted: true });
+}
