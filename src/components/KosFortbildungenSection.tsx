@@ -35,13 +35,13 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
   }
 
   return (
-    <li className="group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0">
+    <li className={`group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0 ${deadlinePast ? "opacity-50 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300" : ""}`}>
       {/* Datum-Cluster */}
-      <div className="flex w-16 shrink-0 flex-col items-center rounded-lg bg-bg px-2 py-2 text-center">
+      <div className={`flex w-16 shrink-0 flex-col items-center rounded-lg px-2 py-2 text-center ${deadlinePast ? "bg-bg-alt" : "bg-bg"}`}>
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-light">
           {weekday.replace(".", "")}
         </span>
-        <span className="text-2xl font-bold leading-none text-primary tabular-nums">
+        <span className={`text-2xl font-bold leading-none tabular-nums ${deadlinePast ? "text-text-light" : "text-primary"}`}>
           {day}
         </span>
         <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-text-light">
@@ -166,10 +166,38 @@ export default async function KosFortbildungenSection() {
     .select("*")
     .order("start_date", { ascending: true });
 
-  const safeEvents = (events || []) as TrainingEvent[];
+  // Nur Termine anzeigen, die heute oder in der Zukunft liegen
+  // (bzw. nicht mehr als 1 Tag in der Vergangenheit).
+  // Ein einfacher String-Vergleich von YYYY-MM-DD reicht aus.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
 
-  const schulleitung = safeEvents.filter((e) => e.audience === "leadership");
-  const lehrkraefte = safeEvents.filter((e) => e.audience === "teacher");
+  const safeEvents = (events || []) as TrainingEvent[];
+  const upcomingEvents = safeEvents.filter(
+    (e) => !e.start_date || e.start_date >= todayStr
+  );
+
+  const sortEvents = (events: TrainingEvent[]) => {
+    const active: TrainingEvent[] = [];
+    const past: TrainingEvent[] = [];
+    events.forEach(e => {
+      let deadlinePast = false;
+      if (e.registration_deadline) {
+        const dlDate = new Date(e.registration_deadline + "T00:00:00");
+        deadlinePast = today > dlDate;
+      }
+      if (deadlinePast) {
+        past.push(e);
+      } else {
+        active.push(e);
+      }
+    });
+    return [...active, ...past];
+  };
+
+  const schulleitung = sortEvents(upcomingEvents.filter((e) => e.audience === "leadership"));
+  const lehrkraefte = sortEvents(upcomingEvents.filter((e) => e.audience === "teacher"));
 
   return (
     <section
