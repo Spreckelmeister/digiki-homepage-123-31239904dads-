@@ -38,6 +38,7 @@ export default function AddEventModal({
       : ""
   );
   const [anmeldungUrl, setAnmeldungUrl] = useState(eventToEdit?.anmeldung_url ?? "");
+  const [registrationDeadline, setRegistrationDeadline] = useState(eventToEdit?.registration_deadline ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -75,6 +76,7 @@ export default function AddEventModal({
         audience,
         title: title.trim() || undefined,
         anmeldung_url: anmeldungUrl.trim() || undefined,
+        registration_deadline: registrationDeadline || undefined,
       };
       if (isEdit) {
         bodyPayload.id = eventToEdit.id;
@@ -308,6 +310,28 @@ export default function AddEventModal({
               value={anmeldungUrl}
               onChange={(e) => setAnmeldungUrl(e.target.value)}
               className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          {/* Anmeldeschluss (optional) */}
+          <div>
+            <label
+              htmlFor="add-event-deadline"
+              className="mb-1.5 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
+                Anmeldeschluss
+              </span>
+              <span className="text-[10px] font-medium text-text-light/60">
+                optional
+              </span>
+            </label>
+            <input
+              id="add-event-deadline"
+              type="date"
+              value={registrationDeadline}
+              onChange={(e) => setRegistrationDeadline(e.target.value)}
+              className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 

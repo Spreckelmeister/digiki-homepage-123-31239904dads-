@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     audience?: string;
     title?: string;
     anmeldung_url?: string;
+    registration_deadline?: string;
   };
   try {
     body = await request.json();
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       ? "KOS-Fortbildung Schulleitungen"
       : "KOS-Fortbildung Lehrkräfte");
   const anmeldungUrl = (body.anmeldung_url ?? "").trim() || null;
+  const registrationDeadline = (body.registration_deadline ?? "").trim() || null;
 
   if (!kursNr) {
     return NextResponse.json(
@@ -81,8 +83,9 @@ export async function POST(request: NextRequest) {
       audience,
       start_date: startDate,
       anmeldung_url: anmeldungUrl,
+      registration_deadline: registrationDeadline,
     })
-    .select("id, kurs_nr, title, audience, start_date, anmeldung_url")
+    .select("id, kurs_nr, title, audience, start_date, anmeldung_url, registration_deadline")
     .single();
 
   if (error || !created) {
@@ -196,6 +199,7 @@ export async function PATCH(request: NextRequest) {
     audience?: string;
     title?: string;
     anmeldung_url?: string;
+    registration_deadline?: string;
   };
   try {
     body = await request.json();
@@ -217,6 +221,7 @@ export async function PATCH(request: NextRequest) {
   if (body.audience !== undefined) updates.audience = body.audience === "leadership" ? "leadership" : "teacher";
   if (body.title !== undefined) updates.title = body.title.trim();
   if (body.anmeldung_url !== undefined) updates.anmeldung_url = body.anmeldung_url.trim() || null;
+  if (body.registration_deadline !== undefined) updates.registration_deadline = body.registration_deadline.trim() || null;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Keine Änderungen übermittelt." }, { status: 400 });
@@ -228,7 +233,7 @@ export async function PATCH(request: NextRequest) {
     .from("training_events")
     .update(updates)
     .eq("id", eventId)
-    .select("id, kurs_nr, title, audience, start_date, anmeldung_url")
+    .select("id, kurs_nr, title, audience, start_date, anmeldung_url, registration_deadline")
     .single();
 
   if (error || !updated) {

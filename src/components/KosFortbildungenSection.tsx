@@ -20,6 +20,20 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
   const { weekday, day, month, year } = formatDateParts(termin.start_date || "");
   const hasLink = !!termin.anmeldung_url;
 
+  let deadlinePast = false;
+  let deadlineFormatted = "";
+  if (termin.registration_deadline) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dlDate = new Date(termin.registration_deadline + "T00:00:00");
+    deadlinePast = today > dlDate;
+    deadlineFormatted = new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(dlDate);
+  }
+
   return (
     <li className="group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0">
       {/* Datum-Cluster */}
@@ -40,9 +54,22 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
         <p className="text-sm font-semibold text-text">
           {day}. {month} {year}
         </p>
-        <p className="mt-0.5 font-mono text-[12px] text-text-light">
-          {termin.kurs_nr}
-        </p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+          <p className="font-mono text-[12px] text-text-light">
+            {termin.kurs_nr}
+          </p>
+          {termin.registration_deadline && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                deadlinePast
+                  ? "bg-red-50 text-red-600"
+                  : "bg-amber-50 text-amber-600"
+              }`}
+            >
+              Anmeldeschluss: {deadlineFormatted}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Anmelde-Link */}
@@ -51,10 +78,14 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
           href={termin.anmeldung_url!}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary/5"
-          aria-label={`Zur Anmeldung für ${termin.kurs_nr} am ${day}. ${month} ${year} (öffnet im NLC-Portal)`}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            deadlinePast || termin.registration_deadline
+              ? "border-border bg-bg text-text hover:border-border-strong hover:bg-bg-alt"
+              : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary/5"
+          }`}
+          aria-label={`Zum NLC-Eintrag für ${termin.kurs_nr} am ${day}. ${month} ${year}`}
         >
-          Anmelden
+          {deadlinePast || termin.registration_deadline ? "Zum NLC-Eintrag" : "Anmelden"}
           <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
         </a>
       ) : (
