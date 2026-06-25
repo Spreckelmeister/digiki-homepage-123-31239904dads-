@@ -58,6 +58,7 @@ function ParticipantSheet({
   event,
   isAdmin,
   onClose,
+  onChanged,
 }: {
   event: TrainingEvent;
   isAdmin: boolean;
