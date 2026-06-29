@@ -30,6 +30,15 @@ import {
   Lock,
   Route,
   Calculator,
+  Languages,
+  Map,
+  Users,
+  MessageCircle,
+  PenTool,
+  Lightbulb,
+  Search,
+  Clapperboard,
+  ExternalLink,
 } from "lucide-react";
 import ContactSection from "@/components/ContactSection";
 import AdminOnly from "@/components/AdminOnly";
@@ -57,6 +66,8 @@ interface Tool {
   cloudOption?: boolean;
   /** Internes Tool: nur für angemeldete Best-Practice-Admins sichtbar (noch nicht veröffentlicht) */
   adminOnly?: boolean;
+  /** Tool vom NLQ (kits.app) */
+  isNlq?: boolean;
 }
 
 interface Category {
@@ -114,6 +125,36 @@ const categories: Category[] = [
         description:
           "Namen aus der Klassenliste zufällig aufrufen oder in Gruppen einteilen. Listen bleiben auf Ihrem Gerät.",
         available: true,
+      },
+      {
+        href: "https://map.kits.app",
+        eyebrow: "KITS",
+        icon: <Map className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "TeamMapper",
+        description:
+          "Gedanken im Team in einer Mindmap strukturieren.",
+        available: true,
+        isNlq: true,
+      },
+      {
+        href: "https://charts.kits.app",
+        eyebrow: "KITS",
+        icon: <MessageCircle className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "WordCharts",
+        description:
+          "Text und Feedback in Wortwolken darstellen.",
+        available: true,
+        isNlq: true,
+      },
+      {
+        href: "https://idea.kits.app",
+        eyebrow: "KITS",
+        icon: <Lightbulb className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "mindwendel",
+        description:
+          "Ideen im Team sammeln und sortieren.",
+        available: true,
+        isNlq: true,
       },
       {
         href: "/werkzeuge/zahlen-strasse",
@@ -181,6 +222,36 @@ const categories: Category[] = [
           "Wörter per Klick in Lücken verwandeln oder jedes n-te Wort entfernen. Arbeitsblatt + Lösung druckbar.",
         available: true,
       },
+      {
+        href: "https://write.kits.app",
+        eyebrow: "KITS",
+        icon: <Users className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "GroupWriter",
+        description:
+          "Texte im Team schreiben und kommentieren.",
+        available: true,
+        isNlq: true,
+      },
+      {
+        href: "https://draw.kits.app",
+        eyebrow: "KITS",
+        icon: <PenTool className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "Excalidraw",
+        description:
+          "Zeichnungen im Team erstellen.",
+        available: true,
+        isNlq: true,
+      },
+      {
+        href: "https://picto.kits.app",
+        eyebrow: "KITS",
+        icon: <Search className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "PictoSearch",
+        description:
+          "Piktogramme für deinen Unterricht finden.",
+        available: true,
+        isNlq: true,
+      },
     ],
   },
   {
@@ -235,6 +306,26 @@ const categories: Category[] = [
         description:
           "Sprachnachricht aufnehmen oder MP3 zuschneiden – komplett im Browser, ohne Upload.",
         available: true,
+      },
+      {
+        href: "https://qr.kits.app",
+        eyebrow: "KITS",
+        icon: <Languages className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "QRStorage",
+        description:
+          "Texte übersetzen und vertonen.",
+        available: true,
+        isNlq: true,
+      },
+      {
+        href: "https://clip.kits.app",
+        eyebrow: "KITS",
+        icon: <Clapperboard className="h-7 w-7 text-primary" {...iconProps} />,
+        title: "StopClip",
+        description:
+          "Trickfilme aus Einzelbildern erstellen.",
+        available: true,
+        isNlq: true,
       },
     ],
   },
@@ -584,11 +675,14 @@ export default function WerkzeugePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {cat.tools.map((tool, toolIndex) => {
+                    const isExternal = tool.href.startsWith("http");
                     const card = (
                     <Link
                       key={tool.href}
                       href={tool.href}
-                      className="tool-card group relative bg-white rounded-xl border border-border shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:-translate-y-1"
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
+                      className="tool-card group relative bg-white flex flex-col rounded-xl border border-border shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:-translate-y-1"
                       style={{
                         // Gesamt-Stagger ≤ 240 ms, damit die Animation spätestens
                         // ≤ 500 ms nach Load fertig ist – reduziert INP-Interferenz
@@ -610,7 +704,7 @@ export default function WerkzeugePage() {
                         />
                       </div>
 
-                      <div className="p-6">
+                      <div className="p-6 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-5">
                           <div
                             className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors ${
@@ -661,6 +755,19 @@ export default function WerkzeugePage() {
                                 Online empfohlen
                               </span>
                             )}
+                            {tool.isNlq && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-blue-800 shadow-sm border border-blue-200"
+                                title="Externes Werkzeug"
+                              >
+                                <ExternalLink
+                                  className="h-2.5 w-2.5"
+                                  strokeWidth={2.6}
+                                  aria-hidden="true"
+                                />
+                                extern
+                              </span>
+                            )}
                             <span className="text-[10px] font-mono font-bold text-text-light/70 tabular-nums">
                               {tool.eyebrow}
                             </span>
@@ -672,7 +779,12 @@ export default function WerkzeugePage() {
                         <p className="text-sm text-text-light leading-relaxed mb-5">
                           {tool.description}
                         </p>
-                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all group-hover:gap-3">
+                        {tool.isNlq && (
+                          <p className="text-[11px] text-text-light/80 leading-relaxed mb-5 border-t border-border pt-3">
+                            Ein Angebot des Niedersächsischen Landesinstituts für Schulische Qualitätsentwicklung (NLQ).
+                          </p>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all group-hover:gap-3 mt-auto">
                           Öffnen
                           <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         </span>
