@@ -36,16 +36,19 @@ function formatDate(iso: string | null): string {
  * wird `fixed` positioniert, damit es nicht vom Tabellen-Overflow abgeschnitten
  * wird.
  */
-function AssignPicker({
+export function AssignPicker({
   schools,
   role,
   disabled,
   onPick,
+  label,
 }: {
   schools: SchoolParticipation[];
   role: ParticipantRole;
   disabled: boolean;
   onPick: (name: string) => void;
+  /** Button-Beschriftung (z. B. aktuelle Schule im Bearbeiten-Modus). */
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -113,7 +116,7 @@ function AssignPicker({
       >
         <span className="inline-flex items-center gap-1.5 truncate">
           <School className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-          {noFree ? "Keine Schule frei" : "Schule zuweisen …"}
+          {noFree ? "Keine Schule frei" : label ?? "Schule zuweisen …"}
         </span>
         <svg
           className={`h-3.5 w-3.5 shrink-0 text-text-light transition-transform ${open ? "rotate-180" : ""}`}
@@ -195,6 +198,20 @@ function AssignPicker({
       )}
     </>
   );
+}
+
+/**
+ * Alle registrierten Schulen (Bestandsaufnahme) – bewusst AUCH volle: beim
+ * Bearbeiten einer Anmeldung darf die Quote per Bestätigung überschritten
+ * werden; die Auslastung (used/limit) wird je Eintrag angezeigt.
+ */
+export function registeredSchools(
+  schools: SchoolParticipation[]
+): SchoolParticipation[] {
+  return schools
+    .filter((s) => s.in_bestandsaufnahme)
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
 /** Schulen, die für die Rolle noch Platz im Pensum haben. */

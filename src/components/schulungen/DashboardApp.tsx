@@ -162,6 +162,7 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
           loading={loading}
           isAdmin={isAdmin}
           onChanged={refresh}
+          schools={overview?.schools ?? []}
         />
 
         {/* Admin-Bereich: Zugriff verwalten + Daten zurücksetzen */}

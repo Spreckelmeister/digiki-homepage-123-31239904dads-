@@ -489,10 +489,17 @@ async function upsertPerson(
     // Adressen wie "simons_adresse@…" falsch matchen würden.
     const { data: byEmail } = await admin
       .from("persons")
-      .select("id")
+      .select("id, edit_locked")
       .eq("email", row.email)
       .maybeSingle();
     if (byEmail) {
+      // Vom Admin bearbeitete Personendaten (edit_locked, Migration 029)
+      // bleiben unangetastet – die manuelle Korrektur gewinnt gegen die
+      // Excel-Datei. Hinweis: Wurden Name UND E-Mail gleichzeitig geändert
+      // und die nächste Datei enthält noch beide alten Werte, greift kein
+      // Matching-Pfad mehr → mögliche Dublette (manuell per Papierkorb
+      // in der Teilnehmerliste lösbar).
+      if (byEmail.edit_locked) return byEmail.id;
       // school_id nur aktualisieren, wenn das nicht mit einer
       // bestehenden gleichnamigen Person an der Zielschule kollidiert
       // (UNIQUE school_id,last_norm,first_norm). Bei Kollision bleibt
@@ -525,14 +532,16 @@ async function upsertPerson(
 
   const { data: byName } = await admin
     .from("persons")
-    .select("id, email")
+    .select("id, email, edit_locked")
     .eq("school_id", schoolId)
     .eq("last_norm", lastNorm)
     .eq("first_norm", firstNorm)
     .maybeSingle();
 
   if (byName) {
-    if (row.email && !byName.email) {
+    // E-Mail-Backfill nur, wenn der Admin die Person nicht bearbeitet hat
+    // (er könnte die E-Mail bewusst entfernt haben).
+    if (row.email && !byName.email && !byName.edit_locked) {
       const { error } = await admin
         .from("persons")
         .update({ email: row.email })
@@ -554,7 +563,7 @@ async function upsertPerson(
   // enthält. Ohne diesen Check würde eine neue Person + Doppel-Anmeldung entstehen.
   const { data: sameNamePersons } = await admin
     .from("persons")
-    .select("id, email")
+    .select("id, email, edit_locked")
     .eq("last_norm", lastNorm)
     .eq("first_norm", firstNorm);
 
@@ -568,7 +577,7 @@ async function upsertPerson(
 
     if (eventReg) {
       const p = sameNamePersons.find((x) => x.id === eventReg.person_id)!;
-      if (row.email && !p.email) {
+      if (row.email && !p.email && !p.edit_locked) {
         await admin.from("persons").update({ email: row.email }).eq("id", p.id);
       }
       return p.id;

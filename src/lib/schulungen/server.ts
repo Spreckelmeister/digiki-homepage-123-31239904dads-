@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { schoolKeyFromName, schoolMatchKey } from "@/lib/schulungen/parse";
 
 // Server-Helfer für die Schulungs-Dashboard-API:
 // Auth-Prüfung (Rolle admin ODER schulungsteam) + Service-Role-Client.
@@ -88,4 +89,49 @@ export function quotaReason(role: string, used: string): string {
   return role === "leadership"
     ? `Quote überschritten: ${used} Person aus der Schulleitung bereits angemeldet (max. 1 je Schule)`
     : `Quote überschritten: ${used} Lehrkräfte bereits angemeldet (max. 2 je Schule)`;
+}
+
+/**
+ * Schulname → schools.id. Bevorzugt eine vorhandene Schule (exakter
+ * Schlüssel, sonst tolerant über schoolMatchKey), legt sonst eine neue an.
+ */
+export async function resolveSchool(
+  admin: SupabaseClient,
+  name: string
+): Promise<string> {
+  const exactKey = schoolKeyFromName(name);
+
+  const { data: exact } = await admin
+    .from("schools")
+    .select("id")
+    .eq("school_key", exactKey)
+    .maybeSingle();
+  if (exact) return exact.id;
+
+  // Tolerant: abweichende Schreibweise (Schultyp-Wörter ignoriert).
+  const mkey = schoolMatchKey(name);
+  if (mkey) {
+    const { data: all } = await admin.from("schools").select("id, name");
+    const hit = (all ?? []).find(
+      (s) => schoolMatchKey((s as { name: string }).name) === mkey
+    );
+    if (hit) return (hit as { id: string }).id;
+  }
+
+  const { data: created, error } = await admin
+    .from("schools")
+    .insert({ school_key: exactKey, name })
+    .select("id")
+    .single();
+  if (error || !created) {
+    // Unique-Kollision (parallel angelegt) → erneut suchen.
+    const { data: retry } = await admin
+      .from("schools")
+      .select("id")
+      .eq("school_key", exactKey)
+      .maybeSingle();
+    if (retry) return retry.id;
+    throw new Error(error?.message ?? "Schule konnte nicht angelegt werden");
+  }
+  return created.id;
 }

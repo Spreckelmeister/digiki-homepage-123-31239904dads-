@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -17,9 +17,12 @@ import {
   ROLE_LABELS,
   type ConflictItem,
   type EventParticipant,
+  type SchoolParticipation,
   type TrainingEvent,
 } from "@/lib/schulungen/types";
 import AddEventModal from "./AddEventModal";
+import { AssignPicker, registeredSchools } from "./ConflictsTable";
+import { useParticipantEdit } from "./useParticipantEdit";
 
 function dateParts(iso: string | null) {
   if (!iso) return null;
@@ -58,12 +61,15 @@ export default function EventsTable({
   loading,
   isAdmin = false,
   onChanged,
+  schools = [],
 }: {
   events: TrainingEvent[];
   conflicts?: ConflictItem[];
   loading: boolean;
   isAdmin?: boolean;
   onChanged?: () => void;
+  /** Registrierte Schulen inkl. Quotennutzung – für das Bearbeiten. */
+  schools?: SchoolParticipation[];
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [expanded, setExpanded] = useState(true);
@@ -336,6 +342,7 @@ export default function EventsTable({
           isAdmin={isAdmin}
           onClose={() => setOpenEvent(null)}
           onChanged={onChanged}
+          schools={schools}
         />
       )}
 
@@ -362,40 +369,47 @@ function ParticipantsModal({
   isAdmin,
   onClose,
   onChanged,
+  schools = [],
 }: {
   event: TrainingEvent;
   isAdmin?: boolean;
   onClose: () => void;
   onChanged?: () => void;
+  schools?: SchoolParticipation[];
 }) {
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
+  const loadParticipants = useCallback(async (initial = false) => {
+    if (initial) setLoading(true);
     setError(null);
-    fetch(`/api/schulungen/participants?event_id=${encodeURIComponent(event.id)}`)
-      .then(async (res) => {
-        const body = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(body?.error ?? "Teilnehmende konnten nicht geladen werden");
-        return body.participants as EventParticipant[];
-      })
-      .then((list) => {
-        if (active) setParticipants(list);
-      })
-      .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : "Fehler beim Laden");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    try {
+      const res = await fetch(
+        `/api/schulungen/participants?event_id=${encodeURIComponent(event.id)}`
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Teilnehmende konnten nicht geladen werden");
+      }
+      setParticipants(body.participants as EventParticipant[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Fehler beim Laden");
+    } finally {
+      if (initial) setLoading(false);
+    }
   }, [event.id]);
+
+  useEffect(() => {
+    loadParticipants(true);
+  }, [loadParticipants]);
+
+  const edit = useParticipantEdit(event.id, async () => {
+    await loadParticipants();
+    onChanged?.();
+  });
+  const pickableSchools = useMemo(() => registeredSchools(schools), [schools]);
 
   // Esc schließt das Modal.
   useEffect(() => {
@@ -435,6 +449,7 @@ function ParticipantsModal({
         throw new Error(body?.error || "Fehler beim Löschen");
       }
       setParticipants((prev) => prev.filter((p) => p.person_id !== personId));
+      if (edit.editingId === personId) edit.cancelEdit();
       onChanged?.();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Person konnte nicht gelöscht werden.");
@@ -594,10 +609,8 @@ function ParticipantsModal({
                           ? "text-amber-900"
                           : "text-text";
                       return (
-                      <tr
-                        key={`${p.person_id}-${i}`}
-                        className={`align-top ${rowBg}`}
-                      >
+                      <Fragment key={`${p.person_id}-${i}`}>
+                      <tr className={`align-top ${rowBg}`}>
                         <td className="py-2.5 pr-4">
                           <span className={`font-semibold ${nameColor}`}>
                             {p.last_name}
@@ -655,7 +668,26 @@ function ParticipantsModal({
                           )}
                         </td>
                         {isAdmin && (
-                          <td className="py-2.5 text-right align-middle">
+                          <td className="whitespace-nowrap py-2.5 text-right align-middle">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                edit.editingId === p.person_id
+                                  ? edit.cancelEdit()
+                                  : edit.startEdit(p)
+                              }
+                              disabled={deletingId === p.person_id}
+                              className={`inline-flex rounded-lg p-1.5 transition-colors disabled:opacity-50 ${
+                                edit.editingId === p.person_id
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-text-light/50 hover:bg-bg hover:text-primary"
+                              }`}
+                              title="Anmeldung bearbeiten"
+                              aria-label={`Anmeldung von ${p.first_name} ${p.last_name} bearbeiten`}
+                              aria-expanded={edit.editingId === p.person_id}
+                            >
+                              <PenLine className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteParticipant(p.person_id)}
@@ -672,6 +704,157 @@ function ParticipantsModal({
                           </td>
                         )}
                       </tr>
+                      {isAdmin && edit.editingId === p.person_id && edit.draft && (
+                        <tr className="bg-primary/[0.03]">
+                          <td colSpan={4} className="px-2 py-3">
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                edit.saveEdit();
+                              }}
+                              className="rounded-xl border border-primary/20 bg-white p-3 shadow-sm"
+                            >
+                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <label className="block">
+                                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                                    Vorname
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={edit.draft.first_name}
+                                    onChange={(e) =>
+                                      edit.updateDraft({ first_name: e.target.value })
+                                    }
+                                    className="w-full rounded-md border border-border bg-bg px-2.5 py-1.5 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                                    Nachname
+                                  </span>
+                                  <input
+                                    type="text"
+                                    required
+                                    value={edit.draft.last_name}
+                                    onChange={(e) =>
+                                      edit.updateDraft({ last_name: e.target.value })
+                                    }
+                                    className="w-full rounded-md border border-border bg-bg px-2.5 py-1.5 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                                    E-Mail
+                                  </span>
+                                  <input
+                                    type="email"
+                                    value={edit.draft.email}
+                                    onChange={(e) =>
+                                      edit.updateDraft({ email: e.target.value })
+                                    }
+                                    placeholder="Keine eigene E-Mail"
+                                    className="w-full rounded-md border border-border bg-bg px-2.5 py-1.5 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                                    Rolle
+                                  </span>
+                                  <select
+                                    value={edit.draft.role}
+                                    onChange={(e) =>
+                                      edit.updateDraft({
+                                        role: e.target.value as EventParticipant["role"],
+                                      })
+                                    }
+                                    className="w-full rounded-md border border-border bg-bg px-2.5 py-1.5 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                  >
+                                    <option value="teacher">{ROLE_LABELS.teacher}</option>
+                                    <option value="leadership">{ROLE_LABELS.leadership}</option>
+                                  </select>
+                                </label>
+                                <div className="sm:col-span-2">
+                                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                                    Schule
+                                  </span>
+                                  <AssignPicker
+                                    schools={pickableSchools}
+                                    role={edit.draft.role}
+                                    disabled={edit.saving}
+                                    label={edit.draft.school_name ?? "Schule wählen …"}
+                                    onPick={(name) => edit.updateDraft({ school_name: name })}
+                                  />
+                                </div>
+                              </div>
+
+                              {edit.editError && (
+                                <p
+                                  role="alert"
+                                  className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                                >
+                                  {edit.editError}
+                                </p>
+                              )}
+
+                              {edit.quotaConfirm ? (
+                                <div
+                                  role="alert"
+                                  className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+                                >
+                                  <p className="text-sm text-amber-800">
+                                    {edit.quotaConfirm} Möchten Sie die Anmeldung trotzdem
+                                    speichern? Die Person wird dann als „Über Quote –
+                                    zugelassen" markiert.
+                                  </p>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={edit.saving}
+                                      onClick={() => edit.saveEdit(true)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      {edit.saving && (
+                                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                      )}
+                                      Trotzdem speichern
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={edit.saving}
+                                      onClick={edit.cancelEdit}
+                                      className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+                                    >
+                                      Abbrechen
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-3 flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={edit.saving}
+                                    onClick={edit.cancelEdit}
+                                    className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+                                  >
+                                    Abbrechen
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    disabled={edit.saving}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {edit.saving && (
+                                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                    )}
+                                    Speichern
+                                  </button>
+                                </div>
+                              )}
+                            </form>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                       );
                     })}
                   </tbody>

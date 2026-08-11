@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -31,6 +31,8 @@ import UploadCard from "./UploadCard";
 import AccessPanel from "./AccessPanel";
 import DangerZone from "./DangerZone";
 import AddEventModal from "./AddEventModal";
+import { AssignPicker, registeredSchools } from "./ConflictsTable";
+import { useParticipantEdit } from "./useParticipantEdit";
 
 type Tab = "schulungen" | "konflikte" | "schulen" | "verwaltung";
 
@@ -60,11 +62,13 @@ function ParticipantSheet({
   isAdmin,
   onClose,
   onChanged,
+  schools = [],
 }: {
   event: TrainingEvent;
   isAdmin: boolean;
   onClose: () => void;
   onChanged?: () => void;
+  schools?: SchoolParticipation[];
 }) {
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,21 +76,32 @@ function ParticipantSheet({
   const [copied, setCopied] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
+  const loadParticipants = useCallback(async (initial = false) => {
+    if (initial) setLoading(true);
     setError(null);
-    fetch(`/api/schulungen/participants?event_id=${encodeURIComponent(event.id)}`)
-      .then(async (r) => {
-        const body = await r.json().catch(() => null);
-        if (!r.ok) throw new Error(body?.error ?? "Fehler");
-        return body.participants as EventParticipant[];
-      })
-      .then((list) => { if (active) setParticipants(list); })
-      .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Fehler"); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    try {
+      const r = await fetch(
+        `/api/schulungen/participants?event_id=${encodeURIComponent(event.id)}`
+      );
+      const body = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(body?.error ?? "Fehler");
+      setParticipants(body.participants as EventParticipant[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Fehler");
+    } finally {
+      if (initial) setLoading(false);
+    }
   }, [event.id]);
+
+  useEffect(() => {
+    loadParticipants(true);
+  }, [loadParticipants]);
+
+  const edit = useParticipantEdit(event.id, async () => {
+    await loadParticipants();
+    onChanged?.();
+  });
+  const pickableSchools = useMemo(() => registeredSchools(schools), [schools]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -123,6 +138,7 @@ function ParticipantSheet({
         throw new Error(body?.error || "Fehler beim Löschen");
       }
       setParticipants((prev) => prev.filter((p) => p.person_id !== personId));
+      if (edit.editingId === personId) edit.cancelEdit();
       onChanged?.();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Person konnte nicht gelöscht werden.");
@@ -203,10 +219,158 @@ function ParticipantSheet({
                   : quota
                     ? "bg-amber-50/60"
                     : "";
+                const isEditing = isAdmin && edit.editingId === p.person_id && edit.draft;
+                if (isEditing && edit.draft) {
+                  return (
+                    <li key={`${p.person_id}-${i}`} className="py-3">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          edit.saveEdit();
+                        }}
+                        className="rounded-xl border border-primary/20 bg-white p-3 shadow-sm"
+                      >
+                        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                          Anmeldung bearbeiten
+                        </p>
+                        <div className="space-y-2.5">
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                              Vorname
+                            </span>
+                            <input
+                              type="text"
+                              value={edit.draft.first_name}
+                              onChange={(e) => edit.updateDraft({ first_name: e.target.value })}
+                              className="w-full rounded-md border border-border bg-bg px-2.5 py-2 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                              Nachname
+                            </span>
+                            <input
+                              type="text"
+                              required
+                              value={edit.draft.last_name}
+                              onChange={(e) => edit.updateDraft({ last_name: e.target.value })}
+                              className="w-full rounded-md border border-border bg-bg px-2.5 py-2 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                              E-Mail
+                            </span>
+                            <input
+                              type="email"
+                              value={edit.draft.email}
+                              onChange={(e) => edit.updateDraft({ email: e.target.value })}
+                              placeholder="Keine eigene E-Mail"
+                              className="w-full rounded-md border border-border bg-bg px-2.5 py-2 text-sm text-text placeholder:text-text-light focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                              Rolle
+                            </span>
+                            <select
+                              value={edit.draft.role}
+                              onChange={(e) =>
+                                edit.updateDraft({
+                                  role: e.target.value as EventParticipant["role"],
+                                })
+                              }
+                              className="w-full rounded-md border border-border bg-bg px-2.5 py-2 text-sm text-text focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            >
+                              <option value="teacher">{ROLE_LABELS.teacher}</option>
+                              <option value="leadership">{ROLE_LABELS.leadership}</option>
+                            </select>
+                          </label>
+                          <div>
+                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-light">
+                              Schule
+                            </span>
+                            <AssignPicker
+                              schools={pickableSchools}
+                              role={edit.draft.role}
+                              disabled={edit.saving}
+                              label={edit.draft.school_name ?? "Schule wählen …"}
+                              onPick={(name) => edit.updateDraft({ school_name: name })}
+                            />
+                          </div>
+                        </div>
+
+                        {edit.editError && (
+                          <p
+                            role="alert"
+                            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                          >
+                            {edit.editError}
+                          </p>
+                        )}
+
+                        {edit.quotaConfirm ? (
+                          <div
+                            role="alert"
+                            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+                          >
+                            <p className="text-sm text-amber-800">
+                              {edit.quotaConfirm} Möchten Sie die Anmeldung trotzdem
+                              speichern? Die Person wird dann als „Über Quote –
+                              zugelassen" markiert.
+                            </p>
+                            <div className="mt-2 flex flex-col gap-2">
+                              <button
+                                type="button"
+                                disabled={edit.saving}
+                                onClick={() => edit.saveEdit(true)}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {edit.saving && (
+                                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                )}
+                                Trotzdem speichern
+                              </button>
+                              <button
+                                type="button"
+                                disabled={edit.saving}
+                                onClick={edit.cancelEdit}
+                                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={edit.saving}
+                              onClick={edit.cancelEdit}
+                              className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-text transition-colors hover:bg-bg disabled:opacity-50"
+                            >
+                              Abbrechen
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={edit.saving}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {edit.saving && (
+                                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                              )}
+                              Speichern
+                            </button>
+                          </div>
+                        )}
+                      </form>
+                    </li>
+                  );
+                }
                 return (
                   <li key={`${p.person_id}-${i}`} className={`py-3 ${bg} relative`}>
                     {/* Name + badges */}
-                    <div className="flex items-start justify-between gap-2 pr-8">
+                    <div className={`flex items-start justify-between gap-2 ${isAdmin ? "pr-16" : "pr-8"}`}>
                       <div className="min-w-0">
                         <p
                           className={`text-sm font-semibold leading-snug ${
@@ -267,21 +431,32 @@ function ParticipantSheet({
                       </a>
                     )}
 
-                    {/* Admin: delete button */}
+                    {/* Admin: edit + delete buttons */}
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteParticipant(p.person_id)}
-                        disabled={deletingId === p.person_id}
-                        className="absolute right-2 top-3 rounded-lg p-1.5 text-text-light/50 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                        aria-label="Person aus der Schulung entfernen"
-                      >
-                        {deletingId === p.person_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => edit.startEdit(p)}
+                          disabled={deletingId === p.person_id}
+                          className="absolute right-10 top-3 rounded-lg p-1.5 text-text-light/50 transition-colors hover:bg-bg hover:text-primary disabled:opacity-50"
+                          aria-label={`Anmeldung von ${p.first_name} ${p.last_name} bearbeiten`}
+                        >
+                          <PenLine className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteParticipant(p.person_id)}
+                          disabled={deletingId === p.person_id}
+                          className="absolute right-2 top-3 rounded-lg p-1.5 text-text-light/50 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          aria-label="Person aus der Schulung entfernen"
+                        >
+                          {deletingId === p.person_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          )}
+                        </button>
+                      </>
                     )}
                   </li>
                 );
@@ -325,12 +500,14 @@ function MobileEventsList({
   loading,
   isAdmin,
   onRefresh,
+  schools = [],
 }: {
   events: TrainingEvent[];
   conflicts: ConflictItem[];
   loading: boolean;
   isAdmin: boolean;
   onRefresh?: () => void;
+  schools?: SchoolParticipation[];
 }) {
   const [openEvent, setOpenEvent] = useState<TrainingEvent | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -581,6 +758,7 @@ function MobileEventsList({
           isAdmin={isAdmin}
           onClose={() => setOpenEvent(null)}
           onChanged={onRefresh}
+          schools={schools}
         />
       )}
 
@@ -1506,6 +1684,7 @@ export default function MobileDashboard({
           loading={loading}
           isAdmin={isAdmin}
           onRefresh={onRefresh}
+          schools={overview?.schools ?? []}
         />
       )}
 
