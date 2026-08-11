@@ -303,11 +303,67 @@ export async function PATCH(request: NextRequest) {
   const newRole = role ?? (reg.role as ParticipantRole);
   const roleChanged = newRole !== reg.role;
 
-  if (schoolChanged || roleChanged) {
+  const newFirst = firstName ?? (person.first_name as string);
+  const newLast = lastName ?? (person.last_name as string);
+  const firstNorm = normalizeKey(newFirst);
+  const lastNorm = normalizeKey(newLast);
+
+  // ── Zusammenführung (Merge) ──────────────────────────────────
+  // Existiert bereits eine ANDERE Person mit diesem Namen an der Ziel-
+  // schule (oder an der eigenen Schule der Person, dort würde sonst
+  // UNIQUE(school_id, last_norm, first_norm) den Namen blockieren), wird
+  // die Anmeldung auf die vorhandene Person umgezogen statt eine Dublette
+  // zu erzeugen bzw. mit einem Fehler abzubrechen.
+  let mergeTarget: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+  } | null = null;
+  {
+    const { data: candidates } = await admin
+      .from("persons")
+      .select("id, first_name, last_name, email, school_id")
+      .eq("last_norm", lastNorm)
+      .eq("first_norm", firstNorm)
+      .neq("id", person.id);
+    const pool = candidates ?? [];
+    mergeTarget =
+      pool.find((c) => c.school_id === targetSchoolId) ??
+      pool.find((c) => c.school_id === person.school_id) ??
+      null;
+  }
+  if (mergeTarget) {
+    // Ist die vorhandene Person schon in DIESER Schulung? Dann gäbe es
+    // zwei identische Zeilen – das muss der Admin über Löschen klären.
+    const { data: dupReg } = await admin
+      .from("registrations")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("person_id", mergeTarget.id)
+      .maybeSingle();
+    if (dupReg) {
+      return NextResponse.json(
+        {
+          error: `„${mergeTarget.first_name} ${mergeTarget.last_name}" ist für diese Schulung bereits angemeldet. Entfernen Sie stattdessen die doppelte Zeile über den Papierkorb.`,
+        },
+        { status: 409 }
+      );
+    }
+  }
+  const effectivePersonId = mergeTarget?.id ?? (person.id as string);
+  const personChanged = effectivePersonId !== person.id;
+  // Konflikt-Zeilen können an der alten wie an der neuen Person hängen.
+  const affectedPersonIds = personChanged
+    ? [person.id as string, effectivePersonId]
+    : [person.id as string];
+
+  if (schoolChanged || roleChanged || personChanged) {
     // Ein manuell gewählte Schule soll den Re-Import überleben; die alte
     // Alias-Zuordnung passt nach einem Schulwechsel nicht mehr.
     const regFields = {
       school_id: targetSchoolId,
+      person_id: effectivePersonId,
       role: newRole,
       school_locked: schoolChanged ? true : (reg.school_locked as boolean),
       alias_id: schoolChanged ? null : (reg.alias_id as string | null),
@@ -345,13 +401,13 @@ export async function PATCH(request: NextRequest) {
         .from("import_conflicts")
         .delete()
         .eq("event_id", eventId)
-        .eq("person_id", personId)
+        .in("person_id", affectedPersonIds)
         .eq("status", "open");
       await admin
         .from("import_conflicts")
         .delete()
         .eq("event_id", eventId)
-        .eq("person_id", personId)
+        .in("person_id", affectedPersonIds)
         .eq("status", "approved")
         .ilike("reason", "%quote%");
     } else {
@@ -370,7 +426,6 @@ export async function PATCH(request: NextRequest) {
       }
       const { error: insErr } = await admin.from("registrations").insert({
         event_id: eventId,
-        person_id: personId,
         status: "registered",
         quota_override: true,
         workshops: reg.workshops,
@@ -401,19 +456,21 @@ export async function PATCH(request: NextRequest) {
       // Override daher als zugelassenen Quoten-Konflikt dokumentieren.
       const overrideReason =
         "Quote überschritten – vom Admin beim Bearbeiten trotz Quote zugelassen";
-      const { data: openConflict } = await admin
+      const { data: openConflicts } = await admin
         .from("import_conflicts")
         .select("id")
         .eq("event_id", eventId)
-        .eq("person_id", personId)
+        .in("person_id", affectedPersonIds)
         .eq("status", "open")
-        .maybeSingle();
+        .limit(1);
+      const openConflict = openConflicts?.[0];
       if (openConflict) {
         await admin
           .from("import_conflicts")
           .update({
             status: "approved",
             reason: overrideReason,
+            person_id: effectivePersonId,
             school_id: targetSchoolId,
             role: newRole,
             resolved_by: auth.userId,
@@ -423,7 +480,7 @@ export async function PATCH(request: NextRequest) {
       } else {
         await admin.from("import_conflicts").insert({
           event_id: eventId,
-          person_id: personId,
+          person_id: effectivePersonId,
           school_id: targetSchoolId,
           role: newRole,
           reason: overrideReason,
@@ -437,41 +494,27 @@ export async function PATCH(request: NextRequest) {
   }
 
   // ── 2. Personendaten (Name/E-Mail) ───────────────────────────
+  // Bei einer Zusammenführung landen die Änderungen auf der VORHANDENEN
+  // Person (die Anmeldung zeigt jetzt auf sie).
+  const editTarget = mergeTarget ?? {
+    id: person.id as string,
+    first_name: person.first_name as string,
+    last_name: person.last_name as string,
+    email: person.email as string | null,
+  };
   const personUpdate: Record<string, unknown> = {};
 
-  const newFirst = firstName ?? (person.first_name as string);
-  const newLast = lastName ?? (person.last_name as string);
-  if (newFirst !== person.first_name || newLast !== person.last_name) {
-    const firstNorm = normalizeKey(newFirst);
-    const lastNorm = normalizeKey(newLast);
-    // Vorab-Check gegen UNIQUE(school_id, last_norm, first_norm) – bei
-    // school_id NULL greift der Constraint nicht.
-    if (person.school_id) {
-      const { data: clash } = await admin
-        .from("persons")
-        .select("id")
-        .eq("school_id", person.school_id)
-        .eq("last_norm", lastNorm)
-        .eq("first_norm", firstNorm)
-        .neq("id", person.id)
-        .maybeSingle();
-      if (clash) {
-        return NextResponse.json(
-          {
-            error:
-              "Eine Person mit diesem Namen ist an dieser Schule bereits erfasst.",
-          },
-          { status: 409 }
-        );
-      }
-    }
+  if (
+    newFirst !== editTarget.first_name ||
+    newLast !== editTarget.last_name
+  ) {
     personUpdate.first_name = newFirst;
     personUpdate.last_name = newLast;
     personUpdate.first_norm = firstNorm;
     personUpdate.last_norm = lastNorm;
   }
 
-  if (email !== undefined && email !== (person.email ?? null)) {
+  if (email !== undefined && email !== (editTarget.email ?? null)) {
     personUpdate.email = email;
   }
 
@@ -482,7 +525,7 @@ export async function PATCH(request: NextRequest) {
     const { error } = await admin
       .from("persons")
       .update(personUpdate)
-      .eq("id", person.id);
+      .eq("id", editTarget.id);
     if (error) {
       if (/duplicate key|unique/i.test(error.message)) {
         return NextResponse.json(
@@ -498,6 +541,25 @@ export async function PATCH(request: NextRequest) {
         { error: `Änderung fehlgeschlagen: ${error.message}` },
         { status: 500 }
       );
+    }
+  }
+
+  // ── 3. Aufräumen nach Zusammenführung ────────────────────────
+  // Konflikte der alten Person zu dieser Schulung sind hinfällig; hängt
+  // die Personen-Dublette an keiner weiteren Anmeldung mehr, wird sie
+  // gelöscht (verhindert erneute Dubletten beim nächsten Import).
+  if (personChanged) {
+    await admin
+      .from("import_conflicts")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("person_id", person.id);
+    const { count } = await admin
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("person_id", person.id);
+    if (!count) {
+      await admin.from("persons").delete().eq("id", person.id);
     }
   }
 
