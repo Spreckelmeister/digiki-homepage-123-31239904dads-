@@ -45,7 +45,7 @@ function getCopy(status: Status): CopyBlock {
       eyebrowColor: "text-amber-700",
       title: "Der Bestätigungs-Link ist nicht mehr gültig",
       body:
-        "Aus Sicherheitsgründen sind Löschungs-Links 24 Stunden lang gültig. Ihr Konto ist unverändert aktiv. Wenn Sie weiterhin löschen möchten, starten Sie den Vorgang bitte erneut in Ihren Konto-Einstellungen.",
+        "Aus Sicherheitsgründen sind Bestätigungscodes und -links für die Löschung 24 Stunden lang gültig. Ihr Konto ist unverändert aktiv. Wenn Sie weiterhin löschen möchten, starten Sie den Vorgang bitte erneut in Ihren Konto-Einstellungen.",
       icon: <Clock className="h-7 w-7" aria-hidden="true" strokeWidth={1.75} />,
       accentBar: "from-amber-600 to-amber-800",
       tone: "warning",
@@ -198,7 +198,7 @@ export default async function KontoGeloeschtPage({
                 <p className="font-semibold mb-1">Nächster Schritt</p>
                 <p>
                   {copy.tone === "warning"
-                    ? "Melden Sie sich in Ihrem Konto an und starten Sie den Löschvorgang neu, um einen frischen Bestätigungs-Link zu erhalten."
+                    ? "Melden Sie sich in Ihrem Konto an und starten Sie den Löschvorgang neu, um einen frischen Bestätigungscode zu erhalten."
                     : "Senden Sie eine kurze Nachricht an Kai Krafft (krafft@osnabrueck.de), damit der Vorgang manuell bearbeitet werden kann."}
                 </p>
               </div>

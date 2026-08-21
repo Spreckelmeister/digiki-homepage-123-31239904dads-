@@ -110,7 +110,7 @@ export default function ResendQuickAction({
         type="button"
         disabled
         aria-label={`Resend gesperrt – wieder möglich in ${block.formatted}`}
-        title={`Bestätigungs-Mail wurde bereits versendet – neuer Versand erst in ${block.formatted} möglich (Link aus voriger Mail ist noch gültig).`}
+        title={`Erinnerungs-Mail wurde bereits versendet – neuer Versand erst in ${block.formatted} möglich (damit die Schule nicht mehrfach kontaktiert wird).`}
         className={`${baseClass} cursor-not-allowed border-border bg-bg text-text-light/60`}
       >
         <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -120,9 +120,9 @@ export default function ResendQuickAction({
 
   // ── Aktive Zustände (idle / sending / success / error) ──────────
   const titleByState: Record<State, string> = {
-    idle: `Bestätigungs-Mail an „${schoolName}" senden`,
+    idle: `Erinnerungs-Mail an „${schoolName}" senden`,
     sending: "Wird versendet …",
-    success: `Bestätigungs-Mail an „${schoolName}" verschickt`,
+    success: `Erinnerungs-Mail an „${schoolName}" verschickt`,
     error: errorMsg ?? "Versand fehlgeschlagen.",
   };
 

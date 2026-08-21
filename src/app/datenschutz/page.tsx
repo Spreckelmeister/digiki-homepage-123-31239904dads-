@@ -752,9 +752,9 @@ export default function DatenschutzPage() {
               <p className="text-text-light leading-relaxed mb-4">
                 Im Rahmen der Kontoregistrierung, Passwort-Wiederherstellung,
                 E-Mail-Änderung und Formular-Einreichung versenden wir
-                transaktionale E-Mails (z.&thinsp;B. Bestätigungslinks,
-                8-stellige Verifizierungscodes, Eingangsbestätigungen,
-                System-Benachrichtigungen). Der Versand erfolgt über den
+                transaktionale E-Mails (z.&thinsp;B. 8-stellige Anmelde- und
+                Verifizierungscodes, Bestätigungs-E-Mails bzw. -Links,
+                Eingangsbestätigungen, System-Benachrichtigungen). Der Versand erfolgt über den
                 spezialisierten Transaktions-E-Mail-Dienst{" "}
                 <strong>Resend</strong> (Resend.com, Inc., 2261 Market Street
                 #4537, San Francisco, CA 94114, USA). Dies gilt sowohl für

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import nodemailer from "nodemailer";
 import { createDeletionToken } from "@/lib/deletionToken";
+import {
+  escapeHtml,
+  isSmtpConfigured,
+  sendAuthCodeMail,
+} from "@/lib/email/sendAuthCodeMail";
 
 export const runtime = "nodejs";
 
@@ -25,15 +29,6 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:3001",
 ].filter(Boolean) as string[];
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
 
 // Rate-Limit: max 1 Löschanfrage pro 60 Sekunden pro User-ID.
 // Verhindert Missbrauch, wenn jemand anderes kurz Sessionzugang hatte.
@@ -103,10 +98,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Token erzeugen und per Mail versenden – noch KEIN Löschen.
+  // Token erzeugen und per Mail versenden – noch KEIN Löschen. Der Token
+  // wandert NUR in die Code-Tabelle („Code statt Link"): Die Mail enthält
+  // keinen Bestätigungs-Link mehr, den ein Mail-Scanner per GET auslösen
+  // könnte – gelöscht wird ausschließlich per Code-Eingabe im Konto-Dialog.
   const token = createDeletionToken(user.id, user.email, shouldDeleteBP);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de";
-  const confirmUrl = `${siteUrl}/api/account/confirm-delete?token=${encodeURIComponent(token)}`;
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
 
   // 8-Zeichen-Fallback-Code anlegen – wird in account_deletion_codes
   // gespeichert, damit der User den Code statt des Links einlösen kann,
@@ -164,11 +161,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
-  ) {
+  if (!isSmtpConfigured()) {
     console.error("[account/request-delete] SMTP not configured");
     return NextResponse.json(
       { error: "Mailversand ist aktuell nicht möglich. Bitte später erneut versuchen." },
@@ -177,168 +170,46 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT ?? "587"),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
-
     const emailSafe = escapeHtml(user.email);
-    const confirmUrlSafe = escapeHtml(confirmUrl);
-    const codeUrl = `${siteUrl}/best-practice/code-einloesen?type=account_deletion`;
-    const codeUrlSafe = escapeHtml(codeUrl);
-    const codeSafe = escapeHtml(shortCode);
-    const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
-    const html = `
-<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
-<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-    style="background-color:#F5F9F9;padding:32px 12px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-          style="max-width:560px;width:100%;">
-          <!-- Logo-Header -->
-          <tr>
-            <td align="center"
-              style="background-color:#006363;padding:24px 24px 20px;border-radius:12px 12px 0 0;">
-              <img src="https://digiki-os.de/images/logos/DigiKI_Logo_v5.png"
-                alt="DigiKI – Grundschulen Osnabrück"
-                width="160" height="73"
-                style="display:block;border:0;max-width:160px;height:auto;" />
-            </td>
-          </tr>
-          <!-- Farbbalken (rot = Warn-Kontext) -->
-          <tr>
-            <td style="height:4px;background-color:#B91C1C;"></td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="background-color:#ffffff;padding:28px 22px;
-              border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
-              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
-                Bitte bestätigen Sie die Löschung Ihres Kontos
-              </h1>
+    await sendAuthCodeMail({
+      to: user.email,
+      subject: "Konto-Löschung bestätigen – DigiKI",
+      eyebrow: "Konto-Löschung",
+      heading: "Bitte bestätigen Sie die Löschung Ihres Kontos",
+      preheader: "Ihr 8-stelliger Bestätigungscode für die Konto-Löschung.",
+      introHtml: `
               <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Sie haben soeben die Löschung Ihres DigiKI-Zugangs
                 (<strong>${emailSafe}</strong>) angefordert. Bevor wir Ihr Konto
                 endgültig entfernen, benötigen wir eine Bestätigung von dieser
                 E-Mail-Adresse.
-              </p>
-
+              </p>`,
+      codeLeadHtml:
+        '<strong style="color:#B91C1C;">Konto endgültig löschen:</strong> Geben Sie diesen 8-stelligen Code im geöffneten Bestätigungsfenster Ihrer Konto-Einstellungen ein. Erst mit der Code-Eingabe werden Ihr Zugang, Ihr Profil, Ihre Bestandsaufnahmen und alle eingereichten Anträge unwiderruflich entfernt:',
+      code: shortCode,
+      validityHtml:
+        "Der Code ist <strong>24 Stunden</strong> gültig und nur einmal verwendbar. Solange Sie ihn nicht eingeben, bleibt Ihr Konto unverändert aktiv.",
+      pageUrl: `${siteUrl}/best-practice/konto`,
+      pageLabel:
+        "Fenster geschlossen? In Ihren Konto-Einstellungen können Sie den Vorgang jederzeit neu starten:",
+      pageUrlText: "digiki-os.de/best-practice/konto",
+      extraHtml: `
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #B91C1C;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0 0 8px 0;font-weight:bold;color:#006363;font-size:15px;">
-                      Konto endgültig löschen
-                    </p>
-                    <p style="margin:0 0 14px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Nach einem Klick auf den folgenden Link werden Ihr
-                      Zugang, Ihr Profil, Ihre Bestandsaufnahmen und alle
-                      eingereichten Anträge unwiderruflich aus unserem System
-                      entfernt. Der Link ist <strong>24 Stunden</strong> gültig.
-                    </p>
-                    <p style="margin:0;">
-                      <a href="${confirmUrlSafe}"
-                        style="display:inline-block;background-color:#B91C1C;color:#ffffff;
-                          text-decoration:none;font-weight:bold;font-size:15px;
-                          padding:12px 22px;border-radius:8px;">
-                        Löschung bestätigen
-                      </a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- 8-Zeichen-Code als Fallback, falls E-Mail-Scanner den Link unbrauchbar macht -->
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0 0 8px 0;font-weight:bold;color:#006363;font-size:14px;">
-                      Link funktioniert nicht?
-                    </p>
-                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Manche Schul- und Firmen-Netzwerke machen E-Mail-Links
-                      unbrauchbar. Geben Sie stattdessen auf der
-                      <a href="${codeUrlSafe}" style="color:#006363;">Code-Einlöse-Seite</a>
-                      Ihre E-Mail-Adresse und diesen 8-stelligen Code ein:
-                    </p>
-                    <p align="center" style="margin:0 0 12px 0;">
-                      <span style="display:inline-block;
-                        background-color:#ffffff;
-                        border:1px solid #DEE8E8;border-radius:8px;
-                        padding:12px 18px;
-                        font-family:'Courier New',Courier,monospace;
-                        font-size:22px;font-weight:bold;letter-spacing:4px;
-                        color:#006363;">
-                        ${codeSafe}
-                      </span>
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
-                      Der Code ist <strong>24 Stunden</strong> gültig und nur
-                      einmalig verwendbar.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 20px 0;">
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
                   <td style="padding:14px 16px;">
                     <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
                       Sie haben das nicht angefordert?
                     </p>
                     <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
-                      Ignorieren Sie diese E-Mail einfach. Ohne Klick auf den
-                      Link oder Eingabe des Codes geschieht nichts – Ihr Konto
-                      bleibt bestehen. Zur Sicherheit empfehlen wir, Ihr
-                      Passwort zu ändern.
+                      Ignorieren Sie diese E-Mail einfach. Ohne Eingabe des
+                      Codes geschieht nichts – Ihr Konto bleibt bestehen. Zur
+                      Sicherheit empfehlen wir, Ihr Passwort zu ändern.
                     </p>
                   </td>
                 </tr>
-              </table>
-
-              <p style="margin:0;color:#1A1A1A;font-size:15px;">
-                Mit freundlichen Grüßen<br />
-                <strong>Das DigiKI-Team</strong>
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color:#F5F9F9;padding:18px 22px;
-              border:1px solid #DEE8E8;border-top:none;
-              border-radius:0 0 12px 12px;">
-              <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
-                Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
-                DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-    await transporter.sendMail({
-      from: `DigiKI <${from}>`,
-      to: user.email,
-      subject: "Konto-Löschung bestätigen – DigiKI",
-      html,
+              </table>`,
     });
   } catch (emailErr) {
     console.error("[account/request-delete] Email error:", emailErr);

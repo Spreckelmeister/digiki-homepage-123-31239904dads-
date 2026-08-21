@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
+import InlineSignupConfirm from "./InlineSignupConfirm";
 
 interface FormSuccessProps {
   title: string;
   message: string;
   /** Optional: E-Mail-Adresse, die zur Statusverfolgung verwendet wurde */
   submittedEmail?: string;
+  /** Frisch registrierter Account (BSA): rendert die Inline-Code-Bestätigung. */
+  signupEmail?: string;
 }
 
-export default function FormSuccess({ title, message, submittedEmail }: FormSuccessProps) {
+export default function FormSuccess({ title, message, submittedEmail, signupEmail }: FormSuccessProps) {
   return (
     <div className="text-center py-12">
       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -17,24 +20,20 @@ export default function FormSuccess({ title, message, submittedEmail }: FormSucc
       <h2 className="text-xl font-semibold text-primary mb-2">{title}</h2>
       <p className="text-text-light">{message}</p>
 
-      {submittedEmail && (
+      {(signupEmail || submittedEmail) && (
         <div className="mt-6 mx-auto max-w-md space-y-3">
-          <div className="rounded-xl bg-accent/5 border border-accent/20 px-6 py-4 text-sm text-text-light">
-            <p className="mb-1 font-semibold text-text">Ihr DigiKI-Account</p>
-            <p>
-              Bitte prüfen Sie Ihr Postfach ({" "}
-              <strong className="text-text">{submittedEmail}</strong>{" "})
-              und klicken Sie auf den Bestätigungslink, um Ihren Account zu aktivieren.
-              Danach können Sie sich direkt in der{" "}
-              <Link
-                href="/best-practice/login"
-                className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
-              >
-                Best-Practice-Datenbank anmelden
-              </Link>
-              .
-            </p>
-          </div>
+          {signupEmail ? (
+            <InlineSignupConfirm email={signupEmail} />
+          ) : (
+            <div className="rounded-xl bg-accent/5 border border-accent/20 px-6 py-4 text-sm text-text-light">
+              <p className="mb-1 font-semibold text-text">Eingangsbestätigung</p>
+              <p>
+                Eine Bestätigung Ihrer Einreichung wurde an{" "}
+                <strong className="text-text">{submittedEmail}</strong>{" "}
+                gesendet.
+              </p>
+            </div>
+          )}
           <div className="rounded-xl bg-primary/5 border border-primary/20 px-6 py-4 text-sm text-text-light">
             <p>
               <strong className="text-text">Status verfolgen:</strong> Nach dem Login sehen Sie Ihre

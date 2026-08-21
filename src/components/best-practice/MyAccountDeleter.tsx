@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Trash2,
   AlertTriangle,
@@ -14,10 +14,9 @@ import {
   BarChart2,
   MailCheck,
   Clock,
-  KeyRound,
-  ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import CodeVerifyBox from "@/components/auth/CodeVerifyBox";
 
 const CONFIRM_WORD = "LÖSCHEN";
 
@@ -31,6 +30,7 @@ interface Counts {
 type ModalPhase = "confirm" | "sent";
 
 export default function MyAccountDeleter() {
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -383,8 +383,8 @@ export default function MyAccountDeleter() {
                     <p className="font-semibold mb-1">Zwei-Schritt-Bestätigung</p>
                     <p>
                       Nach Klick auf „Bestätigungsmail senden" erhalten Sie eine E-Mail mit
-                      einem Link. Erst durch Öffnen dieses Links wird Ihr Konto
-                      unwiderruflich gelöscht. Der Link ist 24 Stunden gültig.
+                      einem 8-stelligen Code. Erst durch Eingabe dieses Codes wird Ihr Konto
+                      unwiderruflich gelöscht. Der Code ist 24 Stunden gültig.
                     </p>
                   </div>
 
@@ -430,8 +430,9 @@ export default function MyAccountDeleter() {
                         Aktion erforderlich
                       </p>
                       <p className="text-base text-slate-900 font-medium leading-snug">
-                        Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf
-                        den Bestätigungslink, um die Löschung abzuschließen.
+                        Wir haben Ihnen einen 8-stelligen Bestätigungscode per
+                        E-Mail gesendet. Geben Sie ihn unten ein, um die
+                        Löschung endgültig abzuschließen.
                       </p>
                     </div>
                   </div>
@@ -448,34 +449,44 @@ export default function MyAccountDeleter() {
                   <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
                     <Clock className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
                     <p>
-                      Der Link ist <strong>24 Stunden</strong> gültig. Danach startet der
-                      Vorgang wieder von vorn. Solange Sie den Link nicht anklicken,
+                      Der Code ist <strong>24 Stunden</strong> gültig. Danach startet der
+                      Vorgang wieder von vorn. Solange Sie den Code nicht eingeben,
                       bleibt Ihr Konto unverändert aktiv.
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                    <div className="flex items-start gap-3">
-                      <KeyRound
-                        className="h-4 w-4 mt-0.5 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm text-text leading-relaxed mb-2">
-                          <strong>Link funktioniert nicht?</strong> In der E-Mail
-                          finden Sie zusätzlich einen 8-stelligen Code, den Sie
-                          alternativ einlösen können.
-                        </p>
-                        <Link
-                          href="/best-practice/code-einloesen?type=account_deletion"
-                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
-                        >
-                          Code einlösen
-                          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                  <CodeVerifyBox
+                    idPrefix="account-delete"
+                    submitLabel="Löschung endgültig bestätigen"
+                    loadingLabel="Wird geprüft …"
+                    destructive
+                    onVerify={async (code) => {
+                      try {
+                        const res = await fetch("/api/account/confirm-delete-code", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: sentToEmail, code }),
+                        });
+                        const json = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                          return {
+                            ok: false,
+                            error:
+                              typeof json.error === "string"
+                                ? json.error
+                                : "Code konnte nicht eingelöst werden.",
+                          };
+                        }
+                        router.push("/konto-geloescht?status=ok");
+                        return { ok: true };
+                      } catch {
+                        return {
+                          ok: false,
+                          error: "Netzwerkfehler. Bitte erneut versuchen.",
+                        };
+                      }
+                    }}
+                  />
 
                   <p className="text-xs text-text-light leading-relaxed">
                     Keine E-Mail erhalten? Prüfen Sie bitte auch Ihren Spam-Ordner.
@@ -493,9 +504,9 @@ export default function MyAccountDeleter() {
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-text hover:bg-bg transition-colors"
                   >
-                    Verstanden, schließen
+                    Schließen
                   </button>
                 </div>
               </>

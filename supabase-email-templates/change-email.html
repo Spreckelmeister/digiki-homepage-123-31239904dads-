@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>E-Mail-Adresse bestätigen – DigiKI</title>
 </head>
+<!--
+  „Code statt Link": Diese Mail enthält bewusst KEINEN Token-Link mehr –
+  nur den 8-stelligen Code ({{ .Token }}) plus einen normalen Seiten-Link.
+  Der Code wird direkt in den Konto-Einstellungen eingegeben.
+  Referenzkopie – in Supabase unter Auth → Email Templates → „Change Email
+  Address" einfügen.
+-->
 <body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
     style="background-color:#F5F9F9;padding:40px 16px;">
@@ -39,7 +46,7 @@
               </h1>
               <p style="margin:0 0 20px 0;font-size:14px;color:#555555;line-height:1.6;">
                 Für Ihren DigiKI-Zugang wurde eine Änderung der E-Mail-Adresse angefordert.
-                Bitte bestätigen Sie die neue Adresse, damit Sie sich damit einloggen können.
+                Bestätigen Sie die neue Adresse mit dem folgenden Code.
               </p>
 
               <!-- Adressen-Übersicht -->
@@ -63,19 +70,16 @@
                 </tr>
               </table>
 
-              <!-- CTA-Button -->
-              <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 28px 0;">
-                <tr>
-                  <td style="border-radius:8px;background-color:#E8A838;">
-                    <a href="https://www.digiki-os.de/auth/bestaetigen?token_hash={{ .TokenHash }}&type=email_change&next=/best-practice/konto"
-                      style="display:inline-block;padding:14px 32px;font-size:15px;
-                        font-weight:bold;color:#ffffff;text-decoration:none;
-                        border-radius:8px;letter-spacing:0.2px;">
-                      Neue E-Mail-Adresse bestätigen
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <!-- Code -->
+              <p style="margin:0 0 12px 0;font-size:14px;color:#1A1A1A;line-height:1.6;">
+                Geben Sie diesen 8-stelligen Code im geöffneten Bestätigungsfenster
+                Ihrer Konto-Einstellungen ein:
+              </p>
+              <p style="margin:0 0 16px 0;font-size:24px;font-weight:bold;letter-spacing:6px;
+                        color:#006363;font-family:Consolas,Courier New,monospace;text-align:center;
+                        background-color:#ffffff;border:2px solid #006363;border-radius:8px;padding:14px 8px;">
+                {{ .Token }}
+              </p>
 
               <!-- Hinweisbox -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -84,50 +88,35 @@
                 <tr>
                   <td style="padding:14px 16px;">
                     <p style="margin:0;font-size:13px;color:#555555;line-height:1.5;">
-                      Der Bestätigungs-Link ist <strong>24 Stunden</strong> gültig.
-                      Bis zur Bestätigung bleibt Ihre bisherige E-Mail-Adresse weiterhin
-                      gültig. Falls Sie diese Änderung nicht angefordert haben, ignorieren
-                      Sie diese E-Mail bitte – es wird nichts geändert.
+                      Der Code ist <strong>24 Stunden</strong> gültig und nur einmal
+                      verwendbar. Bis zur Bestätigung bleibt Ihre bisherige
+                      E-Mail-Adresse weiterhin gültig. Falls Sie diese Änderung nicht
+                      angefordert haben, ignorieren Sie diese E-Mail bitte – es wird
+                      nichts geändert.
                     </p>
                   </td>
                 </tr>
               </table>
 
-              <!-- Probleme? Alternativer Code -->
+              <!-- Seiten-Link (ohne Token, scanner-sicher) -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#FFF8E7;border:1px solid #F3D98A;
-                  border-radius:8px;margin-bottom:20px;">
+                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;
+                  border-radius:0 6px 6px 0;margin-bottom:20px;">
                 <tr>
                   <td style="padding:14px 16px;">
-                    <p style="margin:0 0 6px 0;font-size:13px;font-weight:bold;color:#8B6200;">
-                      Der Button funktioniert nicht?
-                    </p>
-                    <p style="margin:0 0 10px 0;font-size:13px;color:#555555;line-height:1.5;">
-                      Manche Schul- oder Firmennetzwerke blockieren solche Links.
-                      Geben Sie stattdessen diesen Code ein:
-                    </p>
-                    <p style="margin:0 0 10px 0;font-size:22px;font-weight:bold;letter-spacing:4px;color:#006363;font-family:Consolas,Courier New,monospace;">
-                      {{ .Token }}
+                    <p style="margin:0 0 6px 0;font-size:13px;font-weight:bold;color:#006363;">
+                      Fenster bereits geschlossen?
                     </p>
                     <p style="margin:0;font-size:13px;color:#555555;line-height:1.5;">
-                      Code eingeben unter:
-                      <a href="https://www.digiki-os.de/best-practice/code-einloesen?type=email_change"
-                        style="color:#006363;">
-                        digiki-os.de/best-practice/code-einloesen
+                      Zu Ihren Konto-Einstellungen:
+                      <a href="https://www.digiki-os.de/best-practice/konto"
+                        style="color:#006363;font-weight:bold;">
+                        digiki-os.de/best-practice/konto
                       </a>
                     </p>
                   </td>
                 </tr>
               </table>
-
-              <!-- Fallback-Link (Rohtext) -->
-              <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;">
-                Oder kopieren Sie diesen Link in Ihren Browser:<br />
-                <a href="https://www.digiki-os.de/auth/bestaetigen?token_hash={{ .TokenHash }}&type=email_change&next=/best-practice/konto"
-                  style="color:#006363;word-break:break-all;">
-                  https://www.digiki-os.de/auth/bestaetigen?token_hash={{ .TokenHash }}&amp;type=email_change
-                </a>
-              </p>
             </td>
           </tr>
 

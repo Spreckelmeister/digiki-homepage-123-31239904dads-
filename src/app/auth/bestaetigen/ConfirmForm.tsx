@@ -92,7 +92,7 @@ export default function ConfirmForm() {
       const msg = verifyError.message.toLowerCase();
       if (msg.includes("expired") || msg.includes("invalid") || msg.includes("not found")) {
         setError(
-          "Dieser Bestätigungslink ist nicht mehr gültig. Bitte fordern Sie einen neuen an – oder nutzen Sie den 8-stelligen Code aus der E-Mail."
+          "Dieser Bestätigungslink ist nicht mehr gültig. Sie brauchen keinen neuen Link: Melden Sie sich einfach unter „Anmelden“ an – Sie erhalten dort automatisch einen neuen Code per E-Mail."
         );
       } else {
         setError("Die Bestätigung ist fehlgeschlagen. Bitte versuchen Sie es erneut.");
@@ -131,15 +131,15 @@ export default function ConfirmForm() {
     return (
       <div className="rounded-xl border border-border bg-white p-8 shadow-sm">
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          Dieser Link ist unvollständig oder ungültig. Bitte öffnen Sie den
-          Link direkt aus der E-Mail – oder geben Sie den 8-stelligen Code
-          manuell ein.
+          Dieser Link ist unvollständig oder ungültig. Sie brauchen ihn nicht:
+          Melden Sie sich einfach mit Ihrer E-Mail-Adresse an – Sie erhalten
+          dann automatisch einen Code.
         </div>
         <Link
-          href="/best-practice/code-einloesen"
+          href="/best-practice/login"
           className="mt-4 inline-block text-sm font-medium text-primary underline hover:text-primary/80"
         >
-          Zur Code-Eingabe
+          Zur Anmeldung
         </Link>
       </div>
     );
@@ -183,10 +183,20 @@ export default function ConfirmForm() {
       <p className="mt-5 text-center text-sm text-text-light">
         Funktioniert das nicht?{" "}
         <Link
-          href={`/best-practice/code-einloesen${type === "recovery" ? "?type=recovery" : type === "email_change" ? "?type=email_change" : "?type=signup"}`}
+          href={
+            type === "recovery"
+              ? "/best-practice/passwort-vergessen"
+              : type === "email_change"
+                ? "/best-practice/konto"
+                : "/best-practice/login"
+          }
           className="font-medium text-primary underline hover:text-primary/80"
         >
-          8-stelligen Code eingeben
+          {type === "recovery"
+            ? "Code für ein neues Passwort anfordern"
+            : type === "email_change"
+              ? "Zu den Konto-Einstellungen"
+              : "Per Code anmelden"}
         </Link>
       </p>
     </div>

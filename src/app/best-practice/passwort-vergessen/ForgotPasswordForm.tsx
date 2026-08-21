@@ -2,70 +2,137 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeOtpCode } from "@/lib/auth/verifySignInCode";
+import CodeVerifyBox from "@/components/auth/CodeVerifyBox";
 
 const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
 
 export default function ForgotPasswordForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [step, setStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
 
   const isNibis = useMemo(() => NIBIS_PATTERN.test(email.trim()), [email]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-
-    const supabase = createClient();
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-
-    // Always show success regardless of outcome (don't reveal if email exists)
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/best-practice/passwort-zuruecksetzen`,
-    });
-
-    setSent(true);
-    setLoading(false);
+  async function requestCode(): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      const res = await fetch("/api/auth/request-recovery-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      // 429 = kürzlich schon angefordert → trotzdem zur Eingabe weiter.
+      if (res.ok || res.status === 429) return { ok: true };
+      if (res.status === 503) {
+        return {
+          ok: false,
+          error:
+            "Der Code-Versand ist im Moment leider nicht möglich. Bitte wenden Sie sich an krafft@osnabrueck.de.",
+        };
+      }
+      return {
+        ok: false,
+        error: "Der Code konnte nicht angefordert werden. Bitte versuchen Sie es erneut.",
+      };
+    } catch {
+      return { ok: false, error: "Netzwerkfehler. Bitte versuchen Sie es erneut." };
+    }
   }
 
-  if (sent) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+
+    const result = await requestCode();
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    // Immer weiter zur Code-Eingabe – ob ein Konto existiert, wird nicht verraten.
+    setStep("code");
+  }
+
+  if (step === "code") {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-border text-center" role="status" aria-live="polite">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-          <Mail className="h-7 w-7 text-green-600" aria-hidden="true" />
-        </div>
-        <h2 className="text-lg font-semibold text-primary mb-2">
-          E-Mail gesendet
+      <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
+        <h2 className="text-lg font-semibold text-primary mb-4">
+          Code eingeben
         </h2>
-        <p className="text-sm text-text-light mb-6">
-          Falls ein Konto mit dieser Adresse existiert, haben wir Ihnen einen
-          Link zum Zurücksetzen Ihres Passworts zugeschickt. Bitte prüfen Sie
-          auch Ihren Spam-Ordner.
-        </p>
-        <div className="bg-bg border border-border rounded-lg p-4 mb-6 text-left">
-          <p className="text-sm text-text mb-2">
-            <strong>Link funktioniert nicht?</strong>
+        <CodeVerifyBox
+          idPrefix="recovery"
+          submitLabel="Weiter zum neuen Passwort"
+          loadingLabel="Wird geprüft …"
+          autoFocus
+          startCooldownOnMount
+          description={
+            <>
+              Falls ein Konto mit dieser Adresse existiert, haben wir einen
+              8-stelligen Code an{" "}
+              <strong className="text-text">{email}</strong> gesendet. Bitte
+              prüfen Sie auch Ihren Spam-Ordner.
+              {info && <span className="mt-1 block">{info}</span>}
+            </>
+          }
+          onVerify={async (code) => {
+            const supabase = createClient();
+            const { error: verifyError } = await supabase.auth.verifyOtp({
+              email: email.trim().toLowerCase(),
+              token: normalizeOtpCode(code),
+              type: "recovery",
+            });
+            if (!verifyError) {
+              // Recovery-Session steht → neues Passwort festlegen.
+              router.push("/best-practice/passwort-zuruecksetzen");
+              return { ok: true };
+            }
+            const msg = verifyError.message.toLowerCase();
+            if (msg.includes("expired")) {
+              return {
+                ok: false,
+                error:
+                  "Der Code ist abgelaufen. Bitte fordern Sie mit „Code erneut senden“ einen neuen an.",
+              };
+            }
+            return {
+              ok: false,
+              error:
+                "Der Code ist nicht korrekt oder wurde bereits verwendet. Bitte prüfen Sie Ihre Eingabe – es gilt immer der Code aus der neuesten E-Mail.",
+            };
+          }}
+          onResend={requestCode}
+        />
+        <div className="mt-5 space-y-2 text-center text-sm text-text-light">
+          <p>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("email");
+                setError("");
+                setInfo("");
+              }}
+              className="text-primary underline hover:text-primary/80"
+            >
+              Andere E-Mail-Adresse verwenden
+            </button>
           </p>
-          <p className="text-sm text-text-light mb-3">
-            In der E-Mail finden Sie auch einen <strong>8-stelligen Code</strong>,
-            den Sie stattdessen eingeben können.
+          <p>
+            <Link
+              href="/best-practice/login"
+              className="text-primary underline hover:text-primary/80"
+            >
+              Zurück zur Anmeldung
+            </Link>
           </p>
-          <Link
-            href="/best-practice/code-einloesen?type=recovery"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline hover:text-primary/80 transition-colors"
-          >
-            Zur Code-Eingabe
-          </Link>
         </div>
-        <Link
-          href="/best-practice/login"
-          className="text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
-        >
-          Zurück zur Anmeldung
-        </Link>
       </div>
     );
   }
@@ -73,10 +140,15 @@ export default function ForgotPasswordForm() {
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
       <p className="text-sm text-text-light mb-6">
-        Geben Sie Ihre E-Mail-Adresse ein. Wir schicken Ihnen einen Link, mit
-        dem Sie ein neues Passwort festlegen können.
+        Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen 8-stelligen
+        Code, mit dem Sie hier direkt ein neues Passwort festlegen können.
       </p>
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+            {error}
+          </div>
+        )}
         <div>
           <label
             htmlFor="email"
@@ -118,7 +190,7 @@ export default function ForgotPasswordForm() {
           className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           <Mail className="w-5 h-5" aria-hidden="true" />
-          {loading ? "Wird gesendet..." : "Link anfordern"}
+          {loading ? "Wird gesendet..." : "Code anfordern"}
         </button>
       </form>
 

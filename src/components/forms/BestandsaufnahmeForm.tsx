@@ -1050,8 +1050,8 @@ export default function BestandsaufnahmeForm({
     ) : (
       <FormSuccess
         title="Vielen Dank für Ihre Teilnahme!"
-        message="Ihre Bestandsaufnahme wurde übermittelt und Ihr DigiKI-Account wurde angelegt. Bitte prüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink von Supabase, um Ihren Account zu aktivieren."
-        submittedEmail={contactEmail}
+        message="Ihre Bestandsaufnahme wurde übermittelt und Ihr DigiKI-Account wurde angelegt. Wir haben Ihnen soeben einen 8-stelligen Bestätigungscode per E-Mail gesendet."
+        signupEmail={contactEmail}
       />
     );
   }
@@ -1693,7 +1693,7 @@ export default function BestandsaufnahmeForm({
 
             <p className="text-sm text-text-light leading-relaxed">
               Mit diesen Angaben wird automatisch ein Login für die DigiKI Best-Practice-Datenbank angelegt.
-              Sie erhalten nach dem Absenden eine Bestätigungs-E-Mail – erst danach ist der Account aktiv.
+              Nach dem Absenden erhalten Sie einen Bestätigungscode per E-Mail – damit schalten Sie Ihren Account direkt frei.
             </p>
 
             <div>

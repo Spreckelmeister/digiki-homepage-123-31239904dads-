@@ -83,6 +83,7 @@ export async function updateSession(request: NextRequest) {
       "/best-practice/konto",
       "/best-practice/passwort-vergessen",
       "/best-practice/passwort-zuruecksetzen",
+      // Nur noch Redirect-Stub für alte E-Mail-Links („Code statt Link").
       "/best-practice/code-einloesen",
       "/best-practice/login",
     ].some((p) => path === p || path.startsWith(`${p}/`));

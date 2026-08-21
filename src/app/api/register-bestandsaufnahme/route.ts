@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import { extractContactNames } from "@/lib/contact-name";
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+import {
+  escapeHtml,
+  isSmtpConfigured,
+  sendAuthCodeMail,
+} from "@/lib/email/sendAuthCodeMail";
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -257,25 +252,27 @@ export async function POST(request: NextRequest) {
 
   const userId = userData.user.id;
 
-  // ── Bestätigungs-Link generieren ───────────────────────────────────────────
-  // Trailing-Slash entfernen, sonst entsteht „…de//auth/bestaetigen" (ungültig).
+  // ── Bestätigungscode generieren („Code statt Link") ────────────────────────
+  // Der generierte Link wird NIE verschickt – wir nutzen ausschließlich den
+  // Einmal-Code (properties.email_otp). Ein Code kann von automatischen
+  // Mail-Scannern (Schul-/Firmennetze) nicht verbraucht werden; die Eingabe
+  // passiert direkt auf dem Erfolgsbildschirm der Bestandsaufnahme oder
+  // später beim Code-Login (der die Adresse ebenfalls bestätigt).
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
   const { data: linkData, error: linkError } =
     await adminSupabase.auth.admin.generateLink({
       type: "signup",
       email: loginEmail,
       password,
-      options: {
-        redirectTo: `${siteUrl}/auth/bestaetigen?next=/best-practice/datenbank`,
-      },
     });
 
-  if (linkError || !linkData?.properties?.hashed_token) {
+  const otpCode = linkData?.properties?.email_otp ?? "";
+  if (linkError || !otpCode) {
     console.error(
       "[register-bestandsaufnahme] generateLink error:",
-      linkError?.message
+      linkError?.message ?? "email_otp fehlt"
     );
-    // Account wurde angelegt, aber kein Link – rollback, sonst blockiert die
+    // Account wurde angelegt, aber kein Code – rollback, sonst blockiert die
     // Email für eine spätere echte Registrierung.
     try {
       await adminSupabase.auth.admin.deleteUser(userId);
@@ -287,24 +284,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-  // Wir bauen den Bestätigungs-Link bewusst SELBST – nicht `action_link`
-  // verwenden! Supabase's eingebaute Verify-Route würde sonst nach
-  // erfolgreichem Token-Check zur "Site URL" (https://digiki-os.de)
-  // redirecten, wenn unsere `redirectTo` nicht in der Allowlist steht.
-  // Mit `token_hash` + unserer Bestätigungsseite /auth/bestaetigen haben wir
-  // die volle Kontrolle über den Ziel-Redirect (-> /best-practice/datenbank)
-  // UND der Token wird NUR per Button-Klick eingelöst – so verbrauchen
-  // automatische Link-Scanner (Schulnetze) ihn nicht schon beim GET.
-  const tokenHash = linkData.properties.hashed_token;
-  const nextPath = "/best-practice/datenbank";
-  const confirmationUrl =
-    `${siteUrl}/auth/bestaetigen` +
-    `?token_hash=${encodeURIComponent(tokenHash)}` +
-    `&type=signup` +
-    `&next=${encodeURIComponent(nextPath)}`;
-  // OTP für den Fall, dass Schul-/Firmennetzwerke den Link blockieren.
-  // Wird im Mail-Template als prominente Alternative dargestellt.
-  const otpCode = linkData.properties.email_otp ?? "";
 
   // ── Profil schreiben ───────────────────────────────────────────────────────
   const { error: profileError } = await adminSupabase.from("profiles").upsert(
@@ -420,135 +399,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
-  // ── Bestätigungs-Mail versenden ────────────────────────────────────────────
+  // ── Bestätigungs-Mail versenden (nur Code + Seiten-Link, kein Token-Link) ──
   let emailSent = false;
-  if (
-    process.env.SMTP_HOST &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASSWORD
-  ) {
+  if (isSmtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT ?? "587"),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD,
-        },
-      });
-
       const greeting = `Guten Tag ${escapeHtml(contactName.slice(0, 100))},`;
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
       const emailSafe = escapeHtml(loginEmail);
-      const confirmationUrlSafe = escapeHtml(confirmationUrl);
-      const otpCodeSafe = escapeHtml(otpCode);
-      const codeEinloesenUrl = `${siteUrl}/best-practice/code-einloesen?type=signup`;
-      const codeEinloesenUrlSafe = escapeHtml(codeEinloesenUrl);
-      const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
-      // Code-Alternative nur einbauen, wenn Supabase tatsächlich eine OTP
-      // mitgeliefert hat – ansonsten leerer Block.
-      const codeAlternativeHtml = otpCode
-        ? `
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#FFF8E7;border:1px solid #F3D98A;border-radius:8px;margin:0 0 24px 0;">
-                <tr>
-                  <td style="padding:16px 18px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#8B6200;font-size:14px;">
-                      Der Button funktioniert nicht?
-                    </p>
-                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Manche Schul- oder Firmen-Netzwerke scannen E-Mail-Links
-                      automatisch und machen sie dadurch ungültig. Sie können
-                      Ihren Zugang stattdessen mit diesem Code bestätigen:
-                    </p>
-                    <p style="margin:0 0 12px 0;font-size:24px;font-weight:bold;letter-spacing:6px;
-                              color:#006363;font-family:Consolas,Courier New,monospace;text-align:center;
-                              background-color:#ffffff;border:1px solid #F3D98A;border-radius:6px;padding:12px 8px;">
-                      ${otpCodeSafe}
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:13px;line-height:1.6;">
-                      Code eingeben unter:<br />
-                      <a href="${codeEinloesenUrlSafe}" style="color:#006363;font-weight:bold;">
-                        digiki-os.de/best-practice/code-einloesen
-                      </a>
-                    </p>
-                  </td>
-                </tr>
-              </table>`
-        : "";
-
-      const html = `
-<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
-<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-    style="background-color:#F5F9F9;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
-          style="max-width:560px;width:100%;">
-          <!-- Logo-Header -->
-          <tr>
-            <td align="center"
-              style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
-              <img src="https://digiki-os.de/images/logos/DigiKI_Logo_v5.png"
-                alt="DigiKI – Grundschulen Osnabrück"
-                width="160" height="73"
-                style="display:block;border:0;" />
-            </td>
-          </tr>
-          <!-- Farbbalken -->
-          <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#006363 0%,#00cabe 100%);"></td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="background-color:#ffffff;padding:36px 32px;
-              border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
-              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
-                Bestandsaufnahme eingereicht – bitte E-Mail bestätigen
-              </h1>
+      await sendAuthCodeMail({
+        to: loginEmail,
+        subject: "Bitte E-Mail bestätigen – Ihr DigiKI-Code",
+        eyebrow: "Bestandsaufnahme",
+        heading: "Bestandsaufnahme eingereicht – bitte E-Mail bestätigen",
+        preheader: "Ihr 8-stelliger Bestätigungscode für Ihren DigiKI-Account.",
+        introHtml: `
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
-              <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
+              <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Vielen Dank! Ihre Bestandsaufnahme für
                 <strong>${schoolSafe}</strong> ist erfolgreich bei uns eingegangen.
-              </p>
-
+              </p>`,
+        codeLeadHtml:
+          "Geben Sie diesen 8-stelligen Code auf der Abschluss-Seite der Bestandsaufnahme ein – dort ist bereits ein Eingabefeld geöffnet. Damit bestätigen Sie Ihre E-Mail-Adresse und sind direkt angemeldet:",
+        code: otpCode,
+        pageUrl: `${siteUrl}/best-practice/login`,
+        pageLabel:
+          "Seite bereits geschlossen? Kein Problem: Melden Sie sich einfach hier mit Ihrer E-Mail-Adresse an – Sie erhalten automatisch einen neuen Code, und mit der Anmeldung wird Ihre Adresse bestätigt.",
+        pageUrlText: "digiki-os.de/best-practice/login",
+        extraHtml: `
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
                 style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
-                <tr>
-                  <td style="padding:16px 18px;">
-                    <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
-                      E-Mail-Adresse bestätigen
-                    </p>
-                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Damit wir sicher sind, dass diese Adresse Ihnen gehört,
-                      bestätigen Sie bitte Ihren Zugang mit einem Klick auf den
-                      folgenden Link. Erst danach können Sie sich in der
-                      Best-Practice-Datenbank anmelden.
-                    </p>
-                    <p style="margin:0 0 10px 0;">
-                      <a href="${confirmationUrlSafe}"
-                        style="display:inline-block;background-color:#006363;color:#ffffff;
-                          text-decoration:none;font-weight:bold;font-size:15px;
-                          padding:12px 22px;border-radius:8px;">
-                        Zugang bestätigen
-                      </a>
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
-                      Der Link funktioniert nicht?
-                      <a href="${confirmationUrlSafe}"
-                        style="color:#006363;word-break:break-all;">${confirmationUrlSafe}</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-${codeAlternativeHtml}
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
                   <td style="padding:14px 16px;">
                     <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
@@ -559,44 +439,13 @@ ${codeAlternativeHtml}
                     </p>
                   </td>
                 </tr>
-              </table>
-
-              <p style="margin:0;color:#1A1A1A;font-size:15px;">
-                Mit freundlichen Grüßen<br />
-                <strong>Das DigiKI-Team</strong>
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color:#F5F9F9;padding:20px 32px;
-              border:1px solid #DEE8E8;border-top:none;
-              border-radius:0 0 12px 12px;">
-              <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
-                Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
-                DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-      await transporter.sendMail({
-        from: `DigiKI <${from}>`,
-        to: loginEmail,
-        subject: "Bitte E-Mail bestätigen – DigiKI",
-        html,
+              </table>`,
       });
       emailSent = true;
     } catch (emailErr) {
-      // Email-Fehler nicht fatal – Daten sind gespeichert, User kann den Link
-      // bei Bedarf über "Passwort vergessen" oder den Code-Einlöser neu anfordern.
+      // Email-Fehler nicht fatal – Daten sind gespeichert; ein neuer Code kann
+      // jederzeit über die Anmeldeseite angefordert werden (der Code-Login
+      // bestätigt die Adresse gleich mit).
       console.error("[register-bestandsaufnahme] Email error:", emailErr);
     }
   }

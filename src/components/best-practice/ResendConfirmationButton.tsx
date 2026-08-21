@@ -114,7 +114,7 @@ export default function ResendConfirmationButton({
       setOverrideChecked(false);
       setMessage({
         type: "ok",
-        text: `Neue Bestätigungs-Mail an ${currentEmail} verschickt – mit 8-stelligem Code und 24-Stunden-Hinweis.`,
+        text: `Erinnerungs-Mail an ${currentEmail} verschickt – mit Anleitung zur Anmeldung per Code (bestätigt die Adresse automatisch).`,
       });
       router.refresh();
     } catch {
@@ -150,11 +150,11 @@ export default function ResendConfirmationButton({
 
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-light">
           Für{" "}
-          <span className="font-mono text-text">{currentEmail}</span> wurde der
-          Bestätigungs-Link bisher nicht eingelöst. Beim erneuten Versand
-          informieren wir die Schule freundlich darüber, dass uns das
-          aufgefallen ist, und legen einen 8-stelligen Code als Alternative
-          bei – für den Fall, dass das Schul-Netzwerk Links blockiert.
+          <span className="font-mono text-text">{currentEmail}</span> wurde die
+          E-Mail-Adresse bisher nicht bestätigt. Die Erinnerungs-Mail erklärt
+          der Schule Schritt für Schritt die Anmeldung per E-Mail-Code – mit
+          der Anmeldung wird die Adresse automatisch bestätigt. Die Mail
+          enthält keinen Link und keinen Code, der ablaufen könnte.
         </p>
 
         {/* Cooldown-Hinweis ODER 24h-Info-Pille */}
@@ -165,7 +165,7 @@ export default function ResendConfirmationButton({
               aria-hidden="true"
             />
             <span>
-              Eine Bestätigungs-Mail wurde bereits versendet
+              Eine Erinnerungs-Mail wurde bereits versendet
               {localLastResend && (
                 <>
                   {" "}
@@ -176,18 +176,18 @@ export default function ResendConfirmationButton({
                   Uhr)
                 </>
               )}
-              . Der Link aus dieser Mail ist noch{" "}
+              . Ein neuer Versand ist erst in{" "}
               <strong className="text-text">{block.formatted}</strong>{" "}
-              gültig – aus Rücksicht auf die Schule sperren wir einen weiteren
-              Versand bis dahin.
+              möglich – aus Rücksicht auf die Schule, damit sie nicht mehrfach
+              hintereinander kontaktiert wird.
             </span>
           </div>
         ) : (
           <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-1.5 text-[12px] text-text-light">
             <Clock3 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
             <span>
-              Link &amp; Code sind nach Versand{" "}
-              <strong className="text-text">24 Stunden gültig</strong>.
+              Die Mail enthält nur eine Anleitung –{" "}
+              <strong className="text-text">sie läuft nicht ab</strong>.
             </span>
           </div>
         )}
@@ -207,9 +207,9 @@ export default function ResendConfirmationButton({
                 24-Stunden-Sperre überschreiben und trotzdem jetzt senden
               </span>
               <span className="mt-0.5 block text-amber-800">
-                Die Schule erhält dann ggf. zwei Bestätigungs-Mails kurz
-                hintereinander. Nur nutzen, wenn die vorherige Mail nachweislich
-                nicht ankam oder der Link defekt war.
+                Die Schule erhält dann ggf. zwei Erinnerungs-Mails kurz
+                hintereinander. Nur nutzen, wenn die vorherige Mail
+                nachweislich nicht ankam.
               </span>
             </span>
           </label>
@@ -240,7 +240,7 @@ export default function ResendConfirmationButton({
                 ? "Trotzdem jetzt senden"
                 : isLocked && block
                   ? `Erneut möglich in ${block.formatted}`
-                  : "Bestätigungs-Mail erneut senden"}
+                  : "Erinnerungs-Mail senden"}
           </button>
 
           {message && (

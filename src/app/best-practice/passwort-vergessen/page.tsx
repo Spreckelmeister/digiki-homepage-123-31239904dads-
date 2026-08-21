@@ -6,7 +6,7 @@ import ForgotPasswordForm from "./ForgotPasswordForm";
 export const metadata: Metadata = {
   title: "Passwort vergessen – Best Practice",
   description:
-    "Setzen Sie Ihr Passwort zurück. Wir schicken Ihnen einen Link per E-Mail.",
+    "Setzen Sie Ihr Passwort zurück. Wir schicken Ihnen einen Code per E-Mail.",
   robots: { index: false, follow: false },
 };
 
@@ -27,8 +27,8 @@ export default function PastwortVergessenPage() {
             Passwort vergessen
           </h1>
           <p className="text-lg text-white/70">
-            Wir schicken Ihnen einen Link, mit dem Sie ein neues Passwort
-            festlegen können.
+            Wir schicken Ihnen einen Code, mit dem Sie hier direkt ein neues
+            Passwort festlegen können.
           </p>
         </div>
       </section>

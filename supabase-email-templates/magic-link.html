@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>E-Mail-Adresse bestätigen – DigiKI</title>
+  <title>Ihr Anmeldecode – DigiKI</title>
 </head>
 <!--
-  „Code statt Link": Diese Mail enthält bewusst KEINEN Token-Link mehr –
+  „Code statt Link": Diese Mail enthält bewusst KEINEN Token-Link –
   nur den 8-stelligen Code ({{ .Token }}) plus einen normalen Seiten-Link.
-  Hinweis: Die reguläre Signup-Bestätigung läuft über unsere eigene Mail
-  aus /api/register-bestandsaufnahme; dieses Template greift nur noch,
-  falls Supabase selbst eine Confirm-Mail verschickt (Defense-in-Depth).
-  Referenzkopie – in Supabase unter Auth → Email Templates → „Confirm
-  Signup" einfügen.
+  Hinweis: Die reguläre Anmelde-Code-Mail kommt aus unserer eigenen Route
+  (/api/auth/request-login-code) – dieses Template greift nur, falls
+  Supabase selbst eine Magic-Link-Mail verschickt (z.B. „Send magic link"
+  im Supabase-Dashboard; Defense-in-Depth). Referenzkopie – in Supabase
+  unter Auth → Email Templates → „Magic Link" einfügen.
 -->
 <body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -44,11 +44,11 @@
               border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
 
               <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:bold;color:#006363;">
-                Bitte bestätigen Sie Ihre E-Mail-Adresse
+                Ihr Anmeldecode
               </h1>
               <p style="margin:0 0 20px 0;font-size:14px;color:#555555;line-height:1.6;">
-                Herzlich willkommen bei DigiKI! Bestätigen Sie Ihre E-Mail-Adresse mit
-                dem folgenden Code – damit ist Ihr Konto aktiv.
+                Mit diesem Code melden Sie sich bei DigiKI an – ganz ohne Passwort.
+                Geben Sie ihn einfach auf der Anmeldeseite ein.
               </p>
 
               <!-- Code -->
@@ -66,9 +66,9 @@
                   <td style="padding:14px 16px;">
                     <p style="margin:0;font-size:13px;color:#555555;line-height:1.5;">
                       Der Code ist <strong>24 Stunden</strong> gültig und nur einmal
-                      verwendbar. Kein Problem, falls er abläuft: Melden Sie sich einfach
-                      mit Ihrer E-Mail-Adresse an – Sie erhalten dann automatisch einen
-                      neuen Code, und mit der Anmeldung wird Ihre Adresse bestätigt.
+                      verwendbar. Es gilt immer der Code aus der neuesten E-Mail.
+                      Falls Sie die Anmeldung nicht angefordert haben, ignorieren Sie
+                      diese E-Mail bitte – ohne Eingabe des Codes passiert nichts.
                     </p>
                   </td>
                 </tr>

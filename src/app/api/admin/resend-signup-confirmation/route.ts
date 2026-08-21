@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
 import { getResendBlock } from "@/lib/auth/resendCooldown";
 import { extractContactNames } from "@/lib/contact-name";
+import {
+  escapeHtml,
+  isSmtpConfigured,
+  sendAuthCodeMail,
+  getSiteUrl,
+} from "@/lib/email/sendAuthCodeMail";
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+/**
+ * Admin-Funktion: Erinnerungs-Mail an Schulen mit unbestätigter E-Mail.
+ *
+ * „Code statt Link": Diese Mail enthält bewusst KEIN Geheimnis mehr (weder
+ * Token-Link noch Code) – nur eine Schritt-für-Schritt-Anleitung für die
+ * Anmeldung per Code. Der Code-Login bestätigt die Adresse automatisch,
+ * und eine Anleitung kann nie ablaufen und von keinem Mail-Scanner
+ * unbrauchbar gemacht werden.
+ */
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -106,10 +112,9 @@ export async function POST(request: NextRequest) {
   //  • signup-grace:    Die Anmeldung ist noch keine 24h her – die Schule
   //    soll erst selbst Gelegenheit haben, ihre Adresse zu bestätigen,
   //    bevor wir per Admin-Mail nachfassen.
-  //  • resend-cooldown: Solange der Link aus einer vorherigen Mail noch
-  //    gültig ist (24h ab Versand), soll nicht erneut versendet werden,
-  //    damit die Schule nicht mehrfach kontaktiert wird. Quelle der
-  //    Wahrheit ist user_metadata.last_confirmation_resend_at.
+  //  • resend-cooldown: Nicht mehrfach hintereinander erinnern, damit die
+  //    Schule nicht gespammt wird. Quelle der Wahrheit ist
+  //    user_metadata.last_confirmation_resend_at.
   const existingMeta =
     (userData.user.user_metadata ?? {}) as Record<string, unknown>;
   const lastResendIso =
@@ -121,8 +126,8 @@ export async function POST(request: NextRequest) {
   if (block && !forceOverride) {
     const error =
       block.reason === "signup-grace"
-        ? `Die Anmeldung ist erst seit Kurzem eingegangen. Wir geben der Schule zunächst Gelegenheit, ihre E-Mail-Adresse selbst zu bestätigen – eine erneute Bestätigungs-Mail kann erst in ${block.formatted} versendet werden.`
-        : `Eine neue Bestätigungs-Mail kann erst in ${block.formatted} versendet werden – der Link aus der vorherigen Mail ist noch ${block.formatted} gültig. So vermeiden wir, dass die Schule mehrfach kontaktiert wird.`;
+        ? `Die Anmeldung ist erst seit Kurzem eingegangen. Wir geben der Schule zunächst Gelegenheit, ihre E-Mail-Adresse selbst zu bestätigen – eine Erinnerungs-Mail kann erst in ${block.formatted} versendet werden.`
+        : `Eine neue Erinnerungs-Mail kann erst in ${block.formatted} versendet werden – so vermeiden wir, dass die Schule mehrfach hintereinander kontaktiert wird.`;
     return NextResponse.json(
       {
         error,
@@ -143,54 +148,7 @@ export async function POST(request: NextRequest) {
   const fullName = targetProfile?.full_name ?? "";
   const schoolName = targetProfile?.school ?? "";
 
-  // Magic-Link erzeugen. Beim Klick wird der User eingeloggt UND die E-Mail
-  // als bestätigt markiert – das ersetzt also die ursprüngliche Signup-
-  // Bestätigung. Vorteil gegenüber type:"signup": funktioniert ohne dass
-  // wir das Klartext-Passwort des Users kennen müssen.
-  // Trailing-Slash entfernen, sonst entsteht „…de//auth/bestaetigen" (ungültig).
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
-  const { data: linkData, error: linkError } =
-    await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: targetEmail,
-      options: {
-        redirectTo: `${siteUrl}/auth/bestaetigen?next=/best-practice/datenbank`,
-      },
-    });
-
-  if (linkError || !linkData?.properties?.hashed_token) {
-    console.error(
-      "[resend-signup-confirmation] generateLink error:",
-      linkError?.message,
-    );
-    return NextResponse.json(
-      { error: "Bestätigungs-Link konnte nicht erzeugt werden" },
-      { status: 500 },
-    );
-  }
-
-  // WICHTIG: NICHT `action_link` verwenden – Supabase's eingebaute
-  // Verify-Route würde nach Erfolg zur "Site URL" (Startseite) zurück-
-  // redirecten, wenn unsere redirectTo nicht in der Allowlist steht.
-  // Stattdessen bauen wir die URL zu unserer Bestätigungsseite
-  // /auth/bestaetigen, die token_hash + type NUR per Button-Klick einlöst –
-  // so verbrauchen automatische Link-Scanner (Schulnetze) den Einmal-Token
-  // nicht schon beim bloßen GET (genau der Fehler bei abgelaufenen Links/Codes).
-  const tokenHash = linkData.properties.hashed_token;
-  const nextPath = "/best-practice/datenbank";
-  const confirmationUrl =
-    `${siteUrl}/auth/bestaetigen` +
-    `?token_hash=${encodeURIComponent(tokenHash)}` +
-    `&type=magiclink` +
-    `&next=${encodeURIComponent(nextPath)}`;
-  const otpCode = linkData.properties.email_otp ?? "";
-
-  // SMTP-Konfiguration prüfen
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
-  ) {
+  if (!isSmtpConfigured()) {
     return NextResponse.json(
       { error: "Mail-Versand ist serverseitig nicht konfiguriert" },
       { status: 500 },
@@ -198,16 +156,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT ?? "587"),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
-
     // full_name kann „Name, Funktion" (ggf. mehrere Personen) sein – für die
     // Anrede nur die Namen verwenden (Funktionen entfernt).
     const contactName = extractContactNames(fullName);
@@ -216,148 +164,57 @@ export async function POST(request: NextRequest) {
       : "Guten Tag,";
     const schoolSafe = escapeHtml(schoolName.slice(0, 200));
     const emailSafe = escapeHtml(targetEmail);
-    const confirmationUrlSafe = escapeHtml(confirmationUrl);
-    const otpCodeSafe = escapeHtml(otpCode);
-    // Resend nutzt einen magiclink-Token → Code-Seite gleich mit type=magiclink
-    // vorbelegen (sonst greift erst der Typ-Fallback der Code-Seite).
-    const codeEinloesenUrl = `${siteUrl}/best-practice/code-einloesen?type=magiclink`;
-    const codeEinloesenUrlSafe = escapeHtml(codeEinloesenUrl);
-    const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
+    const schoolPhrase = schoolName ? ` für <strong>${schoolSafe}</strong>` : "";
+    const siteUrl = getSiteUrl();
+    const loginUrl = `${siteUrl}/best-practice/login`;
 
-    const codeAlternativeHtml = otpCode
-      ? `
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#FFF8E7;border:1px solid #F3D98A;border-radius:8px;margin:0 0 24px 0;">
-                <tr>
-                  <td style="padding:16px 18px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#8B6200;font-size:14px;">
-                      Der Button funktioniert nicht?
-                    </p>
-                    <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Manche Schul- oder Firmen-Netzwerke scannen E-Mail-Links
-                      automatisch und machen sie dadurch ungültig. Sie können
-                      Ihren Zugang stattdessen mit diesem Code bestätigen:
-                    </p>
-                    <p style="margin:0 0 12px 0;font-size:24px;font-weight:bold;letter-spacing:6px;
-                              color:#006363;font-family:Consolas,Courier New,monospace;text-align:center;
-                              background-color:#ffffff;border:1px solid #F3D98A;border-radius:6px;padding:12px 8px;">
-                      ${otpCodeSafe}
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:13px;line-height:1.6;">
-                      Code eingeben unter:<br />
-                      <a href="${codeEinloesenUrlSafe}" style="color:#006363;font-weight:bold;">
-                        digiki-os.de/best-practice/code-einloesen
-                      </a>
-                    </p>
-                  </td>
-                </tr>
-              </table>`
-      : "";
-
-    const schoolPhrase = schoolName
-      ? ` für <strong>${schoolSafe}</strong>`
-      : "";
-
-    // Freundliche Einleitung, die erklärt, WARUM diese Mail kommt – kein
-    // anonymes „erneut zugesandt", sondern eine persönliche Notiz, dass uns
-    // das Fehlen der Bestätigung aufgefallen ist.
-    const introBlock = `
+    await sendAuthCodeMail({
+      to: targetEmail,
+      subject: "Anmelden bei DigiKI geht jetzt ganz einfach – per Code",
+      eyebrow: "Erinnerung",
+      heading: "Neu: Anmelden per Code – ganz ohne alte E-Mails",
+      preheader:
+        "E-Mail-Adresse eingeben, neuen Code erhalten, anmelden – das bestätigt auch Ihre Adresse.",
+      introHtml: `
+              <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                bei der Übersicht der eingegangenen Bestandsaufnahmen ist uns aufgefallen,
-                dass Sie das Bestätigungs-Fenster für Ihren DigiKI-Zugang${schoolPhrase}
-                bisher noch nicht erreicht haben. Vermutlich ist die erste Bestätigungs-Mail
-                in einem Spam-Filter gelandet oder im Schul-Alltag untergegangen.
+                Ihre Bestandsaufnahme${schoolPhrase} ist gut bei uns angekommen.
+                Nur ein Schritt fehlt noch: die Bestätigung Ihrer
+                E-Mail-Adresse.
               </p>
               <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                Damit Sie nichts verpassen, senden wir Ihnen den Bestätigungs-Link
-                gerne ein zweites Mal zu – unten finden Sie zusätzlich einen
-                8-stelligen Code für den Fall, dass Ihr Schul-Netzwerk Links blockiert.
-              </p>`;
-
-    // Sichtbarer 24h-Hinweis als eigene Callout-Box – nutzt die ruhige
-    // Türkis-Familie aus dem Designsystem, damit der Hinweis informativ
-    // statt warnend wirkt.
-    const validityCallout = `
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#EBF8F7;border:1px solid #B6E1DD;border-radius:8px;margin:0 0 24px 0;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0;color:#006363;font-size:13px;line-height:1.6;">
-                      <strong style="letter-spacing:0.5px;">Bitte zeitnah bestätigen:</strong>
-                      Aus Sicherheitsgründen sind der Bestätigungs-Link <em>und</em> der
-                      8-stellige Code nur <strong>24 Stunden lang gültig</strong>.
-                      Danach erlischt beides – melden Sie sich in diesem Fall einfach
-                      kurz bei uns, wir senden Ihnen dann gerne eine neue Bestätigung.
-                    </p>
-                  </td>
-                </tr>
-              </table>`;
-
-    const html = `
-<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
-<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-    style="background-color:#F5F9F9;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
-          style="max-width:560px;width:100%;">
-          <tr>
-            <td align="center"
-              style="background-color:#006363;padding:28px 32px 24px;border-radius:12px 12px 0 0;">
-              <img src="https://digiki-os.de/images/logos/DigiKI_Logo_v5.png"
-                alt="DigiKI – Grundschulen Osnabrück"
-                width="160" height="73"
-                style="display:block;border:0;" />
-            </td>
-          </tr>
-          <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#006363 0%,#00cabe 100%);"></td>
-          </tr>
-          <tr>
-            <td style="background-color:#ffffff;padding:36px 32px;
-              border-left:1px solid #DEE8E8;border-right:1px solid #DEE8E8;">
-              <p style="margin:0 0 4px 0;font-size:11px;font-weight:bold;letter-spacing:3px;
-                        text-transform:uppercase;color:#AB7A0E;">
-                Erinnerung
-              </p>
-              <h1 style="margin:0 0 16px 0;font-size:22px;font-weight:bold;color:#006363;line-height:1.3;">
-                Ihr DigiKI-Zugang wartet noch auf Sie
-              </h1>
-              <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
-              ${introBlock}
-              ${validityCallout}
-
+                <strong>Das geht jetzt einfacher als früher:</strong> Wir haben
+                die Anmeldung auf ein neues Code-System umgestellt. Sie müssen
+                keine alte E-Mail mehr heraussuchen und keinen Link anklicken.
+                Geben Sie einfach Ihre E-Mail-Adresse auf unserer Anmeldeseite
+                ein – Sie bekommen dann sofort einen frischen Anmeldecode
+                zugeschickt. Sobald Sie sich damit anmelden, ist Ihre
+                E-Mail-Adresse automatisch bestätigt.
+              </p>`,
+      extraHtml: `
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
                 style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
                   <td style="padding:16px 18px;">
                     <p style="margin:0 0 10px 0;font-weight:bold;color:#006363;font-size:15px;">
-                      E-Mail-Adresse bestätigen
+                      So einfach geht es
                     </p>
-                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:14px;line-height:1.5;">
-                      Klicken Sie einmal auf den Button, um Ihre Adresse zu
-                      bestätigen und sich direkt anzumelden.
-                    </p>
-                    <p style="margin:0 0 10px 0;">
-                      <a href="${confirmationUrlSafe}"
-                        style="display:inline-block;background-color:#006363;color:#ffffff;
-                          text-decoration:none;font-weight:bold;font-size:15px;
-                          padding:12px 22px;border-radius:8px;">
-                        Zugang bestätigen
-                      </a>
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:12px;line-height:1.5;">
-                      Der Link funktioniert nicht?
-                      <a href="${confirmationUrlSafe}"
-                        style="color:#006363;word-break:break-all;">${confirmationUrlSafe}</a>
+                    <ol style="margin:0 0 12px 0;padding:0 0 0 20px;color:#1A1A1A;font-size:14px;line-height:1.7;">
+                      <li>Öffnen Sie die Anmeldeseite:
+                        <a href="${escapeHtml(loginUrl)}" style="color:#006363;font-weight:bold;">digiki-os.de/best-practice/login</a>
+                      </li>
+                      <li>Geben Sie Ihre E-Mail-Adresse (<strong>${emailSafe}</strong>) ein und klicken Sie auf <strong>„Weiter"</strong>.</li>
+                      <li>Sie erhalten sofort eine E-Mail mit einem 8-stelligen Code. Code eintippen – fertig! Sie sind angemeldet und Ihre Adresse ist bestätigt.</li>
+                    </ol>
+                    <p style="margin:0;color:#555555;font-size:13px;line-height:1.6;">
+                      Diese Erinnerung enthält absichtlich keinen Link zum
+                      Anklicken und keinen Code – <strong>sie kann deshalb
+                      nicht ablaufen</strong>. Ihren frischen Code bekommen Sie
+                      immer direkt bei der Anmeldung.
                     </p>
                   </td>
                 </tr>
               </table>
-${codeAlternativeHtml}
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
                 style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
                 <tr>
@@ -370,38 +227,7 @@ ${codeAlternativeHtml}
                     </p>
                   </td>
                 </tr>
-              </table>
-
-              <p style="margin:0;color:#1A1A1A;font-size:15px;">
-                Mit freundlichen Grüßen<br />
-                <strong>Das DigiKI-Team</strong>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="background-color:#F5F9F9;padding:20px 32px;
-              border:1px solid #DEE8E8;border-top:none;
-              border-radius:0 0 12px 12px;">
-              <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
-                Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
-                DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-    await transporter.sendMail({
-      from: `DigiKI <${from}>`,
-      to: targetEmail,
-      subject: "Bitte E-Mail bestätigen – DigiKI (erneute Zustellung)",
-      html,
+              </table>`,
     });
 
     // Cooldown-Stempel im user_metadata aktualisieren – dient als Quelle
@@ -432,5 +258,5 @@ ${codeAlternativeHtml}
     );
   }
 
-  return NextResponse.json({ ok: true, email: targetEmail });
+  return NextResponse.json({ ok: true });
 }
