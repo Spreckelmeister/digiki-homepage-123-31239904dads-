@@ -233,20 +233,34 @@ export async function POST(request: NextRequest) {
     // Cooldown-Stempel im user_metadata aktualisieren – dient als Quelle
     // der Wahrheit für die 24h-Sperre, sowohl serverseitig (Re-Check) als
     // auch clientseitig (UI-Anzeige „verfügbar in X").
-    try {
-      await admin.auth.admin.updateUserById(userId, {
+    // WICHTIG: supabase-js WIRFT bei API-Fehlern nicht, sondern liefert
+    // { error } – deshalb explizit prüfen (der frühere try/catch hat
+    // Fehler hier lautlos verschluckt, wodurch die Sperre nach einem
+    // Neuladen der Seite fehlte).
+    const stampIso = new Date().toISOString();
+    const { error: metaError } = await admin.auth.admin.updateUserById(
+      userId,
+      {
         user_metadata: {
           ...existingMeta,
-          last_confirmation_resend_at: new Date().toISOString(),
+          last_confirmation_resend_at: stampIso,
         },
-      });
-    } catch (metaErr) {
-      // Metadata-Fehler darf den Erfolg nicht blockieren – Mail ist raus.
+      },
+    );
+    if (metaError) {
+      // Mail ist raus → kein Fehlschlag, aber Client soll es anzeigen können.
       console.error(
         "[resend-signup-confirmation] metadata update failed:",
-        metaErr,
+        metaError.message,
       );
+      return NextResponse.json({
+        ok: true,
+        lastResendAt: stampIso,
+        stampSaved: false,
+      });
     }
+
+    return NextResponse.json({ ok: true, lastResendAt: stampIso, stampSaved: true });
   } catch (emailErr) {
     console.error(
       "[resend-signup-confirmation] mail error:",
@@ -257,6 +271,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-
-  return NextResponse.json({ ok: true });
 }

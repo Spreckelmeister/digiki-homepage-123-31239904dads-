@@ -86,17 +86,35 @@ export default function ResendQuickAction({
         setErrorMsg(
           typeof json.error === "string" ? json.error : "Versand fehlgeschlagen.",
         );
-        window.setTimeout(() => setState("idle"), 4500);
+        if (res.status === 429) {
+          // Sperr-Fall: nach kurzer Anzeige in den Cooldown-Zustand wechseln.
+          window.setTimeout(() => setState("idle"), 4500);
+        }
+        // Andere Fehler bleiben sichtbar stehen (Tooltip zeigt die Ursache);
+        // ein erneuter Klick versucht es wieder.
         return;
       }
-      // Erfolg: lokalen Cooldown sofort setzen
-      setLocalLastResend(new Date().toISOString());
+      // Erfolg: lokalen Cooldown mit dem Server-Stempel setzen
+      setLocalLastResend(
+        typeof json.lastResendAt === "string"
+          ? json.lastResendAt
+          : new Date().toISOString(),
+      );
+      if (json.stampSaved === false) {
+        // Mail ist raus, aber der Server konnte die 24h-Sperre nicht
+        // speichern – deutlich machen statt still „Erfolg" zu zeigen.
+        setState("error");
+        setErrorMsg(
+          "Mail versendet – aber die 24h-Sperre konnte nicht gespeichert werden. Nach dem Neuladen erscheint der Button wieder aktiv (Details im Server-Log).",
+        );
+        window.setTimeout(() => setState("idle"), 8000);
+        return;
+      }
       setState("success");
       window.setTimeout(() => setState("idle"), 2200);
     } catch {
       setState("error");
-      setErrorMsg("Netzwerkfehler.");
-      window.setTimeout(() => setState("idle"), 4500);
+      setErrorMsg("Netzwerkfehler. Erneut klicken zum Wiederholen.");
     }
   }
 

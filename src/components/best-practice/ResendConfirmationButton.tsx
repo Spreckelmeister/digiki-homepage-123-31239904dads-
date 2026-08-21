@@ -109,13 +109,24 @@ export default function ResendConfirmationButton({
         });
         return;
       }
-      setLocalLastResend(new Date().toISOString());
+      setLocalLastResend(
+        typeof json.lastResendAt === "string"
+          ? json.lastResendAt
+          : new Date().toISOString(),
+      );
       // Haken zurücksetzen, damit ein erneutes Überschreiben bewusst erfolgt.
       setOverrideChecked(false);
-      setMessage({
-        type: "ok",
-        text: `Erinnerungs-Mail an ${currentEmail} verschickt – mit Anleitung zur Anmeldung per Code (bestätigt die Adresse automatisch).`,
-      });
+      if (json.stampSaved === false) {
+        setMessage({
+          type: "err",
+          text: `Erinnerungs-Mail an ${currentEmail} verschickt – aber die 24h-Sperre konnte nicht gespeichert werden (Details im Server-Log).`,
+        });
+      } else {
+        setMessage({
+          type: "ok",
+          text: `Erinnerungs-Mail an ${currentEmail} verschickt – mit Anleitung zur Anmeldung per Code (bestätigt die Adresse automatisch).`,
+        });
+      }
       router.refresh();
     } catch {
       setMessage({ type: "err", text: "Netzwerkfehler." });
