@@ -67,6 +67,12 @@ export interface ApplicationStudentAssistant {
   device_count: number | null;
   has_interactive_displays: boolean;
   has_school_server: boolean;
+  /** Neues Antragsmodell „punktuelle Unterstützung" (Migration 030). */
+  training_participation: string | null;
+  training_details: string | null;
+  internal_attempt: string | null;
+  support_area: string | null;
+  scope_preset: string | null;
   status: ApplicationStatus;
   admin_notes: string | null;
   created_at: string;

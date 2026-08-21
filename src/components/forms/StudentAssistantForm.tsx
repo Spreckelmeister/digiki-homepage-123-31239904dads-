@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  ArrowRight,
   Building2,
   CalendarClock,
+  CheckCircle2,
+  GraduationCap,
   HelpingHand,
   Send,
-  ServerCog,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
@@ -18,6 +19,11 @@ import FormSuccess from "./FormSuccess";
 import FormSection from "./FormSection";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
+import {
+  SUPPORT_AREA_OPTIONS,
+  SCOPE_PRESET_OPTIONS,
+} from "@/lib/applications/hilfskraefteOptions";
+import type { RegisteredTraining } from "@/lib/schulungen/getSchoolTrainings";
 
 interface StudentAppData {
   id: string;
@@ -31,22 +37,13 @@ interface StudentAppData {
   email: string;
   teacher_count: number | null;
   student_count: number | null;
-  support_technical_setup: boolean;
-  support_onboarding: boolean;
-  support_tech_support: boolean;
-  support_material_creation: boolean;
-  support_classroom: boolean;
-  support_other: boolean;
   support_explanation: string | null;
   start_date: string | null;
-  duration: string | null;
-  hours_per_week: string | null;
-  preferred_days: string | null;
-  has_wifi: boolean;
-  has_devices: boolean;
-  device_count: number | null;
-  has_interactive_displays: boolean;
-  has_school_server: boolean;
+  training_participation: string | null;
+  training_details: string | null;
+  internal_attempt: string | null;
+  support_area: string | null;
+  scope_preset: string | null;
 }
 
 interface BestandsaufnahmePrefill {
@@ -57,6 +54,39 @@ interface BestandsaufnahmePrefill {
   teacher_count?: string;
 }
 
+function formatTrainingDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+/** „2 Lehrkräfte, 1 Schulleitung" – leer, wenn keine Zählung vorliegt. */
+function roleCounts(t: RegisteredTraining): string {
+  const parts: string[] = [];
+  if (t.teacherCount > 0) {
+    parts.push(t.teacherCount === 1 ? "1 Lehrkraft" : `${t.teacherCount} Lehrkräfte`);
+  }
+  if (t.leadershipCount > 0) {
+    parts.push(
+      t.leadershipCount === 1 ? "1 Schulleitung" : `${t.leadershipCount} Schulleitungen`
+    );
+  }
+  return parts.join(", ");
+}
+
+/** Text-Schnappschuss der angezeigten Anmeldungen für die DB/Admin-Ansicht. */
+function trainingsSnapshot(trainings: RegisteredTraining[]): string {
+  return trainings
+    .map((t) => {
+      const date = t.start_date ? formatTrainingDate(t.start_date) : "Termin folgt";
+      const counts = roleCounts(t);
+      return `${t.title} (${date})${counts ? ` – ${counts}` : ""}`;
+    })
+    .join("; ");
+}
+
 export default function StudentAssistantForm({
   editMode = false,
   initialData,
@@ -64,6 +94,7 @@ export default function StudentAssistantForm({
   lockedEmail,
   prefillFromBSA,
   lockedFromBSA,
+  registeredTrainings,
 }: {
   editMode?: boolean;
   initialData?: StudentAppData;
@@ -75,6 +106,9 @@ export default function StudentAssistantForm({
   prefillFromBSA?: BestandsaufnahmePrefill | null;
   /** Liste der Felder, die durch BSA-Prefill gesperrt werden. */
   lockedFromBSA?: string[];
+  /** Serverseitig ermittelte Schulungsanmeldungen der Schule (nur Neuantrag).
+   *  Leere Liste blockiert das Einreichen – Schulung ist Voraussetzung. */
+  registeredTrainings?: RegisteredTraining[];
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
@@ -93,27 +127,17 @@ export default function StudentAssistantForm({
     student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
   });
 
-  // Gewünschte Unterstützung
-  const [supportTechnicalSetup, setSupportTechnicalSetup] = useState(initialData?.support_technical_setup ?? false);
-  const [supportOnboarding, setSupportOnboarding] = useState(initialData?.support_onboarding ?? false);
-  const [supportTechSupport, setSupportTechSupport] = useState(initialData?.support_tech_support ?? false);
-  const [supportMaterialCreation, setSupportMaterialCreation] = useState(initialData?.support_material_creation ?? false);
-  const [supportClassroom, setSupportClassroom] = useState(initialData?.support_classroom ?? false);
-  const [supportOther, setSupportOther] = useState(initialData?.support_other ?? false);
+  // Voraussetzungen: Schulungsanmeldung kommt automatisch aus dem Server
+  // (registeredTrainings); nur der schulinterne Versuch wird abgefragt.
+  const [internalAttempt, setInternalAttempt] = useState(initialData?.internal_attempt ?? "");
+
+  // Konkrete Hürde (Einfachauswahl + Beschreibung)
+  const [supportArea, setSupportArea] = useState(initialData?.support_area ?? "");
   const [supportExplanation, setSupportExplanation] = useState(initialData?.support_explanation ?? "");
 
-  // Zeitraum & Umfang
+  // Umfang & Termin
+  const [scopePreset, setScopePreset] = useState(initialData?.scope_preset ?? "");
   const [startDate, setStartDate] = useState(initialData?.start_date ?? "");
-  const [duration, setDuration] = useState(initialData?.duration ?? "");
-  const [hoursPerWeek, setHoursPerWeek] = useState(initialData?.hours_per_week ?? "");
-  const [preferredDays, setPreferredDays] = useState(initialData?.preferred_days ?? "");
-
-  // Technische Voraussetzungen
-  const [hasWifi, setHasWifi] = useState(initialData?.has_wifi ?? false);
-  const [hasDevices, setHasDevices] = useState(initialData?.has_devices ?? false);
-  const [deviceCount, setDeviceCount] = useState(initialData?.device_count != null ? String(initialData.device_count) : "");
-  const [hasInteractiveDisplays, setHasInteractiveDisplays] = useState(initialData?.has_interactive_displays ?? false);
-  const [hasSchoolServer, setHasSchoolServer] = useState(initialData?.has_school_server ?? false);
 
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [truthConsent, setTruthConsent] = useState(false);
@@ -122,6 +146,8 @@ export default function StudentAssistantForm({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [emailFailed, setEmailFailed] = useState(false);
+
+  const trainings = registeredTrainings ?? [];
 
   function handleSchoolInfoChange(field: string, value: string) {
     setSchoolInfo((prev) => ({ ...prev, [field]: value }));
@@ -138,32 +164,21 @@ export default function StudentAssistantForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recordId,
-          school_name:              schoolInfo.school_name,
-          school_street:            schoolInfo.school_street || null,
-          school_plz:               schoolInfo.school_plz || null,
-          school_city:              schoolInfo.school_city || null,
-          principal_name:           schoolInfo.principal_name || null,
-          contact_person:           schoolInfo.contact_person,
-          phone:                    schoolInfo.phone || null,
-          email:                    schoolInfo.email,
-          teacher_count:            schoolInfo.teacher_count ? parseInt(schoolInfo.teacher_count) : null,
-          student_count:            schoolInfo.student_count ? parseInt(schoolInfo.student_count) : null,
-          support_technical_setup:  supportTechnicalSetup,
-          support_onboarding:       supportOnboarding,
-          support_tech_support:     supportTechSupport,
-          support_material_creation: supportMaterialCreation,
-          support_classroom:        supportClassroom,
-          support_other:            supportOther,
-          support_explanation:      supportExplanation || null,
-          start_date:               startDate || null,
-          duration:                 duration || null,
-          hours_per_week:           hoursPerWeek || null,
-          preferred_days:           preferredDays || null,
-          has_wifi:                 hasWifi,
-          has_devices:              hasDevices,
-          device_count:             hasDevices && deviceCount ? parseInt(deviceCount) : null,
-          has_interactive_displays: hasInteractiveDisplays,
-          has_school_server:        hasSchoolServer,
+          school_name:         schoolInfo.school_name,
+          school_street:       schoolInfo.school_street || null,
+          school_plz:          schoolInfo.school_plz || null,
+          school_city:         schoolInfo.school_city || null,
+          principal_name:      schoolInfo.principal_name || null,
+          contact_person:      schoolInfo.contact_person,
+          phone:               schoolInfo.phone || null,
+          email:               schoolInfo.email,
+          teacher_count:       schoolInfo.teacher_count ? parseInt(schoolInfo.teacher_count) : null,
+          student_count:       schoolInfo.student_count ? parseInt(schoolInfo.student_count) : null,
+          internal_attempt:    internalAttempt,
+          support_area:        supportArea,
+          support_explanation: supportExplanation || null,
+          scope_preset:        scopePreset,
+          start_date:          startDate || null,
         }),
       });
       setLoading(false);
@@ -181,6 +196,15 @@ export default function StudentAssistantForm({
       return;
     }
 
+    // Ohne Schulungsanmeldung keine studentische Unterstützung – die
+    // Schulungen sind der erste Schritt des DigiKI-Wegs.
+    if (trainings.length === 0) {
+      setError(
+        "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor. Bitte melden Sie zunächst Lehrkräfte über die KOS-Fortbildungen an – danach freuen wir uns über Ihren Antrag auf gezielte Unterstützung."
+      );
+      return;
+    }
+
     if (!privacyConsent || !truthConsent) {
       setError("Bitte bestätigen Sie die Datenschutzerklärung und die Richtigkeit Ihrer Angaben.");
       return;
@@ -189,6 +213,9 @@ export default function StudentAssistantForm({
     setLoading(true);
 
     const supabase = createClient();
+
+    const today = new Date().toISOString().slice(0, 10);
+    const hasAttended = trainings.some((t) => t.start_date && t.start_date <= today);
 
     const { error: insertError } = await supabase
       .from("applications_student_assistants")
@@ -207,22 +234,13 @@ export default function StudentAssistantForm({
         student_count: schoolInfo.student_count
           ? parseInt(schoolInfo.student_count)
           : null,
-        support_technical_setup: supportTechnicalSetup,
-        support_onboarding: supportOnboarding,
-        support_tech_support: supportTechSupport,
-        support_material_creation: supportMaterialCreation,
-        support_classroom: supportClassroom,
-        support_other: supportOther,
-        support_explanation: supportExplanation || null,
+        training_participation: hasAttended ? "teilgenommen" : "angemeldet",
+        training_details: trainingsSnapshot(trainings),
+        internal_attempt: internalAttempt,
+        support_area: supportArea,
+        support_explanation: supportExplanation,
+        scope_preset: scopePreset,
         start_date: startDate || null,
-        duration: duration || null,
-        hours_per_week: hoursPerWeek || null,
-        preferred_days: preferredDays || null,
-        has_wifi: hasWifi,
-        has_devices: hasDevices,
-        device_count: hasDevices && deviceCount ? parseInt(deviceCount) : null,
-        has_interactive_displays: hasInteractiveDisplays,
-        has_school_server: hasSchoolServer,
       });
 
     if (insertError) {
@@ -260,6 +278,9 @@ export default function StudentAssistantForm({
   const checkboxLabel = "flex items-center gap-3 cursor-pointer";
   const checkboxInput =
     "w-4 h-4 rounded border-border text-accent focus:ring-accent-strong";
+  const radioInput =
+    "w-4 h-4 border-border text-accent focus:ring-accent-strong";
+  const legendClass = "mb-3 text-sm font-medium text-text";
 
   if (isAdmin === null) return null;
   // Admins dürfen keine NEUEN Anträge einreichen, dürfen aber existierende
@@ -316,7 +337,7 @@ export default function StudentAssistantForm({
         )}
         <FormSuccess
           title="Antrag erfolgreich eingereicht!"
-          message="Vielen Dank für Ihren Antrag. Wir prüfen Ihre Angaben und melden uns zeitnah bei Ihnen."
+          message="Vielen Dank für Ihren Antrag. Wir prüfen, ob eine punktuelle Unterstützung möglich ist, und melden uns zeitnah bei Ihnen."
           submittedEmail={schoolInfo.email}
         />
       </>
@@ -343,34 +364,6 @@ export default function StudentAssistantForm({
         </div>
       )}
 
-      {!editMode && (
-        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-white p-6 shadow-sm md:p-8">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-primary-light/15 blur-3xl"
-          />
-          <div className="relative flex items-start gap-5">
-            <span
-              aria-hidden="true"
-              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-            >
-              <Sparkles className="h-6 w-6" />
-            </span>
-            <div className="flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-accent-strong">
-                Kostenfrei für Grundschulen
-              </p>
-              <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-text-light">
-                Im Rahmen des Projekts DigiKI können Grundschulen in Stadt und
-                Landkreis Osnabrück kostenlos studentische Hilfskräfte
-                beantragen, die bei der Einrichtung digitaler Tools,
-                technischem Support und der Materialerstellung unterstützen.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ════════ §1 SCHULE ════════ */}
       <FormSection
         index="01"
@@ -388,242 +381,218 @@ export default function StudentAssistantForm({
         />
       </FormSection>
 
-      {/* ════════ §2 UNTERSTÜTZUNG ════════ */}
+      {/* ════════ §2 VORAUSSETZUNGEN ════════ */}
       <FormSection
         index="02"
-        eyebrow="Unterstützung"
-        title="Wo brauchen Sie Hilfe?"
-        body="Bitte kreuzen Sie die gewünschten Tätigkeitsbereiche an – Sie können auch mehrere wählen. Im Freitextfeld unten können Sie Ihren Bedarf konkretisieren."
+        eyebrow="Voraussetzungen"
+        title="Schulung & schulinterner Versuch"
+        body="Studentische Unterstützung setzt auf den KOS-Fortbildungen auf: erst schulen, dann das Wissen im Kollegium weitergeben – und bei verbleibenden Hürden unterstützen wir gezielt. Ihre Schulungsanmeldungen werden automatisch erkannt."
+        icon={<GraduationCap className="h-3 w-3" />}
+      >
+        {!editMode && trainings.length > 0 && (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                className="mt-0.5 h-5 w-5 shrink-0 text-green-700"
+                aria-hidden="true"
+              />
+              <div className="text-sm text-green-900">
+                <p className="font-bold">
+                  Ihre Schule ist zu folgenden Schulungen angemeldet:
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {trainings.map((t) => {
+                    const counts = roleCounts(t);
+                    return (
+                      <li key={t.id}>
+                        {t.title} –{" "}
+                        {t.start_date
+                          ? formatTrainingDate(t.start_date)
+                          : "Termin folgt"}
+                        {counts && (
+                          <span className="text-green-800"> ({counts})</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 text-green-800">
+                  Die Teilnehmenden geben ihr Wissen anschließend als
+                  Multiplikatorinnen und Multiplikatoren im Kollegium weiter.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!editMode && trainings.length === 0 && (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                className="mt-0.5 h-5 w-5 shrink-0 text-red-700"
+                aria-hidden="true"
+              />
+              <div className="text-sm text-red-800">
+                <p className="font-bold">
+                  Für Ihre Schule liegt noch keine Anmeldung zu einer
+                  DigiKI-Schulung vor.
+                </p>
+                <p className="mt-1 leading-relaxed">
+                  Die KOS-Fortbildungen sind die Voraussetzung für studentische
+                  Unterstützung: Dort lernen Lehrkräfte Ihrer Schule den Umgang
+                  mit den KI-Tools und geben ihr Wissen anschließend im
+                  Kollegium weiter. Bitte melden Sie zunächst Lehrkräfte an –
+                  danach freuen wir uns über Ihren Antrag.
+                </p>
+                <Link
+                  href="/fuer-schulen#kos-fortbildungen"
+                  className="mt-2 inline-flex items-center gap-1.5 font-semibold text-red-800 underline hover:text-red-900"
+                >
+                  Zu den KOS-Fortbildungsterminen
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <p className="mt-2 text-red-700">
+                  Ihre Schule ist bereits angemeldet, wird hier aber nicht
+                  angezeigt? Melden Sie sich kurz über das{" "}
+                  <Link
+                    href="/fuer-schulen#kontakt"
+                    className="underline hover:text-red-900"
+                  >
+                    Kontaktformular
+                  </Link>{" "}
+                  – wir prüfen das.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {editMode && initialData?.training_details && (
+          <div className="rounded-xl border border-border bg-bg p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-text-light">
+              Angemeldete Schulungen bei Antragstellung
+            </p>
+            <p className="text-sm text-text whitespace-pre-wrap">
+              {initialData.training_details}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="internal_attempt"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Was haben Sie bereits schulintern versucht? *
+          </label>
+          <textarea
+            id="internal_attempt"
+            rows={3}
+            required
+            value={internalAttempt}
+            onChange={(e) => setInternalAttempt(e.target.value)}
+            className={inputClass + " resize-y"}
+            placeholder="z.B. geschulte Kolleginnen/Kollegen gefragt, gemeinsam ausprobiert, Anleitung des Anbieters durchgegangen …"
+          />
+        </div>
+      </FormSection>
+
+      {/* ════════ §3 KONKRETE HÜRDE ════════ */}
+      <FormSection
+        index="03"
+        eyebrow="Ihr Anliegen"
+        title="Wo genau hakt es?"
+        body="Beschreiben Sie die eine konkrete Hürde, die sich schulintern nicht lösen ließ. Je klarer das Anliegen umrissen ist, desto besser können wir unterstützen."
         icon={<HelpingHand className="h-3 w-3" />}
       >
-        <div className="space-y-3">
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportTechnicalSetup}
-              onChange={(e) => setSupportTechnicalSetup(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Technische Einrichtung von Tools und Geräten
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportOnboarding}
-              onChange={(e) => setSupportOnboarding(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Ersteinweisung / Onboarding von Lehrkräften
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportTechSupport}
-              onChange={(e) => setSupportTechSupport(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Technischer Support und Fehlerbehebung
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportMaterialCreation}
-              onChange={(e) => setSupportMaterialCreation(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Unterstützung bei der Materialerstellung
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportClassroom}
-              onChange={(e) => setSupportClassroom(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Begleitung im Unterricht bei der Tool-Nutzung
-            </span>
-          </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={supportOther}
-              onChange={(e) => setSupportOther(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Sonstiges (bitte unten erläutern)
-            </span>
-          </label>
-        </div>
+        <fieldset>
+          <legend className={legendClass}>Um welchen Bereich geht es? *</legend>
+          <div className="space-y-3">
+            {SUPPORT_AREA_OPTIONS.map((option) => (
+              <label key={option.value} className={checkboxLabel}>
+                <input
+                  type="radio"
+                  name="support_area"
+                  value={option.value}
+                  required
+                  checked={supportArea === option.value}
+                  onChange={() => setSupportArea(option.value)}
+                  className={radioInput}
+                />
+                <span className="text-sm text-text">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div>
           <label
             htmlFor="support_explanation"
             className="mb-1.5 block text-sm font-medium text-text"
           >
-            Erläuterung / konkreter Bedarf
+            Beschreiben Sie die konkrete Hürde *
           </label>
           <textarea
             id="support_explanation"
-            rows={3}
+            rows={4}
+            required
             value={supportExplanation}
             onChange={(e) => setSupportExplanation(e.target.value)}
             className={inputClass + " resize-y"}
-            placeholder="Beschreiben Sie Ihren konkreten Bedarf …"
+            placeholder="Was genau funktioniert nicht bzw. wobei kommen Sie nicht weiter? Was soll am Ende erreicht sein?"
           />
         </div>
+        <p className="text-xs leading-relaxed text-text-light">
+          Gut zu wissen: Ersteinweisungen und Fortbildungsinhalte decken die
+          KOS-Schulungen ab, und eine dauerhafte Begleitung im Unterricht können
+          wir mit Blick auf die vielen teilnehmenden Schulen nicht anbieten – so
+          bleibt gezielte Unterstützung für alle Schulen möglich.
+        </p>
       </FormSection>
 
-      {/* ════════ §3 ZEITRAUM ════════ */}
-      <FormSection
-        index="03"
-        eyebrow="Zeitraum"
-        title="Wann und wie viel?"
-        body="Damit wir Ihnen passende studentische Kräfte vermitteln können, brauchen wir Ihren Wunsch-Beginn, die Dauer und ein ungefähres Wochenpensum."
-        icon={<CalendarClock className="h-3 w-3" />}
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="start_date"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Gewünschter Beginn
-            </label>
-            <input
-              id="start_date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="duration"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Gewünschte Dauer
-            </label>
-            <input
-              id="duration"
-              type="text"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className={inputClass}
-              placeholder="z.B. 3 Monate"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="hours_per_week"
-              className="block text-sm font-medium text-text mb-1.5"
-            >
-              Stunden pro Woche
-            </label>
-            <input
-              id="hours_per_week"
-              type="text"
-              value={hoursPerWeek}
-              onChange={(e) => setHoursPerWeek(e.target.value)}
-              className={inputClass}
-              placeholder="z.B. 5–10 Std."
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="preferred_days"
-              className="mb-1.5 block text-sm font-medium text-text"
-            >
-              Bevorzugte Tage
-            </label>
-            <input
-              id="preferred_days"
-              type="text"
-              value={preferredDays}
-              onChange={(e) => setPreferredDays(e.target.value)}
-              className={inputClass}
-              placeholder="z.B. Di + Do"
-            />
-          </div>
-        </div>
-      </FormSection>
-
-      {/* ════════ §4 INFRASTRUKTUR ════════ */}
+      {/* ════════ §4 UMFANG & TERMIN ════════ */}
       <FormSection
         index="04"
-        eyebrow="Infrastruktur"
-        title="Was steht vor Ort?"
-        body="Damit die studentische Kraft direkt loslegen kann, hilft uns ein kurzer Überblick über die vorhandene Ausstattung an Ihrer Schule."
-        icon={<ServerCog className="h-3 w-3" />}
+        eyebrow="Umfang"
+        title="Wie viel Unterstützung brauchen Sie?"
+        body="Studentische Unterstützung ist punktuell angelegt – in der Praxis reicht meist ein einzelner Termin. Wählen Sie den Umfang, der zu Ihrer Hürde passt."
+        icon={<CalendarClock className="h-3 w-3" />}
       >
-        <div className="space-y-3">
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={hasWifi}
-              onChange={(e) => setHasWifi(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              WLAN für Lehrkräfte und Schüler/innen verfügbar
-            </span>
-          </label>
-          <div>
-            <label className={checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={hasDevices}
-                onChange={(e) => setHasDevices(e.target.checked)}
-                className={checkboxInput}
-              />
-              <span className="text-sm text-text">
-                Tablets / Laptops vorhanden
-              </span>
-            </label>
-            {hasDevices && (
-              <div className="ml-7 mt-2">
+        <fieldset>
+          <legend className={legendClass}>Gewünschter Umfang *</legend>
+          <div className="space-y-3">
+            {SCOPE_PRESET_OPTIONS.map((option) => (
+              <label key={option.value} className={checkboxLabel}>
                 <input
-                  type="number"
-                  min="0"
-                  value={deviceCount}
-                  onChange={(e) => setDeviceCount(e.target.value)}
-                  className={inputClass + " max-w-[200px]"}
-                  placeholder="Anzahl Geräte"
+                  type="radio"
+                  name="scope_preset"
+                  value={option.value}
+                  required
+                  checked={scopePreset === option.value}
+                  onChange={() => setScopePreset(option.value)}
+                  className={radioInput}
                 />
-              </div>
-            )}
+                <span className="text-sm text-text">{option.label}</span>
+              </label>
+            ))}
           </div>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={hasInteractiveDisplays}
-              onChange={(e) => setHasInteractiveDisplays(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Interaktive Displays / Smartboards vorhanden
-            </span>
+        </fieldset>
+        <div>
+          <label
+            htmlFor="start_date"
+            className="mb-1.5 block text-sm font-medium text-text"
+          >
+            Frühester Wunschtermin (optional)
           </label>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={hasSchoolServer}
-              onChange={(e) => setHasSchoolServer(e.target.checked)}
-              className={checkboxInput}
-            />
-            <span className="text-sm text-text">
-              Schulserver / Schulnetzwerk vorhanden
-            </span>
-          </label>
+          <input
+            id="start_date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={inputClass + " max-w-[240px]"}
+          />
         </div>
       </FormSection>
 

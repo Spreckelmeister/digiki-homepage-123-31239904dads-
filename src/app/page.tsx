@@ -278,8 +278,8 @@ export default async function HomePage() {
                 Studentische Hilfskräfte
               </h3>
               <p className="text-sm text-text-light mb-3">
-                Kostenlose Unterstützung bei der Einrichtung digitaler
-                Tools und technischem Support.
+                Gezielte, punktuelle Unterstützung bei konkreten Hürden –
+                nach Ihrer Schulungsteilnahme.
               </p>
               <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />

@@ -38,7 +38,7 @@ export const features = [
   },
   {
     title: "Studentische Unterstützung",
-    description: "Studierende begleiten Lehrkräfte direkt im Unterricht bei der Erprobung digitaler Werkzeuge.",
+    description: "Bei konkreten Hürden unterstützen Studierende punktuell – etwa bei der technischen Einrichtung digitaler Werkzeuge.",
     icon: "Users" as const,
   },
   {

@@ -17,6 +17,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import type { ApplicationStatus, ToolSelection } from "@/lib/types";
+import {
+  labelFor,
+  SUPPORT_AREA_OPTIONS,
+  SCOPE_PRESET_OPTIONS,
+} from "@/lib/applications/hilfskraefteOptions";
 
 // ════════ Types ══════════════════════════════════════════════
 
@@ -48,6 +53,9 @@ interface StudentAppFullResult {
   support_material_creation: boolean;
   support_classroom: boolean;
   support_other: boolean;
+  /** Neues Antragsmodell „punktuelle Unterstützung" (Migration 030). */
+  support_area: string | null;
+  scope_preset: string | null;
 }
 interface ToolAppFullResult {
   id: string;
@@ -90,7 +98,7 @@ const QUICK_ACTIONS: Array<{
     id: "hilfskraefte",
     href: "/fuer-schulen/antrag-hilfskraefte",
     title: "Studentische Hilfskräfte",
-    body: "Unterstützung bei Einrichtung, Onboarding und Tech-Support.",
+    body: "Punktuelle Unterstützung bei konkreten Hürden – nach Ihrer Schulungsteilnahme.",
     icon: <Users className="h-5 w-5" />,
     tone: "teal",
   },
@@ -399,6 +407,17 @@ function ApplicationCard({
 
 // Helper: kompakte Kurz-Beschreibung der Application-Wünsche
 function studentAppShort(app: StudentAppFullResult): string {
+  // Neues Antragsmodell (punktuelle Unterstützung): eine konkrete Hürde
+  // + fester Umfang statt Wunschliste und Wochenstunden.
+  if (app.support_area) {
+    const parts: string[] = [];
+    const areaLabel = labelFor(SUPPORT_AREA_OPTIONS, app.support_area);
+    if (areaLabel) parts.push(`Anliegen: ${areaLabel}`);
+    const scopeLabel = labelFor(SCOPE_PRESET_OPTIONS, app.scope_preset);
+    if (scopeLabel) parts.push(scopeLabel);
+    if (app.start_date) parts.push(`frühestens ab ${formatDate(app.start_date)}`);
+    return parts.join(" · ");
+  }
   const wishes: string[] = [];
   if (app.support_technical_setup) wishes.push("Tech-Setup");
   if (app.support_onboarding) wishes.push("Onboarding");

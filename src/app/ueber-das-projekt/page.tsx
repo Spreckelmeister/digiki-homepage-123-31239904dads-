@@ -142,8 +142,8 @@ export default function UeberDasProjektPage() {
               </div>
               <h3 className="font-semibold text-primary mb-2">Praxisnähe</h3>
               <p className="text-sm text-text-light">
-                Tools direkt im Unterricht erproben mit studentischer
-                Unterstützung
+                Tools direkt im Unterricht erproben – mit Rückhalt aus
+                Schulungen und Kollegium
               </p>
             </div>
             <div className="text-center p-6">

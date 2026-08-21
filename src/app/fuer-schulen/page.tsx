@@ -204,9 +204,11 @@ export default function FuerSchulenPage() {
                 Sie sind nicht allein
               </h2>
               <p className="text-lg text-text-light leading-relaxed mb-4">
-                Studentische Hilfskräfte unterstützen Sie direkt an Ihrer Schule – bei
-                der Einrichtung von Tools, bei technischen Fragen und bei der
-                Materialerstellung.
+                Der Weg zu digitaler Sicherheit führt über die Schulungen: Dort
+                lernen Lehrkräfte Ihrer Schule die KI-Tools kennen und geben ihr
+                Wissen im Kollegium weiter. Bleibt danach eine konkrete Hürde,
+                prüfen wir eine punktuelle Unterstützung durch studentische
+                Hilfskräfte – zum Beispiel bei der technischen Einrichtung.
               </p>
               <p className="text-lg text-text-light leading-relaxed">
                 So können Sie sich auf das konzentrieren, was Sie am besten können:
@@ -258,7 +260,7 @@ export default function FuerSchulenPage() {
                   step: 5,
                   title: "Im Unterricht erproben",
                   description:
-                    "Setzen Sie die Werkzeuge im eigenen Unterricht ein – mit optionaler studentischer Unterstützung.",
+                    "Setzen Sie die Werkzeuge im eigenen Unterricht ein – bei konkreten Hürden mit punktueller studentischer Unterstützung.",
                 },
                 {
                   step: 6,
@@ -346,7 +348,7 @@ export default function FuerSchulenPage() {
                 Studentische Hilfskräfte
               </h3>
               <p className="text-sm text-text-light mb-3">
-                Kostenlose Unterstützung bei der Einrichtung digitaler Tools und technischem Support.
+                Gezielte, punktuelle Unterstützung bei konkreten Hürden – nach Ihrer Schulungsteilnahme.
               </p>
               <p className="inline-flex items-center gap-1 text-xs text-text-light mb-4">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />

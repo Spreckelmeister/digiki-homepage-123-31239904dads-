@@ -8,6 +8,12 @@ import type {
   ApplicationStudentAssistant,
   ApplicationToolLicense,
 } from "@/lib/types";
+import {
+  labelFor,
+  TRAINING_PARTICIPATION_OPTIONS,
+  SUPPORT_AREA_OPTIONS,
+  SCOPE_PRESET_OPTIONS,
+} from "@/lib/applications/hilfskraefteOptions";
 
 const FMT_DATE_ISO = new Intl.DateTimeFormat("sv-SE", {
   year: "numeric",
@@ -54,6 +60,10 @@ function freeText(v: string | null | undefined): string {
 export function generateHilfskraefteMarkdown(
   r: ApplicationStudentAssistant,
 ): string {
+  // Neues Antragsmodell (punktuelle Unterstützung, Migration 030) trägt
+  // immer scope_preset; Alt-Anträge behalten ihre bisherigen Abschnitte.
+  const isNewShape = Boolean(r.scope_preset);
+
   const supportItems: string[] = [];
   if (r.support_technical_setup) supportItems.push("Technische Einrichtung");
   if (r.support_onboarding) supportItems.push("Onboarding der Lehrkräfte");
@@ -62,11 +72,74 @@ export function generateHilfskraefteMarkdown(
   if (r.support_classroom) supportItems.push("Begleitung im Unterricht");
   if (r.support_other) supportItems.push("Sonstiges");
 
+  const voraussetzungenBlock =
+    r.training_participation || r.internal_attempt
+      ? `## Voraussetzungen
+
+- **Schulungsteilnahme:** ${labelFor(TRAINING_PARTICIPATION_OPTIONS, r.training_participation) ?? val(r.training_participation)}
+- **Angemeldete Schulungen (bei Antragstellung):** ${val(r.training_details)}
+
+**Schulintern bereits versucht**
+${freeText(r.internal_attempt)}
+
+`
+      : "";
+
+  const anliegenBlock = r.support_area
+    ? `## Konkrete Hürde
+
+- **Bereich:** ${labelFor(SUPPORT_AREA_OPTIONS, r.support_area) ?? val(r.support_area)}
+
+**Beschreibung**
+${freeText(r.support_explanation)}
+
+`
+    : `## Gewünschte Unterstützung
+
+${
+  supportItems.length > 0
+    ? supportItems.map((s) => `- ${s}`).join("\n")
+    : "_keine Auswahl_"
+}
+${
+  r.support_explanation
+    ? `\n**Konkretisierung**\n${freeText(r.support_explanation)}\n`
+    : ""
+}
+`;
+
+  const rahmenBlock = isNewShape
+    ? `## Rahmen
+
+- **Gewünschter Umfang:** ${labelFor(SCOPE_PRESET_OPTIONS, r.scope_preset) ?? val(r.scope_preset)}
+- **Frühester Wunschtermin:** ${r.start_date ? FMT_DATE_LONG.format(new Date(r.start_date)) : "_keine Angabe_"}
+
+`
+    : `## Rahmen
+
+- **Wunsch-Startdatum:** ${r.start_date ? FMT_DATE_LONG.format(new Date(r.start_date)) : "_keine Angabe_"}
+- **Dauer:** ${val(r.duration)}
+- **Stunden pro Woche:** ${val(r.hours_per_week)}
+- **Bevorzugte Tage:** ${val(r.preferred_days)}
+
+`;
+
+  const infraBlock = isNewShape
+    ? ""
+    : `## Technische Voraussetzungen vor Ort
+
+- **WLAN vorhanden:** ${bool(r.has_wifi)}
+- **Endgeräte vorhanden:** ${bool(r.has_devices)}${r.device_count !== null ? ` (${r.device_count} Stück)` : ""}
+- **Interaktive Displays:** ${bool(r.has_interactive_displays)}
+- **Schulserver:** ${bool(r.has_school_server)}
+
+`;
+
   return `# Antrag — Stud. Hilfskräfte: ${val(r.school_name)}
 
 | Metadatum | Wert |
 |---|---|
-| **Antragstyp** | Studentische Hilfskräfte |
+| **Antragstyp** | Studentische Hilfskräfte${isNewShape ? " (punktuelle Unterstützung)" : ""} |
 | **Eingereicht** | ${FMT_DATE_ISO.format(new Date(r.created_at))} |
 | **Antrags-ID** | \`${r.id}\` |
 | **Status (intern)** | ${STATUS_LABEL[r.status] ?? r.status} |
@@ -85,36 +158,7 @@ export function generateHilfskraefteMarkdown(
 - **E-Mail:** ${val(r.email)}
 - **Telefon:** ${val(r.phone)}
 
-## Gewünschte Unterstützung
-
-${
-  supportItems.length > 0
-    ? supportItems.map((s) => `- ${s}`).join("\n")
-    : "_keine Auswahl_"
-}
-
-${
-  r.support_explanation
-    ? `\n**Konkretisierung**\n${freeText(r.support_explanation)}\n`
-    : ""
-}
-
-## Rahmen
-
-- **Wunsch-Startdatum:** ${r.start_date ? FMT_DATE_LONG.format(new Date(r.start_date)) : "_keine Angabe_"}
-- **Dauer:** ${val(r.duration)}
-- **Stunden pro Woche:** ${val(r.hours_per_week)}
-- **Bevorzugte Tage:** ${val(r.preferred_days)}
-
-## Technische Voraussetzungen vor Ort
-
-- **WLAN vorhanden:** ${bool(r.has_wifi)}
-- **Endgeräte vorhanden:** ${bool(r.has_devices)}${r.device_count !== null ? ` (${r.device_count} Stück)` : ""}
-- **Interaktive Displays:** ${bool(r.has_interactive_displays)}
-- **Schulserver:** ${bool(r.has_school_server)}
-
-${r.admin_notes ? `\n## Interne Admin-Notizen\n${freeText(r.admin_notes)}\n` : ""}
----
+${voraussetzungenBlock}${anliegenBlock}${rahmenBlock}${infraBlock}${r.admin_notes ? `## Interne Admin-Notizen\n${freeText(r.admin_notes)}\n\n` : ""}---
 _Eingereicht am ${FMT_DATE_ISO.format(new Date(r.created_at))}._
 `;
 }
