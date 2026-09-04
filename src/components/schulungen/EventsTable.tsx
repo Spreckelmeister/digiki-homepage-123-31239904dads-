@@ -246,8 +246,8 @@ export default function EventsTable({
           ) : (
             <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
               {groups.map((group) => (
-            <div key={group.label}>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-text">
+            <div key={group.label} className="mx-auto w-full max-w-[440px]">
+              <h3 className="text-center text-[11px] font-bold uppercase tracking-[0.22em] text-accent-text">
                 {group.label} · {group.items.length}{" "}
                 {group.items.length === 1 ? "Termin" : "Termine"}
               </h3>
@@ -259,7 +259,7 @@ export default function EventsTable({
                       <button
                         type="button"
                         onClick={() => setOpenEvent(event)}
-                        className={`flex w-full items-center justify-center gap-3 rounded-lg py-2 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                        className={`flex w-full items-center gap-3 rounded-lg py-2 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                           conflictsByEvent.has(event.id)
                             ? "hover:bg-amber-50/60"
                             : "hover:bg-bg"
@@ -283,7 +283,7 @@ export default function EventsTable({
                             <span className="text-xs text-text-light">–</span>
                           )}
                         </div>
-                        <p className="min-w-0 truncate">
+                        <p className="min-w-0 flex-1 truncate">
                           <span className="font-mono text-xs text-text">
                             {event.kurs_nr}
                           </span>
