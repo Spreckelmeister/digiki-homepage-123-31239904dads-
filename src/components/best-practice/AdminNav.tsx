@@ -52,12 +52,13 @@ export default function AdminNav() {
 
   return (
     /* Auf Mobilgeräten scrollt die Tab-Leiste horizontal – Scrollbar wird
-     * ausgeblendet. Auf Desktop ändert sich nichts (alle Tabs passen rein). */
+     * ausgeblendet. Auf Desktop brechen die Tabs bei Platzmangel in die
+     * nächste Zeile um, statt unsichtbar abgeschnitten zu werden. */
     <nav
       aria-label="Admin-Navigation"
-      className="mt-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="mt-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible"
     >
-      <div className="flex gap-1 w-max md:w-auto">
+      <div className="flex gap-1 w-max md:w-auto md:flex-wrap">
         {tabs.map((tab) => {
           const isActive = tab.match(pathname);
           const Icon = tab.icon;
