@@ -17,6 +17,15 @@
 
 import { createServiceClient } from "@/lib/schulungen/server";
 import type { NlcSyncSummary } from "@/lib/schulungen/types";
+import {
+  extractNlcEventId,
+  type NlcEventSuggestion,
+} from "@/lib/schulungen/nlcShared";
+
+// Client-sichere Helfer weiterreichen, damit bestehende Server-Importe
+// (events-Route, overview) unverändert aus diesem Modul ziehen können.
+export { extractNlcEventId };
+export type { NlcEventSuggestion };
 
 const NLC_API_BASE = "https://nlc.info/api/v1/public/events";
 const FETCH_TIMEOUT_MS = 8000;
@@ -71,25 +80,20 @@ export async function archivePastEvents(
   }
 }
 
-/** NLC-Veranstaltungs-ID: bevorzugt aus der Spalte, sonst aus dem Link. */
-export function extractNlcEventId(ev: {
-  nlc_event_id?: string | null;
-  anmeldung_url?: string | null;
-}): string | null {
-  const direct = (ev.nlc_event_id ?? "").trim();
-  if (/^\d+$/.test(direct)) return direct;
-  const match = (ev.anmeldung_url ?? "").match(/\/event\/(\d+)/);
-  return match ? match[1] : null;
-}
-
 interface NlcAppointment {
   start?: string | null;
   maxDateApplication?: string | null;
 }
 
-interface NlcEventPayload {
+export interface NlcEventPayload {
   appointments?: NlcAppointment[];
   relevantMaxDate?: string | null;
+  title?: string | null;
+  /** Bei KOS-Ausschreibungen die exakte KOS-Nummer (z.B. "KOS.2638.166"). */
+  identifier?: string | null;
+  /** Zielgruppen-Freitext (z.B. "SL der Grundschule …"). */
+  addressee?: string | null;
+  startFirstAppointment?: string | null;
 }
 
 /** "2026-08-25 23:59:59" (lokal) → "2026-08-25"; sonst null. */
@@ -128,11 +132,10 @@ export function pickDeadline(
   return berlinDatePart(event.relevantMaxDate);
 }
 
-/** Ein NLC-Event abrufen und den Anmeldeschluss extrahieren. Wirft bei Fehlern. */
-export async function fetchNlcDeadline(
+/** Rohdaten eines NLC-Events abrufen (öffentliche JSON-API). Wirft bei Fehlern. */
+export async function fetchNlcEventDetails(
   nlcEventId: string,
-  startDate: string | null,
-): Promise<string | null> {
+): Promise<NlcEventPayload> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -154,10 +157,57 @@ export async function fetchNlcDeadline(
     if (!event) {
       throw new Error("NLC-Antwort ohne Veranstaltungsdaten");
     }
-    return pickDeadline(event, startDate);
+    return event;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** Ein NLC-Event abrufen und den Anmeldeschluss extrahieren. Wirft bei Fehlern. */
+export async function fetchNlcDeadline(
+  nlcEventId: string,
+  startDate: string | null,
+): Promise<string | null> {
+  const event = await fetchNlcEventDetails(nlcEventId);
+  return pickDeadline(event, startDate);
+}
+
+/**
+ * Vorschlagswerte für das Anlege-Modal aus einem NLC-Event ableiten:
+ * KOS-Nummer (identifier), Titel, erster Schulungstag, Zielgruppe
+ * (Text-Heuristik über addressee + Titel) und Anmeldeschluss.
+ */
+export function extractEventSuggestion(
+  event: NlcEventPayload,
+): NlcEventSuggestion {
+  const startDate =
+    localDatePart(event.startFirstAppointment) ??
+    ((event.appointments ?? [])
+      .map((a) => localDatePart(a.start))
+      .filter((d): d is string => d !== null)
+      .sort()[0] ??
+      null);
+
+  // „SL der Grundschule …" / „(… nur für SL!)" → Schulleitungen;
+  // „Lehrkräfte …" → Lehrkräfte; sonst unentschieden (Radio bleibt).
+  const audienceText = `${event.addressee ?? ""} ${event.title ?? ""}`.toLowerCase();
+  let audience: "teacher" | "leadership" | null = null;
+  if (
+    /schulleit/.test(audienceText) ||
+    /(^|[^a-zäöüß])sl($|[^a-zäöüß])/.test(audienceText)
+  ) {
+    audience = "leadership";
+  } else if (/lehrkr/.test(audienceText)) {
+    audience = "teacher";
+  }
+
+  return {
+    kursNr: (event.identifier ?? "").trim() || null,
+    title: (event.title ?? "").trim() || null,
+    startDate,
+    audience,
+    deadline: pickDeadline(event, startDate),
+  };
 }
 
 type SyncableEvent = {

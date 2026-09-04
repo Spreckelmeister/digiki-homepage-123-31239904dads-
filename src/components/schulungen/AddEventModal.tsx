@@ -5,13 +5,19 @@ import {
   CalendarDays,
   GraduationCap,
   Hash,
+  Link2,
   Loader2,
   Plus,
+  RefreshCw,
   Users,
   X,
 } from "lucide-react";
 
 import type { TrainingEvent } from "@/lib/schulungen/types";
+import {
+  extractNlcEventId,
+  type NlcEventSuggestion,
+} from "@/lib/schulungen/nlcShared";
 
 /**
  * Modal zum Anlegen oder Bearbeiten einer KOS-Schulung.
@@ -42,13 +48,87 @@ export default function AddEventModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [nlcLoading, setNlcLoading] = useState(false);
+  const [nlcStatus, setNlcStatus] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
 
   const kursRef = useRef<HTMLInputElement>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
+  // Beim Bearbeiten nicht ungefragt neu abrufen: Die ID des gespeicherten
+  // Links gilt als bereits "geladen"; der Übernehmen-Knopf erzwingt es.
+  const lastFetchedId = useRef<string | null>(
+    extractNlcEventId({ anmeldung_url: eventToEdit?.anmeldung_url ?? "" })
+  );
 
-  // Autofokus auf KOS-Nummer
+  // Autofokus: beim Anlegen auf den Anmeldelink (Schritt 1),
+  // beim Bearbeiten wie bisher auf die KOS-Nummer.
   useEffect(() => {
-    kursRef.current?.focus();
+    if (eventToEdit) kursRef.current?.focus();
+    else linkRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function fetchFromNlc(link: string, force = false) {
+    const nlcId = extractNlcEventId({ anmeldung_url: link, nlc_event_id: link });
+    if (!nlcId) {
+      if (force) {
+        setNlcStatus({
+          kind: "error",
+          text: "Kein NLC-Link erkannt – erwartet wird z.B. https://nlc.info/app/edb/event/55355.",
+        });
+      }
+      return;
+    }
+    if (!force && lastFetchedId.current === nlcId) return;
+    lastFetchedId.current = nlcId;
+    setNlcLoading(true);
+    setNlcStatus(null);
+    try {
+      const res = await fetch(
+        `/api/schulungen/nlc-event?link=${encodeURIComponent(link)}`
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "NLC-Daten konnten nicht geladen werden.");
+      }
+      const sug = body.suggestion as NlcEventSuggestion;
+      if (sug.kursNr) setKursNr(sug.kursNr);
+      if (sug.startDate) setStartDate(sug.startDate);
+      if (sug.audience) setAudience(sug.audience);
+      if (sug.title) setTitle(sug.title);
+      if (sug.deadline) setRegistrationDeadline(sug.deadline);
+      setNlcStatus({
+        kind: "ok",
+        text: "Daten von NLC übernommen – bitte kurz prüfen und bei Bedarf anpassen.",
+      });
+    } catch (err) {
+      setNlcStatus({
+        kind: "error",
+        text:
+          (err instanceof Error
+            ? err.message
+            : "NLC-Daten konnten nicht geladen werden.") +
+          " Die Felder lassen sich ganz normal manuell ausfüllen.",
+      });
+    } finally {
+      setNlcLoading(false);
+    }
+  }
+
+  // Auto-Abruf, sobald der eingegebene Link eine NLC-ID enthält
+  // (entprellt, damit beim Tippen keine halben IDs abgefragt werden).
+  useEffect(() => {
+    const nlcId = extractNlcEventId({
+      anmeldung_url: anmeldungUrl,
+      nlc_event_id: anmeldungUrl,
+    });
+    if (!nlcId || lastFetchedId.current === nlcId) return;
+    const t = setTimeout(() => fetchFromNlc(anmeldungUrl), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anmeldungUrl]);
 
   // Esc schließt das Modal
   useEffect(() => {
@@ -146,6 +226,66 @@ export default function AddEventModal({
 
         {/* ── Formular ── */}
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
+          {/* Schritt 1: Anmeldelink – füllt den Rest automatisch */}
+          <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <label
+              htmlFor="add-event-url"
+              className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary"
+            >
+              <Link2 className="h-3 w-3" aria-hidden="true" />
+              Anmeldelink (NLC) zuerst
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  ref={linkRef}
+                  id="add-event-url"
+                  type="url"
+                  autoComplete="off"
+                  placeholder="https://nlc.info/app/edb/event/…"
+                  value={anmeldungUrl}
+                  onChange={(e) => setAnmeldungUrl(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2.5 pr-9 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                {nlcLoading && (
+                  <Loader2
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchFromNlc(anmeldungUrl, true)}
+                disabled={nlcLoading}
+                title="Daten jetzt (erneut) von NLC übernehmen"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:opacity-50"
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                Übernehmen
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-text-light">
+              Link einfügen – KOS-Nummer, erster Schulungstag, Zielgruppe,
+              Titel und Anmeldeschluss füllen sich automatisch und bleiben
+              anpassbar.
+            </p>
+            <div aria-live="polite">
+              {nlcStatus && (
+                <p
+                  className={`mt-2 rounded-lg px-3 py-2 text-xs ${
+                    nlcStatus.kind === "ok"
+                      ? "bg-white font-semibold text-primary"
+                      : "border border-red-200 bg-red-50 text-red-800"
+                  }`}
+                >
+                  {nlcStatus.kind === "ok" ? "✓ " : ""}
+                  {nlcStatus.text}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* KOS-Nummer */}
           <div>
             <label
@@ -175,7 +315,7 @@ export default function AddEventModal({
               className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light"
             >
               <CalendarDays className="h-3 w-3" aria-hidden="true" />
-              Datum der Schulung
+              Erster Schulungstag
             </label>
             <input
               id="add-event-date"
@@ -285,30 +425,6 @@ export default function AddEventModal({
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          {/* Anmeldelink (optional) */}
-          <div>
-            <label
-              htmlFor="add-event-url"
-              className="mb-1.5 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-text-light">
-                Anmeldelink
-              </span>
-              <span className="text-[10px] font-medium text-text-light/60">
-                optional
-              </span>
-            </label>
-            <input
-              id="add-event-url"
-              type="url"
-              autoComplete="off"
-              placeholder="https://nlc.info/app/edb/event/..."
-              value={anmeldungUrl}
-              onChange={(e) => setAnmeldungUrl(e.target.value)}
               className="w-full rounded-xl border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-light/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
