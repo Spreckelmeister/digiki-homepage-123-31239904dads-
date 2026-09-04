@@ -1,5 +1,7 @@
-import { ArrowUpRight, CalendarDays, GraduationCap, Info, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, CalendarDays, ChevronRight, GraduationCap, Info, Users } from "lucide-react";
 import { createServiceClient } from "@/lib/schulungen/server";
+import { extractNlcEventId } from "@/lib/schulungen/nlcShared";
 import type { TrainingEvent } from "@/lib/schulungen/types";
 
 // Wochentag (Mi.) + großer Tag + Monatsname – scannbar, ähnlich zu
@@ -19,6 +21,8 @@ function formatDateParts(iso: string) {
 function TerminRow({ termin }: { termin: TrainingEvent }) {
   const { weekday, day, month, year } = formatDateParts(termin.start_date || "");
   const hasLink = !!termin.anmeldung_url;
+  const nlcId = extractNlcEventId(termin);
+  const detailHref = nlcId ? `/fuer-schulen/schulung/${nlcId}` : null;
 
   let deadlinePast = false;
   let deadlineFormatted = "";
@@ -34,8 +38,8 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
     }).format(dlDate);
   }
 
-  return (
-    <li className={`group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0 ${deadlinePast ? "opacity-50 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300" : ""}`}>
+  const rowInner = (
+    <>
       {/* Datum-Cluster */}
       <div className={`flex w-16 shrink-0 flex-col items-center rounded-lg px-2 py-2 text-center ${deadlinePast ? "bg-bg-alt" : "bg-bg"}`}>
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-light">
@@ -53,6 +57,7 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-text">
           {day}. {month} {year}
+          <span className="ml-1.5 font-normal text-text-light">· 1. von 3 Tagen</span>
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-2">
           <p className="font-mono text-[12px] text-text-light">
@@ -70,7 +75,32 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
             </span>
           )}
         </div>
+        {detailHref && (
+          <p className="mt-1 inline-flex items-center gap-0.5 text-xs font-semibold text-primary">
+            Details &amp; alle Termine
+            <ChevronRight
+              className="h-3 w-3 transition-transform group-hover/detail:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </p>
+        )}
       </div>
+    </>
+  );
+
+  return (
+    <li className={`group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0 ${deadlinePast ? "opacity-50 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300" : ""}`}>
+      {detailHref ? (
+        <Link
+          href={detailHref}
+          aria-label={`Details zur Schulung ${termin.kurs_nr} ab ${day}. ${month} ${year}`}
+          className="group/detail -m-2 flex min-w-0 flex-1 items-center gap-4 rounded-xl p-2 transition-colors hover:bg-bg/70"
+        >
+          {rowInner}
+        </Link>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-4">{rowInner}</div>
+      )}
 
       {/* Anmelde-Link */}
       {hasLink ? (
@@ -242,8 +272,9 @@ export default async function KosFortbildungenSection() {
           </h2>
           <p className="mt-3 text-lg leading-relaxed text-text-light">
             Die ersten Termine sind bereits online – manche schon ausgebucht.
-            Hier finden Sie die aktuelle Übersicht aller DigiKI-Schulungen,
-            sortiert nach Zielgruppe.
+            Jede Schulung ist ein <strong className="text-text">3-tägiger
+            Durchgang</strong>; angezeigt ist jeweils der erste Schulungstag.
+            Ein Klick auf einen Termin öffnet alle Details samt Folgeterminen.
           </p>
         </div>
 

@@ -36,8 +36,6 @@ export interface NlcSyncSummary {
   failed: { kurs_nr: string; error: string }[];
   /** Beim Lauf automatisch ins Archiv verschobene Termine (kurs_nr). */
   autoArchived?: string[];
-  /** Termine, deren Titel auf „Gruppe N" vereinheitlicht wurde (kurs_nr). */
-  titlesUpdated?: string[];
   syncedAt: string;
 }
 

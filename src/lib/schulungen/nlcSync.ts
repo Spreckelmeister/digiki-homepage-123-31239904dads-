@@ -33,12 +33,24 @@ const FETCH_TIMEOUT_MS = 8000;
 const BATCH_SIZE = 5;
 /** Gleicher User-Agent-Stil wie die Nominatim-Aufrufe (school-search). */
 const USER_AGENT = "DigiKI-Homepage/1.0 (krafft@osnabrueck.de)";
-/** So viele Tage nach dem Termin wandert eine Schulung automatisch ins Archiv. */
-export const ARCHIVE_AFTER_DAYS = 10;
+/** So viele Tage nach dem LETZTEN Schulungstag (end_date, kommt vom
+ *  täglichen NLC-Abgleich) wandert eine Schulung automatisch ins Archiv. */
+export const ARCHIVE_AFTER_LAST_DAY = 3;
+/** Fallback für Termine ohne end_date (kein NLC-Link o.ä.): großzügig
+ *  30 Tage nach dem ersten Tag, damit nichts vorschnell verschwindet. */
+const ARCHIVE_FALLBACK_AFTER_START = 30;
+
+function berlinDateDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(
+    d,
+  );
+}
 
 /**
- * Automatisches Aufräumen: Termine, deren Datum länger als
- * ARCHIVE_AFTER_DAYS zurückliegt, ins Archiv verschieben (archived_at).
+ * Automatisches Aufräumen: Termine, deren letzter Schulungstag länger als
+ * ARCHIVE_AFTER_LAST_DAY zurückliegt, ins Archiv verschieben (archived_at).
  * Anmeldungen bleiben unangetastet – die Schulungsprüfung der
  * Antragsformulare braucht sie weiterhin. Läuft beim täglichen Cron,
  * beim Admin-Abgleich und bei jedem Dashboard-Aufruf (idempotent).
@@ -49,18 +61,16 @@ export async function archivePastEvents(
 ): Promise<string[]> {
   try {
     const admin = client ?? createServiceClient();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - ARCHIVE_AFTER_DAYS);
-    const cutoffStr = new Intl.DateTimeFormat("sv-SE", {
-      timeZone: "Europe/Berlin",
-    }).format(cutoff);
+    const cutoffEnd = berlinDateDaysAgo(ARCHIVE_AFTER_LAST_DAY);
+    const cutoffStart = berlinDateDaysAgo(ARCHIVE_FALLBACK_AFTER_START);
 
     const { data, error } = await admin
       .from("training_events")
       .update({ archived_at: new Date().toISOString() })
       .is("archived_at", null)
-      .not("start_date", "is", null)
-      .lt("start_date", cutoffStr)
+      .or(
+        `end_date.lt.${cutoffEnd},and(end_date.is.null,start_date.lt.${cutoffStart})`,
+      )
       .select("kurs_nr");
 
     if (error) {
@@ -80,9 +90,19 @@ export async function archivePastEvents(
   }
 }
 
-interface NlcAppointment {
+export interface NlcAppointmentLocation {
+  name?: string | null;
+  street?: string | null;
+  zipcode?: string | null;
+  city?: string | null;
+  homepage?: string | null;
+}
+
+export interface NlcAppointment {
   start?: string | null;
+  end?: string | null;
   maxDateApplication?: string | null;
+  locations?: NlcAppointmentLocation[];
 }
 
 export interface NlcEventPayload {
@@ -94,6 +114,12 @@ export interface NlcEventPayload {
   /** Zielgruppen-Freitext (z.B. "SL der Grundschule …"). */
   addressee?: string | null;
   startFirstAppointment?: string | null;
+  endLastAppointment?: string | null;
+  /** Ausschreibungstext (HTML!) – vor der Anzeige in Text umwandeln. */
+  description?: string | null;
+  objectives?: string | null;
+  maxAttendees?: number | null;
+  hosts?: { name?: string | null }[];
 }
 
 /** "2026-08-25 23:59:59" (lokal) → "2026-08-25"; sonst null. */
@@ -222,10 +248,10 @@ export function extractEventSuggestion(
 type SyncableEvent = {
   id: string;
   kurs_nr: string;
-  title: string;
   nlc_event_id: string | null;
   anmeldung_url: string | null;
   start_date: string | null;
+  end_date: string | null;
   registration_deadline: string | null;
 };
 
@@ -237,10 +263,6 @@ type SyncableEvent = {
  */
 export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
   const admin = createServiceClient();
-
-  // Zuerst aufräumen: Lange vergangene Termine ins Archiv – sie fallen
-  // damit auch gleich aus der folgenden Abgleich-Auswahl heraus.
-  const autoArchived = await archivePastEvents(admin);
 
   const { data, error } = await admin
     .from("training_events")
@@ -262,8 +284,7 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
     unchanged: 0,
     skipped: [],
     failed: [],
-    autoArchived,
-    titlesUpdated: [],
+    autoArchived: [],
     syncedAt: new Date().toISOString(),
   };
 
@@ -285,13 +306,17 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
           // ID aus dem Link in die Spalte übernehmen (Dashboard-POST
           // setzte sie früher nie).
           if (!ev.nlc_event_id) updates.nlc_event_id = nlcId;
-          // Titel vereinheitlichen: „Gruppe N" aus dem NLC-Titel – gilt
-          // damit automatisch auch für alle Bestandstermine.
-          const newTitle = gruppeTitle(details.title);
-          if (newTitle && newTitle !== ev.title) {
-            updates.title = newTitle;
-            summary.titlesUpdated!.push(ev.kurs_nr);
-          }
+          // Letzten Schulungstag mitschreiben – Grundlage der
+          // Archiv-Automatik (3 Tage nach dem letzten Termin).
+          const lastDay =
+            localDatePart(details.endLastAppointment) ??
+            ((details.appointments ?? [])
+              .map((a) => localDatePart(a.end) ?? localDatePart(a.start))
+              .filter((d): d is string => d !== null)
+              .sort()
+              .pop() ??
+              null);
+          if (lastDay && lastDay !== ev.end_date) updates.end_date = lastDay;
           // Kein Schluss bei NLC hinterlegt → bestehenden Wert behalten
           // (nie einen Handeintrag mit "nichts" überschreiben).
           const changed =
@@ -332,6 +357,10 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
       }),
     );
   }
+
+  // NACH dem Abgleich aufräumen: Die end_dates sind jetzt frisch, damit
+  // die 3-Tage-Regel ab dem letzten Schulungstag korrekt greift.
+  summary.autoArchived = await archivePastEvents(admin);
 
   return summary;
 }

@@ -51,15 +51,6 @@ function formatDate(iso: string | null): string {
   }).format(new Date(iso + "T00:00:00"));
 }
 
-/** Anmeldeschluss einer Schulung: formatiert + abgelaufen-Flag. */
-function deadlineInfo(ev: TrainingEvent) {
-  if (!ev.registration_deadline) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dl = new Date(ev.registration_deadline + "T00:00:00");
-  return { past: today > dl, formatted: formatDate(ev.registration_deadline) };
-}
-
 /**
  * Alle KOS-Schulungen mit Anmeldezahl. Klick auf eine Schulung öffnet die
  * Teilnehmer-Übersicht (Name · Schule · E-Mail).
@@ -230,7 +221,7 @@ export default function EventsTable({
         <div className="border-t border-border p-5 md:p-6">
           <p className="text-xs text-text-light">
             {showArchive
-              ? "Archiv: Termine, die länger als 10 Tage vorbei sind oder manuell archiviert wurden – Anmeldedaten und Antragsprüfung bleiben erhalten. Auf eine Schulung tippen, um die Teilnehmenden zu sehen."
+              ? "Archiv: Termine, deren letzter Schulungstag mehr als 3 Tage zurückliegt oder die manuell archiviert wurden – Anmeldedaten und Antragsprüfung bleiben erhalten. Auf eine Schulung tippen, um die Teilnehmenden zu sehen."
               : "Auf eine Schulung tippen, um die Teilnehmenden zu sehen."}
           </p>
 
@@ -253,7 +244,6 @@ export default function EventsTable({
               <ul className="mt-2 divide-y divide-border/60">
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
-                  const dl = deadlineInfo(event);
                   return (
                     <li key={event.id} className="group/event relative">
                       <button
@@ -293,24 +283,6 @@ export default function EventsTable({
                           <p className="truncate text-[11px] text-text-light">
                             {event.title}
                           </p>
-                          {dl && (
-                            <p
-                              className={`mt-0.5 text-[10px] font-semibold ${
-                                dl.past ? "text-red-600" : "text-amber-700"
-                              }`}
-                            >
-                              Anmeldeschluss {dl.formatted}
-                              {dl.past ? " · abgelaufen" : ""}
-                              {event.deadline_synced_at && (
-                                <span
-                                  className="ml-1 font-normal text-text-light"
-                                  title={`Zuletzt mit NLC abgeglichen: ${new Date(event.deadline_synced_at).toLocaleString("de-DE")}`}
-                                >
-                                  · NLC ✓
-                                </span>
-                              )}
-                            </p>
-                          )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <span

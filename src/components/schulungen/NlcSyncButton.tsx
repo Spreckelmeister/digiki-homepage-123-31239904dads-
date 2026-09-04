@@ -140,18 +140,12 @@ export default function NlcSyncButton({
                   )}
                 </ul>
               )}
-              {(result.titlesUpdated?.length ?? 0) > 0 && (
-                <p className="text-[11px] text-text-light">
-                  {result.titlesUpdated!.length}{" "}
-                  {result.titlesUpdated!.length === 1 ? "Titel" : "Titel"} auf
-                  „Gruppe N" vereinheitlicht.
-                </p>
-              )}
               {(result.autoArchived?.length ?? 0) > 0 && (
                 <p className="text-[11px] text-text-light">
                   {result.autoArchived!.length}{" "}
                   {result.autoArchived!.length === 1 ? "Termin" : "Termine"}{" "}
-                  automatisch ins Archiv verschoben (älter als 10 Tage).
+                  automatisch ins Archiv verschoben (3 Tage nach dem letzten
+                  Schulungstag).
                 </p>
               )}
               {result.skipped.length > 0 && (
