@@ -140,6 +140,13 @@ export default function NlcSyncButton({
                   )}
                 </ul>
               )}
+              {(result.titlesUpdated?.length ?? 0) > 0 && (
+                <p className="text-[11px] text-text-light">
+                  {result.titlesUpdated!.length}{" "}
+                  {result.titlesUpdated!.length === 1 ? "Titel" : "Titel"} auf
+                  „Gruppe N" vereinheitlicht.
+                </p>
+              )}
               {(result.autoArchived?.length ?? 0) > 0 && (
                 <p className="text-[11px] text-text-light">
                   {result.autoArchived!.length}{" "}

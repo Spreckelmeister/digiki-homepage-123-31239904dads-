@@ -172,10 +172,19 @@ export async function fetchNlcDeadline(
   return pickDeadline(event, startDate);
 }
 
+/** „… (Gruppe 13 - nur für SL!)" → „Gruppe 13" – kurzer Anzeigetitel.
+ *  Ohne Gruppennummer im NLC-Titel → null (Titel bleibt unangetastet). */
+export function gruppeTitle(
+  nlcTitle: string | null | undefined,
+): string | null {
+  const m = (nlcTitle ?? "").match(/gruppe\s*(\d+)/i);
+  return m ? `Gruppe ${m[1]}` : null;
+}
+
 /**
  * Vorschlagswerte für das Anlege-Modal aus einem NLC-Event ableiten:
- * KOS-Nummer (identifier), Titel, erster Schulungstag, Zielgruppe
- * (Text-Heuristik über addressee + Titel) und Anmeldeschluss.
+ * KOS-Nummer (identifier), Kurztitel („Gruppe N"), erster Schulungstag,
+ * Zielgruppe (Text-Heuristik über addressee + Titel) und Anmeldeschluss.
  */
 export function extractEventSuggestion(
   event: NlcEventPayload,
@@ -203,7 +212,7 @@ export function extractEventSuggestion(
 
   return {
     kursNr: (event.identifier ?? "").trim() || null,
-    title: (event.title ?? "").trim() || null,
+    title: gruppeTitle(event.title) ?? ((event.title ?? "").trim() || null),
     startDate,
     audience,
     deadline: pickDeadline(event, startDate),
@@ -213,6 +222,7 @@ export function extractEventSuggestion(
 type SyncableEvent = {
   id: string;
   kurs_nr: string;
+  title: string;
   nlc_event_id: string | null;
   anmeldung_url: string | null;
   start_date: string | null;
@@ -256,6 +266,7 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
     skipped: [],
     failed: [],
     autoArchived,
+    titlesUpdated: [],
     syncedAt: new Date().toISOString(),
   };
 
@@ -269,13 +280,21 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
           return;
         }
         try {
-          const deadline = await fetchNlcDeadline(nlcId, ev.start_date);
+          const details = await fetchNlcEventDetails(nlcId);
+          const deadline = pickDeadline(details, ev.start_date);
           const updates: Record<string, string> = {
             deadline_synced_at: summary.syncedAt,
           };
           // ID aus dem Link in die Spalte übernehmen (Dashboard-POST
           // setzte sie früher nie).
           if (!ev.nlc_event_id) updates.nlc_event_id = nlcId;
+          // Titel vereinheitlichen: „Gruppe N" aus dem NLC-Titel – gilt
+          // damit automatisch auch für alle Bestandstermine.
+          const newTitle = gruppeTitle(details.title);
+          if (newTitle && newTitle !== ev.title) {
+            updates.title = newTitle;
+            summary.titlesUpdated!.push(ev.kurs_nr);
+          }
           // Kein Schluss bei NLC hinterlegt → bestehenden Wert behalten
           // (nie einen Handeintrag mit "nichts" überschreiben).
           const changed =
