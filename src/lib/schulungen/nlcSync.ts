@@ -230,8 +230,10 @@ type SyncableEvent = {
 };
 
 /**
- * Alle kommenden Schulungen mit NLC abgleichen. Wird vom täglichen
- * Vercel-Cron und vom Admin-Knopf im Schulungsdashboard aufgerufen.
+ * Alle nicht archivierten Schulungen mit NLC abgleichen – auch bereits
+ * begonnene: Solange ein Termin im Arbeitsfeld liegt, sollen Titel und
+ * Frist stimmen. Wird vom täglichen Vercel-Cron und vom Admin-Knopf im
+ * Schulungsdashboard aufgerufen.
  */
 export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
   const admin = createServiceClient();
@@ -240,14 +242,9 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
   // damit auch gleich aus der folgenden Abgleich-Auswahl heraus.
   const autoArchived = await archivePastEvents(admin);
 
-  const todayStr = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Berlin",
-  }).format(new Date());
-
   const { data, error } = await admin
     .from("training_events")
     .select("*")
-    .or(`start_date.is.null,start_date.gte.${todayStr}`)
     .order("start_date", { ascending: true });
 
   if (error) {
