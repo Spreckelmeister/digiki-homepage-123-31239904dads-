@@ -154,6 +154,11 @@ export default function StudentAssistantForm({
   >(null);
   const [behalfTrainingsLoading, setBehalfTrainingsLoading] = useState(false);
   const [skipTrainingCheck, setSkipTrainingCheck] = useState(false);
+  // Weich bekannte Felder der gewählten Schule (BSA + letzter Antrag) –
+  // erscheinen in der Zusammenfassungs-Karte statt als Eingabefelder.
+  const [behalfSoft, setBehalfSoft] = useState<
+    Array<{ field: string; source: "bsa" | "antrag" }>
+  >([]);
 
   useEffect(() => {
     if (!actingForSchool) return;
@@ -181,14 +186,20 @@ export default function StudentAssistantForm({
     setSelectedBehalfSchool(school);
     setBehalfSearch("");
     setSkipTrainingCheck(false);
-    // Adresse zurücksetzen: Sie gehört zur vorher gewählten Schule; der
-    // OpenStreetMap-Vorschlag füllt sie für die neue Schule frisch aus.
+    setBehalfSoft([]);
+    // Alle Angaben zurücksetzen: Sie gehören zur vorher gewählten Schule.
     setSchoolInfo((prev) => ({
       ...prev,
       school_name: school.name,
       school_street: "",
       school_plz: "",
       school_city: "",
+      principal_name: "",
+      contact_person: "",
+      phone: "",
+      email: "",
+      teacher_count: "",
+      student_count: "",
     }));
     setBehalfTrainings(null);
     setBehalfTrainingsLoading(true);
@@ -198,6 +209,50 @@ export default function StudentAssistantForm({
       );
       const json = await res.json().catch(() => ({}));
       setBehalfTrainings(Array.isArray(json.trainings) ? json.trainings : []);
+
+      // Bestandsaufnahme + letzter Antrag der Schule: vorhandene Werte
+      // übernehmen und als „weich bekannt" in die Karte legen – der
+      // Stellvertreter tippt nur noch, was wirklich fehlt.
+      const prefill =
+        json && typeof json.prefill === "object" && json.prefill !== null
+          ? (json.prefill as BestandsaufnahmePrefill)
+          : null;
+      if (prefill) {
+        setSchoolInfo((prev) => ({
+          ...prev,
+          school_name: school.name,
+          school_street: prefill.school_street ?? "",
+          school_plz: prefill.school_plz ?? "",
+          school_city: prefill.school_city ?? "",
+          principal_name: prefill.principal_name ?? "",
+          contact_person: prefill.contact_person ?? "",
+          phone: prefill.phone ?? "",
+          email: prefill.email ?? "",
+          teacher_count: prefill.teacher_count ?? "",
+          student_count: prefill.student_count ?? "",
+        }));
+        const soft: Array<{ field: string; source: "bsa" | "antrag" }> = [];
+        if (prefill.school_street && prefill.school_plz && prefill.school_city) {
+          soft.push(
+            { field: "school_street", source: "antrag" },
+            { field: "school_plz", source: "antrag" },
+            { field: "school_city", source: "antrag" },
+          );
+        }
+        for (const field of [
+          "principal_name",
+          "contact_person",
+          "phone",
+          "email",
+          "teacher_count",
+        ] as const) {
+          if (prefill[field]) soft.push({ field, source: "bsa" });
+        }
+        if (prefill.student_count) {
+          soft.push({ field: "student_count", source: "antrag" });
+        }
+        setBehalfSoft(soft);
+      }
     } catch {
       setBehalfTrainings([]);
     } finally {
@@ -209,12 +264,19 @@ export default function StudentAssistantForm({
     setSelectedBehalfSchool(null);
     setBehalfTrainings(null);
     setSkipTrainingCheck(false);
+    setBehalfSoft([]);
     setSchoolInfo((prev) => ({
       ...prev,
       school_name: "",
       school_street: "",
       school_plz: "",
       school_city: "",
+      principal_name: "",
+      contact_person: "",
+      phone: "",
+      email: "",
+      teacher_count: "",
+      student_count: "",
     }));
   }
 
@@ -225,19 +287,28 @@ export default function StudentAssistantForm({
   const behalfShown = behalfMatches.slice(0, 12);
   const behalfRoleLabel = actingRole === "admin" ? "Admin" : "Schulungsteam";
 
-  // Adresse/Schülerzahl stammen aus dem jüngsten früheren Antrag der Schule
-  // (die BSA kennt sie nicht) – sie wandern in die Zusammenfassungs-Karte.
-  const prefilledFromApplication =
-    !editMode && !actingForSchool && prefillFromBSA
-      ? [
-          ...(prefillFromBSA.school_street &&
-          prefillFromBSA.school_plz &&
-          prefillFromBSA.school_city
-            ? ["school_street", "school_plz", "school_city"]
-            : []),
-          ...(prefillFromBSA.student_count ? ["student_count"] : []),
-        ]
-      : [];
+  // Weich bekannte Felder für die Zusammenfassungs-Karte: beim Schul-Konto
+  // Adresse/Schülerzahl aus dem eigenen letzten Antrag; im Stellvertreter-
+  // Modus alles, was die gewählte Schule bereits geliefert hat.
+  const softPrefilled: Array<{ field: string; source: "bsa" | "antrag" }> =
+    actingForSchool
+      ? behalfSoft
+      : !editMode && prefillFromBSA
+        ? [
+            ...(prefillFromBSA.school_street &&
+            prefillFromBSA.school_plz &&
+            prefillFromBSA.school_city
+              ? ([
+                  { field: "school_street", source: "antrag" },
+                  { field: "school_plz", source: "antrag" },
+                  { field: "school_city", source: "antrag" },
+                ] as const)
+              : []),
+            ...(prefillFromBSA.student_count
+              ? ([{ field: "student_count", source: "antrag" }] as const)
+              : []),
+          ]
+        : [];
 
   // Voraussetzungen: Schulungsanmeldung kommt automatisch aus dem Server
   // (registeredTrainings); nur der schulinterne Versuch wird abgefragt.
@@ -625,7 +696,8 @@ export default function StudentAssistantForm({
                     {behalfShown.length === 0 && (
                       <li className="px-4 py-3 text-sm text-text-light">
                         Keine Schule gefunden – prüfen Sie die Schreibweise.
-                        Gelistet sind alle verifizierten Schulen aus dem
+                        Gelistet sind alle bei DigiKI angemeldeten Schulen
+                        (Bestandsaufnahme) sowie die Schulen aus dem
                         Schulungsdashboard.
                       </li>
                     )}
@@ -641,7 +713,8 @@ export default function StudentAssistantForm({
             </div>
           ))}
 
-        {(!actingForSchool || selectedBehalfSchool) && (
+        {(!actingForSchool ||
+          (selectedBehalfSchool && !behalfTrainingsLoading)) && (
           <SchoolInfoFields
             key={
               actingForSchool
@@ -653,8 +726,9 @@ export default function StudentAssistantForm({
             inputClass={inputClass}
             lockedEmail={actingForSchool ? undefined : lockedEmail}
             lockedFromBestandsaufnahme={lockedFromBSA}
-            prefilledFromApplication={prefilledFromApplication}
+            softPrefilled={softPrefilled}
             hideSchoolName={actingForSchool}
+            foreignSchool={actingForSchool}
             emailHint={
               actingForSchool
                 ? "E-Mail-Adresse der Schule – an sie geht die Eingangsbestätigung."

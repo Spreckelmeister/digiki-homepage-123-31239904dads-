@@ -15,6 +15,11 @@
 
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import {
+  buildRegisteredSchools,
+  matchRegisteredSchool,
+  schoolMatchKey,
+} from "@/lib/schulungen/parse";
 
 export interface BestandsaufnahmePrefill {
   school_name?: string;
@@ -22,6 +27,9 @@ export interface BestandsaufnahmePrefill {
   contact_person?: string;
   phone?: string;
   teacher_count?: string;
+  /** Kontakt-E-Mail aus der Bestandsaufnahme – nur im Stellvertreter-Modus
+   *  relevant (Schul-Konten haben ihre Konto-E-Mail fest gesetzt). */
+  email?: string;
   /** Aus dem jüngsten früheren Antrag der Schule übernommen – die
    *  Bestandsaufnahme kennt keine Adresse und keine Schülerzahl.
    *  Diese Felder werden NICHT gesperrt, nur vor-ausgefüllt: Es gibt
@@ -218,6 +226,130 @@ async function getLatestApplicationExtras(
   if (!withAddress && !withStudents) return null;
 
   return {
+    school_street: withAddress ? cleanStr(withAddress.school_street) : undefined,
+    school_plz: withAddress ? cleanStr(withAddress.school_plz) : undefined,
+    school_city: withAddress ? cleanStr(withAddress.school_city) : undefined,
+    student_count: withStudents ? String(withStudents.student_count) : undefined,
+  };
+}
+
+/**
+ * Stellvertreter-Modus: Vorbefüllung für eine ÜBER IHREN NAMEN gewählte
+ * Schule – jüngste Bestandsaufnahme plus Adresse/Schülerzahl aus deren
+ * jüngstem früheren Antrag. Der Namens-Abgleich nutzt dieselbe Vorrangfolge
+ * wie die Schulungsprüfung: zuerst die von Menschen geprüfte Zuordnungsliste
+ * (`school_aliases`), dann das tolerante Auto-Matching.
+ *
+ * Nur serverseitig aufrufen (Service-Role) und nur hinter einer
+ * Admin/Schulungsteam-Prüfung – die Daten gehören der jeweiligen Schule.
+ */
+export async function getPrefillForSchool(
+  schoolName: string,
+): Promise<BestandsaufnahmePrefill | null> {
+  const pickedName = schoolName.trim();
+  if (!pickedName) return null;
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    return null;
+  }
+
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
+  const [bsaRes, aliasRes] = await Promise.all([
+    admin
+      .from("bestandsaufnahme_responses")
+      .select(
+        "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, created_at",
+      )
+      .order("created_at", { ascending: false }),
+    admin.from("school_aliases").select("alias_key, canonical_name"),
+  ]);
+
+  type BsaRow = RawBSA & { created_at: string };
+  const bsaRows = (bsaRes.data ?? []) as BsaRow[];
+  const aliasByKey = new Map(
+    (
+      (aliasRes.data ?? []) as Array<{
+        alias_key: string;
+        canonical_name: string;
+      }>
+    ).map((a) => [a.alias_key, a.canonical_name]),
+  );
+  const registeredSchools = buildRegisteredSchools(
+    bsaRows.map((r) => r.school_name ?? null),
+  );
+
+  const resolveCanonical = (name: string | null | undefined): string | null => {
+    const trimmed = name?.trim();
+    if (!trimmed) return null;
+    const key = schoolMatchKey(trimmed);
+    return (
+      (key ? aliasByKey.get(key) : undefined) ??
+      matchRegisteredSchool(trimmed, registeredSchools) ??
+      trimmed
+    );
+  };
+
+  const canonical = resolveCanonical(pickedName);
+  const matchesPicked = (name: string | null | undefined): boolean => {
+    if (!name?.trim()) return false;
+    if (name === pickedName) return true;
+    const resolved = resolveCanonical(name);
+    return resolved !== null && resolved === canonical;
+  };
+
+  // Jüngste Bestandsaufnahme dieser Schule (Liste ist bereits absteigend).
+  const bsa = bsaRows.find((r) => matchesPicked(r.school_name)) ?? null;
+
+  // Adresse/Schülerzahl aus dem jüngsten früheren Antrag DIESER Schule.
+  const columns =
+    "school_name, school_street, school_plz, school_city, student_count, created_at";
+  const [students, tools] = await Promise.all([
+    admin
+      .from("applications_student_assistants")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    admin
+      .from("applications_tool_licenses")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+  type AppRow = ApplicationRow & { school_name: string | null };
+  const appRows = [
+    ...((students.data ?? []) as AppRow[]),
+    ...((tools.data ?? []) as AppRow[]),
+  ]
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .filter((r) => matchesPicked(r.school_name));
+
+  const withAddress = appRows.find(
+    (r) =>
+      cleanStr(r.school_street) && cleanStr(r.school_plz) && cleanStr(r.school_city),
+  );
+  const withStudents = appRows.find(
+    (r) => r.student_count != null && r.student_count > 0,
+  );
+
+  if (!bsa && !withAddress && !withStudents) return null;
+
+  return {
+    school_name: cleanStr(bsa?.school_name) ?? pickedName,
+    principal_name: cleanStr(bsa?.principal_name),
+    contact_person: cleanStr(bsa?.contact_person),
+    phone: cleanStr(bsa?.contact_phone),
+    email: cleanStr(bsa?.contact_email),
+    teacher_count:
+      bsa?.teacher_count != null && bsa.teacher_count > 0
+        ? String(bsa.teacher_count)
+        : undefined,
     school_street: withAddress ? cleanStr(withAddress.school_street) : undefined,
     school_plz: withAddress ? cleanStr(withAddress.school_plz) : undefined,
     school_city: withAddress ? cleanStr(withAddress.school_city) : undefined,

@@ -35,13 +35,16 @@ interface SchoolInfoFieldsProps {
   /** Liste der Felder, die als gesperrte Anzeige (Quelle:
    *  Bestandsaufnahme) gerendert werden sollen. */
   lockedFromBestandsaufnahme?: string[];
-  /** Felder, die aus dem jüngsten früheren Antrag vor-ausgefüllt wurden
-   *  (Adresse, Schülerzahl). Sie wandern in die Zusammenfassung und werden
-   *  erst auf Klick („Korrigieren") wieder zu Eingabefeldern. */
-  prefilledFromApplication?: string[];
+  /** „Weich bekannte" Felder: vor-ausgefüllt aus Bestandsaufnahme bzw.
+   *  letztem Antrag, in der Zusammenfassung gezeigt und erst auf Klick
+   *  („Korrigieren") wieder als Eingabefeld geöffnet. */
+  softPrefilled?: Array<{ field: string; source: "bsa" | "antrag" }>;
   /** Stellvertreter-Modus: Der Schulname kommt aus der Schulauswahl darüber
    *  und wird hier nicht noch einmal als Feld angezeigt. */
   hideSchoolName?: boolean;
+  /** Stellvertreter-Modus: Die Daten gehören der GEWÄHLTEN Schule, nicht dem
+   *  angemeldeten Konto – Beschriftungen und Links passen sich an. */
+  foreignSchool?: boolean;
   /** Ersetzt den Standard-Tipp unter dem (ungesperrten) E-Mail-Feld. */
   emailHint?: React.ReactNode;
 }
@@ -52,8 +55,9 @@ export default function SchoolInfoFields({
   inputClass,
   lockedEmail,
   lockedFromBestandsaufnahme = [],
-  prefilledFromApplication = [],
+  softPrefilled = [],
   hideSchoolName = false,
+  foreignSchool = false,
   emailHint,
 }: SchoolInfoFieldsProps) {
   // School name autocomplete
@@ -94,38 +98,53 @@ export default function SchoolInfoFields({
   // ── Zusammenfassung statt Formular ────────────────────────────────────────
   // Bekannte Werte erscheinen NICHT mehr als (gesperrte) Formularfelder,
   // sondern gebündelt in einer Karte – Eingabefelder gibt es nur noch für
-  // das, was wirklich fehlt. Die Karte gibt es nur für Konten mit
-  // Bestandsaufnahme; ohne sie bleibt das gewohnte volle Formular.
-  const summaryActive = anyBSALocked;
+  // das, was wirklich fehlt. „Weich bekannte" Werte (softPrefilled) lassen
+  // sich per „Korrigieren" wieder zu Feldern aufklappen; BSA-gesperrte
+  // Werte werden ausschließlich über die Bestandsaufnahme gepflegt.
+  const [editedSoft, setEditedSoft] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const markEdited = (...fields: string[]) =>
+    setEditedSoft((prev) => new Set([...prev, ...fields]));
 
-  // Adresse/Schülerzahl aus dem letzten Antrag: „weich bekannt" – sie stehen
-  // in der Karte, lassen sich aber per Klick wieder zu Feldern aufklappen
-  // (anders als BSA-Werte haben sie keinen eigenen Pflege-Ort).
-  const [editAddress, setEditAddress] = useState(false);
-  const [editStudentCount, setEditStudentCount] = useState(false);
+  const softSourceByField = new Map(
+    softPrefilled.map((s) => [s.field, s.source]),
+  );
+  const softKnown = (field: keyof typeof values): boolean =>
+    softSourceByField.has(field) && hasValue(field) && !editedSoft.has(field);
+
+  // Adresse nur als Ganzes zusammenfassen – eine halbe Adresse bleibt Feld.
   const addressKnown =
-    summaryActive &&
-    !editAddress &&
-    prefilledFromApplication.includes("school_street") &&
-    hasValue("school_street") &&
-    hasValue("school_plz") &&
-    hasValue("school_city");
-  const studentCountKnown =
-    summaryActive &&
-    !editStudentCount &&
-    prefilledFromApplication.includes("student_count") &&
-    hasValue("student_count");
+    softKnown("school_street") &&
+    softKnown("school_plz") &&
+    softKnown("school_city");
+  const singleSoftFields = [
+    "principal_name",
+    "contact_person",
+    "phone",
+    "email",
+    "teacher_count",
+    "student_count",
+  ] as const;
+  const anySoftKnown =
+    addressKnown || singleSoftFields.some((f) => softKnown(f));
+  const summaryActive = anyBSALocked || anySoftKnown;
 
   const showSchoolNameInput = !isBSALocked("school_name") && !hideSchoolName;
   const showAddressInputs = !addressKnown;
-  const showPrincipalInput = !isBSALocked("principal_name");
-  const showContactInput = !isBSALocked("contact_person");
-  const showPhoneInput = !isBSALocked("phone");
+  const showPrincipalInput =
+    !isBSALocked("principal_name") && !softKnown("principal_name");
+  const showContactInput =
+    !isBSALocked("contact_person") && !softKnown("contact_person");
+  const showPhoneInput = !isBSALocked("phone") && !softKnown("phone");
   // Gesperrte E-Mail: mit Karte → Zeile in der Karte; ohne Karte → wie bisher
-  // als eigene gesperrte Anzeige. Ungesperrt → normales Feld.
-  const showEmailField = !(summaryActive && isEmailLocked);
-  const showTeacherInput = !isBSALocked("teacher_count");
-  const showStudentInput = !studentCountKnown;
+  // als eigene gesperrte Anzeige. Weich bekannt (Stellvertreter-Modus) →
+  // ebenfalls Karte. Sonst normales Feld.
+  const showEmailField =
+    !(summaryActive && isEmailLocked) && !softKnown("email");
+  const showTeacherInput =
+    !isBSALocked("teacher_count") && !softKnown("teacher_count");
+  const showStudentInput = !softKnown("student_count");
   const anyInputBelow =
     showSchoolNameInput ||
     showAddressInputs ||
@@ -147,48 +166,47 @@ export default function SchoolInfoFields({
     editLabel?: string;
   }> = [];
   if (summaryActive) {
-    if (isBSALocked("school_name")) {
-      summaryRows.push({
-        key: "school_name",
-        label: "Name der Schule",
-        value: values.school_name,
-        source: "bsa",
-      });
-    }
+    const pushLockedOrSoft = (
+      field: (typeof singleSoftFields)[number] | "school_name",
+      label: string,
+      opts: { mono?: boolean } = {},
+    ) => {
+      if (isBSALocked(field)) {
+        summaryRows.push({
+          key: field,
+          label,
+          value: values[field],
+          source: "bsa",
+          ...opts,
+        });
+      } else if (field !== "school_name" && softKnown(field)) {
+        summaryRows.push({
+          key: field,
+          label,
+          value: values[field],
+          source: softSourceByField.get(field) ?? "bsa",
+          onEdit: () => markEdited(field),
+          editLabel: "Korrigieren",
+          ...opts,
+        });
+      }
+    };
+
+    pushLockedOrSoft("school_name", "Name der Schule");
     if (addressKnown) {
       summaryRows.push({
         key: "address",
         label: "Adresse",
         value: `${values.school_street.trim()}, ${values.school_plz.trim()} ${values.school_city.trim()}`,
-        source: "antrag",
-        onEdit: () => setEditAddress(true),
+        source: softSourceByField.get("school_street") ?? "antrag",
+        onEdit: () =>
+          markEdited("school_street", "school_plz", "school_city"),
         editLabel: "Adresse korrigieren",
       });
     }
-    if (isBSALocked("principal_name")) {
-      summaryRows.push({
-        key: "principal_name",
-        label: "Schulleitung",
-        value: values.principal_name,
-        source: "bsa",
-      });
-    }
-    if (isBSALocked("contact_person")) {
-      summaryRows.push({
-        key: "contact_person",
-        label: "Ansprechperson",
-        value: values.contact_person,
-        source: "bsa",
-      });
-    }
-    if (isBSALocked("phone")) {
-      summaryRows.push({
-        key: "phone",
-        label: "Telefon",
-        value: values.phone,
-        source: "bsa",
-      });
-    }
+    pushLockedOrSoft("principal_name", "Schulleitung");
+    pushLockedOrSoft("contact_person", "Ansprechperson");
+    pushLockedOrSoft("phone", "Telefon");
     if (isEmailLocked) {
       summaryRows.push({
         key: "email",
@@ -197,35 +215,28 @@ export default function SchoolInfoFields({
         source: "konto",
         mono: true,
       });
+    } else {
+      pushLockedOrSoft("email", "E-Mail", { mono: true });
     }
-    if (isBSALocked("teacher_count")) {
-      summaryRows.push({
-        key: "teacher_count",
-        label: "Anzahl Lehrkräfte",
-        value: values.teacher_count,
-        source: "bsa",
-      });
-    }
-    if (studentCountKnown) {
-      summaryRows.push({
-        key: "student_count",
-        label: "Anzahl Schüler/innen",
-        value: values.student_count,
-        source: "antrag",
-        onEdit: () => setEditStudentCount(true),
-        editLabel: "Schülerzahl korrigieren",
-      });
-    }
+    pushLockedOrSoft("teacher_count", "Anzahl Lehrkräfte");
+    pushLockedOrSoft("student_count", "Anzahl Schüler/innen");
   }
 
   const SOURCE_META: Record<
     SummarySource,
     { label: string; dotClass: string }
   > = {
-    bsa: { label: "aus Ihrer Bestandsaufnahme", dotClass: "bg-primary" },
+    bsa: {
+      label: foreignSchool
+        ? "aus der Bestandsaufnahme der Schule"
+        : "aus Ihrer Bestandsaufnahme",
+      dotClass: "bg-primary",
+    },
     konto: { label: "aus Ihrem Konto", dotClass: "bg-emerald-500" },
     antrag: {
-      label: "aus Ihrem letzten Antrag",
+      label: foreignSchool
+        ? "aus dem letzten Antrag der Schule"
+        : "aus Ihrem letzten Antrag",
       dotClass: "bg-accent-strong",
     },
   };
@@ -355,10 +366,29 @@ export default function SchoolInfoFields({
             </p>
             <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-relaxed text-text-light">
               {anyInputBelow
-                ? "Diese Angaben liegen uns bereits vor – ergänzen Sie unten nur noch die fehlenden Felder."
-                : "Alle Angaben zu Ihrer Schule liegen uns bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."}{" "}
-              Änderungen (z.&nbsp;B. neue Schulleitung) pflegen Sie zentral in
-              Ihrer Bestandsaufnahme – von dort übernehmen wir sie automatisch.
+                ? foreignSchool
+                  ? "Diese Angaben zur gewählten Schule liegen bereits vor – ergänzen Sie unten nur noch die fehlenden Felder."
+                  : "Diese Angaben liegen uns bereits vor – ergänzen Sie unten nur noch die fehlenden Felder."
+                : foreignSchool
+                  ? "Alle Angaben zur gewählten Schule liegen bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."
+                  : "Alle Angaben zu Ihrer Schule liegen uns bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."}{" "}
+              {foreignSchool ? (
+                <>
+                  Prüfen Sie kurz, ob alles aktuell ist – über „Korrigieren"
+                  lässt sich jeder Wert anpassen.
+                </>
+              ) : usedSources.includes("bsa") ? (
+                <>
+                  Änderungen (z.&nbsp;B. neue Schulleitung) pflegen Sie zentral
+                  in Ihrer Bestandsaufnahme – von dort übernehmen wir sie
+                  automatisch.
+                </>
+              ) : (
+                <>
+                  Über „Korrigieren" öffnen Sie einzelne Angaben wieder zum
+                  Bearbeiten.
+                </>
+              )}
             </p>
           </div>
           <dl className="grid grid-cols-1 gap-x-8 gap-y-3.5 px-5 py-4 sm:grid-cols-2">
@@ -387,6 +417,7 @@ export default function SchoolInfoFields({
                     <button
                       type="button"
                       onClick={row.onEdit}
+                      aria-label={`${row.label} korrigieren`}
                       className="shrink-0 text-[12px] font-semibold text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
                     >
                       {row.editLabel ?? "Korrigieren"}
@@ -408,24 +439,28 @@ export default function SchoolInfoFields({
                 </span>
               ))}
             </p>
-            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <Link
-                href="/best-practice/meine-bestandsaufnahme/bearbeiten"
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
-              >
-                Bestandsaufnahme bearbeiten
-                <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-              </Link>
-              {isEmailLocked && (
-                <Link
-                  href="/best-practice/konto"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
-                >
-                  Konto-Einstellungen
-                  <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-                </Link>
-              )}
-            </span>
+            {!foreignSchool && (
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {usedSources.includes("bsa") && (
+                  <Link
+                    href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
+                  >
+                    Bestandsaufnahme bearbeiten
+                    <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                  </Link>
+                )}
+                {isEmailLocked && (
+                  <Link
+                    href="/best-practice/konto"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
+                  >
+                    Konto-Einstellungen
+                    <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                  </Link>
+                )}
+              </span>
+            )}
           </div>
         </div>
       )}

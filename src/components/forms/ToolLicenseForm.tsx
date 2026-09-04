@@ -104,15 +104,21 @@ export default function ToolLicenseForm({
 
   // Adresse/Schülerzahl aus dem jüngsten früheren Antrag – wandern in die
   // Zusammenfassungs-Karte des Schul-Abschnitts statt in Eingabefelder.
-  const prefilledFromApplication =
+  const softPrefilled: Array<{ field: string; source: "bsa" | "antrag" }> =
     !editMode && prefillFromBSA
       ? [
           ...(prefillFromBSA.school_street &&
           prefillFromBSA.school_plz &&
           prefillFromBSA.school_city
-            ? ["school_street", "school_plz", "school_city"]
+            ? ([
+                { field: "school_street", source: "antrag" },
+                { field: "school_plz", source: "antrag" },
+                { field: "school_city", source: "antrag" },
+              ] as const)
             : []),
-          ...(prefillFromBSA.student_count ? ["student_count"] : []),
+          ...(prefillFromBSA.student_count
+            ? ([{ field: "student_count", source: "antrag" }] as const)
+            : []),
         ]
       : [];
 
@@ -445,7 +451,7 @@ export default function ToolLicenseForm({
           inputClass={inputClass}
           lockedEmail={lockedEmail}
           lockedFromBestandsaufnahme={lockedFromBSA}
-          prefilledFromApplication={prefilledFromApplication}
+          softPrefilled={softPrefilled}
         />
       </FormSection>
 
