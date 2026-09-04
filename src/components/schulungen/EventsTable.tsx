@@ -251,7 +251,7 @@ export default function EventsTable({
                 {group.label} · {group.items.length}{" "}
                 {group.items.length === 1 ? "Termin" : "Termine"}
               </h3>
-              <ul className="mt-1.5 divide-y divide-border/60">
+              <ul className="mt-2 divide-y divide-border/60">
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
                   return (
@@ -259,7 +259,7 @@ export default function EventsTable({
                       <button
                         type="button"
                         onClick={() => setOpenEvent(event)}
-                        className={`flex w-full items-center gap-2.5 rounded-lg py-1 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                        className={`flex w-full items-center justify-center gap-3 rounded-lg py-2 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                           conflictsByEvent.has(event.id)
                             ? "hover:bg-amber-50/60"
                             : "hover:bg-bg"
@@ -283,7 +283,7 @@ export default function EventsTable({
                             <span className="text-xs text-text-light">–</span>
                           )}
                         </div>
-                        <p className="min-w-0 flex-1 truncate">
+                        <p className="min-w-0 truncate">
                           <span className="font-mono text-xs text-text">
                             {event.kurs_nr}
                           </span>
