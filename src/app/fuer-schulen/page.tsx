@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   },
 };
 
+// Statisch mit Auffrischung: Die Schulungstermine (KosFortbildungenSection)
+// werden ohne Cookie-Zugriff geladen, daher kann die Seite per ISR gerendert
+// werden – NLC-Schluss-Änderungen erscheinen spätestens nach 10 Minuten.
+export const revalidate = 600;
+
 export default function FuerSchulenPage() {
   const initialFaqCount = 4;
 

@@ -16,8 +16,22 @@ export interface TrainingEvent {
   anmeldung_url: string | null;
   registration_link?: string | null;
   registration_deadline?: string | null;
+  /** Letzter erfolgreicher NLC-Abgleich des Anmeldeschlusses. */
+  deadline_synced_at?: string | null;
   /** Anzahl aktiver Anmeldungen (nur in der Overview-Antwort gefüllt). */
   registration_count?: number;
+}
+
+/** Ergebnis eines NLC-Abgleichs (/api/schulungen/nlc-sync). */
+export interface NlcSyncSummary {
+  /** Anzahl geprüfter (kommender) Schulungen. */
+  checked: number;
+  updated: { kurs_nr: string; from: string | null; to: string }[];
+  unchanged: number;
+  /** kurs_nr ohne NLC-Link/-ID – kann nicht abgeglichen werden. */
+  skipped: string[];
+  failed: { kurs_nr: string; error: string }[];
+  syncedAt: string;
 }
 
 export interface SchoolQuotaUsage {

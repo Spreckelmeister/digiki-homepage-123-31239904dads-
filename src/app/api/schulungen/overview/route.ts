@@ -35,7 +35,7 @@ export async function GET() {
   ] = await Promise.all([
     admin
       .from("training_events")
-      .select("id, kurs_nr, nlc_event_id, title, audience, start_date, end_date, location, anmeldung_url, registration_deadline")
+      .select("id, kurs_nr, nlc_event_id, title, audience, start_date, end_date, location, anmeldung_url, registration_deadline, deadline_synced_at")
       .order("start_date", { ascending: true }),
     admin
       .from("registrations")

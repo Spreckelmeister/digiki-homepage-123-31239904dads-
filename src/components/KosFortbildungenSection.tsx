@@ -1,5 +1,5 @@
 import { ArrowUpRight, CalendarDays, GraduationCap, Info, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/schulungen/server";
 import type { TrainingEvent } from "@/lib/schulungen/types";
 
 // Wochentag (Mi.) + großer Tag + Monatsname – scannbar, ähnlich zu
@@ -160,20 +160,39 @@ function ZielgruppeCard({
 }
 
 export default async function KosFortbildungenSection() {
-  const supabase = await createClient();
-  const { data: events } = await supabase
-    .from("training_events")
-    .select("*")
-    .order("start_date", { ascending: true });
+  // Service-Role-Client statt Anon+Cookie-Client: `training_events` ist per
+  // RLS nur für Admin/Schulungsteam lesbar – mit dem Anon-Client sahen
+  // ausgeloggte Besucher deshalb "keine Termine veröffentlicht". Die
+  // Termine sind öffentliche Daten; gleiches Muster wie getSchoolTrainings.
+  let events: TrainingEvent[] = [];
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from("training_events")
+      .select("*")
+      .order("start_date", { ascending: true });
+    if (error) {
+      console.error("[KosFortbildungen] Termine nicht ladbar:", error.message);
+    }
+    events = (data ?? []) as TrainingEvent[];
+  } else {
+    console.error("[KosFortbildungen] Supabase-Env fehlt – keine Termine.");
+  }
 
-  // Nur Termine anzeigen, die heute oder in der Zukunft liegen
-  // (bzw. nicht mehr als 1 Tag in der Vergangenheit).
-  // Ein einfacher String-Vergleich von YYYY-MM-DD reicht aus.
+  // Nur Termine anzeigen, die heute oder in der Zukunft liegen.
+  // Ein einfacher String-Vergleich von YYYY-MM-DD reicht aus – das
+  // Datum bewusst in Europe/Berlin bilden (toISOString wäre UTC und
+  // damit nachts einen Tag daneben).
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Berlin",
+  }).format(new Date());
 
-  const safeEvents = (events || []) as TrainingEvent[];
+  const safeEvents = events;
   const upcomingEvents = safeEvents.filter(
     (e) => !e.start_date || e.start_date >= todayStr
   );

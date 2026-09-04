@@ -3,6 +3,7 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
+import { extractNlcEventId } from "@/lib/schulungen/nlcSync";
 
 export const runtime = "nodejs";
 
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
       start_date: startDate,
       anmeldung_url: anmeldungUrl,
       registration_deadline: registrationDeadline,
+      // NLC-ID aus dem Anmeldelink ableiten, damit der automatische
+      // Anmeldeschluss-Abgleich den Termin sofort erfasst.
+      nlc_event_id: extractNlcEventId({ anmeldung_url: anmeldungUrl }),
     })
     .select("id, kurs_nr, title, audience, start_date, anmeldung_url, registration_deadline")
     .single();
@@ -220,7 +224,13 @@ export async function PATCH(request: NextRequest) {
   if (body.start_date !== undefined) updates.start_date = body.start_date.trim();
   if (body.audience !== undefined) updates.audience = body.audience === "leadership" ? "leadership" : "teacher";
   if (body.title !== undefined) updates.title = body.title.trim();
-  if (body.anmeldung_url !== undefined) updates.anmeldung_url = body.anmeldung_url.trim() || null;
+  if (body.anmeldung_url !== undefined) {
+    updates.anmeldung_url = body.anmeldung_url.trim() || null;
+    // NLC-ID dem neuen Link folgen lassen (bzw. leeren, wenn er entfällt).
+    updates.nlc_event_id = extractNlcEventId({
+      anmeldung_url: updates.anmeldung_url,
+    });
+  }
   if (body.registration_deadline !== undefined) updates.registration_deadline = body.registration_deadline.trim() || null;
 
   if (Object.keys(updates).length === 0) {

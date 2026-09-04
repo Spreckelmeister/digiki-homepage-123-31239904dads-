@@ -21,6 +21,7 @@ import {
   type TrainingEvent,
 } from "@/lib/schulungen/types";
 import AddEventModal from "./AddEventModal";
+import NlcSyncButton from "./NlcSyncButton";
 import { AssignPicker, registeredSchools } from "./ConflictsTable";
 import { useParticipantEdit } from "./useParticipantEdit";
 
@@ -46,6 +47,15 @@ function formatDate(iso: string | null): string {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(iso + "T00:00:00"));
+}
+
+/** Anmeldeschluss einer Schulung: formatiert + abgelaufen-Flag. */
+function deadlineInfo(ev: TrainingEvent) {
+  if (!ev.registration_deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dl = new Date(ev.registration_deadline + "T00:00:00");
+  return { past: today > dl, formatted: formatDate(ev.registration_deadline) };
 }
 
 /**
@@ -142,6 +152,7 @@ export default function EventsTable({
           </button>
         </h2>
         <div className="flex shrink-0 items-center gap-2">
+          {isAdmin && <NlcSyncButton onSynced={onChanged} />}
           {isAdmin && (
             <button
               type="button"
@@ -183,6 +194,7 @@ export default function EventsTable({
               <ul className="mt-2 divide-y divide-border/60">
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
+                  const dl = deadlineInfo(event);
                   return (
                     <li key={event.id} className="group/event relative">
                       <button
@@ -222,6 +234,24 @@ export default function EventsTable({
                           <p className="truncate text-[11px] text-text-light">
                             {event.title}
                           </p>
+                          {dl && (
+                            <p
+                              className={`mt-0.5 text-[10px] font-semibold ${
+                                dl.past ? "text-red-600" : "text-amber-700"
+                              }`}
+                            >
+                              Anmeldeschluss {dl.formatted}
+                              {dl.past ? " · abgelaufen" : ""}
+                              {event.deadline_synced_at && (
+                                <span
+                                  className="ml-1 font-normal text-text-light"
+                                  title={`Zuletzt mit NLC abgeglichen: ${new Date(event.deadline_synced_at).toLocaleString("de-DE")}`}
+                                >
+                                  · NLC ✓
+                                </span>
+                              )}
+                            </p>
+                          )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <span

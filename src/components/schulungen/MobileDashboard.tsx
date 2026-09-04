@@ -31,6 +31,7 @@ import UploadCard from "./UploadCard";
 import AccessPanel from "./AccessPanel";
 import DangerZone from "./DangerZone";
 import AddEventModal from "./AddEventModal";
+import NlcSyncButton from "./NlcSyncButton";
 import { AssignPicker, registeredSchools } from "./ConflictsTable";
 import { useParticipantEdit } from "./useParticipantEdit";
 
@@ -54,6 +55,15 @@ function formatDate(iso: string | null): string {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(iso + "T00:00:00"));
+}
+
+/** Anmeldeschluss einer Schulung: formatiert + abgelaufen-Flag. */
+function deadlineInfo(ev: { registration_deadline?: string | null }) {
+  if (!ev.registration_deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dl = new Date(ev.registration_deadline + "T00:00:00");
+  return { past: today > dl, formatted: formatDate(ev.registration_deadline) };
 }
 
 // ─── Participant Bottom Sheet ──────────────────────────────────────────────────
@@ -561,6 +571,7 @@ function MobileEventsList({
             Schulung antippen, um die Teilnehmenden zu sehen.
           </p>
           <div className="flex shrink-0 items-center gap-2">
+            {isAdmin && <NlcSyncButton onSynced={onRefresh} label="NLC-Abgleich" />}
             {isAdmin && (
               <button
                 type="button"
@@ -608,6 +619,7 @@ function MobileEventsList({
                 <ul className="space-y-2">
                   {group.items.map((event) => {
                     const dp = dateParts(event.start_date);
+                    const dl = deadlineInfo(event);
                     const count = event.registration_count ?? 0;
                     const isConfirming = confirmDeleteId === event.id;
                     return (
@@ -689,6 +701,21 @@ function MobileEventsList({
                                 <p className="truncate text-[11px] text-text-light">
                                   {event.title}
                                 </p>
+                                {dl && (
+                                  <p
+                                    className={`mt-0.5 text-[10px] font-semibold ${
+                                      dl.past ? "text-red-600" : "text-amber-700"
+                                    }`}
+                                  >
+                                    Schluss {dl.formatted}
+                                    {dl.past ? " · abgelaufen" : ""}
+                                    {event.deadline_synced_at && (
+                                      <span className="ml-1 font-normal text-text-light">
+                                        · NLC ✓
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
                               </div>
 
                               {/* Count + Konflikt-Badge */}

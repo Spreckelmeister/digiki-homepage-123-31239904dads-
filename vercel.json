@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/schulungen/nlc-sync",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}
