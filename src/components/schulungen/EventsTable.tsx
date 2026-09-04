@@ -51,6 +51,16 @@ function formatDate(iso: string | null): string {
   }).format(new Date(iso + "T00:00:00"));
 }
 
+/** Kompakt fürs Listen-Datum: "25.08.26". */
+function shortDate(iso: string | null): string {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(new Date(iso + "T00:00:00"));
+}
+
 /**
  * Alle KOS-Schulungen mit Anmeldezahl. Klick auf eine Schulung öffnet die
  * Teilnehmer-Übersicht (Name · Schule · E-Mail).
@@ -234,14 +244,14 @@ export default function EventsTable({
           {loading ? (
             <p className="mt-4 text-sm text-text-light">Lade Schulungen …</p>
           ) : (
-            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
               {groups.map((group) => (
             <div key={group.label}>
               <h3 className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent-text">
                 {group.label} · {group.items.length}{" "}
                 {group.items.length === 1 ? "Termin" : "Termine"}
               </h3>
-              <ul className="mt-2 divide-y divide-border/60">
+              <ul className="mt-1.5 divide-y divide-border/60">
                 {group.items.map((event) => {
                   const parts = dateParts(event.start_date);
                   return (
@@ -249,44 +259,47 @@ export default function EventsTable({
                       <button
                         type="button"
                         onClick={() => setOpenEvent(event)}
-                        className={`flex w-full items-center gap-3 rounded-lg py-2.5 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                        className={`flex w-full items-center gap-2.5 rounded-lg py-1 pr-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                           conflictsByEvent.has(event.id)
                             ? "hover:bg-amber-50/60"
                             : "hover:bg-bg"
                         }`}
                       >
                         <div
-                          className={`flex w-14 shrink-0 flex-col items-center rounded-lg px-1.5 py-1.5 text-center ${
+                          className={`flex w-[76px] shrink-0 flex-col items-center rounded-md px-1 py-1 text-center ${
                             conflictsByEvent.has(event.id) ? "bg-amber-50" : "bg-bg"
                           }`}
                         >
                           {parts ? (
                             <>
-                              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-text-light">
+                              <span className="text-[9px] font-bold uppercase tracking-[0.14em] leading-tight text-text-light">
                                 {parts.weekday}
                               </span>
-                              <span className="text-lg font-bold leading-none text-primary tabular-nums">
-                                {parts.day}
-                              </span>
-                              <span className="text-[9px] font-medium uppercase text-text-light">
-                                {parts.month} {parts.year}
+                              <span className="text-[13px] font-bold leading-tight text-primary tabular-nums">
+                                {shortDate(event.start_date)}
                               </span>
                             </>
                           ) : (
                             <span className="text-xs text-text-light">–</span>
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-xs text-text">
+                        <p className="min-w-0 flex-1 truncate">
+                          <span className="font-mono text-xs text-text">
                             {event.kurs_nr}
-                          </p>
-                          <p className="truncate text-[11px] text-text-light">
-                            {event.title}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          </span>
+                          <span className="text-xs text-text-light">
+                            {" "}· {event.title}
+                          </span>
+                        </p>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {conflictsByEvent.has(event.id) && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
+                              {conflictsByEvent.get(event.id)}
+                            </span>
+                          )}
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
                               (event.registration_count ?? 0) > 0
                                 ? "bg-primary/10 text-primary"
                                 : "bg-bg text-text-light"
@@ -294,15 +307,6 @@ export default function EventsTable({
                           >
                             {event.registration_count ?? 0} Anm.
                           </span>
-                          {conflictsByEvent.has(event.id) && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                              <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
-                              {conflictsByEvent.get(event.id)}{" "}
-                              {(conflictsByEvent.get(event.id) ?? 0) === 1
-                                ? "Konflikt"
-                                : "Konflikte"}
-                            </span>
-                          )}
                         </div>
                       </button>
 
