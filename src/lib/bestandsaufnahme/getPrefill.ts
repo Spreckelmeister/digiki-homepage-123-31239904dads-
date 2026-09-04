@@ -22,6 +22,14 @@ export interface BestandsaufnahmePrefill {
   contact_person?: string;
   phone?: string;
   teacher_count?: string;
+  /** Aus dem jüngsten früheren Antrag der Schule übernommen – die
+   *  Bestandsaufnahme kennt keine Adresse und keine Schülerzahl.
+   *  Diese Felder werden NICHT gesperrt, nur vor-ausgefüllt: Es gibt
+   *  keinen „Bearbeiten-Ort" wie die BSA, an dem man sie pflegen könnte. */
+  school_street?: string;
+  school_plz?: string;
+  school_city?: string;
+  student_count?: string;
 }
 
 type RawBSA = {
@@ -35,6 +43,9 @@ type RawBSA = {
 
 export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePrefill | null> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // 1) Primärer Weg: dieselbe RPC, die auch die BSA-Bearbeiten-Seite
   //    nutzt. Damit ist garantiert, dass wir dieselben Werte sehen.
@@ -54,9 +65,6 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
   // 2) Fallback: falls die RPC nichts geliefert hat, direkt mit Service-
   //    Role anfragen (umgeht RLS). User-ID + Email-Match wie in der RPC.
   if (!raw) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (
       user &&
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -96,39 +104,124 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
     }
   }
 
-  if (!raw) {
+  // 3) Adresse + Schülerzahl aus dem jüngsten früheren Antrag (beide
+  //    Antragsarten): Die Bestandsaufnahme kennt diese Felder nicht – wer
+  //    schon einmal beantragt hat, soll sie aber nicht erneut eintippen.
+  const fromApplication = await getLatestApplicationExtras(user?.email ?? null);
+
+  if (!raw && !fromApplication) {
     console.log(
       "[getBestandsaufnahmePrefill] Keine BSA gefunden (RPC + Fallback leer).",
     );
     return null;
   }
 
-  // Diagnose-Log: zeigt die Rohwerte aus der DB. Bei „komische Zeichen"
-  // im UI sieht man hier sofort, was tatsächlich gespeichert ist.
-  console.log("[getBestandsaufnahmePrefill] rohe DB-Werte:", {
-    school_name: JSON.stringify(raw.school_name),
-    principal_name: JSON.stringify(raw.principal_name),
-    contact_person: JSON.stringify(raw.contact_person),
-    contact_phone: JSON.stringify(raw.contact_phone),
-    teacher_count: raw.teacher_count,
-  });
-
-  // Strings trimmen und leere Werte konsequent zu undefined machen.
-  const cleanStr = (v: string | null | undefined): string | undefined => {
-    if (typeof v !== "string") return undefined;
-    const trimmed = v.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  };
+  if (raw) {
+    // Diagnose-Log: zeigt die Rohwerte aus der DB. Bei „komische Zeichen"
+    // im UI sieht man hier sofort, was tatsächlich gespeichert ist.
+    console.log("[getBestandsaufnahmePrefill] rohe DB-Werte:", {
+      school_name: JSON.stringify(raw.school_name),
+      principal_name: JSON.stringify(raw.principal_name),
+      contact_person: JSON.stringify(raw.contact_person),
+      contact_phone: JSON.stringify(raw.contact_phone),
+      teacher_count: raw.teacher_count,
+    });
+  }
 
   return {
-    school_name: cleanStr(raw.school_name),
-    principal_name: cleanStr(raw.principal_name),
-    contact_person: cleanStr(raw.contact_person),
-    phone: cleanStr(raw.contact_phone),
+    school_name: cleanStr(raw?.school_name),
+    principal_name: cleanStr(raw?.principal_name),
+    contact_person: cleanStr(raw?.contact_person),
+    phone: cleanStr(raw?.contact_phone),
     teacher_count:
-      raw.teacher_count != null && raw.teacher_count > 0
+      raw?.teacher_count != null && raw.teacher_count > 0
         ? String(raw.teacher_count)
         : undefined,
+    ...fromApplication,
+  };
+}
+
+/** Strings trimmen und leere Werte konsequent zu undefined machen. */
+function cleanStr(v: string | null | undefined): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+type ApplicationExtras = Pick<
+  BestandsaufnahmePrefill,
+  "school_street" | "school_plz" | "school_city" | "student_count"
+>;
+
+type ApplicationRow = {
+  school_street: string | null;
+  school_plz: string | null;
+  school_city: string | null;
+  student_count: number | null;
+  created_at: string;
+};
+
+/**
+ * Jüngster früherer Antrag des Kontos (Hilfskräfte ODER Tool-Lizenzen):
+ * liefert Adresse und Schülerzahl als Vorbefüllung. Die Adresse wird nur
+ * als Ganzes übernommen – eine halbe Adresse hilft niemandem.
+ *
+ * Der Abgleich läuft über die Konto-E-Mail: Genau die wird beim Einreichen
+ * gesperrt in jeden Antrag geschrieben, ist also verlässlich.
+ */
+async function getLatestApplicationExtras(
+  email: string | null,
+): Promise<ApplicationExtras | null> {
+  if (!email) return null;
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    return null;
+  }
+
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
+  const columns = "school_street, school_plz, school_city, student_count, created_at";
+  const [students, tools] = await Promise.all([
+    admin
+      .from("applications_student_assistants")
+      .select(columns)
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    admin
+      .from("applications_tool_licenses")
+      .select(columns)
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const rows = [
+    ...((students.data ?? []) as ApplicationRow[]),
+    ...((tools.data ?? []) as ApplicationRow[]),
+  ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  if (rows.length === 0) return null;
+
+  const withAddress = rows.find(
+    (r) =>
+      cleanStr(r.school_street) && cleanStr(r.school_plz) && cleanStr(r.school_city),
+  );
+  const withStudents = rows.find(
+    (r) => r.student_count != null && r.student_count > 0,
+  );
+  if (!withAddress && !withStudents) return null;
+
+  return {
+    school_street: withAddress ? cleanStr(withAddress.school_street) : undefined,
+    school_plz: withAddress ? cleanStr(withAddress.school_plz) : undefined,
+    school_city: withAddress ? cleanStr(withAddress.school_city) : undefined,
+    student_count: withStudents ? String(withStudents.student_count) : undefined,
   };
 }
 

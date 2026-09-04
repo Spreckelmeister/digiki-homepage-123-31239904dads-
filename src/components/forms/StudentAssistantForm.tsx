@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Building2,
   CalendarClock,
   CheckCircle2,
   GraduationCap,
   HelpingHand,
+  RefreshCw,
+  Search,
   Send,
   ShieldCheck,
+  UserCog,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
@@ -24,6 +28,7 @@ import {
   SCOPE_PRESET_OPTIONS,
 } from "@/lib/applications/hilfskraefteOptions";
 import type { RegisteredTraining } from "@/lib/schulungen/getSchoolTrainings";
+import type { BestandsaufnahmePrefill } from "@/lib/bestandsaufnahme/getPrefill";
 
 interface StudentAppData {
   id: string;
@@ -44,14 +49,6 @@ interface StudentAppData {
   internal_attempt: string | null;
   support_area: string | null;
   scope_preset: string | null;
-}
-
-interface BestandsaufnahmePrefill {
-  school_name?: string;
-  principal_name?: string;
-  contact_person?: string;
-  phone?: string;
-  teacher_count?: string;
 }
 
 function formatTrainingDate(iso: string): string {
@@ -87,6 +84,13 @@ function trainingsSnapshot(trainings: RegisteredTraining[]): string {
     .join("; ");
 }
 
+/** Eintrag der verifizierten Schulliste im Stellvertreter-Modus. */
+interface BehalfSchool {
+  name: string;
+  city: string | null;
+  plz: string | null;
+}
+
 export default function StudentAssistantForm({
   editMode = false,
   initialData,
@@ -95,6 +99,7 @@ export default function StudentAssistantForm({
   prefillFromBSA,
   lockedFromBSA,
   registeredTrainings,
+  actingRole,
 }: {
   editMode?: boolean;
   initialData?: StudentAppData;
@@ -109,23 +114,130 @@ export default function StudentAssistantForm({
   /** Serverseitig ermittelte Schulungsanmeldungen der Schule (nur Neuantrag).
    *  Leere Liste blockiert das Einreichen – Schulung ist Voraussetzung. */
   registeredTrainings?: RegisteredTraining[];
+  /** Stellvertreter-Modus: Admin/Schulungsteam füllt den Antrag für eine
+   *  Schule aus – mit Schulauswahl (verifizierte Liste), Schulungsprüfung
+   *  gegen die gewählte Schule und bewusst überspringbarer Prüfung.
+   *  Schul-Konten bekommen diese Rolle NIE (Serverseite entscheidet). */
+  actingRole?: "admin" | "schulungsteam";
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
+  const actingForSchool = Boolean(actingRole) && !editMode;
+
   const [schoolInfo, setSchoolInfo] = useState({
     school_name:    initialData?.school_name    ?? prefillFromBSA?.school_name    ?? "",
-    school_street:  initialData?.school_street  ?? "",
-    school_plz:     initialData?.school_plz     ?? "",
-    school_city:    initialData?.school_city     ?? "",
+    school_street:  initialData?.school_street  ?? prefillFromBSA?.school_street  ?? "",
+    school_plz:     initialData?.school_plz     ?? prefillFromBSA?.school_plz     ?? "",
+    school_city:    initialData?.school_city     ?? prefillFromBSA?.school_city    ?? "",
     principal_name: initialData?.principal_name ?? prefillFromBSA?.principal_name ?? "",
     contact_person: initialData?.contact_person ?? prefillFromBSA?.contact_person ?? "",
     phone:          initialData?.phone          ?? prefillFromBSA?.phone          ?? "",
-    email:          lockedEmail                 ?? initialData?.email             ?? "",
+    // Im Stellvertreter-Modus gehört die E-Mail der SCHULE ins Formular –
+    // nicht die des ausfüllenden Kontos.
+    email:          actingForSchool ? "" : lockedEmail ?? initialData?.email ?? "",
     teacher_count:  initialData?.teacher_count != null
       ? String(initialData.teacher_count)
       : prefillFromBSA?.teacher_count ?? "",
-    student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
+    student_count:  initialData?.student_count != null
+      ? String(initialData.student_count)
+      : prefillFromBSA?.student_count ?? "",
   });
+
+  // ── Stellvertreter-Modus: Schulauswahl + Schulungsprüfung ────────────
+  const [behalfSchools, setBehalfSchools] = useState<BehalfSchool[]>([]);
+  const [behalfSchoolsLoading, setBehalfSchoolsLoading] = useState(false);
+  const [behalfSearch, setBehalfSearch] = useState("");
+  const [selectedBehalfSchool, setSelectedBehalfSchool] =
+    useState<BehalfSchool | null>(null);
+  const [behalfTrainings, setBehalfTrainings] = useState<
+    RegisteredTraining[] | null
+  >(null);
+  const [behalfTrainingsLoading, setBehalfTrainingsLoading] = useState(false);
+  const [skipTrainingCheck, setSkipTrainingCheck] = useState(false);
+
+  useEffect(() => {
+    if (!actingForSchool) return;
+    let cancelled = false;
+    (async () => {
+      setBehalfSchoolsLoading(true);
+      try {
+        const res = await fetch("/api/schulungen/school-picker");
+        const json = await res.json().catch(() => ({}));
+        if (!cancelled) {
+          setBehalfSchools(Array.isArray(json.schools) ? json.schools : []);
+        }
+      } catch {
+        if (!cancelled) setBehalfSchools([]);
+      } finally {
+        if (!cancelled) setBehalfSchoolsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [actingForSchool]);
+
+  async function chooseBehalfSchool(school: BehalfSchool) {
+    setSelectedBehalfSchool(school);
+    setBehalfSearch("");
+    setSkipTrainingCheck(false);
+    // Adresse zurücksetzen: Sie gehört zur vorher gewählten Schule; der
+    // OpenStreetMap-Vorschlag füllt sie für die neue Schule frisch aus.
+    setSchoolInfo((prev) => ({
+      ...prev,
+      school_name: school.name,
+      school_street: "",
+      school_plz: "",
+      school_city: "",
+    }));
+    setBehalfTrainings(null);
+    setBehalfTrainingsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/schulungen/school-picker?school=${encodeURIComponent(school.name)}`,
+      );
+      const json = await res.json().catch(() => ({}));
+      setBehalfTrainings(Array.isArray(json.trainings) ? json.trainings : []);
+    } catch {
+      setBehalfTrainings([]);
+    } finally {
+      setBehalfTrainingsLoading(false);
+    }
+  }
+
+  function resetBehalfSchool() {
+    setSelectedBehalfSchool(null);
+    setBehalfTrainings(null);
+    setSkipTrainingCheck(false);
+    setSchoolInfo((prev) => ({
+      ...prev,
+      school_name: "",
+      school_street: "",
+      school_plz: "",
+      school_city: "",
+    }));
+  }
+
+  const behalfQuery = behalfSearch.trim().toLowerCase();
+  const behalfMatches = behalfQuery
+    ? behalfSchools.filter((s) => s.name.toLowerCase().includes(behalfQuery))
+    : behalfSchools;
+  const behalfShown = behalfMatches.slice(0, 12);
+  const behalfRoleLabel = actingRole === "admin" ? "Admin" : "Schulungsteam";
+
+  // Adresse/Schülerzahl stammen aus dem jüngsten früheren Antrag der Schule
+  // (die BSA kennt sie nicht) – sie wandern in die Zusammenfassungs-Karte.
+  const prefilledFromApplication =
+    !editMode && !actingForSchool && prefillFromBSA
+      ? [
+          ...(prefillFromBSA.school_street &&
+          prefillFromBSA.school_plz &&
+          prefillFromBSA.school_city
+            ? ["school_street", "school_plz", "school_city"]
+            : []),
+          ...(prefillFromBSA.student_count ? ["student_count"] : []),
+        ]
+      : [];
 
   // Voraussetzungen: Schulungsanmeldung kommt automatisch aus dem Server
   // (registeredTrainings); nur der schulinterne Versuch wird abgefragt.
@@ -147,7 +259,16 @@ export default function StudentAssistantForm({
   const [success, setSuccess] = useState(false);
   const [emailFailed, setEmailFailed] = useState(false);
 
-  const trainings = registeredTrainings ?? [];
+  const trainings = actingForSchool
+    ? behalfTrainings ?? []
+    : registeredTrainings ?? [];
+  // Im Stellvertreter-Modus steht der Schulungsstatus erst fest, wenn eine
+  // Schule gewählt UND die Prüfung geladen ist – vorher keine Boxen zeigen.
+  const trainingStatusKnown =
+    !actingForSchool ||
+    (selectedBehalfSchool !== null &&
+      !behalfTrainingsLoading &&
+      behalfTrainings !== null);
 
   function handleSchoolInfoChange(field: string, value: string) {
     setSchoolInfo((prev) => ({ ...prev, [field]: value }));
@@ -196,11 +317,22 @@ export default function StudentAssistantForm({
       return;
     }
 
-    // Ohne Schulungsanmeldung keine studentische Unterstützung – die
-    // Schulungen sind der erste Schritt des DigiKI-Wegs.
-    if (trainings.length === 0) {
+    if (actingForSchool && !selectedBehalfSchool) {
       setError(
-        "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor. Bitte melden Sie zunächst Lehrkräfte über die KOS-Fortbildungen an – danach freuen wir uns über Ihren Antrag auf gezielte Unterstützung."
+        "Bitte wählen Sie zuerst die Schule aus, für die Sie den Antrag ausfüllen."
+      );
+      return;
+    }
+
+    // Ohne Schulungsanmeldung keine studentische Unterstützung – die
+    // Schulungen sind der erste Schritt des DigiKI-Wegs. Nur im
+    // Stellvertreter-Modus (Admin/Schulungsteam) lässt sich die Prüfung
+    // bewusst per Haken überspringen; Schul-Konten können das nie.
+    if (trainings.length === 0 && !(actingForSchool && skipTrainingCheck)) {
+      setError(
+        actingForSchool
+          ? "Für die gewählte Schule liegt keine Schulungsanmeldung vor. Prüfen Sie die Auswahl – oder überspringen Sie die Prüfung bewusst über den Haken im Abschnitt Voraussetzungen."
+          : "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor. Bitte melden Sie zunächst Lehrkräfte über die KOS-Fortbildungen an – danach freuen wir uns über Ihren Antrag auf gezielte Unterstützung."
       );
       return;
     }
@@ -216,6 +348,14 @@ export default function StudentAssistantForm({
 
     const today = new Date().toISOString().slice(0, 10);
     const hasAttended = trainings.some((t) => t.start_date && t.start_date <= today);
+    // Stellvertretend eingereichte Anträge deutlich kennzeichnen – der
+    // Admin sieht in der Detailansicht sofort, wer ausgefüllt hat und ob
+    // die Schulungsprüfung bewusst übersprungen wurde.
+    const skippedCheck =
+      actingForSchool && skipTrainingCheck && trainings.length === 0;
+    const behalfPrefix = actingForSchool
+      ? `[Stellvertretend ausgefüllt: ${behalfRoleLabel}] `
+      : "";
 
     const { error: insertError } = await supabase
       .from("applications_student_assistants")
@@ -234,8 +374,14 @@ export default function StudentAssistantForm({
         student_count: schoolInfo.student_count
           ? parseInt(schoolInfo.student_count)
           : null,
-        training_participation: hasAttended ? "teilgenommen" : "angemeldet",
-        training_details: trainingsSnapshot(trainings),
+        training_participation: skippedCheck
+          ? "pruefung_uebersprungen"
+          : hasAttended
+            ? "teilgenommen"
+            : "angemeldet",
+        training_details: skippedCheck
+          ? `${behalfPrefix}Schulungsprüfung bewusst übersprungen.`
+          : `${behalfPrefix}${trainingsSnapshot(trainings)}`,
         internal_attempt: internalAttempt,
         support_area: supportArea,
         support_explanation: supportExplanation,
@@ -283,9 +429,10 @@ export default function StudentAssistantForm({
   const legendClass = "mb-3 text-sm font-medium text-text";
 
   if (isAdmin === null) return null;
-  // Admins dürfen keine NEUEN Anträge einreichen, dürfen aber existierende
-  // im Edit-Modus (z.B. aus dem Admin-Bereich) bearbeiten.
-  if (isAdmin === true && !editMode) return (
+  // Admins reichen keine EIGENEN neuen Anträge ein – im Stellvertreter-
+  // Modus (Antrag FÜR eine Schule) ist das Einreichen aber ausdrücklich
+  // erwünscht; Edit-Modus bleibt ebenfalls erlaubt.
+  if (isAdmin === true && !editMode && !actingForSchool) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können keine Anträge einreichen.
     </div>
@@ -369,16 +516,152 @@ export default function StudentAssistantForm({
         index="01"
         eyebrow="Schule"
         title="Wer beantragt?"
-        body="Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        body={
+          actingForSchool
+            ? "Wählen Sie die Schule aus, für die Sie den Antrag stellvertretend ausfüllen. Die Schulungsprüfung läuft dann automatisch gegen diese Schule."
+            : "Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        }
         icon={<Building2 className="h-3 w-3" />}
       >
-        <SchoolInfoFields
-          values={schoolInfo}
-          onChange={handleSchoolInfoChange}
-          inputClass={inputClass}
-          lockedEmail={lockedEmail}
-          lockedFromBestandsaufnahme={lockedFromBSA}
-        />
+        {actingForSchool && (
+          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary-light/10 p-4">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
+              <UserCog className="h-4 w-4" />
+            </span>
+            <p className="text-sm leading-relaxed text-text">
+              <strong className="font-bold">Stellvertreter-Modus:</strong> Sie
+              füllen diesen Antrag als{" "}
+              <strong className="font-semibold">{behalfRoleLabel}</strong> für
+              eine Schule aus. Der Antrag wird entsprechend gekennzeichnet.
+            </p>
+          </div>
+        )}
+
+        {actingForSchool &&
+          (selectedBehalfSchool ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2
+                  className="h-5 w-5 shrink-0 text-green-700"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-green-800">
+                    Gewählte Schule
+                  </p>
+                  <p className="text-sm font-semibold text-green-900">
+                    {selectedBehalfSchool.name}
+                    {(selectedBehalfSchool.plz || selectedBehalfSchool.city) && (
+                      <span className="ml-2 font-normal text-green-800">
+                        {[selectedBehalfSchool.plz, selectedBehalfSchool.city]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={resetBehalfSchool}
+                className="text-sm font-semibold text-green-800 underline underline-offset-2 hover:text-green-900"
+              >
+                Andere Schule wählen
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor="behalf_school_search"
+                className="mb-1.5 block text-sm font-medium text-text"
+              >
+                Schule auswählen *
+              </label>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
+                  aria-hidden="true"
+                />
+                <input
+                  id="behalf_school_search"
+                  type="text"
+                  autoComplete="off"
+                  value={behalfSearch}
+                  onChange={(e) => setBehalfSearch(e.target.value)}
+                  className={inputClass + " pl-11"}
+                  placeholder="Schulname eingeben, z.B. Eversburg …"
+                />
+              </div>
+              {behalfSchoolsLoading ? (
+                <p className="mt-2 flex items-center gap-2 text-sm text-text-light">
+                  <RefreshCw
+                    className="h-3.5 w-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  Verifizierte Schulliste wird geladen …
+                </p>
+              ) : (
+                <>
+                  <ul className="mt-2 max-h-64 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-white shadow-sm">
+                    {behalfShown.map((s) => (
+                      <li key={s.name}>
+                        <button
+                          type="button"
+                          onClick={() => chooseBehalfSchool(s)}
+                          className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-primary/5"
+                        >
+                          <span className="font-medium text-text">{s.name}</span>
+                          {(s.plz || s.city) && (
+                            <span className="mt-0.5 block text-xs text-text-light">
+                              {[s.plz, s.city].filter(Boolean).join(" ")}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                    {behalfShown.length === 0 && (
+                      <li className="px-4 py-3 text-sm text-text-light">
+                        Keine Schule gefunden – prüfen Sie die Schreibweise.
+                        Gelistet sind alle verifizierten Schulen aus dem
+                        Schulungsdashboard.
+                      </li>
+                    )}
+                  </ul>
+                  {behalfMatches.length > behalfShown.length && (
+                    <p className="mt-1.5 text-xs text-text-light">
+                      {behalfShown.length} von {behalfMatches.length} Schulen
+                      angezeigt – tippen Sie, um die Liste einzugrenzen.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+
+        {(!actingForSchool || selectedBehalfSchool) && (
+          <SchoolInfoFields
+            key={
+              actingForSchool
+                ? selectedBehalfSchool?.name ?? "keine-schule"
+                : "eigenes-konto"
+            }
+            values={schoolInfo}
+            onChange={handleSchoolInfoChange}
+            inputClass={inputClass}
+            lockedEmail={actingForSchool ? undefined : lockedEmail}
+            lockedFromBestandsaufnahme={lockedFromBSA}
+            prefilledFromApplication={prefilledFromApplication}
+            hideSchoolName={actingForSchool}
+            emailHint={
+              actingForSchool
+                ? "E-Mail-Adresse der Schule – an sie geht die Eingangsbestätigung."
+                : undefined
+            }
+          />
+        )}
       </FormSection>
 
       {/* ════════ §2 VORAUSSETZUNGEN ════════ */}
@@ -389,7 +672,21 @@ export default function StudentAssistantForm({
         body="Studentische Unterstützung setzt auf den KOS-Fortbildungen auf: erst schulen, dann das Wissen im Kollegium weitergeben – und bei verbleibenden Hürden unterstützen wir gezielt. Ihre Schulungsanmeldungen werden automatisch erkannt."
         icon={<GraduationCap className="h-3 w-3" />}
       >
-        {!editMode && trainings.length > 0 && (
+        {!editMode && actingForSchool && !selectedBehalfSchool && (
+          <div className="rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
+            Bitte wählen Sie oben zuerst die Schule aus – ihre
+            Schulungsanmeldungen werden dann automatisch geprüft.
+          </div>
+        )}
+
+        {!editMode && actingForSchool && selectedBehalfSchool && behalfTrainingsLoading && (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
+            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Schulungsanmeldungen von {selectedBehalfSchool.name} werden geprüft …
+          </div>
+        )}
+
+        {!editMode && trainingStatusKnown && trainings.length > 0 && (
           <div className="rounded-xl border border-green-200 bg-green-50 p-4">
             <div className="flex items-start gap-3">
               <CheckCircle2
@@ -398,7 +695,9 @@ export default function StudentAssistantForm({
               />
               <div className="text-sm text-green-900">
                 <p className="font-bold">
-                  Ihre Schule ist zu folgenden Schulungen angemeldet:
+                  {actingForSchool
+                    ? "Die gewählte Schule ist zu folgenden Schulungen angemeldet:"
+                    : "Ihre Schule ist zu folgenden Schulungen angemeldet:"}
                 </p>
                 <ul className="mt-2 space-y-1">
                   {trainings.map((t) => {
@@ -425,7 +724,7 @@ export default function StudentAssistantForm({
           </div>
         )}
 
-        {!editMode && trainings.length === 0 && (
+        {!editMode && trainingStatusKnown && trainings.length === 0 && (
           <div
             role="alert"
             className="rounded-xl border border-red-200 bg-red-50 p-4"
@@ -437,38 +736,81 @@ export default function StudentAssistantForm({
               />
               <div className="text-sm text-red-800">
                 <p className="font-bold">
-                  Für Ihre Schule liegt noch keine Anmeldung zu einer
-                  DigiKI-Schulung vor.
+                  {actingForSchool
+                    ? "Für die gewählte Schule liegt keine Anmeldung zu einer DigiKI-Schulung vor."
+                    : "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor."}
                 </p>
-                <p className="mt-1 leading-relaxed">
-                  Die KOS-Fortbildungen sind die Voraussetzung für studentische
-                  Unterstützung: Dort lernen Lehrkräfte Ihrer Schule den Umgang
-                  mit den KI-Tools und geben ihr Wissen anschließend im
-                  Kollegium weiter. Bitte melden Sie zunächst Lehrkräfte an –
-                  danach freuen wir uns über Ihren Antrag.
-                </p>
-                <Link
-                  href="/fuer-schulen#kos-fortbildungen"
-                  className="mt-2 inline-flex items-center gap-1.5 font-semibold text-red-800 underline hover:text-red-900"
-                >
-                  Zu den KOS-Fortbildungsterminen
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-                <p className="mt-2 text-red-700">
-                  Ihre Schule ist bereits angemeldet, wird hier aber nicht
-                  angezeigt? Melden Sie sich kurz über das{" "}
-                  <Link
-                    href="/fuer-schulen#kontakt"
-                    className="underline hover:text-red-900"
-                  >
-                    Kontaktformular
-                  </Link>{" "}
-                  – wir prüfen das.
-                </p>
+                {actingForSchool ? (
+                  <p className="mt-1 leading-relaxed">
+                    Prüfen Sie, ob die richtige Schule gewählt ist. Als{" "}
+                    {behalfRoleLabel} können Sie die Prüfung unten bewusst
+                    überspringen – der Antrag wird dann entsprechend
+                    gekennzeichnet.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-1 leading-relaxed">
+                      Die KOS-Fortbildungen sind die Voraussetzung für
+                      studentische Unterstützung: Dort lernen Lehrkräfte Ihrer
+                      Schule den Umgang mit den KI-Tools und geben ihr Wissen
+                      anschließend im Kollegium weiter. Bitte melden Sie
+                      zunächst Lehrkräfte an – danach freuen wir uns über Ihren
+                      Antrag.
+                    </p>
+                    <Link
+                      href="/fuer-schulen#kos-fortbildungen"
+                      className="mt-2 inline-flex items-center gap-1.5 font-semibold text-red-800 underline hover:text-red-900"
+                    >
+                      Zu den KOS-Fortbildungsterminen
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                    <p className="mt-2 text-red-700">
+                      Ihre Schule ist bereits angemeldet, wird hier aber nicht
+                      angezeigt? Melden Sie sich kurz über das{" "}
+                      <Link
+                        href="/fuer-schulen#kontakt"
+                        className="underline hover:text-red-900"
+                      >
+                        Kontaktformular
+                      </Link>{" "}
+                      – wir prüfen das.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
         )}
+
+        {/* Nur Stellvertreter-Modus: Prüfung bewusst überspringen. Schul-
+            Konten sehen diesen Haken nie – für sie bleibt die Schulung
+            zwingende Voraussetzung. */}
+        {!editMode &&
+          actingForSchool &&
+          trainingStatusKnown &&
+          trainings.length === 0 && (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={skipTrainingCheck}
+                onChange={(e) => setSkipTrainingCheck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 text-amber-700 focus:ring-amber-500"
+              />
+              <span className="text-[13px] leading-relaxed text-amber-900">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  Schulungsprüfung überspringen und Antrag trotzdem einreichen
+                </span>
+                <span className="mt-0.5 block text-amber-800">
+                  Nur für Schulungsteam und Admins. Der Antrag wird sichtbar als
+                  „Schulungsprüfung übersprungen" gekennzeichnet.
+                </span>
+              </span>
+            </label>
+          )}
 
         {editMode && initialData?.training_details && (
           <div className="rounded-xl border border-border bg-bg p-4">

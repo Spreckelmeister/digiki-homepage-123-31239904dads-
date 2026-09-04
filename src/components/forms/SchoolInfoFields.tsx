@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Info, MapPin, ChevronDown } from "lucide-react";
+import { ArrowUpRight, ChevronDown, MapPin, ShieldCheck } from "lucide-react";
 import LockedFieldDisplay from "./LockedFieldDisplay";
 import {
   useAddressAutocomplete,
@@ -35,6 +35,15 @@ interface SchoolInfoFieldsProps {
   /** Liste der Felder, die als gesperrte Anzeige (Quelle:
    *  Bestandsaufnahme) gerendert werden sollen. */
   lockedFromBestandsaufnahme?: string[];
+  /** Felder, die aus dem jüngsten früheren Antrag vor-ausgefüllt wurden
+   *  (Adresse, Schülerzahl). Sie wandern in die Zusammenfassung und werden
+   *  erst auf Klick („Korrigieren") wieder zu Eingabefeldern. */
+  prefilledFromApplication?: string[];
+  /** Stellvertreter-Modus: Der Schulname kommt aus der Schulauswahl darüber
+   *  und wird hier nicht noch einmal als Feld angezeigt. */
+  hideSchoolName?: boolean;
+  /** Ersetzt den Standard-Tipp unter dem (ungesperrten) E-Mail-Feld. */
+  emailHint?: React.ReactNode;
 }
 
 export default function SchoolInfoFields({
@@ -43,6 +52,9 @@ export default function SchoolInfoFields({
   inputClass,
   lockedEmail,
   lockedFromBestandsaufnahme = [],
+  prefilledFromApplication = [],
+  hideSchoolName = false,
+  emailHint,
 }: SchoolInfoFieldsProps) {
   // School name autocomplete
   const {
@@ -78,6 +90,148 @@ export default function SchoolInfoFields({
     lockedFromBestandsaufnahme.some((f) =>
       hasValue(f as keyof typeof values),
     );
+
+  // ── Zusammenfassung statt Formular ────────────────────────────────────────
+  // Bekannte Werte erscheinen NICHT mehr als (gesperrte) Formularfelder,
+  // sondern gebündelt in einer Karte – Eingabefelder gibt es nur noch für
+  // das, was wirklich fehlt. Die Karte gibt es nur für Konten mit
+  // Bestandsaufnahme; ohne sie bleibt das gewohnte volle Formular.
+  const summaryActive = anyBSALocked;
+
+  // Adresse/Schülerzahl aus dem letzten Antrag: „weich bekannt" – sie stehen
+  // in der Karte, lassen sich aber per Klick wieder zu Feldern aufklappen
+  // (anders als BSA-Werte haben sie keinen eigenen Pflege-Ort).
+  const [editAddress, setEditAddress] = useState(false);
+  const [editStudentCount, setEditStudentCount] = useState(false);
+  const addressKnown =
+    summaryActive &&
+    !editAddress &&
+    prefilledFromApplication.includes("school_street") &&
+    hasValue("school_street") &&
+    hasValue("school_plz") &&
+    hasValue("school_city");
+  const studentCountKnown =
+    summaryActive &&
+    !editStudentCount &&
+    prefilledFromApplication.includes("student_count") &&
+    hasValue("student_count");
+
+  const showSchoolNameInput = !isBSALocked("school_name") && !hideSchoolName;
+  const showAddressInputs = !addressKnown;
+  const showPrincipalInput = !isBSALocked("principal_name");
+  const showContactInput = !isBSALocked("contact_person");
+  const showPhoneInput = !isBSALocked("phone");
+  // Gesperrte E-Mail: mit Karte → Zeile in der Karte; ohne Karte → wie bisher
+  // als eigene gesperrte Anzeige. Ungesperrt → normales Feld.
+  const showEmailField = !(summaryActive && isEmailLocked);
+  const showTeacherInput = !isBSALocked("teacher_count");
+  const showStudentInput = !studentCountKnown;
+  const anyInputBelow =
+    showSchoolNameInput ||
+    showAddressInputs ||
+    showPrincipalInput ||
+    showContactInput ||
+    showPhoneInput ||
+    showEmailField ||
+    showTeacherInput ||
+    showStudentInput;
+
+  type SummarySource = "bsa" | "konto" | "antrag";
+  const summaryRows: Array<{
+    key: string;
+    label: string;
+    value: string;
+    source: SummarySource;
+    mono?: boolean;
+    onEdit?: () => void;
+    editLabel?: string;
+  }> = [];
+  if (summaryActive) {
+    if (isBSALocked("school_name")) {
+      summaryRows.push({
+        key: "school_name",
+        label: "Name der Schule",
+        value: values.school_name,
+        source: "bsa",
+      });
+    }
+    if (addressKnown) {
+      summaryRows.push({
+        key: "address",
+        label: "Adresse",
+        value: `${values.school_street.trim()}, ${values.school_plz.trim()} ${values.school_city.trim()}`,
+        source: "antrag",
+        onEdit: () => setEditAddress(true),
+        editLabel: "Adresse korrigieren",
+      });
+    }
+    if (isBSALocked("principal_name")) {
+      summaryRows.push({
+        key: "principal_name",
+        label: "Schulleitung",
+        value: values.principal_name,
+        source: "bsa",
+      });
+    }
+    if (isBSALocked("contact_person")) {
+      summaryRows.push({
+        key: "contact_person",
+        label: "Ansprechperson",
+        value: values.contact_person,
+        source: "bsa",
+      });
+    }
+    if (isBSALocked("phone")) {
+      summaryRows.push({
+        key: "phone",
+        label: "Telefon",
+        value: values.phone,
+        source: "bsa",
+      });
+    }
+    if (isEmailLocked) {
+      summaryRows.push({
+        key: "email",
+        label: "E-Mail",
+        value: values.email,
+        source: "konto",
+        mono: true,
+      });
+    }
+    if (isBSALocked("teacher_count")) {
+      summaryRows.push({
+        key: "teacher_count",
+        label: "Anzahl Lehrkräfte",
+        value: values.teacher_count,
+        source: "bsa",
+      });
+    }
+    if (studentCountKnown) {
+      summaryRows.push({
+        key: "student_count",
+        label: "Anzahl Schüler/innen",
+        value: values.student_count,
+        source: "antrag",
+        onEdit: () => setEditStudentCount(true),
+        editLabel: "Schülerzahl korrigieren",
+      });
+    }
+  }
+
+  const SOURCE_META: Record<
+    SummarySource,
+    { label: string; dotClass: string }
+  > = {
+    bsa: { label: "aus Ihrer Bestandsaufnahme", dotClass: "bg-primary" },
+    konto: { label: "aus Ihrem Konto", dotClass: "bg-emerald-500" },
+    antrag: {
+      label: "aus Ihrem letzten Antrag",
+      dotClass: "bg-accent-strong",
+    },
+  };
+  const usedSources = Array.from(
+    new Set(summaryRows.map((r) => r.source)),
+  ) as SummarySource[];
 
   function handleSelectSchool(suggestion: SchoolSuggestion) {
     onChange("school_name", suggestion.name);
@@ -190,45 +344,101 @@ export default function SchoolInfoFields({
 
   return (
     <div className="space-y-4">
-      {/* Prefill-Hinweis, wenn etwas aus der Bestandsaufnahme übernommen wurde */}
-      {anyBSALocked && (
-        <div className="flex items-start gap-4 rounded-xl border border-primary-light/30 bg-primary-light/5 p-5">
-          <span
-            aria-hidden="true"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-          >
-            <Info className="h-4 w-4" />
-          </span>
-          <div className="flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-              Aus Ihrer Bestandsaufnahme übernommen
+      {/* Zusammenfassung aller bereits bekannten Angaben – ersetzt die
+          früheren gesperrten Einzelfelder. */}
+      {summaryActive && (
+        <div className="overflow-hidden rounded-xl border border-primary/15 bg-gradient-to-br from-bg to-primary-light/[0.06] shadow-sm">
+          <div className="px-5 pt-4">
+            <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Schon für Sie ausgefüllt
             </p>
-            <p className="mt-2 text-[14px] leading-relaxed text-text-light">
-              Felder mit „Aus Bestandsaufnahme" sind gesperrt, damit Ihre
-              Angaben über alle Einreichungen konsistent bleiben. Änderungen
-              (z.&nbsp;B. neue Schulleitung) können Sie jederzeit selbst in
-              Ihrer{" "}
+            <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-relaxed text-text-light">
+              {anyInputBelow
+                ? "Diese Angaben liegen uns bereits vor – ergänzen Sie unten nur noch die fehlenden Felder."
+                : "Alle Angaben zu Ihrer Schule liegen uns bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."}{" "}
+              Änderungen (z.&nbsp;B. neue Schulleitung) pflegen Sie zentral in
+              Ihrer Bestandsaufnahme – von dort übernehmen wir sie automatisch.
+            </p>
+          </div>
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3.5 px-5 py-4 sm:grid-cols-2">
+            {summaryRows.map((row) => (
+              <div key={row.key} className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-light">
+                  <span
+                    aria-hidden="true"
+                    className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${SOURCE_META[row.source].dotClass}`}
+                  />
+                  {row.label}
+                  <span className="sr-only">
+                    {" "}
+                    ({SOURCE_META[row.source].label})
+                  </span>
+                </dt>
+                <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span
+                    className={`break-words text-[15px] font-semibold leading-snug text-text ${
+                      row.mono ? "font-mono text-[13.5px]" : ""
+                    }`}
+                  >
+                    {row.value}
+                  </span>
+                  {row.onEdit && (
+                    <button
+                      type="button"
+                      onClick={row.onEdit}
+                      className="shrink-0 text-[12px] font-semibold text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
+                    >
+                      {row.editLabel ?? "Korrigieren"}
+                    </button>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-primary/10 bg-white/60 px-5 py-2.5">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-light">
+              {usedSources.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`inline-block h-1.5 w-1.5 rounded-full ${SOURCE_META[s].dotClass}`}
+                  />
+                  {SOURCE_META[s].label}
+                </span>
+              ))}
+            </p>
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <Link
                 href="/best-practice/meine-bestandsaufnahme/bearbeiten"
-                className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
               >
-                Bestandsaufnahme aktualisieren
+                Bestandsaufnahme bearbeiten
+                <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
               </Link>
-              &nbsp;– von dort werden die Werte hier automatisch übernommen.
-            </p>
+              {isEmailLocked && (
+                <Link
+                  href="/best-practice/konto"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
+                >
+                  Konto-Einstellungen
+                  <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                </Link>
+              )}
+            </span>
           </div>
         </div>
       )}
 
+      {/* Zwischenüberschrift, wenn unter der Karte noch Felder offen sind */}
+      {summaryActive && anyInputBelow && (
+        <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-text-light">
+          Bitte noch ergänzen
+        </p>
+      )}
+
       {/* Schulname */}
-      {isBSALocked("school_name") ? (
-        <LockedFieldDisplay
-          htmlFor="school_name"
-          label="Name der Schule *"
-          value={values.school_name}
-          source="bestandsaufnahme"
-        />
-      ) : (
+      {showSchoolNameInput && (
         <div className="relative">
           <label
             htmlFor="school_name"
@@ -287,7 +497,7 @@ export default function SchoolInfoFields({
       )}
 
       {/* Auto-Adress-Vorschlag aus Nominatim, falls Schulname schon bekannt */}
-      {(addressMatchesSuggestion || schoolMatchesLoading) && (
+      {showAddressInputs && (addressMatchesSuggestion || schoolMatchesLoading) && (
         <div className="rounded-lg border border-primary-light/30 bg-primary-light/5 px-4 py-3">
           <div className="flex items-start gap-3">
             <span
@@ -368,7 +578,10 @@ export default function SchoolInfoFields({
         </div>
       )}
 
-      {/* Straße mit Autocomplete (NICHT in BSA, immer editierbar) */}
+      {/* Straße mit Autocomplete (nicht in der BSA; ausgeblendet nur, wenn
+          die Adresse aus dem letzten Antrag übernommen wurde) */}
+      {showAddressInputs && (
+      <>
       <div className="relative">
         <label
           htmlFor="school_street"
@@ -462,17 +675,13 @@ export default function SchoolInfoFields({
           />
         </div>
       </div>
+      </>
+      )}
 
       {/* Schulleitung + Ansprechperson */}
+      {(showPrincipalInput || showContactInput) && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isBSALocked("principal_name") ? (
-          <LockedFieldDisplay
-            htmlFor="principal_name"
-            label="Schulleitung *"
-            value={values.principal_name}
-            source="bestandsaufnahme"
-          />
-        ) : (
+        {showPrincipalInput && (
           <div>
             <label
               htmlFor="principal_name"
@@ -492,14 +701,7 @@ export default function SchoolInfoFields({
           </div>
         )}
 
-        {isBSALocked("contact_person") ? (
-          <LockedFieldDisplay
-            htmlFor="contact_person"
-            label="Ansprechperson (Name, Funktion) *"
-            value={values.contact_person}
-            source="bestandsaufnahme"
-          />
-        ) : (
+        {showContactInput && (
           <div>
             <label
               htmlFor="contact_person"
@@ -519,17 +721,12 @@ export default function SchoolInfoFields({
           </div>
         )}
       </div>
+      )}
 
       {/* Telefon + Email */}
+      {(showPhoneInput || showEmailField) && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isBSALocked("phone") ? (
-          <LockedFieldDisplay
-            htmlFor="phone"
-            label="Telefon *"
-            value={values.phone}
-            source="bestandsaufnahme"
-          />
-        ) : (
+        {showPhoneInput && (
           <div>
             <label
               htmlFor="phone"
@@ -549,7 +746,7 @@ export default function SchoolInfoFields({
           </div>
         )}
 
-        {isEmailLocked ? (
+        {showEmailField && (isEmailLocked ? (
           <LockedFieldDisplay
             htmlFor="email"
             label="E-Mail *"
@@ -575,29 +772,29 @@ export default function SchoolInfoFields({
               placeholder="schule@example.de"
             />
             <p className="mt-1.5 text-xs text-text-light">
-              Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
-              <a
-                href="/best-practice/datenbank"
-                className="underline underline-offset-2 hover:text-primary transition-colors"
-              >
-                Best-Practice-Datenbank
-              </a>
-              , um dort den vollständigen Bearbeitungsstatus einsehen zu können.
+              {emailHint ?? (
+                <>
+                  Tipp: Verwenden Sie dieselbe E-Mail wie Ihr Konto in der{" "}
+                  <a
+                    href="/best-practice/datenbank"
+                    className="underline underline-offset-2 hover:text-primary transition-colors"
+                  >
+                    Best-Practice-Datenbank
+                  </a>
+                  , um dort den vollständigen Bearbeitungsstatus einsehen zu
+                  können.
+                </>
+              )}
             </p>
           </div>
-        )}
+        ))}
       </div>
+      )}
 
       {/* Lehrkraft- + Schülerzahl */}
+      {(showTeacherInput || showStudentInput) && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isBSALocked("teacher_count") ? (
-          <LockedFieldDisplay
-            htmlFor="teacher_count"
-            label="Anzahl Lehrkräfte"
-            value={values.teacher_count}
-            source="bestandsaufnahme"
-          />
-        ) : (
+        {showTeacherInput && (
           <div>
             <label
               htmlFor="teacher_count"
@@ -615,23 +812,26 @@ export default function SchoolInfoFields({
             />
           </div>
         )}
-        <div>
-          <label
-            htmlFor="student_count"
-            className="block text-sm font-medium text-text mb-1.5"
-          >
-            Anzahl Schüler/innen
-          </label>
-          <input
-            id="student_count"
-            type="number"
-            min="0"
-            value={values.student_count}
-            onChange={(e) => onChange("student_count", e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        {showStudentInput && (
+          <div>
+            <label
+              htmlFor="student_count"
+              className="block text-sm font-medium text-text mb-1.5"
+            >
+              Anzahl Schüler/innen
+            </label>
+            <input
+              id="student_count"
+              type="number"
+              min="0"
+              value={values.student_count}
+              onChange={(e) => onChange("student_count", e.target.value)}
+              className={inputClass}
+            />
+          </div>
+        )}
       </div>
+      )}
     </div>
   );
 }

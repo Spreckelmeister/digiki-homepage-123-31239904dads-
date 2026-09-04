@@ -14,6 +14,12 @@ export interface HilfskraefteOption {
 export const TRAINING_PARTICIPATION_OPTIONS = [
   { value: "teilgenommen", label: "Bereits an Schulung teilgenommen" },
   { value: "angemeldet", label: "Zu Schulung angemeldet" },
+  // Nur im Stellvertreter-Modus möglich (Admin/Schulungsteam füllt für
+  // eine Schule aus und überspringt die automatische Prüfung bewusst).
+  {
+    value: "pruefung_uebersprungen",
+    label: "Schulungsprüfung übersprungen (durch Schulungsteam/Admin)",
+  },
 ] as const;
 
 /** Bereich der EINEN konkreten Hürde (Einfachauswahl). */

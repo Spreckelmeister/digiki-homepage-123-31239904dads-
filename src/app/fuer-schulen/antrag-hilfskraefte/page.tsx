@@ -6,8 +6,12 @@ import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import {
   getBestandsaufnahmePrefill,
   getLockedFieldsFromPrefill,
+  type BestandsaufnahmePrefill,
 } from "@/lib/bestandsaufnahme/getPrefill";
-import { getSchoolTrainings } from "@/lib/schulungen/getSchoolTrainings";
+import {
+  getSchoolTrainings,
+  type RegisteredTraining,
+} from "@/lib/schulungen/getSchoolTrainings";
 import StudentAssistantForm from "@/components/forms/StudentAssistantForm";
 import BackButton from "@/components/BackButton";
 
@@ -71,21 +75,39 @@ export default async function AntragHilfskraeftePage() {
     redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
   }
 
-  const prefill = await getBestandsaufnahmePrefill();
-  const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
+  // Rolle zuerst: Admin und Schulungsteam füllen den Antrag stellvertretend
+  // für eine Schule aus (Schulauswahl im Formular, Schulungsprüfung gegen
+  // die gewählte Schule). Für sie gibt es keine eigene BSA-Vorbefüllung.
+  const profile = await getCurrentProfile();
+  const roleLower = profile?.role?.toLowerCase();
+  const actingRole =
+    roleLower === "admin" || roleLower === "schulungsteam"
+      ? (roleLower as "admin" | "schulungsteam")
+      : undefined;
 
-  // Schulname für den Schulungs-Abgleich: serverseitig aus BSA bzw. Profil –
-  // nie aus Client-Input.
-  let schoolName: string | null = prefill?.school_name ?? null;
-  if (!schoolName) {
-    const profile = await getCurrentProfile();
-    schoolName = profile?.school?.trim() ? profile.school : null;
+  let prefill: BestandsaufnahmePrefill | null = null;
+  let lockedFromBSA: string[] = [];
+  let registeredTrainings: RegisteredTraining[] = [];
+  let liveSchoolCount: number | null = null;
+
+  if (actingRole) {
+    liveSchoolCount = await getParticipatingSchoolCount();
+  } else {
+    prefill = await getBestandsaufnahmePrefill();
+    lockedFromBSA = getLockedFieldsFromPrefill(prefill);
+
+    // Schulname für den Schulungs-Abgleich: serverseitig aus BSA bzw.
+    // Profil – nie aus Client-Input.
+    let schoolName: string | null = prefill?.school_name ?? null;
+    if (!schoolName) {
+      schoolName = profile?.school?.trim() ? profile.school : null;
+    }
+
+    [registeredTrainings, liveSchoolCount] = await Promise.all([
+      getSchoolTrainings(schoolName),
+      getParticipatingSchoolCount(),
+    ]);
   }
-
-  const [registeredTrainings, liveSchoolCount] = await Promise.all([
-    getSchoolTrainings(schoolName),
-    getParticipatingSchoolCount(),
-  ]);
 
   return (
     <>
@@ -193,6 +215,7 @@ export default async function AntragHilfskraeftePage() {
             prefillFromBSA={prefill}
             lockedFromBSA={lockedFromBSA}
             registeredTrainings={registeredTrainings}
+            actingRole={actingRole}
           />
         </div>
       </section>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ToolSelection } from "@/lib/types";
+import type { BestandsaufnahmePrefill } from "@/lib/bestandsaufnahme/getPrefill";
 import SchoolInfoFields from "./SchoolInfoFields";
 import FormSuccess from "./FormSuccess";
 import FormSection from "./FormSection";
@@ -60,13 +61,6 @@ interface ToolAppData {
   it_infrastructure_meets_requirements: boolean;
 }
 
-interface BestandsaufnahmePrefill {
-  school_name?: string;
-  principal_name?: string;
-  contact_person?: string;
-  phone?: string;
-  teacher_count?: string;
-}
 
 export default function ToolLicenseForm({
   editMode = false,
@@ -93,9 +87,9 @@ export default function ToolLicenseForm({
     // Beim NEU-Antrag haben Prefill-Werte Vorrang vor leer; im Edit-Modus
     // gewinnen initialData (gespeicherte Werte).
     school_name:    initialData?.school_name    ?? prefillFromBSA?.school_name    ?? "",
-    school_street:  initialData?.school_street  ?? "",
-    school_plz:     initialData?.school_plz     ?? "",
-    school_city:    initialData?.school_city     ?? "",
+    school_street:  initialData?.school_street  ?? prefillFromBSA?.school_street  ?? "",
+    school_plz:     initialData?.school_plz     ?? prefillFromBSA?.school_plz     ?? "",
+    school_city:    initialData?.school_city     ?? prefillFromBSA?.school_city    ?? "",
     principal_name: initialData?.principal_name ?? prefillFromBSA?.principal_name ?? "",
     contact_person: initialData?.contact_person ?? prefillFromBSA?.contact_person ?? "",
     phone:          initialData?.phone          ?? prefillFromBSA?.phone          ?? "",
@@ -103,8 +97,24 @@ export default function ToolLicenseForm({
     teacher_count:  initialData?.teacher_count != null
       ? String(initialData.teacher_count)
       : prefillFromBSA?.teacher_count ?? "",
-    student_count:  initialData?.student_count != null ? String(initialData.student_count) : "",
+    student_count:  initialData?.student_count != null
+      ? String(initialData.student_count)
+      : prefillFromBSA?.student_count ?? "",
   });
+
+  // Adresse/Schülerzahl aus dem jüngsten früheren Antrag – wandern in die
+  // Zusammenfassungs-Karte des Schul-Abschnitts statt in Eingabefelder.
+  const prefilledFromApplication =
+    !editMode && prefillFromBSA
+      ? [
+          ...(prefillFromBSA.school_street &&
+          prefillFromBSA.school_plz &&
+          prefillFromBSA.school_city
+            ? ["school_street", "school_plz", "school_city"]
+            : []),
+          ...(prefillFromBSA.student_count ? ["student_count"] : []),
+        ]
+      : [];
 
   const [toolSelections, setToolSelections] = useState<ToolSelection[]>(() => {
     const stored = initialData?.tool_selections;
@@ -435,6 +445,7 @@ export default function ToolLicenseForm({
           inputClass={inputClass}
           lockedEmail={lockedEmail}
           lockedFromBestandsaufnahme={lockedFromBSA}
+          prefilledFromApplication={prefilledFromApplication}
         />
       </FormSection>
 
