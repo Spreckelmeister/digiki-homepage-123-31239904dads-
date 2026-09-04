@@ -18,6 +18,7 @@ import {
   gruppeTitle,
   pickDeadline,
   type NlcAppointment,
+  type NlcAppointmentLocation,
   type NlcEventPayload,
 } from "@/lib/schulungen/nlcSync";
 import type { TrainingEvent } from "@/lib/schulungen/types";
@@ -69,7 +70,17 @@ function htmlToParagraphs(html: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-// ── Datums-/Zeit-Helfer ──────────────────────────────────────────────────
+// ── Datums-/Zeit-/Ort-Helfer ─────────────────────────────────────────────
+function formatNlcLocation(l: NlcAppointmentLocation): string | null {
+  const name = (l.name ?? "").trim();
+  if (!name) return null;
+  const street = (l.street ?? "").trim();
+  const cityLine = [(l.zipcode ?? "").trim(), (l.city ?? "").trim()]
+    .filter(Boolean)
+    .join(" ");
+  return `${name}${street ? ` · ${street}` : ""}${cityLine ? `, ${cityLine}` : ""}`;
+}
+
 function apptParts(a: NlcAppointment) {
   const start = (a.start ?? "").match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
   const end = (a.end ?? "").match(/[ T](\d{2}:\d{2})/);
@@ -85,6 +96,9 @@ function apptParts(a: NlcAppointment) {
     }).format(d),
     timeRange:
       start[2] && end ? `${start[2]}–${end[1]} Uhr` : start[2] ? `ab ${start[2]} Uhr` : null,
+    locations: (a.locations ?? [])
+      .map(formatNlcLocation)
+      .filter((l): l is string => l !== null),
   };
 }
 
@@ -146,7 +160,6 @@ export default async function SchulungDetailPage({ params }: PageProps) {
     row.audience === "leadership" ? "Schulleitungen" : "Lehrkräfte";
   const AudienceIcon = row.audience === "leadership" ? GraduationCap : Users;
   const heading = (nlc ? gruppeTitle(nlc.title) : null) ?? row.title;
-  const fullTitle = (nlc?.title ?? "").trim();
 
   const appointments = (nlc?.appointments ?? [])
     .map(apptParts)
@@ -164,24 +177,12 @@ export default async function SchulungDetailPage({ params }: PageProps) {
     deadlinePast = today > new Date(deadline + "T00:00:00");
   }
 
-  // Veranstaltungsort: bei DigiKI sind alle drei Tage am selben Ort –
-  // deshalb über Name+Straße dedupliziert.
-  const locations = Array.from(
-    new Map(
-      (nlc?.appointments ?? [])
-        .flatMap((a) => a.locations ?? [])
-        .filter((l) => (l.name ?? "").trim())
-        .map((l) => [
-          `${l.name}|${l.street}`,
-          {
-            name: (l.name ?? "").trim(),
-            street: (l.street ?? "").trim(),
-            zipcode: (l.zipcode ?? "").trim(),
-            city: (l.city ?? "").trim(),
-          },
-        ]),
-    ).values(),
+  // Veranstaltungsort: meist sind alle Tage am selben Ort → ein Block.
+  // Unterscheiden sich die Orte je Tag, steht der Ort direkt am Termin.
+  const uniqueLocations = Array.from(
+    new Set(appointments.flatMap((a) => a.locations)),
   );
+  const sameLocationEverywhere = uniqueLocations.length <= 1;
 
   const descriptionParas = htmlToParagraphs(nlc?.description);
   const objectiveParas = htmlToParagraphs(nlc?.objectives);
@@ -284,6 +285,7 @@ export default async function SchulungDetailPage({ params }: PageProps) {
                         }).format(new Date(row.start_date + "T00:00:00")),
                         dateLong: formatDateLong(row.start_date)!,
                         timeRange: null,
+                        locations: [] as string[],
                       },
                     ]
                   : []
@@ -305,29 +307,37 @@ export default async function SchulungDetailPage({ params }: PageProps) {
                     {a.timeRange && (
                       <p className="text-sm text-text-light">{a.timeRange}</p>
                     )}
+                    {!sameLocationEverywhere && a.locations.length > 0 && (
+                      <p className="mt-1 flex items-start gap-1 text-xs text-text-light">
+                        <MapPin
+                          className="mt-0.5 h-3 w-3 shrink-0 text-primary"
+                          aria-hidden="true"
+                        />
+                        {a.locations.join(" / ")}
+                      </p>
+                    )}
                   </div>
                 </li>
               ))}
             </ol>
-            {locations.length > 0 && (
+            {sameLocationEverywhere && uniqueLocations.length === 1 && (
               <div className="mt-4 flex items-start gap-3 rounded-xl bg-bg/60 px-4 py-3">
                 <MapPin
                   className="mt-0.5 h-4 w-4 shrink-0 text-primary"
                   aria-hidden="true"
                 />
                 <div className="text-sm text-text">
-                  <p className="font-semibold">Veranstaltungsort</p>
-                  {locations.map((l) => (
-                    <p key={`${l.name}${l.street}`} className="text-text-light">
-                      {l.name}
-                      {l.street ? ` · ${l.street}` : ""}
-                      {l.zipcode || l.city
-                        ? `, ${[l.zipcode, l.city].filter(Boolean).join(" ")}`
-                        : ""}
-                    </p>
-                  ))}
+                  <p className="font-semibold">Veranstaltungsort (alle Termine)</p>
+                  <p className="text-text-light">{uniqueLocations[0]}</p>
                 </div>
               </div>
+            )}
+            {!sameLocationEverywhere && (
+              <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                Die Termine finden an unterschiedlichen Orten statt – bitte
+                achten Sie auf die Ortsangabe am jeweiligen Tag.
+              </p>
             )}
           </div>
 
