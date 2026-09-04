@@ -35,7 +35,7 @@ export async function GET() {
   ] = await Promise.all([
     admin
       .from("training_events")
-      .select("id, kurs_nr, nlc_event_id, title, audience, start_date, end_date, location, anmeldung_url, registration_deadline, deadline_synced_at")
+      .select("*")
       .order("start_date", { ascending: true }),
     admin
       .from("registrations")
@@ -72,10 +72,16 @@ export async function GET() {
     countsByEvent.set(r.event_id, (countsByEvent.get(r.event_id) ?? 0) + 1);
   }
 
-  const events: TrainingEvent[] = (eventsRes.data ?? []).map((e) => ({
-    ...e,
-    registration_count: countsByEvent.get(e.id) ?? 0,
-  }));
+  // Archivierte Termine (siehe Migration 034) bleiben in der DB für die
+  // Schulungsprüfung der Antragsformulare, tauchen im Dashboard aber nicht
+  // mehr auf. JS-Filter statt SQL, damit der Code auch vor der Migration
+  // läuft (Spalte fehlt dann einfach).
+  const events: TrainingEvent[] = ((eventsRes.data ?? []) as TrainingEvent[])
+    .filter((e) => !e.archived_at)
+    .map((e) => ({
+      ...e,
+      registration_count: countsByEvent.get(e.id) ?? 0,
+    }));
 
   const schools = buildSchoolParticipation(
     (bestandRes.data ?? []) as Array<{

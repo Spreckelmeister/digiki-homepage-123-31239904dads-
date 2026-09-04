@@ -281,11 +281,15 @@ export default function EventsTable({
                           {confirmDeleteId === event.id ? (
                             <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2 py-1.5 shadow-lg animate-[modalIn_0.15s_ease-out_both]">
                               <span className="text-[11px] text-red-800">
-                                Löschen?
-                                {(event.registration_count ?? 0) > 0 && (
-                                  <span className="font-semibold">
-                                    {" "}({event.registration_count} Anm.)
-                                  </span>
+                                {(event.registration_count ?? 0) > 0 ? (
+                                  <>
+                                    Archivieren?
+                                    <span className="font-semibold">
+                                      {" "}{event.registration_count} Anm. bleiben erhalten
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>Löschen?</>
                                 )}
                               </span>
                               <button

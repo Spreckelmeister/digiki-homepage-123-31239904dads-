@@ -177,24 +177,28 @@ export default async function KosFortbildungenSection() {
     if (error) {
       console.error("[KosFortbildungen] Termine nicht ladbar:", error.message);
     }
-    events = (data ?? []) as TrainingEvent[];
+    // Archivierte Termine (Migration 034) nie öffentlich zeigen.
+    events = ((data ?? []) as TrainingEvent[]).filter((e) => !e.archived_at);
   } else {
     console.error("[KosFortbildungen] Supabase-Env fehlt – keine Termine.");
   }
 
-  // Nur Termine anzeigen, die heute oder in der Zukunft liegen.
-  // Ein einfacher String-Vergleich von YYYY-MM-DD reicht aus – das
-  // Datum bewusst in Europe/Berlin bilden (toISOString wäre UTC und
+  // Termine bleiben bis 3 Tage nach dem hinterlegten Datum sichtbar
+  // (die Durchgänge laufen mehrtägig weiter), danach verschwinden sie
+  // von der öffentlichen Seite. String-Vergleich von YYYY-MM-DD reicht –
+  // das Datum bewusst in Europe/Berlin bilden (toISOString wäre UTC und
   // damit nachts einen Tag daneben).
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = new Intl.DateTimeFormat("sv-SE", {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 3);
+  const cutoffStr = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Berlin",
-  }).format(new Date());
+  }).format(cutoff);
 
   const safeEvents = events;
   const upcomingEvents = safeEvents.filter(
-    (e) => !e.start_date || e.start_date >= todayStr
+    (e) => !e.start_date || e.start_date >= cutoffStr
   );
 
   const sortEvents = (events: TrainingEvent[]) => {

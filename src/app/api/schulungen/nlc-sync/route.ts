@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireSchulungenAccess } from "@/lib/schulungen/server";
 import { syncNlcDeadlines } from "@/lib/schulungen/nlcSync";
 
@@ -32,6 +33,10 @@ async function runSync() {
       summary.failed.map((f) => `${f.kurs_nr}: ${f.error}`).join("; "),
     );
   }
+  // Die öffentliche Terminliste ist statisch (revalidate 600) – nach dem
+  // Abgleich sofort neu aufbauen, damit neue Fristen ohne Wartezeit
+  // sichtbar sind.
+  revalidatePath("/fuer-schulen");
   return summary;
 }
 

@@ -135,7 +135,7 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
 
   const { data, error } = await admin
     .from("training_events")
-    .select("id, kurs_nr, nlc_event_id, anmeldung_url, start_date, registration_deadline")
+    .select("*")
     .or(`start_date.is.null,start_date.gte.${todayStr}`)
     .order("start_date", { ascending: true });
 
@@ -143,7 +143,11 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
     throw new Error(`Schulungen konnten nicht geladen werden: ${error.message}`);
   }
 
-  const events = (data ?? []) as SyncableEvent[];
+  // Archivierte Termine nicht mehr abgleichen (JS-Filter, damit der Code
+  // auch ohne die Spalte aus Migration 034 läuft).
+  const events = (
+    (data ?? []) as (SyncableEvent & { archived_at?: string | null })[]
+  ).filter((e) => !e.archived_at);
   const summary: NlcSyncSummary = {
     checked: events.length,
     updated: [],

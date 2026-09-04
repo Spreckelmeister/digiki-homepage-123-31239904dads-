@@ -18,6 +18,9 @@ export interface TrainingEvent {
   registration_deadline?: string | null;
   /** Letzter erfolgreicher NLC-Abgleich des Anmeldeschlusses. */
   deadline_synced_at?: string | null;
+  /** Archiviert = aus Dashboard/Website ausgeblendet; Anmeldedaten bleiben
+   *  für die Schulungsprüfung der Antragsformulare erhalten. */
+  archived_at?: string | null;
   /** Anzahl aktiver Anmeldungen (nur in der Overview-Antwort gefüllt). */
   registration_count?: number;
 }

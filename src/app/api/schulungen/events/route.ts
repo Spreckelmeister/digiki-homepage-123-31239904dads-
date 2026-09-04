@@ -4,6 +4,7 @@ import {
   createServiceClient,
 } from "@/lib/schulungen/server";
 import { extractNlcEventId } from "@/lib/schulungen/nlcSync";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -99,6 +100,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Öffentliche Terminliste (statisch, revalidate 600) sofort auffrischen.
+  revalidatePath("/fuer-schulen");
   return NextResponse.json({ event: created }, { status: 201 });
 }
 
@@ -143,25 +146,45 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  // Anmeldungen zählen + löschen
+  // Anmeldungen zählen – sie sind die Datengrundlage der Schulungsprüfung
+  // in den Antragsformularen (Hilfskräfte + Tool-Lizenzen) und dürfen
+  // beim Aufräumen alter Termine NICHT verloren gehen.
   const { count: regCount } = await admin
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId);
 
-  // Konflikte löschen
+  // Konflikte sind reine Import-Workflow-Reste → in beiden Fällen weg.
   await admin
     .from("import_conflicts")
     .delete()
     .eq("event_id", eventId);
 
-  // Anmeldungen löschen
-  await admin
-    .from("registrations")
-    .delete()
-    .eq("event_id", eventId);
+  if ((regCount ?? 0) > 0) {
+    // Mit Anmeldungen: archivieren statt löschen. Der Termin verschwindet
+    // aus Dashboard und Website, Anmeldungen + Prüfung bleiben intakt.
+    const { error } = await admin
+      .from("training_events")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", eventId);
 
-  // Schulung selbst löschen
+    if (error) {
+      return NextResponse.json(
+        { error: `Schulung konnte nicht archiviert werden: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    revalidatePath("/fuer-schulen");
+    return NextResponse.json({
+      deleted: true,
+      archived: true,
+      kurs_nr: event.kurs_nr,
+      registrations_kept: regCount ?? 0,
+    });
+  }
+
+  // Ohne Anmeldungen (z.B. Tippfehler-Termin): wirklich löschen.
   const { error } = await admin
     .from("training_events")
     .delete()
@@ -174,10 +197,12 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  revalidatePath("/fuer-schulen");
   return NextResponse.json({
     deleted: true,
+    archived: false,
     kurs_nr: event.kurs_nr,
-    registrations_removed: regCount ?? 0,
+    registrations_removed: 0,
   });
 }
 
@@ -253,5 +278,6 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
+  revalidatePath("/fuer-schulen");
   return NextResponse.json({ event: updated });
 }

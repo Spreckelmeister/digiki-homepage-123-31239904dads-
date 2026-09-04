@@ -629,11 +629,11 @@ function MobileEventsList({
                           <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-3 py-3 animate-[modalIn_0.15s_ease-out_both]">
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-red-800">
-                                {event.kurs_nr} löschen?
+                                {event.kurs_nr} {count > 0 ? "archivieren?" : "löschen?"}
                               </p>
                               {count > 0 && (
                                 <p className="text-[10px] text-red-700">
-                                  {count} Anmeldung{count !== 1 ? "en" : ""} betroffen
+                                  {count} Anmeldung{count !== 1 ? "en" : ""} {count === 1 ? "bleibt" : "bleiben"} für die Antragsprüfung erhalten
                                 </p>
                               )}
                             </div>
@@ -649,7 +649,7 @@ function MobileEventsList({
                                 ) : (
                                   <Trash2 className="h-3 w-3" aria-hidden="true" />
                                 )}
-                                Löschen
+                                {count > 0 ? "Archivieren" : "Löschen"}
                               </button>
                               <button
                                 type="button"
