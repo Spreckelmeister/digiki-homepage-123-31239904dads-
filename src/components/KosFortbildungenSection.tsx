@@ -57,7 +57,6 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-text">
           {day}. {month} {year}
-          <span className="ml-1.5 font-normal text-text-light">· 1. von 3 Tagen</span>
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-2">
           <p className="font-mono text-[12px] text-text-light">
@@ -89,17 +88,17 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
   );
 
   return (
-    <li className={`group flex items-center gap-4 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0 ${deadlinePast ? "opacity-50 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300" : ""}`}>
+    <li className={`group flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 py-4 first:border-t-0 first:pt-0 last:pb-0 ${deadlinePast ? "opacity-50 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300" : ""}`}>
       {detailHref ? (
         <Link
           href={detailHref}
           aria-label={`Details zur Schulung ${termin.kurs_nr} ab ${day}. ${month} ${year}`}
-          className="group/detail -m-2 flex min-w-0 flex-1 items-center gap-4 rounded-xl p-2 transition-colors hover:bg-bg/70"
+          className="group/detail -m-2 flex min-w-[230px] flex-1 items-center gap-4 rounded-xl p-2 transition-colors hover:bg-bg/70"
         >
           {rowInner}
         </Link>
       ) : (
-        <div className="flex min-w-0 flex-1 items-center gap-4">{rowInner}</div>
+        <div className="flex min-w-[230px] flex-1 items-center gap-4">{rowInner}</div>
       )}
 
       {/* Anmelde-Link */}
@@ -108,7 +107,7 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
           href={termin.anmeldung_url!}
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
             deadlinePast
               ? "border-border bg-bg text-text hover:border-border-strong hover:bg-bg-alt"
               : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary/5"
@@ -119,7 +118,7 @@ function TerminRow({ termin }: { termin: TrainingEvent }) {
           <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
         </a>
       ) : (
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg px-3 py-1.5 text-xs font-semibold text-text-light">
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-bg px-3 py-1.5 text-xs font-semibold text-text-light">
           Demnächst
         </span>
       )}

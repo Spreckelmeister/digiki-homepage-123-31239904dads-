@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   CalendarDays,
+  Check,
   Clock,
   GraduationCap,
   Info,
@@ -68,6 +69,172 @@ function htmlToParagraphs(html: string | null | undefined): string[] {
     .split(/\n{2,}/)
     .map((p) => p.replace(/[ \t]+/g, " ").replace(/\n /g, "\n").trim())
     .filter(Boolean);
+}
+
+// ── Absätze in gestaltbare Blöcke gliedern ──────────────────────────────
+// Die NLC-Beschreibung ist eine lange Textwand; hier wird sie in Hinweis-
+// Box, Zwischenüberschriften, Listen und Absätze zerlegt. Rechtliche
+// Passagen wandern gesammelt in einen aufklappbaren Bereich, die im Text
+// wiederholte Terminaufzählung entfällt (steht oben als Karte).
+type TextBlock =
+  | { kind: "note"; text: string }
+  | { kind: "tip"; text: string }
+  | { kind: "heading"; text: string }
+  | { kind: "list"; lead: string | null; items: string[] }
+  | { kind: "para"; text: string };
+
+const LEGAL_RE =
+  /(Teilnahmebedingungen|NSchG|§§|Genehmigung der Dienststelle|dienstrechtlich|Ersatzschulen|Weitergabe Ihrer Anmeldedaten)/i;
+
+function splitContent(paras: string[]): {
+  blocks: TextBlock[];
+  legal: string[];
+} {
+  const blocks: TextBlock[] = [];
+  const legal: string[] = [];
+  const isBullet = (l: string) => /^[-•–]\s+/.test(l);
+
+  for (const p of paras) {
+    // Doppelte Terminaufzählung („Die Veranstaltung besteht aus 3
+    // Terminen: 07.09.…") überspringen – die Tage stehen oben als Karte.
+    if (/^Die Veranstaltung besteht aus \d+ Termin/i.test(p)) continue;
+    if (LEGAL_RE.test(p)) {
+      legal.push(p);
+      continue;
+    }
+    const note = p.match(/^\+{2,}\s*([\s\S]+?)\s*\+{2,}$/);
+    if (note) {
+      blocks.push({ kind: "note", text: note[1].trim() });
+      continue;
+    }
+    if (/^Empfohlen wird/i.test(p)) {
+      blocks.push({ kind: "tip", text: p });
+      continue;
+    }
+    const lines = p.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.some(isBullet)) {
+      const leadLines: string[] = [];
+      const items: string[] = [];
+      for (const l of lines) {
+        if (isBullet(l)) items.push(l.replace(/^[-•–]\s+/, ""));
+        else if (items.length === 0) leadLines.push(l);
+        else items.push(l);
+      }
+      blocks.push({
+        kind: "list",
+        lead: leadLines.join(" ") || null,
+        items,
+      });
+      continue;
+    }
+    if (!p.includes("\n") && p.length <= 60 && /:$/.test(p)) {
+      blocks.push({ kind: "heading", text: p.replace(/:$/, "") });
+      continue;
+    }
+    blocks.push({ kind: "para", text: p });
+  }
+  return { blocks, legal };
+}
+
+/** Nackte URLs im Text klickbar machen (nur http/https, kein HTML). */
+function Linkify({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all text-primary underline underline-offset-2"
+          >
+            {part.replace(/^https?:\/\/(www\.)?/, "")}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
+function TextBlocks({ blocks }: { blocks: TextBlock[] }) {
+  return (
+    <div className="mt-4 space-y-4">
+      {blocks.map((b, i) => {
+        if (b.kind === "note") {
+          return (
+            <p
+              key={i}
+              className="flex items-start gap-2.5 rounded-xl border border-accent-strong/30 bg-accent/10 px-4 py-3 text-sm font-semibold leading-relaxed text-text"
+            >
+              <Info
+                className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong"
+                aria-hidden="true"
+              />
+              <span>
+                <Linkify text={b.text} />
+              </span>
+            </p>
+          );
+        }
+        if (b.kind === "tip") {
+          return (
+            <p
+              key={i}
+              className="whitespace-pre-line rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-relaxed text-text"
+            >
+              <Linkify text={b.text} />
+            </p>
+          );
+        }
+        if (b.kind === "heading") {
+          return (
+            <h3 key={i} className="pt-2 text-base font-bold text-text">
+              {b.text}
+            </h3>
+          );
+        }
+        if (b.kind === "list") {
+          return (
+            <div key={i}>
+              {b.lead && (
+                <p className="mb-2 text-[15px] font-semibold text-text">
+                  {b.lead}
+                </p>
+              )}
+              <ul className="space-y-1.5">
+                {b.items.map((item, j) => (
+                  <li
+                    key={j}
+                    className="flex items-start gap-2.5 text-[15px] leading-relaxed text-text"
+                  >
+                    <Check
+                      className="mt-1 h-4 w-4 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      <Linkify text={item} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
+        return (
+          <p
+            key={i}
+            className="whitespace-pre-line text-[15px] leading-relaxed text-text"
+          >
+            <Linkify text={b.text} />
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Datums-/Zeit-/Ort-Helfer ─────────────────────────────────────────────
@@ -184,8 +351,9 @@ export default async function SchulungDetailPage({ params }: PageProps) {
   );
   const sameLocationEverywhere = uniqueLocations.length <= 1;
 
-  const descriptionParas = htmlToParagraphs(nlc?.description);
-  const objectiveParas = htmlToParagraphs(nlc?.objectives);
+  const description = splitContent(htmlToParagraphs(nlc?.description));
+  const objectives = splitContent(htmlToParagraphs(nlc?.objectives));
+  const legalParas = [...description.legal, ...objectives.legal];
   const addresseeText = htmlToParagraphs(nlc?.addressee).join(" ");
   const hosts = Array.from(
     new Set(
@@ -378,42 +546,24 @@ export default async function SchulungDetailPage({ params }: PageProps) {
           </div>
 
           {/* Beschreibung */}
-          {descriptionParas.length > 0 && (
+          {description.blocks.length > 0 && (
             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
               <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
                 <Info className="h-5 w-5" aria-hidden="true" />
                 Worum geht es?
               </h2>
-              <div className="mt-3 space-y-3">
-                {descriptionParas.map((p, i) => (
-                  <p
-                    key={i}
-                    className="whitespace-pre-line text-[15px] leading-relaxed text-text"
-                  >
-                    {p}
-                  </p>
-                ))}
-              </div>
+              <TextBlocks blocks={description.blocks} />
             </div>
           )}
 
           {/* Ziele */}
-          {objectiveParas.length > 0 && (
+          {objectives.blocks.length > 0 && (
             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
               <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
                 <Target className="h-5 w-5" aria-hidden="true" />
                 Ziele der Schulung
               </h2>
-              <div className="mt-3 space-y-3">
-                {objectiveParas.map((p, i) => (
-                  <p
-                    key={i}
-                    className="whitespace-pre-line text-[15px] leading-relaxed text-text"
-                  >
-                    {p}
-                  </p>
-                ))}
-              </div>
+              <TextBlocks blocks={objectives.blocks} />
             </div>
           )}
 
@@ -428,6 +578,25 @@ export default async function SchulungDetailPage({ params }: PageProps) {
                 {addresseeText}
               </p>
             </div>
+          )}
+
+          {/* Rechtliches – eingeklappt, damit die Seite übersichtlich bleibt */}
+          {legalParas.length > 0 && (
+            <details className="rounded-2xl border border-border bg-bg/50 px-6 py-4">
+              <summary className="cursor-pointer text-sm font-semibold text-text-light transition-colors hover:text-text">
+                Teilnahmebedingungen &amp; rechtliche Hinweise
+              </summary>
+              <div className="mt-3 space-y-3">
+                {legalParas.map((p, i) => (
+                  <p
+                    key={i}
+                    className="whitespace-pre-line text-[13px] leading-relaxed text-text-light"
+                  >
+                    <Linkify text={p} />
+                  </p>
+                ))}
+              </div>
+            </details>
           )}
 
           {/* Quelle */}
