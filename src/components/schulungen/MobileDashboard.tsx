@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
   ArrowUpRight,
   CalendarDays,
   Check,
@@ -506,6 +508,7 @@ function ParticipantSheet({
 // ─── Event List (Schulungen-Tab) ───────────────────────────────────────────────
 function MobileEventsList({
   events,
+  archivedEvents = [],
   conflicts,
   loading,
   isAdmin,
@@ -513,6 +516,8 @@ function MobileEventsList({
   schools = [],
 }: {
   events: TrainingEvent[];
+  /** Archivierte Termine – über den Archiv-Knopf einsehbar. */
+  archivedEvents?: TrainingEvent[];
   conflicts: ConflictItem[];
   loading: boolean;
   isAdmin: boolean;
@@ -525,6 +530,8 @@ function MobileEventsList({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const conflictsByEvent = useMemo(() => {
     const map = new Map<string, number>();
@@ -534,9 +541,11 @@ function MobileEventsList({
     return map;
   }, [conflicts]);
 
+  // Archiv-Ansicht zeigt dieselbe Liste, nur mit den archivierten Terminen.
+  const source = showArchive ? archivedEvents : events;
   const groups = [
-    { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
-    { label: "Schulleitungen", items: events.filter((e) => e.audience === "leadership") },
+    { label: "Lehrkräfte", items: source.filter((e) => e.audience === "teacher") },
+    { label: "Schulleitungen", items: source.filter((e) => e.audience === "leadership") },
   ];
 
   async function handleDelete(eventId: string) {
@@ -563,14 +572,56 @@ function MobileEventsList({
     }
   }
 
+  async function handleRestore(eventId: string) {
+    setRestoringId(eventId);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/schulungen/events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: eventId, archived: false }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Wiederherstellen fehlgeschlagen.");
+      }
+      onRefresh?.();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Wiederherstellen fehlgeschlagen."
+      );
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   return (
     <>
       <div className="px-4 pb-4 pt-3">
         <div className="mb-3 flex items-center justify-between gap-2">
           <p className="text-xs text-text-light">
-            Schulung antippen, um die Teilnehmenden zu sehen.
+            {showArchive
+              ? "Archiv – Anmeldedaten bleiben erhalten."
+              : "Schulung antippen, um die Teilnehmenden zu sehen."}
           </p>
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowArchive((v) => !v);
+                setConfirmDeleteId(null);
+                setDeleteError(null);
+              }}
+              aria-pressed={showArchive}
+              className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                showArchive
+                  ? "border-primary bg-primary text-white shadow-sm"
+                  : "border-border bg-white text-text-light"
+              }`}
+            >
+              <Archive className="h-3 w-3" aria-hidden="true" />
+              {showArchive ? "Aktuell" : `Archiv (${archivedEvents.length})`}
+            </button>
             {isAdmin && <NlcSyncButton onSynced={onRefresh} label="NLC-Abgleich" />}
             {isAdmin && (
               <button
@@ -608,6 +659,10 @@ function MobileEventsList({
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Lade Schulungen …
           </div>
+        ) : showArchive && archivedEvents.length === 0 ? (
+          <p className="rounded-lg border border-border bg-white px-3 py-4 text-center text-sm text-text-light">
+            Das Archiv ist leer.
+          </p>
         ) : (
           <div className="space-y-6">
             {groups.map((group) => (
@@ -738,7 +793,7 @@ function MobileEventsList({
                               </div>
                             </button>
 
-                            {/* Admin: edit + delete button */}
+                            {/* Admin: edit + delete/restore button */}
                             {isAdmin && (
                               <div className="absolute -right-1 -top-1 flex gap-1">
                                 <button
@@ -753,18 +808,37 @@ function MobileEventsList({
                                 >
                                   <PenLine className="h-3 w-3" aria-hidden="true" />
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setConfirmDeleteId(event.id);
-                                    setDeleteError(null);
-                                  }}
-                                  aria-label={`Schulung ${event.kurs_nr} löschen`}
-                                  className="rounded-full border border-red-200 bg-white p-1.5 text-red-400 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
-                                >
-                                  <Trash2 className="h-3 w-3" aria-hidden="true" />
-                                </button>
+                                {showArchive ? (
+                                  <button
+                                    type="button"
+                                    disabled={restoringId === event.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRestore(event.id);
+                                    }}
+                                    aria-label={`Schulung ${event.kurs_nr} aus dem Archiv wiederherstellen`}
+                                    className="rounded-full border border-green-200 bg-white p-1.5 text-green-600 shadow-sm transition-colors hover:bg-green-50 disabled:opacity-50"
+                                  >
+                                    {restoringId === event.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                    ) : (
+                                      <ArchiveRestore className="h-3 w-3" aria-hidden="true" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmDeleteId(event.id);
+                                      setDeleteError(null);
+                                    }}
+                                    aria-label={`Schulung ${event.kurs_nr} löschen`}
+                                    className="rounded-full border border-red-200 bg-white p-1.5 text-red-400 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1707,6 +1781,7 @@ export default function MobileDashboard({
       {tab === "schulungen" && (
         <MobileEventsList
           events={overview?.events ?? []}
+          archivedEvents={overview?.archived_events ?? []}
           conflicts={conflicts}
           loading={loading}
           isAdmin={isAdmin}

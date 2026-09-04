@@ -140,6 +140,13 @@ export default function NlcSyncButton({
                   )}
                 </ul>
               )}
+              {(result.autoArchived?.length ?? 0) > 0 && (
+                <p className="text-[11px] text-text-light">
+                  {result.autoArchived!.length}{" "}
+                  {result.autoArchived!.length === 1 ? "Termin" : "Termine"}{" "}
+                  automatisch ins Archiv verschoben (älter als 10 Tage).
+                </p>
+              )}
               {result.skipped.length > 0 && (
                 <p className="text-[11px] text-text-light">
                   Ohne NLC-Link:{" "}

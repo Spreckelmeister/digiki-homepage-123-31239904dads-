@@ -158,6 +158,7 @@ export default function DashboardApp({ isAdmin }: { isAdmin: boolean }) {
         {/* Alle Schulungen – für alle Dashboard-Nutzer sichtbar */}
         <EventsTable
           events={overview?.events ?? []}
+          archivedEvents={overview?.archived_events ?? []}
           conflicts={conflicts}
           loading={loading}
           isAdmin={isAdmin}

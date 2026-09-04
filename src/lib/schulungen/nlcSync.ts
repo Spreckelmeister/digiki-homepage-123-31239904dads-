@@ -24,6 +24,52 @@ const FETCH_TIMEOUT_MS = 8000;
 const BATCH_SIZE = 5;
 /** Gleicher User-Agent-Stil wie die Nominatim-Aufrufe (school-search). */
 const USER_AGENT = "DigiKI-Homepage/1.0 (krafft@osnabrueck.de)";
+/** So viele Tage nach dem Termin wandert eine Schulung automatisch ins Archiv. */
+export const ARCHIVE_AFTER_DAYS = 10;
+
+/**
+ * Automatisches Aufräumen: Termine, deren Datum länger als
+ * ARCHIVE_AFTER_DAYS zurückliegt, ins Archiv verschieben (archived_at).
+ * Anmeldungen bleiben unangetastet – die Schulungsprüfung der
+ * Antragsformulare braucht sie weiterhin. Läuft beim täglichen Cron,
+ * beim Admin-Abgleich und bei jedem Dashboard-Aufruf (idempotent).
+ * Fehler (z.B. Spalte aus Migration 034 fehlt noch) werden nur geloggt.
+ */
+export async function archivePastEvents(
+  client?: ReturnType<typeof createServiceClient>,
+): Promise<string[]> {
+  try {
+    const admin = client ?? createServiceClient();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - ARCHIVE_AFTER_DAYS);
+    const cutoffStr = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "Europe/Berlin",
+    }).format(cutoff);
+
+    const { data, error } = await admin
+      .from("training_events")
+      .update({ archived_at: new Date().toISOString() })
+      .is("archived_at", null)
+      .not("start_date", "is", null)
+      .lt("start_date", cutoffStr)
+      .select("kurs_nr");
+
+    if (error) {
+      console.error("[archivePastEvents]", error.message);
+      return [];
+    }
+    const archived = ((data ?? []) as { kurs_nr: string }[]).map(
+      (e) => e.kurs_nr,
+    );
+    if (archived.length > 0) {
+      console.log("[archivePastEvents] ins Archiv:", archived.join(", "));
+    }
+    return archived;
+  } catch (err) {
+    console.error("[archivePastEvents]", err);
+    return [];
+  }
+}
 
 /** NLC-Veranstaltungs-ID: bevorzugt aus der Spalte, sonst aus dem Link. */
 export function extractNlcEventId(ev: {
@@ -129,6 +175,11 @@ type SyncableEvent = {
  */
 export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
   const admin = createServiceClient();
+
+  // Zuerst aufräumen: Lange vergangene Termine ins Archiv – sie fallen
+  // damit auch gleich aus der folgenden Abgleich-Auswahl heraus.
+  const autoArchived = await archivePastEvents(admin);
+
   const todayStr = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Berlin",
   }).format(new Date());
@@ -154,6 +205,7 @@ export async function syncNlcDeadlines(): Promise<NlcSyncSummary> {
     unchanged: 0,
     skipped: [],
     failed: [],
+    autoArchived,
     syncedAt: new Date().toISOString(),
   };
 

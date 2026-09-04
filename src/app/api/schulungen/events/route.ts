@@ -229,6 +229,8 @@ export async function PATCH(request: NextRequest) {
     title?: string;
     anmeldung_url?: string;
     registration_deadline?: string;
+    /** false = aus dem Archiv wiederherstellen, true = manuell archivieren. */
+    archived?: boolean;
   };
   try {
     body = await request.json();
@@ -245,6 +247,9 @@ export async function PATCH(request: NextRequest) {
   }
 
   const updates: Record<string, any> = {};
+  if (body.archived !== undefined) {
+    updates.archived_at = body.archived ? new Date().toISOString() : null;
+  }
   if (body.kurs_nr !== undefined) updates.kurs_nr = body.kurs_nr.trim();
   if (body.start_date !== undefined) updates.start_date = body.start_date.trim();
   if (body.audience !== undefined) updates.audience = body.audience === "leadership" ? "leadership" : "teacher";

@@ -3,6 +3,7 @@ import {
   requireSchulungenAccess,
   createServiceClient,
 } from "@/lib/schulungen/server";
+import { archivePastEvents } from "@/lib/schulungen/nlcSync";
 import {
   buildRegisteredSchools,
   matchRegisteredSchool,
@@ -23,6 +24,10 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   const admin = createServiceClient();
+
+  // Lange vergangene Termine automatisch ins Archiv verschieben, damit
+  // das Haupt-Arbeitsfeld aktuell bleibt (idempotent, Fehler nur geloggt).
+  await archivePastEvents(admin);
 
   const [
     eventsRes,
@@ -73,15 +78,23 @@ export async function GET() {
   }
 
   // Archivierte Termine (siehe Migration 034) bleiben in der DB für die
-  // Schulungsprüfung der Antragsformulare, tauchen im Dashboard aber nicht
-  // mehr auf. JS-Filter statt SQL, damit der Code auch vor der Migration
-  // läuft (Spalte fehlt dann einfach).
-  const events: TrainingEvent[] = ((eventsRes.data ?? []) as TrainingEvent[])
+  // Schulungsprüfung der Antragsformulare und wandern in die separate
+  // Archiv-Liste des Dashboards. JS-Filter statt SQL, damit der Code auch
+  // vor der Migration läuft (Spalte fehlt dann einfach).
+  const withCount = (e: TrainingEvent): TrainingEvent => ({
+    ...e,
+    registration_count: countsByEvent.get(e.id) ?? 0,
+  });
+  const allEvents = (eventsRes.data ?? []) as TrainingEvent[];
+  const events: TrainingEvent[] = allEvents
     .filter((e) => !e.archived_at)
-    .map((e) => ({
-      ...e,
-      registration_count: countsByEvent.get(e.id) ?? 0,
-    }));
+    .map(withCount);
+  const archivedEvents: TrainingEvent[] = allEvents
+    .filter((e) => e.archived_at)
+    .map(withCount)
+    .sort((a, b) =>
+      (b.start_date ?? "").localeCompare(a.start_date ?? "")
+    );
 
   const schools = buildSchoolParticipation(
     (bestandRes.data ?? []) as Array<{
@@ -105,6 +118,7 @@ export async function GET() {
       schools_registered: eligible.filter((s) => s.has_registered).length,
     },
     events,
+    archived_events: archivedEvents,
     schools,
     recent_batches: auth.isAdmin ? batchesRes.data ?? [] : [],
     is_admin: auth.isAdmin,

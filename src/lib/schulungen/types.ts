@@ -34,6 +34,8 @@ export interface NlcSyncSummary {
   /** kurs_nr ohne NLC-Link/-ID – kann nicht abgeglichen werden. */
   skipped: string[];
   failed: { kurs_nr: string; error: string }[];
+  /** Beim Lauf automatisch ins Archiv verschobene Termine (kurs_nr). */
+  autoArchived?: string[];
   syncedAt: string;
 }
 
@@ -149,6 +151,9 @@ export interface OverviewResponse {
     schools_registered: number;
   };
   events: TrainingEvent[];
+  /** Archivierte Termine (automatisch 10 Tage nach dem Datum oder manuell)
+   *  – im Dashboard über den Archiv-Knopf einsehbar, neueste zuerst. */
+  archived_events?: TrainingEvent[];
   schools: SchoolParticipation[];
   recent_batches: ImportBatchSummary[];
   is_admin: boolean;

@@ -3,6 +3,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
   ArrowUpRight,
   ChevronDown,
   Loader2,
@@ -67,6 +69,7 @@ function deadlineInfo(ev: TrainingEvent) {
  */
 export default function EventsTable({
   events,
+  archivedEvents = [],
   conflicts = [],
   loading,
   isAdmin = false,
@@ -74,6 +77,8 @@ export default function EventsTable({
   schools = [],
 }: {
   events: TrainingEvent[];
+  /** Archivierte Termine – über den Archiv-Knopf einsehbar. */
+  archivedEvents?: TrainingEvent[];
   conflicts?: ConflictItem[];
   loading: boolean;
   isAdmin?: boolean;
@@ -88,6 +93,8 @@ export default function EventsTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const conflictsByEvent = new Map<string, number>();
   for (const c of conflicts) {
@@ -96,11 +103,13 @@ export default function EventsTable({
     }
   }
 
+  // Archiv-Ansicht zeigt dieselbe Liste, nur mit den archivierten Terminen.
+  const source = showArchive ? archivedEvents : events;
   const groups: { label: string; items: TrainingEvent[] }[] = [
-    { label: "Lehrkräfte", items: events.filter((e) => e.audience === "teacher") },
+    { label: "Lehrkräfte", items: source.filter((e) => e.audience === "teacher") },
     {
       label: "Schulleitungen",
-      items: events.filter((e) => e.audience === "leadership"),
+      items: source.filter((e) => e.audience === "leadership"),
     },
   ];
 
@@ -128,6 +137,29 @@ export default function EventsTable({
     }
   }
 
+  async function handleRestore(eventId: string) {
+    setRestoringId(eventId);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/schulungen/events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: eventId, archived: false }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Wiederherstellen fehlgeschlagen.");
+      }
+      onChanged?.();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Wiederherstellen fehlgeschlagen."
+      );
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   return (
     <section
       aria-labelledby="events-heading"
@@ -141,9 +173,9 @@ export default function EventsTable({
             aria-expanded={expanded}
             className="flex items-center gap-2 text-left text-base font-bold text-text"
           >
-            Alle Schulungen
+            {showArchive ? "Archiv" : "Alle Schulungen"}
             <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-bold tabular-nums text-text-light">
-              {events.length}
+              {source.length}
             </span>
             <ChevronDown
               className={`h-4 w-4 shrink-0 text-text-light transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -152,6 +184,25 @@ export default function EventsTable({
           </button>
         </h2>
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setShowArchive((v) => !v);
+              setExpanded(true);
+              setConfirmDeleteId(null);
+              setDeleteError(null);
+            }}
+            aria-pressed={showArchive}
+            title="Archivierte Termine ansehen (Anmeldedaten bleiben erhalten)"
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showArchive
+                ? "border-primary bg-primary text-white shadow-sm"
+                : "border-border bg-white text-text-light hover:border-primary/40 hover:text-primary"
+            }`}
+          >
+            <Archive className="h-3 w-3" aria-hidden="true" />
+            {showArchive ? "Zurück zu Aktuell" : `Archiv (${archivedEvents.length})`}
+          </button>
           {isAdmin && <NlcSyncButton onSynced={onChanged} />}
           {isAdmin && (
             <button
@@ -178,8 +229,16 @@ export default function EventsTable({
       {expanded && (
         <div className="border-t border-border p-5 md:p-6">
           <p className="text-xs text-text-light">
-            Auf eine Schulung tippen, um die Teilnehmenden zu sehen.
+            {showArchive
+              ? "Archiv: Termine, die länger als 10 Tage vorbei sind oder manuell archiviert wurden – Anmeldedaten und Antragsprüfung bleiben erhalten. Auf eine Schulung tippen, um die Teilnehmenden zu sehen."
+              : "Auf eine Schulung tippen, um die Teilnehmenden zu sehen."}
           </p>
+
+          {showArchive && !loading && archivedEvents.length === 0 && (
+            <p className="mt-4 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text-light">
+              Das Archiv ist leer.
+            </p>
+          )}
 
           {loading ? (
             <p className="mt-4 text-sm text-text-light">Lade Schulungen …</p>
@@ -275,8 +334,41 @@ export default function EventsTable({
                         </div>
                       </button>
 
-                      {/* Admin: Löschen-Button + Confirm */}
-                      {isAdmin && (
+                      {/* Admin: Bearbeiten + Löschen/Wiederherstellen */}
+                      {isAdmin && showArchive && (
+                        <div className="absolute -right-1 -top-1 flex items-center gap-1 opacity-0 transition-opacity group-hover/event:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingEvent(event);
+                              setShowAddModal(true);
+                            }}
+                            className="rounded-lg bg-white p-1.5 text-text-light shadow-sm transition-colors hover:bg-bg hover:text-primary"
+                            aria-label="Schulung bearbeiten"
+                          >
+                            <PenLine className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={restoringId === event.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRestore(event.id);
+                            }}
+                            className="rounded-lg bg-white p-1.5 text-text-light shadow-sm transition-colors hover:bg-green-50 hover:text-green-700 disabled:opacity-50"
+                            aria-label="Aus dem Archiv wiederherstellen"
+                            title="Aus dem Archiv wiederherstellen"
+                          >
+                            {restoringId === event.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                      {isAdmin && !showArchive && (
                         <div className="absolute -right-1 -top-1">
                           {confirmDeleteId === event.id ? (
                             <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2 py-1.5 shadow-lg animate-[modalIn_0.15s_ease-out_both]">
