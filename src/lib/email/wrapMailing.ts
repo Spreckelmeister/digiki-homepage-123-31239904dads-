@@ -29,7 +29,7 @@ export interface WrapMailingOptions {
 
 const DEFAULT_LOGO_URL = "https://digiki-os.de/images/logos/DigiKI_Logo_v5.png";
 const FOOTER_NAME = "DigiKI – Digitalisierung & Künstliche Intelligenz an Grundschulen Osnabrück";
-const FOOTER_CONTACT_NAME = "DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung";
+const FOOTER_CONTACT_NAME = "DigiKI-Team";
 const FOOTER_CONTACT_URL = "https://digiki-os.de/#kontakt";
 
 export function wrapMailing({

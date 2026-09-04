@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
                 Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung ·
+                DigiKI-Team ·
                 <a href="${siteUrl}/#kontakt" style="color:#006363;text-decoration:none;">Kontaktformular</a>
               </p>
             </td>
