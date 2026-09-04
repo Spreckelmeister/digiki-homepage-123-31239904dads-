@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
-import { CONTACT_TOPICS, MAX_MESSAGE_LENGTH } from "@/lib/kontakt";
+import { createClient } from "@/lib/supabase/client";
+import {
+  CONTACT_TOPICS,
+  CONTACT_TOPIC_DEFAULT,
+  MAX_MESSAGE_LENGTH,
+} from "@/lib/kontakt";
 
 /**
  * Öffentliches Kontaktformular (weiße Karte auf dunkler Kontakt-Sektion).
@@ -20,7 +25,7 @@ export default function ContactForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [schoolName, setSchoolName] = useState("");
-  const [topic, setTopic] = useState<string>(CONTACT_TOPICS[0]);
+  const [topic, setTopic] = useState<string>(CONTACT_TOPIC_DEFAULT);
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState(""); // Honeypot – bleibt für Menschen leer
   const [sending, setSending] = useState(false);
@@ -30,6 +35,41 @@ export default function ContactForm() {
     mailSent: boolean;
   } | null>(null);
   const successRef = useRef<HTMLHeadingElement>(null);
+
+  // Angemeldete Nutzer: Name, E-Mail und Schule aus Konto/Profil
+  // vorbefüllen – aber nie überschreiben, was bereits getippt wurde.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (cancelled || !user) return;
+        if (user.email) {
+          setEmail((prev) => prev || user.email!);
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, school")
+          .eq("id", user.id)
+          .single();
+        if (cancelled || !profile) return;
+        if (profile.full_name) {
+          setName((prev) => prev || profile.full_name);
+        }
+        if (profile.school) {
+          setSchoolName((prev) => prev || profile.school);
+        }
+      } catch {
+        // Nicht angemeldet / Supabase nicht erreichbar → Formular bleibt leer.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

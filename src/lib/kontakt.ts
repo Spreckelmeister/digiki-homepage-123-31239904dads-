@@ -6,9 +6,9 @@
 
 import type { ContactRequestStatus } from "@/lib/types";
 
-/** Auswahl „Ihr Anliegen" – wird als Klartext gespeichert. */
+/** Auswahl „Ihr Anliegen" – wird als Klartext gespeichert.
+ *  „Sonstiges" ist zugleich der Standardwert (Auffangkategorie). */
 export const CONTACT_TOPICS = [
-  "Allgemeine Anfrage",
   "Schulungen & Termine",
   "Tool-Lizenzen",
   "Studentische Unterstützung",
@@ -16,6 +16,8 @@ export const CONTACT_TOPICS = [
   "Best-Practice-Datenbank",
   "Sonstiges",
 ] as const;
+
+export const CONTACT_TOPIC_DEFAULT = "Sonstiges";
 
 export const MAX_MESSAGE_LENGTH = 5000;
 
