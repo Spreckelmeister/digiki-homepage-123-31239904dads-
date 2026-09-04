@@ -104,10 +104,10 @@ function buildEmailHtml(params: {
                       &#9888; War das nicht von Ihnen angefragt?
                     </p>
                     <p style="margin:0;font-size:13px;color:#555555;line-height:1.6;">
-                      Wenn Sie diese Änderung nicht veranlasst haben, wenden Sie sich bitte
-                      umgehend an
-                      <a href="mailto:krafft@osnabrueck.de" style="color:#006363;">krafft@osnabrueck.de</a>,
-                      damit der Zugang gesichert werden kann.
+                      Wenn Sie diese Änderung nicht veranlasst haben, melden Sie sich bitte
+                      umgehend über das
+                      <a href="https://digiki-os.de/#kontakt" style="color:#006363;">Kontaktformular</a>
+                      der DigiKI-Website, damit der Zugang gesichert werden kann.
                     </p>
                   </td>
                 </tr>
@@ -125,8 +125,8 @@ function buildEmailHtml(params: {
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
                 Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
+                DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung ·
+                <a href="https://digiki-os.de/#kontakt" style="color:#006363;text-decoration:none;">Kontaktformular</a>
               </p>
             </td>
           </tr>

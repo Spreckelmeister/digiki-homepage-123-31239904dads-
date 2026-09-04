@@ -35,6 +35,23 @@ export interface BestPractice {
   best_practice_categories?: { categories: Category }[];
 }
 
+// --- Kontaktformular ---
+
+export type ContactRequestStatus = "neu" | "in_bearbeitung" | "beantwortet";
+
+export interface ContactRequest {
+  id: string;
+  name: string;
+  email: string;
+  school_name: string | null;
+  topic: string | null;
+  message: string;
+  status: ContactRequestStatus;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Anträge (Online-Formulare) ---
 
 export type ApplicationStatus = "neu" | "in_bearbeitung" | "genehmigt" | "abgelehnt";

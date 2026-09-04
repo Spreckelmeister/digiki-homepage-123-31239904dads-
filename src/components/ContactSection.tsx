@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Mail, MapPin, ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin, Users } from "lucide-react";
 import { projectData } from "@/data/project";
+import ContactForm from "@/components/ContactForm";
 
 export default function ContactSection() {
   return (
@@ -11,7 +12,7 @@ export default function ContactSection() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Linke Seite: Text + Kontaktdaten */}
+          {/* Linke Seite: Text + Team-Infos */}
           <div>
             <h2
               id="contact-section-heading"
@@ -20,23 +21,24 @@ export default function ContactSection() {
               Interesse? Sprechen Sie uns an!
             </h2>
             <p className="text-lg text-white/80 mb-8">
-              Wir beraten Sie gerne persönlich zu den Teilnahmemöglichkeiten und
-              finden gemeinsam das passende Format für Ihre Schule.
+              Wir beraten Sie gerne persönlich zu den Teilnahmemöglichkeiten
+              und finden gemeinsam das passende Format für Ihre Schule.
+              Schreiben Sie uns einfach über das Kontaktformular – Ihre
+              Nachricht landet direkt beim DigiKI-Team und wir melden uns so
+              schnell wie möglich zurück.
             </p>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3 text-white/90">
                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <Mail className="w-4 h-4" aria-hidden="true" />
+                  <Users className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/90">E-Mail</p>
-                  <a
-                    href={`mailto:${projectData.contactEmail}`}
-                    className="hover:text-white transition-colors"
-                  >
-                    {projectData.contactEmail}
-                  </a>
+                  <p className="text-sm text-white/90">Ihr Kontakt</p>
+                  <p className="font-semibold text-white">DigiKI-Team</p>
+                  <p className="text-sm text-white/80">
+                    Stadt Osnabrück · Fachbereich Bildung
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3 text-white/90">
@@ -49,35 +51,32 @@ export default function ContactSection() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Rechte Seite: Ansprechpartner + CTA-Karte */}
-          <div id="ansprechpartner" className="bg-white/10 rounded-xl p-8">
-            <h3 className="text-lg font-semibold text-white mb-1">
-              Ihr Ansprechpartner
-            </h3>
-            <p className="text-white/90 mb-6">{projectData.projectLeadRole}</p>
-
-            <p className="text-2xl font-bold text-white mb-6">
-              {projectData.projectLead}
-            </p>
-
-            <div className="space-y-3">
-              <a
-                href={`mailto:${projectData.contactEmail}?subject=Interesse an DigiKI-Teilnahme`}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-lg font-semibold text-text hover:bg-accent-hover transition-colors"
-              >
-                <Mail className="w-4 h-4" aria-hidden="true" />
-                E-Mail schreiben
-              </a>
+            <div className="mt-8">
               <Link
                 href={projectData.surveyUrl}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-6 py-3 text-lg font-semibold text-white hover:bg-white/20 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-6 py-3 text-lg font-semibold text-white hover:bg-white/20 transition-colors"
               >
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 Zur Bestandsaufnahme
               </Link>
             </div>
+
+            <p className="mt-6 text-sm text-white/60">
+              Die offiziellen Kontaktangaben des Projekts finden Sie im{" "}
+              <Link
+                href="/impressum"
+                className="underline underline-offset-2 hover:text-white"
+              >
+                Impressum
+              </Link>
+              .
+            </p>
+          </div>
+
+          {/* Rechte Seite: Kontaktformular */}
+          <div id="ansprechpartner">
+            <ContactForm />
           </div>
         </div>
       </div>

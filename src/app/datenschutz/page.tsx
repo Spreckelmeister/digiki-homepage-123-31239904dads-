@@ -585,9 +585,10 @@ export default function DatenschutzPage() {
               <p className="text-text-light leading-relaxed mb-4">
                 Diese Website bietet Online-Formulare an, über die Schulen
                 Anträge einreichen (Tool-Lizenzen, studentische Hilfskräfte,
-                Best-Practice-Dokumentationen) und die digitale Bestandsaufnahme
-                ausfüllen können. Außerdem kann ein Login-Konto für die
-                Best-Practice-Datenbank erstellt werden. Die eingegebenen Daten
+                Best-Practice-Dokumentationen), die digitale Bestandsaufnahme
+                ausfüllen und über das Kontaktformular allgemeine Anfragen an
+                das Projektteam stellen können. Außerdem kann ein Login-Konto
+                für die Best-Practice-Datenbank erstellt werden. Die eingegebenen Daten
                 werden über eine verschlüsselte Verbindung (HTTPS) an unseren
                 Datenbank- und Authentifizierungs-Dienstleister
                 <strong> Supabase</strong> übermittelt und dort gespeichert.
@@ -607,6 +608,10 @@ export default function DatenschutzPage() {
                   Unterstützungsbereiche, Unterrichtserfahrungen,
                   Selbsteinschätzungen zur Digitalisierung)
                 </li>
+                <li>
+                  Beim Kontaktformular: Name, E-Mail-Adresse, optional der
+                  Schulname sowie Anliegen und Inhalt Ihrer Nachricht
+                </li>
               </ul>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -617,7 +622,11 @@ export default function DatenschutzPage() {
                 Teilnahme am DigiKI-Projekt auf Grundlage von Art. 6 Abs. 1 lit.
                 b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO
                 (Einwilligung bei der Best-Practice-Veröffentlichung und beim
-                Konto-Anlegen im Rahmen der Bestandsaufnahme).
+                Konto-Anlegen im Rahmen der Bestandsaufnahme). Anfragen über
+                das Kontaktformular verarbeiten wir zur Bearbeitung und
+                Beantwortung Ihres Anliegens (Art. 6 Abs. 1 lit. b DSGVO);
+                zusätzlich erhalten Sie eine automatische Eingangsbestätigung
+                an die angegebene E-Mail-Adresse.
               </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
@@ -639,6 +648,9 @@ export default function DatenschutzPage() {
                 Die über die Formulare erhobenen Daten werden für die Dauer des
                 DigiKI-Projekts gespeichert und nach Projektabschluss gelöscht,
                 sofern keine gesetzlichen Aufbewahrungspflichten bestehen.
+                Kontaktanfragen löschen wir, sobald sie abschließend
+                beantwortet sind und keine weitere Aufbewahrung erforderlich
+                ist – spätestens mit Projektabschluss.
               </p>
             </div>
 

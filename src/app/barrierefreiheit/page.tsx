@@ -242,12 +242,19 @@ export default function BarrierefreiheitPage() {
                 Sind Ihnen Mängel beim barrierefreien Zugang zu Inhalten
                 dieser Website aufgefallen? Benötigen Sie Informationen in einem
                 barrierefreien Format? Wir freuen uns über Rückmeldungen und
-                nehmen Ihr Anliegen ernst. Bitte wenden Sie sich an:
+                nehmen Ihr Anliegen ernst. Am schnellsten erreichen Sie uns
+                über das{" "}
+                <a
+                  href="/#kontakt"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  Kontaktformular
+                </a>
+                . Alternativ erreichen Sie uns unter:
               </p>
               <address className="text-text-light not-italic leading-relaxed bg-bg rounded-lg border border-border p-5 break-words">
-                <p className="font-semibold text-primary">Kai Krafft</p>
-                <p>Bildungskoordinator im Fachbereich 40-3 Bildung</p>
-                <p>Stadt Osnabrück</p>
+                <p className="font-semibold text-primary">DigiKI-Team</p>
+                <p>Stadt Osnabrück · Fachbereich 40-3 Bildung</p>
                 <p>Bierstraße 20, 49074 Osnabrück</p>
                 <p className="mt-3">
                   E-Mail:{" "}

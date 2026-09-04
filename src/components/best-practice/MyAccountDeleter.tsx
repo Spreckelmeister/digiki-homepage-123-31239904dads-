@@ -490,12 +490,12 @@ export default function MyAccountDeleter() {
 
                   <p className="text-xs text-text-light leading-relaxed">
                     Keine E-Mail erhalten? Prüfen Sie bitte auch Ihren Spam-Ordner.
-                    Sollte die Adresse nicht mehr erreichbar sein, melden Sie sich bei
+                    Sollte die Adresse nicht mehr erreichbar sein, melden Sie sich über das
                     <a
-                      href="mailto:krafft@osnabrueck.de"
+                      href="/#kontakt"
                       className="text-primary underline underline-offset-4 ml-1"
                     >
-                      krafft@osnabrueck.de
+                      Kontaktformular
                     </a>.
                   </p>
                 </div>

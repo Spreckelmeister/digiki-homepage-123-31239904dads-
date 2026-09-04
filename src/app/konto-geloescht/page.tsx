@@ -69,7 +69,7 @@ function getCopy(status: Status): CopyBlock {
       eyebrowColor: "text-red-700",
       title: "Der Löschvorgang konnte nicht abgeschlossen werden",
       body:
-        "Beim Verarbeiten der Löschung ist ein Fehler aufgetreten. Ihr Konto ist möglicherweise unverändert. Bitte melden Sie sich bei Kai Krafft, damit der Vorgang manuell geprüft werden kann.",
+        "Beim Verarbeiten der Löschung ist ein Fehler aufgetreten. Ihr Konto ist möglicherweise unverändert. Bitte melden Sie sich über das Kontaktformular, damit der Vorgang manuell geprüft werden kann.",
       icon: <AlertTriangle className="h-7 w-7" aria-hidden="true" strokeWidth={1.75} />,
       accentBar: "from-red-700 to-red-900",
       tone: "error",
@@ -199,7 +199,7 @@ export default async function KontoGeloeschtPage({
                 <p>
                   {copy.tone === "warning"
                     ? "Melden Sie sich in Ihrem Konto an und starten Sie den Löschvorgang neu, um einen frischen Bestätigungscode zu erhalten."
-                    : "Senden Sie eine kurze Nachricht an Kai Krafft (krafft@osnabrueck.de), damit der Vorgang manuell bearbeitet werden kann."}
+                    : "Senden Sie uns eine kurze Nachricht über das Kontaktformular auf der Startseite, damit der Vorgang manuell bearbeitet werden kann."}
                 </p>
               </div>
             )}

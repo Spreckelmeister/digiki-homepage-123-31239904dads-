@@ -29,8 +29,8 @@ export interface WrapMailingOptions {
 
 const DEFAULT_LOGO_URL = "https://digiki-os.de/images/logos/DigiKI_Logo_v5.png";
 const FOOTER_NAME = "DigiKI – Digitalisierung & Künstliche Intelligenz an Grundschulen Osnabrück";
-const FOOTER_CONTACT_NAME = "Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück";
-const FOOTER_EMAIL = "krafft@osnabrueck.de";
+const FOOTER_CONTACT_NAME = "DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung";
+const FOOTER_CONTACT_URL = "https://digiki-os.de/#kontakt";
 
 export function wrapMailing({
   bodyHtml,
@@ -95,7 +95,7 @@ export function wrapMailing({
                 Diese E-Mail wurde im Rahmen des DigiKI-Projekts versendet.<br />
                 ${FOOTER_NAME}<br />
                 ${FOOTER_CONTACT_NAME} ·
-                <a href="mailto:${FOOTER_EMAIL}" style="color:#006363;text-decoration:none;">${FOOTER_EMAIL}</a>
+                <a href="${FOOTER_CONTACT_URL}" style="color:#006363;text-decoration:none;">Kontaktformular</a>
               </p>
             </td>
           </tr>

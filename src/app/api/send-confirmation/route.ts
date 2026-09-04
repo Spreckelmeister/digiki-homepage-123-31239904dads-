@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
                           ? "Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah mit einem <strong>Terminvorschlag für eine kurze Videokonferenz</strong>, um die weiteren Details – etwa Umfang und Termin der Unterstützung – gemeinsam zu besprechen."
                           : "Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah bei Ihnen."
                       }
-                      Bei Fragen können Sie sich jederzeit per E-Mail an uns wenden.
+                      Bei Fragen erreichen Sie uns jederzeit über das
+                      <a href="${siteUrl}/#kontakt" style="color:#006363;">Kontaktformular</a> auf unserer Website.
                     </p>
                   </td>
                 </tr>
@@ -177,8 +178,8 @@ export async function POST(request: NextRequest) {
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
                 Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
+                DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung ·
+                <a href="${siteUrl}/#kontakt" style="color:#006363;text-decoration:none;">Kontaktformular</a>
               </p>
             </td>
           </tr>

@@ -381,7 +381,7 @@ export default function StudentAssistantForm({
               <p className="text-sm text-text leading-relaxed">
                 Ihr Antrag wurde erfolgreich eingereicht – leider konnte die
                 Bestätigungs-E-Mail nicht versendet werden. Bitte informieren
-                Sie Kai Krafft direkt über das Kontaktformular.
+                Sie das DigiKI-Team direkt über das Kontaktformular.
               </p>
               <div className="flex gap-3 justify-end">
                 <button

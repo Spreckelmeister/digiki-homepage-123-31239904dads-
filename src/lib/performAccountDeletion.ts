@@ -230,9 +230,9 @@ export async function performAccountDeletionByToken(token: string): Promise<Dele
 
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Sollten Sie die Löschung nicht selbst ausgelöst haben oder
-                Fragen zum Vorgang haben, melden Sie sich bitte zeitnah bei
-                Kai Krafft
-                (<a href="mailto:krafft@osnabrueck.de" style="color:#006363;">krafft@osnabrueck.de</a>).
+                Fragen zum Vorgang haben, melden Sie sich bitte zeitnah über das
+                <a href="https://digiki-os.de/#kontakt" style="color:#006363;">Kontaktformular</a>
+                der DigiKI-Website.
               </p>
 
               <p style="margin:0;color:#1A1A1A;font-size:15px;">
@@ -248,8 +248,8 @@ export async function performAccountDeletionByToken(token: string): Promise<Dele
               <p style="margin:0;font-size:11px;color:#999999;line-height:1.6;text-align:center;">
                 Diese E-Mail wurde automatisch versendet – bitte nicht antworten.<br />
                 DigiKI – Digitalisierung &amp; Künstliche Intelligenz an Grundschulen Osnabrück<br />
-                Kai Krafft · Bildungskoordinator im Fachbereich 40-3 Bildung, Stadt Osnabrück ·
-                <a href="mailto:krafft@osnabrueck.de" style="color:#006363;text-decoration:none;">krafft@osnabrueck.de</a>
+                DigiKI-Team · Stadt Osnabrück, Fachbereich 40-3 Bildung ·
+                <a href="https://digiki-os.de/#kontakt" style="color:#006363;text-decoration:none;">Kontaktformular</a>
               </p>
             </td>
           </tr>

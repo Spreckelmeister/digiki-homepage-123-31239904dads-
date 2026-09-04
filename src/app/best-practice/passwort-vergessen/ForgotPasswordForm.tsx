@@ -33,7 +33,7 @@ export default function ForgotPasswordForm() {
         return {
           ok: false,
           error:
-            "Der Code-Versand ist im Moment leider nicht möglich. Bitte wenden Sie sich an krafft@osnabrueck.de.",
+            "Der Code-Versand ist im Moment leider nicht möglich. Bitte melden Sie sich über das Kontaktformular auf der Startseite.",
         };
       }
       return {
@@ -171,14 +171,15 @@ export default function ForgotPasswordForm() {
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>
                 An NIBIS-Adressen (<code className="font-mono text-xs">@*.nibis.de</code>) können aktuell
-                keine Mails zugestellt werden. Bitte wenden Sie sich für das Zurücksetzen des Passworts an{" "}
+                keine Mails zugestellt werden. Bitte melden Sie sich für das Zurücksetzen des Passworts über das{" "}
                 <a
-                  href="mailto:krafft@osnabrueck.de"
+                  href="/#kontakt"
                   className="underline hover:text-red-900"
                 >
-                  krafft@osnabrueck.de
-                </a>
-                .
+                  Kontaktformular
+                </a>{" "}
+                – nennen Sie dort am besten eine erreichbare Telefonnummer oder
+                Ausweich-Adresse.
               </span>
             </p>
           )}
