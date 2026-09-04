@@ -215,19 +215,13 @@ export default function SchoolInfoFields({
           ...opts,
         });
       } else if (field !== "school_name" && softKnown(field)) {
-        const source = softSourceByField.get(field) ?? "bsa";
-        // Werte aus der Bestandsaufnahme der Schule sind im Stellvertreter-
-        // Modus bewusst NICHT direkt änderbar – gepflegt wird an der Quelle,
-        // neu geladen über den Aktualisieren-Knopf unten.
-        const editable = !(foreignSchool && source === "bsa");
         summaryRows.push({
           key: field,
           label,
           value: values[field],
-          source,
-          ...(editable
-            ? { onEdit: () => markEdited(field), editLabel: "Korrigieren" }
-            : {}),
+          source: softSourceByField.get(field) ?? "bsa",
+          onEdit: () => markEdited(field),
+          editLabel: "Korrigieren",
           ...opts,
         });
       }
@@ -427,9 +421,9 @@ export default function SchoolInfoFields({
                   : "Alle Angaben zu Ihrer Schule liegen uns bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."}{" "}
               {foreignSchool ? (
                 <>
-                  Angaben aus der Bestandsaufnahme der Schule sind hier bewusst
-                  nicht direkt änderbar – „Aus Bestandsaufnahme aktualisieren"
-                  lädt sie neu, falls die Schule sie inzwischen gepflegt hat.
+                  Prüfen Sie kurz, ob alles aktuell ist – über „Korrigieren"
+                  lässt sich jeder Wert anpassen, und „Aus Bestandsaufnahme
+                  aktualisieren" lädt die Werte neu.
                 </>
               ) : usedSources.includes("bsa") ? (
                 <>
@@ -504,16 +498,7 @@ export default function SchoolInfoFields({
               </button>
             )}
             {!foreignSchool && (
-              <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {usedSources.includes("bsa") && (
-                  <Link
-                    href="/best-practice/meine-bestandsaufnahme/bearbeiten"
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-text-light transition-colors hover:text-primary"
-                  >
-                    Bestandsaufnahme bearbeiten
-                    <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-                  </Link>
-                )}
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 {isEmailLocked && (
                   <Link
                     href="/best-practice/konto"
@@ -521,6 +506,15 @@ export default function SchoolInfoFields({
                   >
                     Konto-Einstellungen
                     <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                  </Link>
+                )}
+                {usedSources.includes("bsa") && (
+                  <Link
+                    href="/best-practice/meine-bestandsaufnahme/bearbeiten"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-primary/25 bg-white px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/5"
+                  >
+                    <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                    Bestandsaufnahme aktualisieren
                   </Link>
                 )}
               </span>
