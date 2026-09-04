@@ -62,7 +62,7 @@ export function generateHilfskraefteMarkdown(
 ): string {
   // Neues Antragsmodell (punktuelle Unterstützung, Migration 030) trägt
   // immer scope_preset; Alt-Anträge behalten ihre bisherigen Abschnitte.
-  const isNewShape = Boolean(r.scope_preset);
+  const isNewShape = Boolean(r.scope_preset || r.support_area);
 
   const supportItems: string[] = [];
   if (r.support_technical_setup) supportItems.push("Technische Einrichtung");
@@ -109,10 +109,16 @@ ${
 `;
 
   const rahmenBlock = isNewShape
-    ? `## Rahmen
+    ? r.scope_preset || r.start_date
+      ? `## Rahmen
 
 - **Gewünschter Umfang:** ${labelFor(SCOPE_PRESET_OPTIONS, r.scope_preset) ?? val(r.scope_preset)}
 - **Frühester Wunschtermin:** ${r.start_date ? FMT_DATE_LONG.format(new Date(r.start_date)) : "_keine Angabe_"}
+
+`
+      : `## Rahmen
+
+- Umfang und Termin werden direkt in einer Videokonferenz mit der Schule geklärt (im Antrag bewusst nicht mehr erhoben).
 
 `
     : `## Rahmen

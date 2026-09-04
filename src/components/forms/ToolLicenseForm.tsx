@@ -122,6 +122,24 @@ export default function ToolLicenseForm({
         ]
       : [];
 
+  // Keine exakte Schülerzahl aus einem früheren Antrag? Dann das Band aus
+  // der Bestandsaufnahme anzeigen statt eines leeren Zahlenfelds.
+  const ownExtraRows =
+    !editMode &&
+    prefillFromBSA &&
+    !prefillFromBSA.student_count &&
+    prefillFromBSA.student_count_band
+      ? [
+          {
+            key: "student_count_band",
+            label: "Anzahl Schüler/innen",
+            value: prefillFromBSA.student_count_band,
+            source: "bsa" as const,
+            hidesField: "student_count",
+          },
+        ]
+      : [];
+
   const [toolSelections, setToolSelections] = useState<ToolSelection[]>(() => {
     const stored = initialData?.tool_selections;
     if (!stored || stored.length === 0) return createInitialToolSelections();
@@ -452,6 +470,7 @@ export default function ToolLicenseForm({
           lockedEmail={lockedEmail}
           lockedFromBestandsaufnahme={lockedFromBSA}
           softPrefilled={softPrefilled}
+          extraSummaryRows={ownExtraRows}
         />
       </FormSection>
 

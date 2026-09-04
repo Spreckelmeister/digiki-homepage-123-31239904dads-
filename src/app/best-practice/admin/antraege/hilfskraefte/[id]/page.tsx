@@ -46,9 +46,11 @@ export default async function HilfskraefteDetailPage({ params }: PageProps) {
 
   if (!app) notFound();
 
-  // Neues Antragsmodell (punktuelle Unterstützung) trägt immer scope_preset;
-  // Alt-Blöcke werden nur gezeigt, wenn sie Daten enthalten.
-  const isNewShape = Boolean(app.scope_preset);
+  // Neues Antragsmodell (punktuelle Unterstützung): support_area ist dort
+  // Pflicht; scope_preset gab es nur in einer Zwischenphase (Umfang & Termin
+  // werden inzwischen per Videokonferenz geklärt). Alt-Blöcke werden nur
+  // gezeigt, wenn sie Daten enthalten.
+  const isNewShape = Boolean(app.scope_preset || app.support_area);
   const hasLegacySupport =
     app.support_technical_setup ||
     app.support_onboarding ||
@@ -201,8 +203,8 @@ export default async function HilfskraefteDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Umfang & Termin (neues Antragsmodell) */}
-            {isNewShape && (
+            {/* Umfang & Termin (Zwischenphase des neuen Antragsmodells) */}
+            {isNewShape && (app.scope_preset || app.start_date) && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-border">
                 <h2 className="text-lg font-semibold text-primary mb-4">
                   Umfang &amp; Termin
@@ -220,6 +222,15 @@ export default async function HilfskraefteDetailPage({ params }: PageProps) {
                     value={app.start_date}
                   />
                 </dl>
+              </div>
+            )}
+
+            {/* Aktuelle Anträge erheben Umfang & Termin nicht mehr */}
+            {isNewShape && !app.scope_preset && !app.start_date && (
+              <div className="rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
+                Umfang und Termin werden mit der Schule direkt in einer
+                Videokonferenz geklärt – der Antrag enthält dazu bewusst keine
+                Angaben.
               </div>
             )}
 

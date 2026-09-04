@@ -16,6 +16,7 @@ import {
   Send,
   ShieldCheck,
   UserCog,
+  Video,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
@@ -87,6 +88,7 @@ function trainingsSnapshot(trainings: RegisteredTraining[]): string {
 /** Eintrag der verifizierten Schulliste im Stellvertreter-Modus. */
 interface BehalfSchool {
   name: string;
+  street: string | null;
   city: string | null;
   plz: string | null;
 }
@@ -154,10 +156,21 @@ export default function StudentAssistantForm({
   >(null);
   const [behalfTrainingsLoading, setBehalfTrainingsLoading] = useState(false);
   const [skipTrainingCheck, setSkipTrainingCheck] = useState(false);
-  // Weich bekannte Felder der gewählten Schule (BSA + letzter Antrag) –
-  // erscheinen in der Zusammenfassungs-Karte statt als Eingabefelder.
+  // Weich bekannte Felder der gewählten Schule (BSA + letzter Antrag +
+  // Schulungsdashboard) – erscheinen in der Zusammenfassungs-Karte statt
+  // als Eingabefelder.
   const [behalfSoft, setBehalfSoft] = useState<
-    Array<{ field: string; source: "bsa" | "antrag" }>
+    Array<{ field: string; source: "bsa" | "antrag" | "dashboard" }>
+  >([]);
+  // Reine Anzeige-Zeilen (z. B. Schülerzahl-Band aus der BSA).
+  const [behalfExtras, setBehalfExtras] = useState<
+    Array<{
+      key: string;
+      label: string;
+      value: string;
+      source: "bsa" | "antrag" | "dashboard";
+      hidesField?: string;
+    }>
   >([]);
 
   useEffect(() => {
@@ -187,6 +200,7 @@ export default function StudentAssistantForm({
     setBehalfSearch("");
     setSkipTrainingCheck(false);
     setBehalfSoft([]);
+    setBehalfExtras([]);
     // Alle Angaben zurücksetzen: Sie gehören zur vorher gewählten Schule.
     setSchoolInfo((prev) => ({
       ...prev,
@@ -217,42 +231,70 @@ export default function StudentAssistantForm({
         json && typeof json.prefill === "object" && json.prefill !== null
           ? (json.prefill as BestandsaufnahmePrefill)
           : null;
-      if (prefill) {
-        setSchoolInfo((prev) => ({
-          ...prev,
-          school_name: school.name,
-          school_street: prefill.school_street ?? "",
-          school_plz: prefill.school_plz ?? "",
-          school_city: prefill.school_city ?? "",
-          principal_name: prefill.principal_name ?? "",
-          contact_person: prefill.contact_person ?? "",
-          phone: prefill.phone ?? "",
-          email: prefill.email ?? "",
-          teacher_count: prefill.teacher_count ?? "",
-          student_count: prefill.student_count ?? "",
-        }));
-        const soft: Array<{ field: string; source: "bsa" | "antrag" }> = [];
-        if (prefill.school_street && prefill.school_plz && prefill.school_city) {
-          soft.push(
-            { field: "school_street", source: "antrag" },
-            { field: "school_plz", source: "antrag" },
-            { field: "school_city", source: "antrag" },
-          );
-        }
-        for (const field of [
-          "principal_name",
-          "contact_person",
-          "phone",
-          "email",
-          "teacher_count",
-        ] as const) {
-          if (prefill[field]) soft.push({ field, source: "bsa" });
-        }
-        if (prefill.student_count) {
-          soft.push({ field: "student_count", source: "antrag" });
-        }
-        setBehalfSoft(soft);
+
+      // Adresse: bevorzugt aus dem letzten Antrag der Schule, sonst aus dem
+      // Schulungsdashboard (schools-Tabelle liefert Straße/PLZ/Ort mit).
+      const street = prefill?.school_street ?? school.street ?? "";
+      const plz = prefill?.school_plz ?? school.plz ?? "";
+      const city = prefill?.school_city ?? school.city ?? "";
+      const addressSource: "antrag" | "dashboard" = prefill?.school_street
+        ? "antrag"
+        : "dashboard";
+
+      setSchoolInfo((prev) => ({
+        ...prev,
+        school_name: school.name,
+        school_street: street,
+        school_plz: plz,
+        school_city: city,
+        principal_name: prefill?.principal_name ?? "",
+        contact_person: prefill?.contact_person ?? "",
+        phone: prefill?.phone ?? "",
+        email: prefill?.email ?? "",
+        teacher_count: prefill?.teacher_count ?? "",
+        student_count: prefill?.student_count ?? "",
+      }));
+
+      const soft: Array<{
+        field: string;
+        source: "bsa" | "antrag" | "dashboard";
+      }> = [];
+      if (street && plz && city) {
+        soft.push(
+          { field: "school_street", source: addressSource },
+          { field: "school_plz", source: addressSource },
+          { field: "school_city", source: addressSource },
+        );
       }
+      for (const field of [
+        "principal_name",
+        "contact_person",
+        "phone",
+        "email",
+        "teacher_count",
+      ] as const) {
+        if (prefill?.[field]) soft.push({ field, source: "bsa" });
+      }
+      if (prefill?.student_count) {
+        soft.push({ field: "student_count", source: "antrag" });
+      }
+      setBehalfSoft(soft);
+
+      // Keine exakte Schülerzahl? Dann das Band aus der BSA anzeigen –
+      // es passt nicht in das Zahlenfeld, ist aber die gewünschte Info.
+      setBehalfExtras(
+        !prefill?.student_count && prefill?.student_count_band
+          ? [
+              {
+                key: "student_count_band",
+                label: "Anzahl Schüler/innen",
+                value: prefill.student_count_band,
+                source: "bsa",
+                hidesField: "student_count",
+              },
+            ]
+          : [],
+      );
     } catch {
       setBehalfTrainings([]);
     } finally {
@@ -265,6 +307,7 @@ export default function StudentAssistantForm({
     setBehalfTrainings(null);
     setSkipTrainingCheck(false);
     setBehalfSoft([]);
+    setBehalfExtras([]);
     setSchoolInfo((prev) => ({
       ...prev,
       school_name: "",
@@ -290,8 +333,10 @@ export default function StudentAssistantForm({
   // Weich bekannte Felder für die Zusammenfassungs-Karte: beim Schul-Konto
   // Adresse/Schülerzahl aus dem eigenen letzten Antrag; im Stellvertreter-
   // Modus alles, was die gewählte Schule bereits geliefert hat.
-  const softPrefilled: Array<{ field: string; source: "bsa" | "antrag" }> =
-    actingForSchool
+  const softPrefilled: Array<{
+    field: string;
+    source: "bsa" | "antrag" | "dashboard";
+  }> = actingForSchool
       ? behalfSoft
       : !editMode && prefillFromBSA
         ? [
@@ -309,6 +354,25 @@ export default function StudentAssistantForm({
               : []),
           ]
         : [];
+
+  // Schul-Konto ohne exakte Schülerzahl: das Band aus der eigenen BSA
+  // anzeigen statt ein leeres Zahlenfeld zu verlangen.
+  const ownExtraRows =
+    !editMode &&
+    !actingForSchool &&
+    prefillFromBSA &&
+    !prefillFromBSA.student_count &&
+    prefillFromBSA.student_count_band
+      ? [
+          {
+            key: "student_count_band",
+            label: "Anzahl Schüler/innen",
+            value: prefillFromBSA.student_count_band,
+            source: "bsa" as const,
+            hidesField: "student_count",
+          },
+        ]
+      : [];
 
   // Voraussetzungen: Schulungsanmeldung kommt automatisch aus dem Server
   // (registeredTrainings); nur der schulinterne Versuch wird abgefragt.
@@ -456,8 +520,10 @@ export default function StudentAssistantForm({
         internal_attempt: internalAttempt,
         support_area: supportArea,
         support_explanation: supportExplanation,
-        scope_preset: scopePreset,
-        start_date: startDate || null,
+        // Umfang & Termin werden nicht mehr im Formular erhoben – beides
+        // wird nach Antragseingang in einer Videokonferenz geklärt.
+        scope_preset: null,
+        start_date: null,
       });
 
     if (insertError) {
@@ -555,7 +621,7 @@ export default function StudentAssistantForm({
         )}
         <FormSuccess
           title="Antrag erfolgreich eingereicht!"
-          message="Vielen Dank für Ihren Antrag. Wir prüfen, ob eine punktuelle Unterstützung möglich ist, und melden uns zeitnah bei Ihnen."
+          message="Vielen Dank für Ihren Antrag. Wir prüfen, ob eine punktuelle Unterstützung möglich ist, und melden uns zeitnah mit einem Terminvorschlag für eine kurze Videokonferenz, um die weiteren Details zu besprechen."
           submittedEmail={schoolInfo.email}
         />
       </>
@@ -727,6 +793,7 @@ export default function StudentAssistantForm({
             lockedEmail={actingForSchool ? undefined : lockedEmail}
             lockedFromBestandsaufnahme={lockedFromBSA}
             softPrefilled={softPrefilled}
+            extraSummaryRows={actingForSchool ? behalfExtras : ownExtraRows}
             hideSchoolName={actingForSchool}
             foreignSchool={actingForSchool}
             emailHint={
@@ -968,7 +1035,38 @@ export default function StudentAssistantForm({
         </p>
       </FormSection>
 
-      {/* ════════ §4 UMFANG & TERMIN ════════ */}
+      {/* ════════ §4 NÄCHSTE SCHRITTE (Neuantrag) ════════ */}
+      {!editMode && (
+        <FormSection
+          index="04"
+          eyebrow="Nächste Schritte"
+          title="Wie geht es weiter?"
+          body="Umfang und Termin müssen Sie hier nicht mehr angeben – das besprechen wir persönlich mit Ihnen."
+          icon={<Video className="h-3 w-3" />}
+        >
+          <div className="flex items-start gap-4 rounded-xl border border-primary/20 bg-primary-light/10 p-5">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            >
+              <Video className="h-5 w-5" />
+            </span>
+            <p className="text-sm leading-relaxed text-text">
+              Nach dem Einreichen prüfen wir Ihren Antrag und melden uns bei
+              Ihnen mit einem{" "}
+              <strong className="font-semibold">
+                Terminvorschlag für eine kurze Videokonferenz
+              </strong>
+              , um die weiteren Details gemeinsam zu besprechen. Studentische
+              Unterstützung bleibt punktuell angelegt – Umfang und Termin
+              klären wir direkt im Gespräch.
+            </p>
+          </div>
+        </FormSection>
+      )}
+
+      {/* ════════ §4 UMFANG & TERMIN (nur noch für Alt-Anträge im Edit-Modus) ════════ */}
+      {editMode && (
       <FormSection
         index="04"
         eyebrow="Umfang"
@@ -985,7 +1083,6 @@ export default function StudentAssistantForm({
                   type="radio"
                   name="scope_preset"
                   value={option.value}
-                  required
                   checked={scopePreset === option.value}
                   onChange={() => setScopePreset(option.value)}
                   className={radioInput}
@@ -1011,6 +1108,7 @@ export default function StudentAssistantForm({
           />
         </div>
       </FormSection>
+      )}
 
       {/* ════════ §5 EINWILLIGUNGEN ════════ */}
       {!editMode && (

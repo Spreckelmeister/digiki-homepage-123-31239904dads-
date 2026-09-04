@@ -145,7 +145,11 @@ export async function POST(request: NextRequest) {
                   <td style="padding:14px 16px;">
                     <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">Wie geht es weiter?</p>
                     <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
-                      Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah bei Ihnen.
+                      ${
+                        isStudentApp
+                          ? "Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah mit einem <strong>Terminvorschlag für eine kurze Videokonferenz</strong>, um die weiteren Details – etwa Umfang und Termin der Unterstützung – gemeinsam zu besprechen."
+                          : "Wir prüfen Ihren Antrag sorgfältig und melden uns zeitnah bei Ihnen."
+                      }
                       Bei Fragen können Sie sich jederzeit per E-Mail an uns wenden.
                     </p>
                   </td>

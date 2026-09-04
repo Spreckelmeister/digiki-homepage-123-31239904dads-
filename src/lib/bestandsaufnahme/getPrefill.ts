@@ -31,13 +31,17 @@ export interface BestandsaufnahmePrefill {
    *  relevant (Schul-Konten haben ihre Konto-E-Mail fest gesetzt). */
   email?: string;
   /** Aus dem jüngsten früheren Antrag der Schule übernommen – die
-   *  Bestandsaufnahme kennt keine Adresse und keine Schülerzahl.
+   *  Bestandsaufnahme kennt keine Adresse und keine exakte Schülerzahl.
    *  Diese Felder werden NICHT gesperrt, nur vor-ausgefüllt: Es gibt
    *  keinen „Bearbeiten-Ort" wie die BSA, an dem man sie pflegen könnte. */
   school_street?: string;
   school_plz?: string;
   school_city?: string;
   student_count?: string;
+  /** Schülerzahl-BAND aus der Bestandsaufnahme („unter 150", „150–300", …)
+   *  – die BSA erhebt keine exakte Zahl. Nur zur Anzeige in der
+   *  Zusammenfassung; wird nie in das Zahlenfeld/DB-Feld geschrieben. */
+  student_count_band?: string;
 }
 
 type RawBSA = {
@@ -47,6 +51,10 @@ type RawBSA = {
   contact_email?: string | null;
   contact_phone?: string | null;
   teacher_count?: number | null;
+  /** Band-Auswahl, kein Zahlwert. */
+  student_count?: string | null;
+  /** Nur „Stadt Osnabrück" / „Landkreis Osnabrück" – keine Adresse. */
+  school_location?: string | null;
 };
 
 export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePrefill | null> {
@@ -88,7 +96,7 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
       const byUserId = await admin
         .from("bestandsaufnahme_responses")
         .select(
-          "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count",
+          "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, student_count, school_location",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -101,7 +109,7 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
         const byEmail = await admin
           .from("bestandsaufnahme_responses")
           .select(
-            "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count",
+            "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, student_count, school_location",
           )
           .ilike("contact_email", user.email)
           .order("created_at", { ascending: false })
@@ -145,6 +153,7 @@ export async function getBestandsaufnahmePrefill(): Promise<BestandsaufnahmePref
       raw?.teacher_count != null && raw.teacher_count > 0
         ? String(raw.teacher_count)
         : undefined,
+    student_count_band: cleanStr(raw?.student_count),
     ...fromApplication,
   };
 }
@@ -265,7 +274,7 @@ export async function getPrefillForSchool(
     admin
       .from("bestandsaufnahme_responses")
       .select(
-        "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, created_at",
+        "school_name, principal_name, contact_person, contact_email, contact_phone, teacher_count, student_count, school_location, created_at",
       )
       .order("created_at", { ascending: false }),
     admin.from("school_aliases").select("alias_key, canonical_name"),
@@ -354,6 +363,7 @@ export async function getPrefillForSchool(
     school_plz: withAddress ? cleanStr(withAddress.school_plz) : undefined,
     school_city: withAddress ? cleanStr(withAddress.school_city) : undefined,
     student_count: withStudents ? String(withStudents.student_count) : undefined,
+    student_count_band: cleanStr(bsa?.student_count),
   };
 }
 

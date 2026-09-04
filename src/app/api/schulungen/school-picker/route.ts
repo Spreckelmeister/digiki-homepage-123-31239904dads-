@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   const admin = createServiceClient();
   const [aliasRes, schoolsRes, bsaRes] = await Promise.all([
     admin.from("school_aliases").select("alias_key, canonical_name"),
-    admin.from("schools").select("name, city, plz"),
+    admin.from("schools").select("name, street, city, plz"),
     admin.from("bestandsaufnahme_responses").select("school_name"),
   ]);
   if (aliasRes.error || schoolsRes.error || bsaRes.error) {
@@ -78,7 +78,12 @@ export async function GET(request: NextRequest) {
 
   const byKey = new Map<
     string,
-    { name: string; city: string | null; plz: string | null }
+    {
+      name: string;
+      street: string | null;
+      city: string | null;
+      plz: string | null;
+    }
   >();
 
   const aliasRows = (aliasRes.data ?? []) as Array<{
@@ -95,13 +100,14 @@ export async function GET(request: NextRequest) {
   for (const canonical of aliasByKey.values()) {
     const key = schoolMatchKey(canonical);
     if (key && !byKey.has(key)) {
-      byKey.set(key, { name: canonical, city: null, plz: null });
+      byKey.set(key, { name: canonical, street: null, city: null, plz: null });
     }
   }
 
   // Importierte Schulen ergänzen (liefern Ort/PLZ für die Anzeige).
   for (const row of (schoolsRes.data ?? []) as Array<{
     name: string | null;
+    street: string | null;
     city: string | null;
     plz: string | null;
   }>) {
@@ -111,10 +117,11 @@ export async function GET(request: NextRequest) {
     if (!key) continue;
     const existing = byKey.get(key);
     if (existing) {
+      existing.street ??= row.street;
       existing.city ??= row.city;
       existing.plz ??= row.plz;
     } else {
-      byKey.set(key, { name, city: row.city, plz: row.plz });
+      byKey.set(key, { name, street: row.street, city: row.city, plz: row.plz });
     }
   }
 
@@ -136,7 +143,7 @@ export async function GET(request: NextRequest) {
       name;
     const key = schoolMatchKey(canonical);
     if (key && !byKey.has(key)) {
-      byKey.set(key, { name: canonical, city: null, plz: null });
+      byKey.set(key, { name: canonical, street: null, city: null, plz: null });
     }
   }
 

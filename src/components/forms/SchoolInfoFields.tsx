@@ -35,10 +35,23 @@ interface SchoolInfoFieldsProps {
   /** Liste der Felder, die als gesperrte Anzeige (Quelle:
    *  Bestandsaufnahme) gerendert werden sollen. */
   lockedFromBestandsaufnahme?: string[];
-  /** „Weich bekannte" Felder: vor-ausgefüllt aus Bestandsaufnahme bzw.
-   *  letztem Antrag, in der Zusammenfassung gezeigt und erst auf Klick
-   *  („Korrigieren") wieder als Eingabefeld geöffnet. */
-  softPrefilled?: Array<{ field: string; source: "bsa" | "antrag" }>;
+  /** „Weich bekannte" Felder: vor-ausgefüllt aus Bestandsaufnahme, letztem
+   *  Antrag oder Schulungsdashboard, in der Zusammenfassung gezeigt und erst
+   *  auf Klick („Korrigieren") wieder als Eingabefeld geöffnet. */
+  softPrefilled?: Array<{
+    field: string;
+    source: "bsa" | "antrag" | "dashboard";
+  }>;
+  /** Reine ANZEIGE-Zeilen für die Zusammenfassung (z. B. das Schülerzahl-
+   *  Band aus der Bestandsaufnahme, das nicht in ein Zahlenfeld passt).
+   *  `hidesField` blendet zusätzlich das zugehörige Eingabefeld aus. */
+  extraSummaryRows?: Array<{
+    key: string;
+    label: string;
+    value: string;
+    source: "bsa" | "antrag" | "dashboard";
+    hidesField?: string;
+  }>;
   /** Stellvertreter-Modus: Der Schulname kommt aus der Schulauswahl darüber
    *  und wird hier nicht noch einmal als Feld angezeigt. */
   hideSchoolName?: boolean;
@@ -56,6 +69,7 @@ export default function SchoolInfoFields({
   lockedEmail,
   lockedFromBestandsaufnahme = [],
   softPrefilled = [],
+  extraSummaryRows = [],
   hideSchoolName = false,
   foreignSchool = false,
   emailHint,
@@ -128,7 +142,14 @@ export default function SchoolInfoFields({
   ] as const;
   const anySoftKnown =
     addressKnown || singleSoftFields.some((f) => softKnown(f));
-  const summaryActive = anyBSALocked || anySoftKnown;
+  const summaryActive =
+    anyBSALocked || anySoftKnown || extraSummaryRows.length > 0;
+
+  // Felder, die durch reine Anzeige-Zeilen ersetzt werden (z. B. das
+  // Schülerzahl-Band aus der BSA statt des Zahlenfelds).
+  const extraHidden = new Set(
+    extraSummaryRows.flatMap((r) => (r.hidesField ? [r.hidesField] : [])),
+  );
 
   const showSchoolNameInput = !isBSALocked("school_name") && !hideSchoolName;
   const showAddressInputs = !addressKnown;
@@ -143,8 +164,11 @@ export default function SchoolInfoFields({
   const showEmailField =
     !(summaryActive && isEmailLocked) && !softKnown("email");
   const showTeacherInput =
-    !isBSALocked("teacher_count") && !softKnown("teacher_count");
-  const showStudentInput = !softKnown("student_count");
+    !isBSALocked("teacher_count") &&
+    !softKnown("teacher_count") &&
+    !extraHidden.has("teacher_count");
+  const showStudentInput =
+    !softKnown("student_count") && !extraHidden.has("student_count");
   const anyInputBelow =
     showSchoolNameInput ||
     showAddressInputs ||
@@ -155,7 +179,7 @@ export default function SchoolInfoFields({
     showTeacherInput ||
     showStudentInput;
 
-  type SummarySource = "bsa" | "konto" | "antrag";
+  type SummarySource = "bsa" | "konto" | "antrag" | "dashboard";
   const summaryRows: Array<{
     key: string;
     label: string;
@@ -220,6 +244,14 @@ export default function SchoolInfoFields({
     }
     pushLockedOrSoft("teacher_count", "Anzahl Lehrkräfte");
     pushLockedOrSoft("student_count", "Anzahl Schüler/innen");
+    for (const row of extraSummaryRows) {
+      summaryRows.push({
+        key: row.key,
+        label: row.label,
+        value: row.value,
+        source: row.source,
+      });
+    }
   }
 
   const SOURCE_META: Record<
@@ -233,6 +265,10 @@ export default function SchoolInfoFields({
       dotClass: "bg-primary",
     },
     konto: { label: "aus Ihrem Konto", dotClass: "bg-emerald-500" },
+    dashboard: {
+      label: "aus dem Schulungsdashboard",
+      dotClass: "bg-sky-500",
+    },
     antrag: {
       label: foreignSchool
         ? "aus dem letzten Antrag der Schule"
