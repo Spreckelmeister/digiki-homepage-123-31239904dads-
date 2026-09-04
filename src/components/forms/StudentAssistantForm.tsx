@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -12,14 +12,19 @@ import {
   GraduationCap,
   HelpingHand,
   RefreshCw,
-  Search,
   Send,
   ShieldCheck,
-  UserCog,
   Video,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import SchoolInfoFields from "./SchoolInfoFields";
+import BehalfSchoolPicker from "./BehalfSchoolPicker";
+import {
+  formatTrainingDate,
+  roleCounts,
+  trainingsSnapshot,
+} from "./trainingsDisplay";
+import { useBehalfSchool } from "./useBehalfSchool";
 import FormSuccess from "./FormSuccess";
 import FormSection from "./FormSection";
 import { useHoneypot } from "./useHoneypot";
@@ -50,47 +55,6 @@ interface StudentAppData {
   internal_attempt: string | null;
   support_area: string | null;
   scope_preset: string | null;
-}
-
-function formatTrainingDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-/** „2 Lehrkräfte, 1 Schulleitung" – leer, wenn keine Zählung vorliegt. */
-function roleCounts(t: RegisteredTraining): string {
-  const parts: string[] = [];
-  if (t.teacherCount > 0) {
-    parts.push(t.teacherCount === 1 ? "1 Lehrkraft" : `${t.teacherCount} Lehrkräfte`);
-  }
-  if (t.leadershipCount > 0) {
-    parts.push(
-      t.leadershipCount === 1 ? "1 Schulleitung" : `${t.leadershipCount} Schulleitungen`
-    );
-  }
-  return parts.join(", ");
-}
-
-/** Text-Schnappschuss der angezeigten Anmeldungen für die DB/Admin-Ansicht. */
-function trainingsSnapshot(trainings: RegisteredTraining[]): string {
-  return trainings
-    .map((t) => {
-      const date = t.start_date ? formatTrainingDate(t.start_date) : "Termin folgt";
-      const counts = roleCounts(t);
-      return `${t.title} (${date})${counts ? ` – ${counts}` : ""}`;
-    })
-    .join("; ");
-}
-
-/** Eintrag der verifizierten Schulliste im Stellvertreter-Modus. */
-interface BehalfSchool {
-  name: string;
-  street: string | null;
-  city: string | null;
-  plz: string | null;
 }
 
 export default function StudentAssistantForm({
@@ -146,188 +110,11 @@ export default function StudentAssistantForm({
   });
 
   // ── Stellvertreter-Modus: Schulauswahl + Schulungsprüfung ────────────
-  const [behalfSchools, setBehalfSchools] = useState<BehalfSchool[]>([]);
-  const [behalfSchoolsLoading, setBehalfSchoolsLoading] = useState(false);
-  const [behalfSearch, setBehalfSearch] = useState("");
-  const [selectedBehalfSchool, setSelectedBehalfSchool] =
-    useState<BehalfSchool | null>(null);
-  const [behalfTrainings, setBehalfTrainings] = useState<
-    RegisteredTraining[] | null
-  >(null);
-  const [behalfTrainingsLoading, setBehalfTrainingsLoading] = useState(false);
-  const [skipTrainingCheck, setSkipTrainingCheck] = useState(false);
-  // Weich bekannte Felder der gewählten Schule (BSA + letzter Antrag +
-  // Schulungsdashboard) – erscheinen in der Zusammenfassungs-Karte statt
-  // als Eingabefelder.
-  const [behalfSoft, setBehalfSoft] = useState<
-    Array<{ field: string; source: "bsa" | "antrag" | "dashboard" }>
-  >([]);
-  // Reine Anzeige-Zeilen (z. B. Schülerzahl-Band aus der BSA).
-  const [behalfExtras, setBehalfExtras] = useState<
-    Array<{
-      key: string;
-      label: string;
-      value: string;
-      source: "bsa" | "antrag" | "dashboard";
-      hidesField?: string;
-    }>
-  >([]);
-
-  useEffect(() => {
-    if (!actingForSchool) return;
-    let cancelled = false;
-    (async () => {
-      setBehalfSchoolsLoading(true);
-      try {
-        const res = await fetch("/api/schulungen/school-picker");
-        const json = await res.json().catch(() => ({}));
-        if (!cancelled) {
-          setBehalfSchools(Array.isArray(json.schools) ? json.schools : []);
-        }
-      } catch {
-        if (!cancelled) setBehalfSchools([]);
-      } finally {
-        if (!cancelled) setBehalfSchoolsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [actingForSchool]);
-
-  async function chooseBehalfSchool(school: BehalfSchool) {
-    setSelectedBehalfSchool(school);
-    setBehalfSearch("");
-    setSkipTrainingCheck(false);
-    setBehalfSoft([]);
-    setBehalfExtras([]);
-    // Alle Angaben zurücksetzen: Sie gehören zur vorher gewählten Schule.
-    setSchoolInfo((prev) => ({
-      ...prev,
-      school_name: school.name,
-      school_street: "",
-      school_plz: "",
-      school_city: "",
-      principal_name: "",
-      contact_person: "",
-      phone: "",
-      email: "",
-      teacher_count: "",
-      student_count: "",
-    }));
-    setBehalfTrainings(null);
-    setBehalfTrainingsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/schulungen/school-picker?school=${encodeURIComponent(school.name)}`,
-      );
-      const json = await res.json().catch(() => ({}));
-      setBehalfTrainings(Array.isArray(json.trainings) ? json.trainings : []);
-
-      // Bestandsaufnahme + letzter Antrag der Schule: vorhandene Werte
-      // übernehmen und als „weich bekannt" in die Karte legen – der
-      // Stellvertreter tippt nur noch, was wirklich fehlt.
-      const prefill =
-        json && typeof json.prefill === "object" && json.prefill !== null
-          ? (json.prefill as BestandsaufnahmePrefill)
-          : null;
-
-      // Adresse: bevorzugt aus dem letzten Antrag der Schule, sonst aus dem
-      // Schulungsdashboard (schools-Tabelle liefert Straße/PLZ/Ort mit).
-      const street = prefill?.school_street ?? school.street ?? "";
-      const plz = prefill?.school_plz ?? school.plz ?? "";
-      const city = prefill?.school_city ?? school.city ?? "";
-      const addressSource: "antrag" | "dashboard" = prefill?.school_street
-        ? "antrag"
-        : "dashboard";
-
-      setSchoolInfo((prev) => ({
-        ...prev,
-        school_name: school.name,
-        school_street: street,
-        school_plz: plz,
-        school_city: city,
-        principal_name: prefill?.principal_name ?? "",
-        contact_person: prefill?.contact_person ?? "",
-        phone: prefill?.phone ?? "",
-        email: prefill?.email ?? "",
-        teacher_count: prefill?.teacher_count ?? "",
-        student_count: prefill?.student_count ?? "",
-      }));
-
-      const soft: Array<{
-        field: string;
-        source: "bsa" | "antrag" | "dashboard";
-      }> = [];
-      if (street && plz && city) {
-        soft.push(
-          { field: "school_street", source: addressSource },
-          { field: "school_plz", source: addressSource },
-          { field: "school_city", source: addressSource },
-        );
-      }
-      for (const field of [
-        "principal_name",
-        "contact_person",
-        "phone",
-        "email",
-        "teacher_count",
-      ] as const) {
-        if (prefill?.[field]) soft.push({ field, source: "bsa" });
-      }
-      if (prefill?.student_count) {
-        soft.push({ field: "student_count", source: "antrag" });
-      }
-      setBehalfSoft(soft);
-
-      // Keine exakte Schülerzahl? Dann das Band aus der BSA anzeigen –
-      // es passt nicht in das Zahlenfeld, ist aber die gewünschte Info.
-      setBehalfExtras(
-        !prefill?.student_count && prefill?.student_count_band
-          ? [
-              {
-                key: "student_count_band",
-                label: "Anzahl Schüler/innen",
-                value: prefill.student_count_band,
-                source: "bsa",
-                hidesField: "student_count",
-              },
-            ]
-          : [],
-      );
-    } catch {
-      setBehalfTrainings([]);
-    } finally {
-      setBehalfTrainingsLoading(false);
-    }
-  }
-
-  function resetBehalfSchool() {
-    setSelectedBehalfSchool(null);
-    setBehalfTrainings(null);
-    setSkipTrainingCheck(false);
-    setBehalfSoft([]);
-    setBehalfExtras([]);
-    setSchoolInfo((prev) => ({
-      ...prev,
-      school_name: "",
-      school_street: "",
-      school_plz: "",
-      school_city: "",
-      principal_name: "",
-      contact_person: "",
-      phone: "",
-      email: "",
-      teacher_count: "",
-      student_count: "",
-    }));
-  }
-
-  const behalfQuery = behalfSearch.trim().toLowerCase();
-  const behalfMatches = behalfQuery
-    ? behalfSchools.filter((s) => s.name.toLowerCase().includes(behalfQuery))
-    : behalfSchools;
-  const behalfShown = behalfMatches.slice(0, 12);
+  // Gesamte Logik im geteilten Hook (auch vom Tool-Lizenz-Formular genutzt);
+  // Wertänderungen laufen als Patch in den eigenen schoolInfo-State.
+  const behalf = useBehalfSchool(actingForSchool, (patch) =>
+    setSchoolInfo((prev) => ({ ...prev, ...patch })),
+  );
   const behalfRoleLabel = actingRole === "admin" ? "Admin" : "Schulungsteam";
 
   // Weich bekannte Felder für die Zusammenfassungs-Karte: beim Schul-Konto
@@ -337,7 +124,7 @@ export default function StudentAssistantForm({
     field: string;
     source: "bsa" | "antrag" | "dashboard";
   }> = actingForSchool
-      ? behalfSoft
+      ? behalf.soft
       : !editMode && prefillFromBSA
         ? [
             ...(prefillFromBSA.school_street &&
@@ -395,15 +182,9 @@ export default function StudentAssistantForm({
   const [emailFailed, setEmailFailed] = useState(false);
 
   const trainings = actingForSchool
-    ? behalfTrainings ?? []
+    ? behalf.trainings ?? []
     : registeredTrainings ?? [];
-  // Im Stellvertreter-Modus steht der Schulungsstatus erst fest, wenn eine
-  // Schule gewählt UND die Prüfung geladen ist – vorher keine Boxen zeigen.
-  const trainingStatusKnown =
-    !actingForSchool ||
-    (selectedBehalfSchool !== null &&
-      !behalfTrainingsLoading &&
-      behalfTrainings !== null);
+  const trainingStatusKnown = !actingForSchool || behalf.statusKnown;
 
   function handleSchoolInfoChange(field: string, value: string) {
     setSchoolInfo((prev) => ({ ...prev, [field]: value }));
@@ -452,7 +233,7 @@ export default function StudentAssistantForm({
       return;
     }
 
-    if (actingForSchool && !selectedBehalfSchool) {
+    if (actingForSchool && !behalf.selected) {
       setError(
         "Bitte wählen Sie zuerst die Schule aus, für die Sie den Antrag ausfüllen."
       );
@@ -463,7 +244,7 @@ export default function StudentAssistantForm({
     // Schulungen sind der erste Schritt des DigiKI-Wegs. Nur im
     // Stellvertreter-Modus (Admin/Schulungsteam) lässt sich die Prüfung
     // bewusst per Haken überspringen; Schul-Konten können das nie.
-    if (trainings.length === 0 && !(actingForSchool && skipTrainingCheck)) {
+    if (trainings.length === 0 && !(actingForSchool && behalf.skip)) {
       setError(
         actingForSchool
           ? "Für die gewählte Schule liegt keine Schulungsanmeldung vor. Prüfen Sie die Auswahl – oder überspringen Sie die Prüfung bewusst über den Haken im Abschnitt Voraussetzungen."
@@ -487,7 +268,7 @@ export default function StudentAssistantForm({
     // Admin sieht in der Detailansicht sofort, wer ausgefüllt hat und ob
     // die Schulungsprüfung bewusst übersprungen wurde.
     const skippedCheck =
-      actingForSchool && skipTrainingCheck && trainings.length === 0;
+      actingForSchool && behalf.skip && trainings.length === 0;
     const behalfPrefix = actingForSchool
       ? `[Stellvertretend ausgefüllt: ${behalfRoleLabel}] `
       : "";
@@ -661,130 +442,19 @@ export default function StudentAssistantForm({
         icon={<Building2 className="h-3 w-3" />}
       >
         {actingForSchool && (
-          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary-light/10 p-4">
-            <span
-              aria-hidden="true"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-            >
-              <UserCog className="h-4 w-4" />
-            </span>
-            <p className="text-sm leading-relaxed text-text">
-              <strong className="font-bold">Stellvertreter-Modus:</strong> Sie
-              füllen diesen Antrag als{" "}
-              <strong className="font-semibold">{behalfRoleLabel}</strong> für
-              eine Schule aus. Der Antrag wird entsprechend gekennzeichnet.
-            </p>
-          </div>
+          <BehalfSchoolPicker
+            behalf={behalf}
+            roleLabel={behalfRoleLabel}
+            inputClass={inputClass}
+          />
         )}
 
-        {actingForSchool &&
-          (selectedBehalfSchool ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2
-                  className="h-5 w-5 shrink-0 text-green-700"
-                  aria-hidden="true"
-                />
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-green-800">
-                    Gewählte Schule
-                  </p>
-                  <p className="text-sm font-semibold text-green-900">
-                    {selectedBehalfSchool.name}
-                    {(selectedBehalfSchool.plz || selectedBehalfSchool.city) && (
-                      <span className="ml-2 font-normal text-green-800">
-                        {[selectedBehalfSchool.plz, selectedBehalfSchool.city]
-                          .filter(Boolean)
-                          .join(" ")}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={resetBehalfSchool}
-                className="text-sm font-semibold text-green-800 underline underline-offset-2 hover:text-green-900"
-              >
-                Andere Schule wählen
-              </button>
-            </div>
-          ) : (
-            <div>
-              <label
-                htmlFor="behalf_school_search"
-                className="mb-1.5 block text-sm font-medium text-text"
-              >
-                Schule auswählen *
-              </label>
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light"
-                  aria-hidden="true"
-                />
-                <input
-                  id="behalf_school_search"
-                  type="text"
-                  autoComplete="off"
-                  value={behalfSearch}
-                  onChange={(e) => setBehalfSearch(e.target.value)}
-                  className={inputClass + " pl-11"}
-                  placeholder="Schulname eingeben, z.B. Eversburg …"
-                />
-              </div>
-              {behalfSchoolsLoading ? (
-                <p className="mt-2 flex items-center gap-2 text-sm text-text-light">
-                  <RefreshCw
-                    className="h-3.5 w-3.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                  Verifizierte Schulliste wird geladen …
-                </p>
-              ) : (
-                <>
-                  <ul className="mt-2 max-h-64 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-white shadow-sm">
-                    {behalfShown.map((s) => (
-                      <li key={s.name}>
-                        <button
-                          type="button"
-                          onClick={() => chooseBehalfSchool(s)}
-                          className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-primary/5"
-                        >
-                          <span className="font-medium text-text">{s.name}</span>
-                          {(s.plz || s.city) && (
-                            <span className="mt-0.5 block text-xs text-text-light">
-                              {[s.plz, s.city].filter(Boolean).join(" ")}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                    {behalfShown.length === 0 && (
-                      <li className="px-4 py-3 text-sm text-text-light">
-                        Keine Schule gefunden – prüfen Sie die Schreibweise.
-                        Gelistet sind alle bei DigiKI angemeldeten Schulen
-                        (Bestandsaufnahme) sowie die Schulen aus dem
-                        Schulungsdashboard.
-                      </li>
-                    )}
-                  </ul>
-                  {behalfMatches.length > behalfShown.length && (
-                    <p className="mt-1.5 text-xs text-text-light">
-                      {behalfShown.length} von {behalfMatches.length} Schulen
-                      angezeigt – tippen Sie, um die Liste einzugrenzen.
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-
         {(!actingForSchool ||
-          (selectedBehalfSchool && !behalfTrainingsLoading)) && (
+          (behalf.selected && !behalf.trainingsLoading)) && (
           <SchoolInfoFields
             key={
               actingForSchool
-                ? selectedBehalfSchool?.name ?? "keine-schule"
+                ? behalf.selected?.name ?? "keine-schule"
                 : "eigenes-konto"
             }
             values={schoolInfo}
@@ -793,9 +463,14 @@ export default function StudentAssistantForm({
             lockedEmail={actingForSchool ? undefined : lockedEmail}
             lockedFromBestandsaufnahme={lockedFromBSA}
             softPrefilled={softPrefilled}
-            extraSummaryRows={actingForSchool ? behalfExtras : ownExtraRows}
+            extraSummaryRows={actingForSchool ? behalf.extras : ownExtraRows}
             hideSchoolName={actingForSchool}
             foreignSchool={actingForSchool}
+            onForeignRefresh={
+              actingForSchool && behalf.selected
+                ? () => behalf.choose(behalf.selected!)
+                : undefined
+            }
             emailHint={
               actingForSchool
                 ? "E-Mail-Adresse der Schule – an sie geht die Eingangsbestätigung."
@@ -813,17 +488,17 @@ export default function StudentAssistantForm({
         body="Studentische Unterstützung setzt auf den KOS-Fortbildungen auf: erst schulen, dann das Wissen im Kollegium weitergeben – und bei verbleibenden Hürden unterstützen wir gezielt. Ihre Schulungsanmeldungen werden automatisch erkannt."
         icon={<GraduationCap className="h-3 w-3" />}
       >
-        {!editMode && actingForSchool && !selectedBehalfSchool && (
+        {!editMode && actingForSchool && !behalf.selected && (
           <div className="rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
             Bitte wählen Sie oben zuerst die Schule aus – ihre
             Schulungsanmeldungen werden dann automatisch geprüft.
           </div>
         )}
 
-        {!editMode && actingForSchool && selectedBehalfSchool && behalfTrainingsLoading && (
+        {!editMode && actingForSchool && behalf.selected && behalf.trainingsLoading && (
           <div className="flex items-center gap-2 rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
             <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-            Schulungsanmeldungen von {selectedBehalfSchool.name} werden geprüft …
+            Schulungsanmeldungen von {behalf.selected.name} werden geprüft …
           </div>
         )}
 
@@ -933,8 +608,8 @@ export default function StudentAssistantForm({
             <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
               <input
                 type="checkbox"
-                checked={skipTrainingCheck}
-                onChange={(e) => setSkipTrainingCheck(e.target.checked)}
+                checked={behalf.skip}
+                onChange={(e) => behalf.setSkip(e.target.checked)}
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 text-amber-700 focus:ring-amber-500"
               />
               <span className="text-[13px] leading-relaxed text-amber-900">

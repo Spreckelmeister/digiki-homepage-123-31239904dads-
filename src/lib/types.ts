@@ -109,6 +109,8 @@ export interface ApplicationToolLicense {
   admin_notes: string | null;
   created_at: string;
   updated_at: string;
+  training_participation?: string | null;
+  training_details?: string | null;
 }
 
 export interface VorlageData {

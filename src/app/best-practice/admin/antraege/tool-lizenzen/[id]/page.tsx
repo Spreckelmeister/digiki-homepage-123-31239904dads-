@@ -10,6 +10,10 @@ import ApplicationDetail, {
   CheckDisplay,
 } from "@/components/best-practice/ApplicationDetail";
 import type { ToolSelection } from "@/lib/types";
+import {
+  labelFor,
+  TRAINING_PARTICIPATION_OPTIONS,
+} from "@/lib/applications/hilfskraefteOptions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -112,6 +116,36 @@ export default async function ToolLizenzenDetailPage({ params }: PageProps) {
                 />
               </dl>
             </div>
+
+            {/* Schulung (seit Migration 031 im Antrag festgehalten) */}
+            {(app.training_participation || app.training_details) && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-border">
+                <h2 className="text-lg font-semibold text-primary mb-4">
+                  Schulung
+                </h2>
+                <dl className="grid grid-cols-1 gap-4">
+                  <FieldDisplay
+                    label="Schulungsteilnahme"
+                    value={
+                      labelFor(
+                        TRAINING_PARTICIPATION_OPTIONS,
+                        app.training_participation
+                      ) ?? app.training_participation
+                    }
+                  />
+                </dl>
+                {app.training_details && (
+                  <div className="mt-4 p-3 bg-bg rounded-lg">
+                    <p className="text-xs font-medium text-text-light uppercase tracking-wider mb-1">
+                      Angemeldete Schulungen bei Antragstellung
+                    </p>
+                    <p className="text-sm text-text whitespace-pre-wrap">
+                      {app.training_details}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tool-Auswahl */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-border">

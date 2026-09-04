@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import {
   getBestandsaufnahmePrefill,
   getLockedFieldsFromPrefill,
+  type BestandsaufnahmePrefill,
 } from "@/lib/bestandsaufnahme/getPrefill";
+import {
+  getSchoolTrainings,
+  type RegisteredTraining,
+} from "@/lib/schulungen/getSchoolTrainings";
 import ToolLicenseForm from "@/components/forms/ToolLicenseForm";
 import BackButton from "@/components/BackButton";
 
@@ -33,11 +38,35 @@ export default async function AntragToolLizenzenPage() {
     redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
   }
 
-  // Auto-fill aus der jüngsten Bestandsaufnahme dieser Schule – damit
-  // Schulname, Schulleitung, Ansprechperson, Telefon und Lehrkräfte-Zahl
-  // konsistent sind und nicht erneut eingegeben werden müssen.
-  const prefill = await getBestandsaufnahmePrefill();
-  const lockedFromBSA = getLockedFieldsFromPrefill(prefill);
+  // Rolle zuerst: Admin und Schulungsteam füllen den Antrag stellvertretend
+  // für eine Schule aus (Schulauswahl im Formular, Schulungsprüfung gegen
+  // die gewählte Schule). Für sie gibt es keine eigene BSA-Vorbefüllung.
+  const profile = await getCurrentProfile();
+  const roleLower = profile?.role?.toLowerCase();
+  const actingRole =
+    roleLower === "admin" || roleLower === "schulungsteam"
+      ? (roleLower as "admin" | "schulungsteam")
+      : undefined;
+
+  let prefill: BestandsaufnahmePrefill | null = null;
+  let lockedFromBSA: string[] = [];
+  let registeredTrainings: RegisteredTraining[] = [];
+
+  if (!actingRole) {
+    // Auto-fill aus der jüngsten Bestandsaufnahme dieser Schule – damit
+    // Schulname, Schulleitung, Ansprechperson, Telefon und Lehrkräfte-Zahl
+    // konsistent sind und nicht erneut eingegeben werden müssen.
+    prefill = await getBestandsaufnahmePrefill();
+    lockedFromBSA = getLockedFieldsFromPrefill(prefill);
+
+    // Schulname für den Schulungs-Abgleich: serverseitig aus BSA bzw.
+    // Profil – nie aus Client-Input.
+    let schoolName: string | null = prefill?.school_name ?? null;
+    if (!schoolName) {
+      schoolName = profile?.school?.trim() ? profile.school : null;
+    }
+    registeredTrainings = await getSchoolTrainings(schoolName);
+  }
 
   return (
     <>
@@ -66,6 +95,8 @@ export default async function AntragToolLizenzenPage() {
             lockedEmail={user.email ?? ""}
             prefillFromBSA={prefill}
             lockedFromBSA={lockedFromBSA}
+            registeredTrainings={registeredTrainings}
+            actingRole={actingRole}
           />
         </div>
       </section>

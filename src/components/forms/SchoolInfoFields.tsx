@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ChevronDown, MapPin, ShieldCheck } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  MapPin,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
 import LockedFieldDisplay from "./LockedFieldDisplay";
 import {
   useAddressAutocomplete,
@@ -58,6 +64,10 @@ interface SchoolInfoFieldsProps {
   /** Stellvertreter-Modus: Die Daten gehören der GEWÄHLTEN Schule, nicht dem
    *  angemeldeten Konto – Beschriftungen und Links passen sich an. */
   foreignSchool?: boolean;
+  /** Stellvertreter-Modus: lädt die übernommenen Werte frisch aus der
+   *  Bestandsaufnahme der Schule (BSA-Werte sind hier bewusst nicht direkt
+   *  änderbar – gepflegt wird an der Quelle). */
+  onForeignRefresh?: () => void;
   /** Ersetzt den Standard-Tipp unter dem (ungesperrten) E-Mail-Feld. */
   emailHint?: React.ReactNode;
 }
@@ -72,6 +82,7 @@ export default function SchoolInfoFields({
   extraSummaryRows = [],
   hideSchoolName = false,
   foreignSchool = false,
+  onForeignRefresh,
   emailHint,
 }: SchoolInfoFieldsProps) {
   // School name autocomplete
@@ -204,13 +215,19 @@ export default function SchoolInfoFields({
           ...opts,
         });
       } else if (field !== "school_name" && softKnown(field)) {
+        const source = softSourceByField.get(field) ?? "bsa";
+        // Werte aus der Bestandsaufnahme der Schule sind im Stellvertreter-
+        // Modus bewusst NICHT direkt änderbar – gepflegt wird an der Quelle,
+        // neu geladen über den Aktualisieren-Knopf unten.
+        const editable = !(foreignSchool && source === "bsa");
         summaryRows.push({
           key: field,
           label,
           value: values[field],
-          source: softSourceByField.get(field) ?? "bsa",
-          onEdit: () => markEdited(field),
-          editLabel: "Korrigieren",
+          source,
+          ...(editable
+            ? { onEdit: () => markEdited(field), editLabel: "Korrigieren" }
+            : {}),
           ...opts,
         });
       }
@@ -410,8 +427,9 @@ export default function SchoolInfoFields({
                   : "Alle Angaben zu Ihrer Schule liegen uns bereits vor – in diesem Abschnitt gibt es nichts auszufüllen."}{" "}
               {foreignSchool ? (
                 <>
-                  Prüfen Sie kurz, ob alles aktuell ist – über „Korrigieren"
-                  lässt sich jeder Wert anpassen.
+                  Angaben aus der Bestandsaufnahme der Schule sind hier bewusst
+                  nicht direkt änderbar – „Aus Bestandsaufnahme aktualisieren"
+                  lädt sie neu, falls die Schule sie inzwischen gepflegt hat.
                 </>
               ) : usedSources.includes("bsa") ? (
                 <>
@@ -475,6 +493,16 @@ export default function SchoolInfoFields({
                 </span>
               ))}
             </p>
+            {foreignSchool && onForeignRefresh && (
+              <button
+                type="button"
+                onClick={onForeignRefresh}
+                className="inline-flex items-center gap-1.5 rounded-md border border-primary/25 bg-white px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/5"
+              >
+                <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                Aus Bestandsaufnahme aktualisieren
+              </button>
+            )}
             {!foreignSchool && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 {usedSources.includes("bsa") && (

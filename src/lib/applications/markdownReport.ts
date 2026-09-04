@@ -217,6 +217,11 @@ export function generateToolLizenzenMarkdown(
 - **E-Mail:** ${val(r.email)}
 - **Telefon:** ${val(r.phone)}
 
+## Schulung
+
+- **Schulungsteilnahme:** ${labelFor(TRAINING_PARTICIPATION_OPTIONS, r.training_participation) ?? val(r.training_participation)}
+${r.training_details ? `- **Anmeldungen bei Antragstellung:** ${r.training_details}` : ""}
+
 ## Beantragte Tools
 
 ${toolBlocks || "_keine Auswahl_"}

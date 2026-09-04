@@ -4,8 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  AlertTriangle,
+  ArrowRight,
   Building2,
+  CheckCircle2,
   ClipboardCheck,
+  GraduationCap,
+  RefreshCw,
   Send,
   ShieldCheck,
   Sparkles,
@@ -14,7 +19,15 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { ToolSelection } from "@/lib/types";
 import type { BestandsaufnahmePrefill } from "@/lib/bestandsaufnahme/getPrefill";
+import type { RegisteredTraining } from "@/lib/schulungen/getSchoolTrainings";
 import SchoolInfoFields from "./SchoolInfoFields";
+import BehalfSchoolPicker from "./BehalfSchoolPicker";
+import { useBehalfSchool } from "./useBehalfSchool";
+import {
+  formatTrainingDate,
+  roleCounts,
+  trainingsSnapshot,
+} from "./trainingsDisplay";
 import FormSuccess from "./FormSuccess";
 import FormSection from "./FormSection";
 import { useHoneypot } from "./useHoneypot";
@@ -59,6 +72,8 @@ interface ToolAppData {
   privacy_concept_exists: boolean;
   parental_consent: boolean;
   it_infrastructure_meets_requirements: boolean;
+  training_participation?: string | null;
+  training_details?: string | null;
 }
 
 
@@ -69,6 +84,8 @@ export default function ToolLicenseForm({
   lockedEmail,
   prefillFromBSA,
   lockedFromBSA,
+  registeredTrainings,
+  actingRole,
 }: {
   editMode?: boolean;
   initialData?: ToolAppData;
@@ -80,9 +97,18 @@ export default function ToolLicenseForm({
   prefillFromBSA?: BestandsaufnahmePrefill | null;
   /** Liste der Felder, die durch BSA-Prefill gesperrt werden. */
   lockedFromBSA?: string[];
+  /** Serverseitig ermittelte Schulungsanmeldungen der Schule (nur Neuantrag).
+   *  Leere Liste blockiert das Einreichen – Schulung ist Voraussetzung. */
+  registeredTrainings?: RegisteredTraining[];
+  /** Stellvertreter-Modus: Admin/Schulungsteam füllt den Antrag für eine
+   *  Schule aus – Schulauswahl, Schulungsprüfung gegen die gewählte Schule,
+   *  Prüfung per Haken überspringbar. Schul-Konten bekommen die Rolle NIE. */
+  actingRole?: "admin" | "schulungsteam";
 }) {
   const isAdmin = useIsAdmin();
   const { isSpam, HoneypotField } = useHoneypot();
+  const actingForSchool = Boolean(actingRole) && !editMode;
+
   const [schoolInfo, setSchoolInfo] = useState({
     // Beim NEU-Antrag haben Prefill-Werte Vorrang vor leer; im Edit-Modus
     // gewinnen initialData (gespeicherte Werte).
@@ -93,7 +119,8 @@ export default function ToolLicenseForm({
     principal_name: initialData?.principal_name ?? prefillFromBSA?.principal_name ?? "",
     contact_person: initialData?.contact_person ?? prefillFromBSA?.contact_person ?? "",
     phone:          initialData?.phone          ?? prefillFromBSA?.phone          ?? "",
-    email:          lockedEmail                 ?? initialData?.email             ?? "",
+    // Im Stellvertreter-Modus gehört die E-Mail der SCHULE ins Formular.
+    email:          actingForSchool ? "" : lockedEmail ?? initialData?.email ?? "",
     teacher_count:  initialData?.teacher_count != null
       ? String(initialData.teacher_count)
       : prefillFromBSA?.teacher_count ?? "",
@@ -102,10 +129,20 @@ export default function ToolLicenseForm({
       : prefillFromBSA?.student_count ?? "",
   });
 
+  // ── Stellvertreter-Modus: geteilte Logik (siehe useBehalfSchool) ──────
+  const behalf = useBehalfSchool(actingForSchool, (patch) =>
+    setSchoolInfo((prev) => ({ ...prev, ...patch })),
+  );
+  const behalfRoleLabel = actingRole === "admin" ? "Admin" : "Schulungsteam";
+  const trainings = actingForSchool
+    ? behalf.trainings ?? []
+    : registeredTrainings ?? [];
+  const trainingStatusKnown = !actingForSchool || behalf.statusKnown;
+
   // Adresse/Schülerzahl aus dem jüngsten früheren Antrag – wandern in die
   // Zusammenfassungs-Karte des Schul-Abschnitts statt in Eingabefelder.
-  const softPrefilled: Array<{ field: string; source: "bsa" | "antrag" }> =
-    !editMode && prefillFromBSA
+  const ownSoftPrefilled: Array<{ field: string; source: "bsa" | "antrag" }> =
+    !editMode && !actingForSchool && prefillFromBSA
       ? [
           ...(prefillFromBSA.school_street &&
           prefillFromBSA.school_plz &&
@@ -121,11 +158,16 @@ export default function ToolLicenseForm({
             : []),
         ]
       : [];
+  const softPrefilled: Array<{
+    field: string;
+    source: "bsa" | "antrag" | "dashboard";
+  }> = actingForSchool ? behalf.soft : ownSoftPrefilled;
 
   // Keine exakte Schülerzahl aus einem früheren Antrag? Dann das Band aus
   // der Bestandsaufnahme anzeigen statt eines leeren Zahlenfelds.
   const ownExtraRows =
     !editMode &&
+    !actingForSchool &&
     prefillFromBSA &&
     !prefillFromBSA.student_count &&
     prefillFromBSA.student_count_band
@@ -258,6 +300,26 @@ export default function ToolLicenseForm({
       return;
     }
 
+    if (actingForSchool && !behalf.selected) {
+      setError(
+        "Bitte wählen Sie zuerst die Schule aus, für die Sie den Antrag ausfüllen."
+      );
+      return;
+    }
+
+    // Ohne Schulungsanmeldung keine Tool-Lizenzen – die KOS-Fortbildungen
+    // sind die Grundlage für den sinnvollen Einsatz der Tools. Nur im
+    // Stellvertreter-Modus (Admin/Schulungsteam) lässt sich die Prüfung
+    // bewusst per Haken überspringen; Schul-Konten können das nie.
+    if (trainings.length === 0 && !(actingForSchool && behalf.skip)) {
+      setError(
+        actingForSchool
+          ? "Für die gewählte Schule liegt keine Schulungsanmeldung vor. Prüfen Sie die Auswahl – oder überspringen Sie die Prüfung bewusst über den Haken im Abschnitt Voraussetzungen."
+          : "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor. Bitte melden Sie zunächst Lehrkräfte über die KOS-Fortbildungen an – danach freuen wir uns über Ihren Antrag auf Tool-Lizenzen."
+      );
+      return;
+    }
+
     if (!privacyConcept || !parentalConsent || !itInfrastructure) {
       setError("Bitte bestätigen Sie alle Datenschutz-Angaben.");
       return;
@@ -280,6 +342,15 @@ export default function ToolLicenseForm({
 
     const supabase = createClient();
 
+    const today = new Date().toISOString().slice(0, 10);
+    const hasAttended = trainings.some((t) => t.start_date && t.start_date <= today);
+    // Stellvertretend eingereichte Anträge deutlich kennzeichnen.
+    const skippedCheck =
+      actingForSchool && behalf.skip && trainings.length === 0;
+    const behalfPrefix = actingForSchool
+      ? `[Stellvertretend ausgefüllt: ${behalfRoleLabel}] `
+      : "";
+
     const { error: insertError } = await supabase
       .from("applications_tool_licenses")
       .insert({
@@ -298,6 +369,14 @@ export default function ToolLicenseForm({
           ? parseInt(schoolInfo.student_count)
           : null,
         tool_selections: filteredSelections,
+        training_participation: skippedCheck
+          ? "pruefung_uebersprungen"
+          : hasAttended
+            ? "teilgenommen"
+            : "angemeldet",
+        training_details: skippedCheck
+          ? `${behalfPrefix}Schulungsprüfung bewusst übersprungen.`
+          : `${behalfPrefix}${trainingsSnapshot(trainings)}`,
         additional_tools: additionalTools || null,
         grade_levels: gradeLevels || null,
         subjects: subjects || null,
@@ -347,7 +426,7 @@ export default function ToolLicenseForm({
   if (isAdmin === null) return null;
   // Admins dürfen keine NEUEN Anträge einreichen, dürfen aber existierende
   // im Edit-Modus (z.B. aus dem Admin-Bereich) bearbeiten.
-  if (isAdmin === true && !editMode) return (
+  if (isAdmin === true && !editMode && !actingForSchool) return (
     <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-6 py-8 text-center text-sm text-yellow-800">
       Admin-Accounts können keine Anträge einreichen.
     </div>
@@ -460,23 +539,215 @@ export default function ToolLicenseForm({
         index="01"
         eyebrow="Schule"
         title="Wer beantragt?"
-        body="Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        body={
+          actingForSchool
+            ? "Wählen Sie die Schule aus, für die Sie den Antrag stellvertretend ausfüllen. Die Schulungsprüfung läuft dann automatisch gegen diese Schule."
+            : "Angaben zu Ihrer Schule und Kontaktdaten. Bereits aus Ihrer Bestandsaufnahme bekannte Werte werden automatisch übernommen."
+        }
         icon={<Building2 className="h-3 w-3" />}
       >
-        <SchoolInfoFields
-          values={schoolInfo}
-          onChange={handleSchoolInfoChange}
-          inputClass={inputClass}
-          lockedEmail={lockedEmail}
-          lockedFromBestandsaufnahme={lockedFromBSA}
-          softPrefilled={softPrefilled}
-          extraSummaryRows={ownExtraRows}
-        />
+        {actingForSchool && (
+          <BehalfSchoolPicker
+            behalf={behalf}
+            roleLabel={behalfRoleLabel}
+            inputClass={inputClass}
+          />
+        )}
+
+        {(!actingForSchool ||
+          (behalf.selected && !behalf.trainingsLoading)) && (
+          <SchoolInfoFields
+            key={
+              actingForSchool
+                ? behalf.selected?.name ?? "keine-schule"
+                : "eigenes-konto"
+            }
+            values={schoolInfo}
+            onChange={handleSchoolInfoChange}
+            inputClass={inputClass}
+            lockedEmail={actingForSchool ? undefined : lockedEmail}
+            lockedFromBestandsaufnahme={lockedFromBSA}
+            softPrefilled={softPrefilled}
+            extraSummaryRows={actingForSchool ? behalf.extras : ownExtraRows}
+            hideSchoolName={actingForSchool}
+            foreignSchool={actingForSchool}
+            onForeignRefresh={
+              actingForSchool && behalf.selected
+                ? () => behalf.choose(behalf.selected!)
+                : undefined
+            }
+            emailHint={
+              actingForSchool
+                ? "E-Mail-Adresse der Schule – an sie geht die Eingangsbestätigung."
+                : undefined
+            }
+          />
+        )}
       </FormSection>
+
+      {/* ════════ §2 VORAUSSETZUNGEN ════════ */}
+      {(!editMode || initialData?.training_details) && (
+      <FormSection
+        index="02"
+        eyebrow="Voraussetzungen"
+        title="Schulung als Grundlage"
+        body="Tool-Lizenzen setzen auf den KOS-Fortbildungen auf: Dort lernen Lehrkräfte Ihrer Schule den praktischen Einsatz der Tools kennen. Ihre Schulungsanmeldungen werden automatisch erkannt."
+        icon={<GraduationCap className="h-3 w-3" />}
+      >
+        {editMode && initialData?.training_details && (
+          <div className="rounded-xl border border-border bg-bg p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-text-light">
+              Angemeldete Schulungen bei Antragstellung
+            </p>
+            <p className="text-sm text-text whitespace-pre-wrap">
+              {initialData.training_details}
+            </p>
+          </div>
+        )}
+
+        {!editMode && actingForSchool && !behalf.selected && (
+          <div className="rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
+            Bitte wählen Sie oben zuerst die Schule aus – ihre
+            Schulungsanmeldungen werden dann automatisch geprüft.
+          </div>
+        )}
+
+        {!editMode && actingForSchool && behalf.selected && behalf.trainingsLoading && (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-bg p-4 text-sm text-text-light">
+            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Schulungsanmeldungen von {behalf.selected.name} werden geprüft …
+          </div>
+        )}
+
+        {!editMode && trainingStatusKnown && trainings.length > 0 && (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                className="mt-0.5 h-5 w-5 shrink-0 text-green-700"
+                aria-hidden="true"
+              />
+              <div className="text-sm text-green-900">
+                <p className="font-bold">
+                  {actingForSchool
+                    ? "Die gewählte Schule ist zu folgenden Schulungen angemeldet:"
+                    : "Ihre Schule ist zu folgenden Schulungen angemeldet:"}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {trainings.map((t) => {
+                    const counts = roleCounts(t);
+                    return (
+                      <li key={t.id}>
+                        {t.title} –{" "}
+                        {t.start_date
+                          ? formatTrainingDate(t.start_date)
+                          : "Termin folgt"}
+                        {counts && (
+                          <span className="text-green-800"> ({counts})</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 text-green-800">
+                  Die Teilnehmenden bringen den Umgang mit den Tools
+                  anschließend ins Kollegium – die beste Grundlage für den
+                  Lizenz-Einsatz.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!editMode && trainingStatusKnown && trainings.length === 0 && (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                className="mt-0.5 h-5 w-5 shrink-0 text-red-700"
+                aria-hidden="true"
+              />
+              <div className="text-sm text-red-800">
+                <p className="font-bold">
+                  {actingForSchool
+                    ? "Für die gewählte Schule liegt keine Anmeldung zu einer DigiKI-Schulung vor."
+                    : "Für Ihre Schule liegt noch keine Anmeldung zu einer DigiKI-Schulung vor."}
+                </p>
+                {actingForSchool ? (
+                  <p className="mt-1 leading-relaxed">
+                    Prüfen Sie, ob die richtige Schule gewählt ist. Als{" "}
+                    {behalfRoleLabel} können Sie die Prüfung unten bewusst
+                    überspringen – der Antrag wird dann entsprechend
+                    gekennzeichnet.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-1 leading-relaxed">
+                      Die KOS-Fortbildungen sind die Grundlage für den
+                      Tool-Einsatz: Dort lernen Lehrkräfte Ihrer Schule den
+                      praktischen Umgang mit den Tools und geben ihr Wissen im
+                      Kollegium weiter. Bitte melden Sie zunächst Lehrkräfte an
+                      – danach freuen wir uns über Ihren Antrag.
+                    </p>
+                    <Link
+                      href="/fuer-schulen#kos-fortbildungen"
+                      className="mt-2 inline-flex items-center gap-1.5 font-semibold text-red-800 underline hover:text-red-900"
+                    >
+                      Zu den KOS-Fortbildungsterminen
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                    <p className="mt-2 text-red-700">
+                      Ihre Schule ist bereits angemeldet, wird hier aber nicht
+                      angezeigt? Melden Sie sich kurz über das{" "}
+                      <Link
+                        href="/fuer-schulen#kontakt"
+                        className="underline hover:text-red-900"
+                      >
+                        Kontaktformular
+                      </Link>{" "}
+                      – wir prüfen das.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Nur Stellvertreter-Modus: Prüfung bewusst überspringen. */}
+        {!editMode &&
+          actingForSchool &&
+          trainingStatusKnown &&
+          trainings.length === 0 && (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={behalf.skip}
+                onChange={(e) => behalf.setSkip(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 text-amber-700 focus:ring-amber-500"
+              />
+              <span className="text-[13px] leading-relaxed text-amber-900">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  Schulungsprüfung überspringen und Antrag trotzdem einreichen
+                </span>
+                <span className="mt-0.5 block text-amber-800">
+                  Nur für Schulungsteam und Admins. Der Antrag wird sichtbar als
+                  „Schulungsprüfung übersprungen" gekennzeichnet.
+                </span>
+              </span>
+            </label>
+          )}
+      </FormSection>
+      )}
 
       {/* ════════ §2 TOOLS ════════ */}
       <FormSection
-        index="02"
+        index="03"
         eyebrow="Tool-Lizenzen"
         title="Was möchten Sie einsetzen?"
         body="Wählen Sie aus den geprüften, DSGVO-konformen Tools und geben Sie an, wie viele Lizenzen Sie pro Tool benötigen."
@@ -548,7 +819,7 @@ export default function ToolLicenseForm({
 
       {/* ════════ §3 EINSATZ ════════ */}
       <FormSection
-        index="03"
+        index="04"
         eyebrow="Einsatz"
         title="Wie soll's eingesetzt werden?"
         body="Damit wir den passenden Lizenz-Umfang und Schulungsbedarf einschätzen können – kurz angegeben, in welchen Klassen, Fächern und ab wann."
@@ -625,7 +896,7 @@ export default function ToolLicenseForm({
 
       {/* ════════ §4 DATENSCHUTZ ════════ */}
       <FormSection
-        index="04"
+        index="05"
         eyebrow="Datenschutz"
         title="Bestätigungen"
         body="Damit der Tool-Einsatz rechtssicher startet, brauchen wir noch ein paar Bestätigungen Ihrer Schule."
