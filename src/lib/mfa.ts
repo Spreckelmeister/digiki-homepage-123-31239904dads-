@@ -108,7 +108,8 @@ function friendlyError(error: { message?: string; code?: string; name?: string }
   if (msg.includes("notallowed") || msg.includes("abort") || msg.includes("cancel")) {
     return "Der Vorgang wurde abgebrochen. Bitte erneut versuchen.";
   }
-  if (msg.includes("disabled") || msg.includes("not enabled")) {
+  // z. B. „mfa_webauthn_enroll_not_enabled“ / „… is disabled“
+  if (msg.includes("disabled") || msg.includes("not_enabled") || msg.includes("not enabled")) {
     return "Diese Methode ist noch nicht freigeschaltet. Bitte die Authenticator-App verwenden.";
   }
   if (msg.includes("expired")) {
