@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
 import { wrapMailing } from "@/lib/email/wrapMailing";
+import { getMailingSmtp } from "@/lib/email/mailingTransport";
+
+// Hunderte Einzelmails brauchen länger als das Standard-Zeitlimit.
+export const maxDuration = 300;
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -27,6 +30,9 @@ type SendBody = {
  * Versendet eine Admin-Mailing an entweder genau eine Test-Adresse oder
  * an alle Account-E-Mails (gefiltert nach Bestätigungsstatus).
  *
+ * Versand über den eigenen SMTP-Server (KV_SMTP_*), damit Rundmails
+ * nicht das Resend-Kontingent der Login-/Systemmails aufbrauchen.
+ *
  * Antwortet mit Counts (sent/failed) plus den fehlgeschlagenen Adressen,
  * damit das Frontend einen klaren Report anzeigen kann.
  */
@@ -46,11 +52,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
-  ) {
+  const smtp = getMailingSmtp();
+  if (!smtp) {
     return NextResponse.json(
       { error: "Mail-Versand ist serverseitig nicht konfiguriert" },
       { status: 500 },
@@ -223,17 +226,9 @@ export async function POST(request: NextRequest) {
     ? wrapMailing({ bodyHtml: html, eyebrow, heading, preheader })
     : html;
 
-  // SMTP-Transport (Resend o.ä.)
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT ?? "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
-  const from = `DigiKI <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`;
+  // Eigener SMTP (KV_SMTP_*), sonst Fallback Resend.
+  const { transporter, provider } = smtp;
+  const from = `DigiKI <${smtp.from}>`;
 
   // Einzelversand (KEIN BCC – DSGVO: Empfänger sollen sich nicht
   // gegenseitig sehen). Kleine Pause zwischen Mails, damit der SMTP-
@@ -255,12 +250,14 @@ export async function POST(request: NextRequest) {
         error: err instanceof Error ? err.message : "Unbekannter Fehler",
       });
     }
-    // kleine Atempause (50 ms) – reicht bei Resend mit Standard-Limit
+    // kleine Atempause (50 ms) gegen Rate-Limits des SMTP-Servers
     await new Promise((r) => setTimeout(r, 50));
   }
+  transporter.close();
 
   return NextResponse.json({
     ok: true,
+    provider,
     mode,
     total: recipients.length,
     sent,

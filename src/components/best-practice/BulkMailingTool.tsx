@@ -46,6 +46,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 type SendResult = {
   ok: boolean;
+  provider?: "eigener SMTP" | "Resend";
   mode: "test" | "bulk" | "selected" | "list";
   total: number;
   sent: number;
@@ -877,6 +878,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                       ? "Test-Mail versendet."
                       : `${sendResult.sent} von ${sendResult.total} Mails gesendet.`}
                   </p>
+                  {sendResult.provider && (
+                    <p className="mt-0.5 text-xs text-emerald-800">
+                      Versand über {sendResult.provider}
+                    </p>
+                  )}
                   {sendResult.failed.length > 0 && (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-amber-800">
