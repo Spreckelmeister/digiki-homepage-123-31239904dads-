@@ -46,6 +46,30 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const path = request.nextUrl.pathname;
+
+  // Admins brauchen einen zweiten Faktor (Migration 036). Bis er bestätigt
+  // ist (Sitzung „aal2“), sperrt die Datenbank alle Admin-Rechte – hier wird
+  // nur auf die Bestätigungsseite umgeleitet. Normale Konten: keine Änderung.
+  // Fehlt die Funktion (Migration noch nicht gelaufen), passiert nichts.
+  const isAuthPage =
+    path === "/best-practice/login" ||
+    path === "/best-practice/registrieren" ||
+    path === "/best-practice/zwei-faktor";
+  if (user && !isAuthPage) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel !== "aal2") {
+      const { data: needsMfa } = await supabase.rpc("current_user_needs_mfa");
+      if (needsMfa === true) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/best-practice/zwei-faktor";
+        url.search = "";
+        url.searchParams.set("redirect", path + request.nextUrl.search);
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   // Protected routes: redirect to login if not authenticated
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/best-practice/datenbank") ||
@@ -60,7 +84,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Rolle einmal laden, wenn sie für eine der folgenden Regeln gebraucht wird.
-  const path = request.nextUrl.pathname;
   let role: string | undefined;
   if (
     user &&

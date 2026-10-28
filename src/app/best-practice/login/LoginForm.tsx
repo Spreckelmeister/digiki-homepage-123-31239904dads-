@@ -89,6 +89,12 @@ export default function LoginForm() {
       if (profile?.role?.toLowerCase() === "schulungsteam") {
         target = "/schulungsdashboard";
       }
+      // Admin-Konten: zweiter Faktor (auch wenn das Ziel außerhalb der
+      // Middleware liegt). Für alle anderen liefert die Funktion false.
+      const { data: needsMfa } = await supabase.rpc("current_user_needs_mfa");
+      if (needsMfa === true) {
+        target = `/best-practice/zwei-faktor?redirect=${encodeURIComponent(target)}`;
+      }
     }
 
     router.push(target);

@@ -6,6 +6,7 @@ import BackButton from "@/components/BackButton";
 import MyEmailChanger from "@/components/best-practice/MyEmailChanger";
 import MyPasswordChanger from "@/components/best-practice/MyPasswordChanger";
 import MyAccountDeleter from "@/components/best-practice/MyAccountDeleter";
+import { TwoFactorManager } from "@/components/best-practice/TwoFactor";
 
 export const metadata: Metadata = {
   title: "Konto - DigiKI",
@@ -60,6 +61,7 @@ export default async function KontoPage() {
         <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 space-y-6">
           <MyEmailChanger currentEmail={user.email ?? ""} />
           <MyPasswordChanger email={user.email ?? ""} />
+          {profile?.role?.toLowerCase() === "admin" && <TwoFactorManager />}
 
           {/* Danger zone – visuell abgesetzt */}
           <div className="pt-4">
