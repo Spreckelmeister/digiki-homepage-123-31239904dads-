@@ -1,0 +1,61 @@
+name: Sicherheitsaudit
+
+# Prüft die npm-Abhängigkeiten auf bekannte Lücken, als Malware gemeldete
+# Pakete und manipulierte Registry-Signaturen. Läuft bei jeder Änderung an
+# package*.json, bei Pull Requests und täglich (neue Advisories erscheinen
+# auch ohne Code-Änderung).
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json, package-lock.json, .github/audit-allowlist.json, scripts/security-audit.mjs, .github/workflows/security-audit.yml]
+  pull_request:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # --ignore-scripts: keine Install-Skripte ausführen – genau darüber
+      # schlagen kompromittierte Pakete typischerweise zu.
+      - name: Abhängigkeiten installieren (ohne Install-Skripte)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Registry-Signaturen und Herkunftsnachweise prüfen
+        run: npm audit signatures
+      - name: Bekannte Lücken und Malware prüfen
+        run: node scripts/security-audit.mjs
+      - name: Veraltete Pakete (nur Hinweis)
+        if: always()
+        run: |
+          {
+            echo "## Veraltete Pakete"
+            echo '```'
+            npm outdated || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  dependency-review:
+    name: Neue Abhängigkeiten im PR prüfen
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

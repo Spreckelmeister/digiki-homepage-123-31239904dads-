@@ -1,0 +1,11 @@
+{
+  "_hinweis": "Bewusst akzeptierte Lücken für scripts/security-audit.mjs. Jeder Eintrag braucht Begründung und Ablaufdatum (YYYY-MM-DD); danach schlägt der Audit wieder an.",
+  "advisories": [
+    {
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod (über @imgly/background-removal)",
+      "reason": "Speicher-DoS bei der Validierung riesiger Collections. zod 3 läuft hier nur im Browser im Werkzeug „Hintergrund entfernen“ mit festen Modell-Konfigurationen, keine Eingaben von außen. Fix gibt es nur in zod 4, @imgly unterstützt das noch nicht.",
+      "expires": "2027-01-31"
+    }
+  ]
+}

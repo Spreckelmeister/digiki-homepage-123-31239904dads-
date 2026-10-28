@@ -1,0 +1,33 @@
+# Wöchentliche Update-PRs für npm-Pakete und GitHub Actions.
+# Kleine Updates (minor/patch) kommen gebündelt in einem PR, Major-Updates
+# einzeln. Sicherheits-Updates kommen zusätzlich sofort, sobald
+# „Dependabot security updates“ in den Repo-Einstellungen aktiv ist.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    # Frisch veröffentlichte Versionen erst nach ein paar Tagen vorschlagen:
+    # kompromittierte Releases werden meist innerhalb von Stunden entdeckt.
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    groups:
+      minor-und-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    commit-message:
+      prefix: "ci"
