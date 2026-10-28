@@ -33,7 +33,7 @@ SET search_path = public
 AS $$
   SELECT EXISTS (
            SELECT 1 FROM public.profiles
-           WHERE id = auth.uid() AND lower(role) = 'admin'
+           WHERE id = auth.uid() AND lower(role::text) = 'admin'
          )
      AND coalesce(auth.jwt() ->> 'aal', 'aal1') <> 'aal2';
 $$;
