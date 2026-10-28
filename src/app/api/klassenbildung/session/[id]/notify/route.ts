@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import type { SmtpTransporter } from "@/lib/email/mailingTransport";
 import { decryptSecret, isEncryptionConfigured } from "@/lib/klassenbildung/cryptoServer";
 
 interface Params {
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // Eigener SMTP der Lehrkraft (primär)
   let userSmtp: {
-    transporter: nodemailer.Transporter;
+    transporter: SmtpTransporter;
     fromHeader: string;
     replyTo: string | null;
     schoolName: string | null;
@@ -196,7 +197,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     !!process.env.KV_SMTP_HOST &&
     !!process.env.KV_SMTP_USER &&
     !!process.env.KV_SMTP_PASSWORD;
-  let systemTransporter: nodemailer.Transporter | null = null;
+  let systemTransporter: SmtpTransporter | null = null;
   if (!userSmtp && systemSmtpReady) {
     systemTransporter = nodemailer.createTransport({
       host: process.env.KV_SMTP_HOST,

@@ -31,6 +31,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FFMPEG_BASE = "/ffmpeg-core";
+const FFMPEG_ESM_URL = "/ffmpeg-worker/index.js";
 const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 // ─── Typen für lazy-importierte Module ───────────────────────────────────────
@@ -366,7 +367,12 @@ export default function VideoUntertitelApp() {
         setPhase("loading-ffmpeg");
         try {
           const [ffmpegMod, utilMod] = (await Promise.all([
-            import("@ffmpeg/ffmpeg"),
+            // Ungebündelt aus public/ (siehe scripts/copy-ffmpeg-core.mjs):
+            // Turbopack kann die Worker-URL in @ffmpeg/ffmpeg nicht auflösen.
+            import(
+              /* webpackIgnore: true */ /* turbopackIgnore: true */
+              FFMPEG_ESM_URL
+            ),
             import("@ffmpeg/util"),
           ])) as unknown as [FFmpegModule, FFmpegUtilModule];
           const ff = new ffmpegMod.FFmpeg();

@@ -24,11 +24,23 @@ for (const file of ["ffmpeg-core.js", "ffmpeg-core.wasm"]) {
 // ("Cannot find module as expression is too dynamic"). Wenn wir den Worker
 // als statische Datei ausliefern, läuft der Import direkt im Browser, ohne
 // Bundler-Pass.
+// Seit Next 16.4 scheitert Turbopack zusätzlich an
+// `new Worker(new URL(classWorkerURL, import.meta.url))` in classes.js –
+// deshalb liegt das komplette ESM-Paket hier und wird im Browser per
+// ungebundeltem `import("/ffmpeg-worker/index.js")` geladen.
 const workerSrc = join(root, "node_modules", "@ffmpeg", "ffmpeg", "dist", "esm");
 const workerDest = join(root, "public", "ffmpeg-worker");
 
 await mkdir(workerDest, { recursive: true });
-for (const file of ["worker.js", "const.js", "errors.js"]) {
+for (const file of [
+  "index.js",
+  "classes.js",
+  "types.js",
+  "utils.js",
+  "worker.js",
+  "const.js",
+  "errors.js",
+]) {
   await copyFile(join(workerSrc, file), join(workerDest, file));
   console.log(`copied ${file} -> public/ffmpeg-worker/${file}`);
 }

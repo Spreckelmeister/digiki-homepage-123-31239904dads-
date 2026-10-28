@@ -13,12 +13,15 @@ import nodemailer from "nodemailer";
 
 export type MailingProvider = "eigener SMTP" | "Resend";
 
+/** Nodemailer ≥ 10 exportiert keinen `Transporter`-Typ mehr. */
+export type SmtpTransporter = ReturnType<typeof nodemailer.createTransport>;
+
 /** Sichtbarer Absender der Rundmails – ohne eigenes Postfach. */
 const MAILING_FROM = "noreply@digiki-os.de";
 
 export function getMailingSmtp(): {
   provider: MailingProvider;
-  transporter: nodemailer.Transporter;
+  transporter: SmtpTransporter;
   from: string;
   /** SMTP-Envelope-Absender (Bounces landen im echten Postfach). */
   envelopeFrom?: string;
