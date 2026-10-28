@@ -54,7 +54,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "dotenv": "^17.4.1",
+    "dotenv": "^18.0.8",
     "eslint": "^9.16.0",
     "eslint-config-next": "^15.1.0",
     "tailwindcss": "^4.0.0",
