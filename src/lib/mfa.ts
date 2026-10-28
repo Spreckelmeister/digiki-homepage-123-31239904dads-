@@ -46,6 +46,13 @@ async function removeUnverified(supabase: SupabaseClient, type: "totp" | "webaut
   }
 }
 
+/** Relying Party ID = Domain ohne „www.“ (muss zur Supabase-Einstellung
+ *  „Relying Party ID“ passen, dort: digiki-os.de). Die Seite läuft unter
+ *  www.digiki-os.de; ein Passkey für digiki-os.de gilt auch dort. */
+function webauthnOptions() {
+  return { rpId: window.location.hostname.replace(/^www\./, "") };
+}
+
 function suffix(): string {
   return new Date().toLocaleDateString("de-DE");
 }
@@ -76,12 +83,16 @@ export async function registerPasskey(supabase: SupabaseClient) {
   await removeUnverified(supabase, "webauthn");
   const { error } = await supabase.auth.mfa.webauthn._register({
     friendlyName: `Passkey (${suffix()})`,
+    webauthn: webauthnOptions(),
   });
   if (error) throw new MfaError(friendlyError(error));
 }
 
 export async function authenticatePasskey(supabase: SupabaseClient, factorId: string) {
-  const { error } = await supabase.auth.mfa.webauthn._authenticate({ factorId });
+  const { error } = await supabase.auth.mfa.webauthn._authenticate({
+    factorId,
+    webauthn: webauthnOptions(),
+  });
   if (error) throw new MfaError(friendlyError(error));
 }
 
