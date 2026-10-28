@@ -13,10 +13,15 @@ import nodemailer from "nodemailer";
 
 export type MailingProvider = "eigener SMTP" | "Resend";
 
+/** Sichtbarer Absender der Rundmails – ohne eigenes Postfach. */
+const MAILING_FROM = "noreply@digiki-os.de";
+
 export function getMailingSmtp(): {
   provider: MailingProvider;
   transporter: nodemailer.Transporter;
   from: string;
+  /** SMTP-Envelope-Absender (Bounces landen im echten Postfach). */
+  envelopeFrom?: string;
 } | null {
   if (
     process.env.KV_SMTP_HOST &&
@@ -38,7 +43,8 @@ export function getMailingSmtp(): {
           pass: process.env.KV_SMTP_PASSWORD,
         },
       }),
-      from: process.env.KV_SMTP_FROM ?? process.env.KV_SMTP_USER,
+      from: MAILING_FROM,
+      envelopeFrom: process.env.KV_SMTP_USER,
     };
   }
 

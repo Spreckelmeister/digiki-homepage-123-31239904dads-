@@ -239,6 +239,7 @@ export async function POST(request: NextRequest) {
     try {
       await transporter.sendMail({
         from,
+        ...(smtp.envelopeFrom && { envelope: { from: smtp.envelopeFrom, to } }),
         to,
         subject,
         html: finalHtml,
