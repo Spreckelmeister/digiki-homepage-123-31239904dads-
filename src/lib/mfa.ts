@@ -20,8 +20,16 @@ export interface MfaState {
   factors: MfaFactor[];
 }
 
+/** Passkeys als ZWEITER Faktor: Das Supabase-Projekt bietet sie derzeit nur
+ *  als Login-Methode an, die MFA-Einrichtung meldet „nicht freigeschaltet“
+ *  (getestet 28.10.2026). Sobald Supabase WebAuthn-MFA freigibt, hier auf
+ *  true stellen – Oberfläche und Ablauf sind fertig. */
+const PASSKEY_MFA_AVAILABLE = false;
+
 export function passkeysSupported(): boolean {
-  return typeof window !== "undefined" && "PublicKeyCredential" in window;
+  return (
+    PASSKEY_MFA_AVAILABLE && typeof window !== "undefined" && "PublicKeyCredential" in window
+  );
 }
 
 export async function getMfaState(supabase: SupabaseClient): Promise<MfaState> {
@@ -59,6 +67,7 @@ function suffix(): string {
 
 export async function startTotpEnrollment(supabase: SupabaseClient) {
   await removeUnverified(supabase, "totp");
+  await removeUnverified(supabase, "webauthn");
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: "totp",
     issuer: "DigiKI",

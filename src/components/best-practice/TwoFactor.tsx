@@ -341,8 +341,8 @@ export function TwoFactorManager() {
         Zwei-Faktor-Anmeldung
       </h2>
       <p className="text-sm text-text-light mb-5">
-        Pflicht für Admin-Konten. Richten Sie am besten zwei Faktoren ein (z. B. Passkey und App), damit Sie bei
-        Verlust eines Geräts weiter Zugang haben.
+        Pflicht für Admin-Konten. Richten Sie die App am besten auf zwei Geräten ein (z. B. Handy und Tablet –
+        einfach den QR-Code mit beiden scannen), damit Sie bei Verlust eines Geräts weiter Zugang haben.
       </p>
 
       {error && <div className="mb-4"><Alert text={error} /></div>}
