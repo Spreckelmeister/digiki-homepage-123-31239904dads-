@@ -24,10 +24,10 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
       NEXT_PUBLIC_SITE_URL: https://digiki-os.de
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
