@@ -1,7 +1,9 @@
 # Wöchentliche Update-PRs für npm-Pakete und GitHub Actions.
 # Kleine Updates (minor/patch) kommen gebündelt in einem PR, Major-Updates
-# einzeln. Sicherheits-Updates kommen zusätzlich sofort, sobald
-# „Dependabot security updates“ in den Repo-Einstellungen aktiv ist.
+# einzeln (höchstens 5 offene PRs). Sicherheits-Updates kommen zusätzlich
+# sofort, sobald „Dependabot security updates“ in den Repo-Einstellungen
+# aktiv ist. Geprüft werden die PRs von den Workflows „Build“ und
+# „Sicherheitsaudit“ – Vercel baut für dependabot/**-Branches keine Vorschau.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -11,7 +13,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     # Frisch veröffentlichte Versionen erst nach ein paar Tagen vorschlagen:
     # kompromittierte Releases werden meist innerhalb von Stunden entdeckt.
     cooldown:
@@ -20,6 +22,18 @@ updates:
     groups:
       minor-und-patch:
         update-types: [minor, patch]
+    ignore:
+      # @upscalerjs/default-model verlangt tfjs ~4.11 (Peer-Dependency).
+      - dependency-name: "@tensorflow/tfjs"
+      # eslint-config-next 15 unterstützt eslint 10 noch nicht.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # Typen passend zur Node-Version auf Vercel (22) halten.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 (nativer Compiler) erst, wenn Next.js es offiziell unterstützt.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "deps"
   - package-ecosystem: github-actions
@@ -29,5 +43,8 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Berlin
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: "ci"

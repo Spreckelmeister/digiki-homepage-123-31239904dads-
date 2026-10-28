@@ -1,0 +1,35 @@
+name: Build
+
+# Typecheck + Produktions-Build für Pull Requests (v. a. Dependabot).
+# Ersetzt für Dependabot-Branches die Vercel-Vorschau (vercel.json:
+# git.deploymentEnabled), damit fehlgeschlagene Updates keine Vercel-Mails
+# an den Projekt-Owner auslösen. Platzhalter-Env reicht für den Build.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      NEXT_PUBLIC_SITE_URL: https://digiki-os.de
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx tsc --noEmit -p .
+      - run: npm run build
