@@ -1,14 +1,13 @@
 name: Sicherheitsaudit
 
 # Prüft die npm-Abhängigkeiten auf bekannte Lücken, als Malware gemeldete
-# Pakete und manipulierte Registry-Signaturen. Läuft bei jeder Änderung an
-# package*.json, bei Pull Requests und täglich (neue Advisories erscheinen
-# auch ohne Code-Änderung).
+# Pakete und manipulierte Registry-Signaturen. Läuft bei jedem Push auf
+# main, bei Pull Requests und täglich (neue Advisories erscheinen auch
+# ohne Code-Änderung).
 
 on:
   push:
     branches: [main]
-    paths: [package.json, package-lock.json, .github/audit-allowlist.json, scripts/security-audit.mjs, .github/workflows/security-audit.yml]
   pull_request:
   schedule:
     - cron: "17 5 * * *"
