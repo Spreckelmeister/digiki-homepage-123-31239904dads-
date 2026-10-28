@@ -3,6 +3,8 @@ import { CheckCircle2, Inbox } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
+import ContactForwardSettings from "@/components/best-practice/ContactForwardSettings";
+import { CONTACT_FORWARD_SETTING_KEY } from "@/lib/kontakt";
 import ContactRequestsTable, {
   type ContactRequestRow,
 } from "@/components/best-practice/ContactRequestsTable";
@@ -23,6 +25,20 @@ export default async function KontaktAdminPage() {
     .order("created_at", { ascending: false });
 
   const requests = (data ?? []) as ContactRequestRow[];
+
+  // Weiterleitungs-Adresse: DB-Eintrag, sonst Fallback aus der Env
+  // (wie in /api/kontakt). Fehler = Tabelle fehlt (Migration 035).
+  const { data: forwardSetting, error: forwardError } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", CONTACT_FORWARD_SETTING_KEY)
+    .maybeSingle();
+  const forwardFromEnv = !forwardError && !forwardSetting;
+  const forwardValue = forwardSetting
+    ? (forwardSetting.value as string)
+    : forwardFromEnv
+      ? (process.env.CONTACT_FORWARD_TO ?? "")
+      : "";
   const neuCount = requests.filter((r) => r.status === "neu").length;
   const inBearbeitungCount = requests.filter(
     (r) => r.status === "in_bearbeitung",
@@ -86,6 +102,11 @@ export default async function KontaktAdminPage() {
             </div>
           </div>
 
+          <ContactForwardSettings
+            initialValue={forwardValue}
+            fromEnv={forwardFromEnv}
+            unavailable={Boolean(forwardError)}
+          />
           <ContactRequestsTable requests={requests} />
         </div>
       </section>

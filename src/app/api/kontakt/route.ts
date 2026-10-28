@@ -1,19 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import {
+  createClient as createAdminClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
+import {
+  createSmtpTransporter,
   escapeHtml,
+  getSiteUrl,
   isSmtpConfigured,
   sendAuthCodeMail,
 } from "@/lib/email/sendAuthCodeMail";
-import { CONTACT_TOPICS, MAX_MESSAGE_LENGTH } from "@/lib/kontakt";
+import { wrapMailing } from "@/lib/email/wrapMailing";
+import {
+  CONTACT_FORWARD_SETTING_KEY,
+  CONTACT_TOPICS,
+  MAX_MESSAGE_LENGTH,
+  parseForwardRecipients,
+} from "@/lib/kontakt";
 
 /**
  * Kontaktformular-Eingang: speichert die Anfrage in `contact_requests`
  * (Admin-Bereich, Tab „Kontakt") und versendet eine automatische
  * Eingangsbestätigung an die absendende Person.
  *
- * Bewusst KEINE Weiterleitungs-Mail an das Projektpostfach – genau davon
- * soll das Formular entlasten; Anfragen werden im Admin-Bereich bearbeitet.
+ * Zusätzlich geht eine Kopie an die Weiterleitungs-Adresse(n), die Admins
+ * im Tab „Kontakt" pflegen (`app_settings.contact_forward_to`; ohne Zeile
+ * Fallback auf die Env `CONTACT_FORWARD_TO`). Reply-To ist die absendende
+ * Person, man kann direkt antworten. Leer = keine Weiterleitung.
  */
 
 const ALLOWED_ORIGINS = [
@@ -45,6 +58,69 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function cleanStr(v: unknown, max: number): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
+}
+
+async function getForwardRecipients(admin: SupabaseClient): Promise<string[]> {
+  const { data, error } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", CONTACT_FORWARD_SETTING_KEY)
+    .maybeSingle();
+  if (error) console.error("[kontakt] Einstellung nicht lesbar:", error);
+  const raw =
+    !error && data ? (data.value as string) : (process.env.CONTACT_FORWARD_TO ?? "");
+  return parseForwardRecipients(raw).valid;
+}
+
+/** Weiterleitung einer neuen Anfrage an das Team. Wirft bei Transportfehlern. */
+async function forwardToTeam(
+  to: string[],
+  req: {
+    name: string;
+    email: string;
+    schoolName: string;
+    topic: string | null;
+    message: string;
+  },
+): Promise<void> {
+  const adminUrl = `${getSiteUrl()}/best-practice/admin/kontakt`;
+  const row = (label: string, value: string) =>
+    `<p style="margin:0 0 4px 0;color:#555555;font-size:13px;"><strong>${label}:</strong> ${value}</p>`;
+
+  const html = wrapMailing({
+    eyebrow: "Kontaktformular",
+    heading: "Neue Kontaktanfrage",
+    preheader: `${req.name}${req.topic ? ` – ${req.topic}` : ""}`,
+    bodyHtml: `
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background-color:#F5F9F9;border-left:4px solid #006363;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                <tr>
+                  <td style="padding:14px 16px;">
+                    ${row("Name", escapeHtml(req.name))}
+                    ${row("E-Mail", `<a href="mailto:${escapeHtml(req.email)}" style="color:#006363;">${escapeHtml(req.email)}</a>`)}
+                    ${req.schoolName ? row("Schule", escapeHtml(req.schoolName)) : ""}
+                    ${req.topic ? row("Anliegen", escapeHtml(req.topic)) : ""}
+                    <p style="margin:8px 0 0 0;color:#1A1A1A;font-size:14px;line-height:1.6;">${escapeHtml(req.message).replace(/\n/g, "<br />")}</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 12px 0;color:#1A1A1A;font-size:14px;line-height:1.6;">
+                Antworten auf diese E-Mail gehen direkt an die absendende Person.
+                Bitte setzen Sie den Status anschließend im Admin-Bereich:
+              </p>
+              <p style="margin:0;font-size:14px;">
+                <a href="${escapeHtml(adminUrl)}" style="color:#006363;font-weight:bold;">Kontaktanfragen im Admin-Bereich öffnen</a>
+              </p>`,
+  });
+
+  const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
+  await createSmtpTransporter().sendMail({
+    from: `DigiKI Kontaktformular <${from}>`,
+    to,
+    replyTo: { name: req.name, address: req.email },
+    subject: `Kontaktanfrage: ${req.topic ?? "Allgemein"} – ${req.name}`,
+    html,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -110,6 +186,18 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     console.error("[kontakt] Insert fehlgeschlagen:", insertError);
     return NextResponse.json({ error: "store_failed" }, { status: 500 });
+  }
+
+  // Weiterleitung ans Team – Fehler nur loggen, die Anfrage ist gespeichert.
+  if (isSmtpConfigured()) {
+    try {
+      const forwardTo = await getForwardRecipients(admin);
+      if (forwardTo.length > 0) {
+        await forwardToTeam(forwardTo, { name, email, schoolName, topic, message });
+      }
+    } catch (err) {
+      console.error("[kontakt] Weiterleitung fehlgeschlagen:", err);
+    }
   }
 
   // Eingangsbestätigung – ein Fehler hier macht die gespeicherte Anfrage

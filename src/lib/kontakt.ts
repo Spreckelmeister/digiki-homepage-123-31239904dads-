@@ -32,3 +32,25 @@ export const CONTACT_STATUS_META: Record<
   },
   beantwortet: { label: "Beantwortet", badgeClass: "bg-green-100 text-green-700" },
 };
+
+/** Schlüssel in `app_settings` für die Weiterleitungs-Adresse(n). */
+export const CONTACT_FORWARD_SETTING_KEY = "contact_forward_to";
+
+const FORWARD_EMAIL_REGEX = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+
+/** Zerlegt eine Komma-/Semikolon-/Zeilen-getrennte Adressliste.
+ *  Gibt gültige Adressen (dedupliziert, klein) und ungültige Einträge zurück. */
+export function parseForwardRecipients(raw: string): {
+  valid: string[];
+  invalid: string[];
+} {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const part of raw.split(/[,;\n]/)) {
+    const a = part.trim().toLowerCase();
+    if (!a) continue;
+    if (!FORWARD_EMAIL_REGEX.test(a)) invalid.push(a);
+    else if (!valid.includes(a)) valid.push(a);
+  }
+  return { valid, invalid };
+}
