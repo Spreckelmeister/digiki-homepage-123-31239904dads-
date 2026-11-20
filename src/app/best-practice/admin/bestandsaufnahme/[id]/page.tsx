@@ -6,6 +6,7 @@ import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import BestandsaufnahmeStatusManager from "@/components/best-practice/BestandsaufnahmeStatusManager";
 import UserEmailManager from "@/components/best-practice/UserEmailManager";
+import SchoolRemover from "@/components/best-practice/SchoolRemover";
 import ResendConfirmationButton from "@/components/best-practice/ResendConfirmationButton";
 import BackButton from "@/components/BackButton";
 
@@ -144,6 +145,15 @@ export default async function BestandsaufnahmeDetailPage({
               currentEmail={r.contact_email}
             />
           )}
+
+          {/* Schule aus dem Förderprogramm entfernen (z. B. außerhalb des
+              Einzugsbereichs): löscht Daten + Login und mailt den Grund. */}
+          <SchoolRemover
+            id={r.id}
+            schoolName={r.school_name}
+            email={r.contact_email ?? null}
+            hasAccount={Boolean(r.user_id)}
+          />
 
           {/* Kontakt & Anmeldung – für telefonische Rückfragen */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-border">
