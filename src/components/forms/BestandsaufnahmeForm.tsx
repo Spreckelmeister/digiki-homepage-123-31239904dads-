@@ -994,6 +994,11 @@ export default function BestandsaufnahmeForm({
         setStepError(
           "Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'."
         );
+      } else if (errorCode === "program_blocked") {
+        setErrorFocusId(null);
+        setStepError(
+          "Für diese Schule bzw. E-Mail-Adresse ist keine Registrierung im Förderprogramm möglich. Bei Fragen nutzen Sie bitte das Kontaktformular."
+        );
       } else if (errorCode === "weak_password") {
         setErrorFocusId(serverFocusId ?? "password");
         setStepError(

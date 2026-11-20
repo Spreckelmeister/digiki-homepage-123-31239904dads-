@@ -207,6 +207,23 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  // ── Sperrliste (Migration 037) ─────────────────────────────────────────────
+  // Aus dem Förderprogramm entfernte Schulen dürfen sich nicht neu
+  // registrieren – weder mit der gesperrten Adresse noch unter dem gesperrten
+  // Schulnamen. Fehlt die Migration, läuft die Registrierung unverändert.
+  const { data: isBlocked, error: blockCheckError } = await adminSupabase.rpc(
+    "is_program_blocked",
+    { p_email: loginEmail, p_school: String(schoolName).slice(0, 200) }
+  );
+  if (blockCheckError) {
+    console.error(
+      "[register-bestandsaufnahme] Sperrlisten-Prüfung:",
+      blockCheckError.message
+    );
+  } else if (isBlocked === true) {
+    return NextResponse.json({ error: "program_blocked" }, { status: 403 });
+  }
+
   // Feld 9 erfasst nur den Namen (die Funktion steckt in Frage 7 / respondent_role).
   // extractContactNames bleibt als Schutz, falls doch „Name, Funktion" eingetippt wird.
   const contactName =

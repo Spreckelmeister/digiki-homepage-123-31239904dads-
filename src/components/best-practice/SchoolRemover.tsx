@@ -26,6 +26,7 @@ export default function SchoolRemover({ id, schoolName, email, hasAccount }: Pro
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [code, setCode] = useState("");
+  const [block, setBlock] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ mailSent: boolean; recipients: string[] } | null>(
@@ -45,7 +46,7 @@ export default function SchoolRemover({ id, schoolName, email, hasAccount }: Pro
       const res = await fetch(`/api/admin/bestandsaufnahme/${id}/remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: trimmed, code }),
+        body: JSON.stringify({ reason: trimmed, code, block }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -164,6 +165,19 @@ export default function SchoolRemover({ id, schoolName, email, hasAccount }: Pro
             <span>
               Ich möchte <strong>{schoolName}</strong> endgültig entfernen. Das
               lässt sich nicht rückgängig machen.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              checked={block}
+              onChange={(e) => setBlock(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              Auf die Sperrliste setzen – E-Mail-Adresse und Schulname können
+              sich nicht neu registrieren.
             </span>
           </label>
 

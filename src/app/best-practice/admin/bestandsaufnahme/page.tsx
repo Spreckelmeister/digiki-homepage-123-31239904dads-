@@ -6,6 +6,7 @@ import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import BestandsaufnahmeAdminTable from "@/components/best-practice/BestandsaufnahmeAdminTable";
+import BlocklistManager from "@/components/best-practice/BlocklistManager";
 
 export const metadata: Metadata = {
   title: "Bestandsaufnahme – Admin",
@@ -32,6 +33,12 @@ export default async function BestandsaufnahmeAdminPage() {
     .order("created_at", { ascending: false });
 
   const rows = responses || [];
+
+  // Sperrliste (Migration 037). Fehlt die Tabelle noch, bleibt die Liste leer.
+  const { data: blocklist } = await supabase
+    .from("program_blocklist")
+    .select("id, email, school_name, reason, created_at")
+    .order("created_at", { ascending: false });
   const neuCount = rows.filter((r) => r.status === "neu").length;
   const gelesenCount = rows.filter((r) => r.status === "gelesen").length;
 
@@ -173,6 +180,8 @@ export default async function BestandsaufnahmeAdminPage() {
             lastResendEntries={lastResendEntries}
             signupAtEntries={signupAtEntries}
           />
+
+          <BlocklistManager entries={blocklist ?? []} />
         </div>
       </section>
     </>

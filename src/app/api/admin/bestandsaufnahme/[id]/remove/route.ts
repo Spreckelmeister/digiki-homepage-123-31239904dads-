@@ -19,6 +19,11 @@ import {
  * Step-up: Der Admin muss den Vorgang mit einem frischen Code seines
  * zweiten Faktors (Authenticator-App) bestätigen – eine bereits per 2FA
  * angemeldete Sitzung allein reicht nicht.
+ *
+ * Sperrliste (Migration 037): Standardmäßig landen E-Mail-Adresse(n) und
+ * Schulname in program_blocklist, damit sich die Schule nicht neu
+ * registrieren kann. Der Eintrag wird VOR dem Löschen geschrieben – schlägt
+ * er fehl, bleibt alles unverändert.
  */
 
 export const runtime = "nodejs";
@@ -69,7 +74,7 @@ export async function POST(
   }
 
   // Body
-  let body: { reason?: unknown; code?: unknown };
+  let body: { reason?: unknown; code?: unknown; block?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -127,6 +132,8 @@ export async function POST(
     );
   }
 
+  const block = body.block !== false;
+
   const { id } = await params;
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -183,6 +190,32 @@ export async function POST(
     ).values(),
   );
 
+  // ── Sperrliste ────────────────────────────────────────────────────────────
+  if (block) {
+    const schoolName = String(row.school_name ?? "").slice(0, 200);
+    const entries = (recipients.length > 0 ? recipients : [null]).map(
+      (email) => ({
+        email: email ? email.toLowerCase() : null,
+        school_name: schoolName,
+        reason,
+        created_by: user.id,
+      }),
+    );
+    const { error: blockError } = await admin
+      .from("program_blocklist")
+      .insert(entries);
+    if (blockError) {
+      console.error("[bestandsaufnahme/remove] blocklist:", blockError.message);
+      return NextResponse.json(
+        {
+          error:
+            "Die Sperrliste konnte nicht geschrieben werden (Migration 037 ausgeführt?). Es wurde nichts gelöscht.",
+        },
+        { status: 500 },
+      );
+    }
+  }
+
   // ── Löschen ───────────────────────────────────────────────────────────────
   // Zuerst das Login-Konto: Schlägt das fehl, bleibt alles unverändert und
   // der Admin kann es erneut versuchen.
@@ -196,7 +229,11 @@ export async function POST(
     if (deleteError) {
       console.error("[bestandsaufnahme/remove] deleteUser:", deleteError.message);
       return NextResponse.json(
-        { error: "Das Login-Konto konnte nicht gelöscht werden." },
+        {
+          error: block
+            ? "Das Login-Konto konnte nicht gelöscht werden. Der Sperrlisten-Eintrag wurde bereits angelegt."
+            : "Das Login-Konto konnte nicht gelöscht werden.",
+        },
         { status: 500 },
       );
     }
@@ -268,7 +305,9 @@ export async function POST(
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Ihr Zugang zur DigiKI-Plattform wurde damit geschlossen; eine
                 Anmeldung ist nicht mehr möglich. Ihre Bestandsaufnahme und
-                Ihre eingereichten Anträge haben wir gelöscht.
+                Ihre eingereichten Anträge haben wir gelöscht.${
+                  block ? " Eine erneute Registrierung ist nicht möglich." : ""
+                }
               </p>
               <p style="margin:0 0 24px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
                 Wenn Sie Fragen dazu haben oder die Entscheidung aus Ihrer
