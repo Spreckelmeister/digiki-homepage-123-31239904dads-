@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import {
+  createClient as createAdminClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
 import {
   isSmtpConfigured,
   sendAuthCodeMail,
@@ -52,6 +55,28 @@ function ipLimited(ip: string): boolean {
 
 function isEmailValid(email: string): boolean {
   return email.length <= 200 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/**
+ * Gibt es zu dieser Adresse schon ein Konto? Die Admin-API kennt keine
+ * Suche nach E-Mail, deshalb seitenweise durch die Nutzerliste. Schlägt die
+ * Abfrage fehl, gilt „ja" – eine Störung soll niemanden aussperren.
+ */
+async function accountExists(
+  admin: SupabaseClient,
+  email: string
+): Promise<boolean> {
+  const perPage = 1000;
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.error("[request-auth-code] listUsers:", error.message);
+      return true;
+    }
+    if (data.users.some((u) => u.email?.toLowerCase() === email)) return true;
+    if (data.users.length < perPage) return false;
+  }
+  return true;
 }
 
 export interface AuthCodeRequestConfig {
@@ -124,9 +149,20 @@ export async function handleAuthCodeRequest(
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  // WICHTIG: generateLink({type:"magiclink"}) legt für eine UNBEKANNTE
+  // Adresse stillschweigend ein neues Konto an (Supabase fällt dann auf
+  // „signup" zurück). Ohne diese Prüfung könnte sich jede beliebige Adresse
+  // über das Anmeldeformular ein Konto verschaffen – an Bestandsaufnahme,
+  // Material-Registrierung und der Regel für E-Mail-Domains vorbei.
+  // Deshalb: Code nur für Adressen, zu denen es schon ein Konto gibt.
+  if (config.linkType === "magiclink" && !(await accountExists(admin, email))) {
+    console.info(`[request-${config.kind}-code] kein Konto für die Adresse – kein Code.`);
+    return NextResponse.json({ ok: true });
+  }
+
   // Der Link selbst wird NIE verwendet – wir brauchen nur den Einmal-Code
-  // (properties.email_otp). Fehler (unbekannte Adresse etc.) werden bewusst
-  // verschluckt: Antwort bleibt {ok:true} (Enumeration-Schutz).
+  // (properties.email_otp). Fehler werden bewusst verschluckt: Antwort
+  // bleibt {ok:true} (Enumeration-Schutz).
   const { data: linkData, error: linkError } =
     await admin.auth.admin.generateLink({
       type: config.linkType,
