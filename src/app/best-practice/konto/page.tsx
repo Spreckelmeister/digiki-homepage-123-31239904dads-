@@ -7,6 +7,7 @@ import MyEmailChanger from "@/components/best-practice/MyEmailChanger";
 import MyPasswordChanger from "@/components/best-practice/MyPasswordChanger";
 import MyAccountDeleter from "@/components/best-practice/MyAccountDeleter";
 import { TwoFactorManager } from "@/components/best-practice/TwoFactor";
+import { hasBestandsaufnahme } from "@/lib/material/server";
 
 export const metadata: Metadata = {
   title: "Konto - DigiKI",
@@ -23,6 +24,16 @@ export default async function KontoPage() {
   if (!user) redirect("/best-practice/login?redirect=/best-practice/konto");
 
   const profile = await getCurrentProfile();
+  const role = profile?.role?.toLowerCase();
+  // Konten ohne Bestandsaufnahme (nur Schulungsmaterial) kommen von dort.
+  const materialOnly =
+    role === "teacher" && !(await hasBestandsaufnahme(supabase));
+  const back =
+    role === "schulungsteam"
+      ? { href: "/schulungsdashboard", label: "Zum Schulungs-Dashboard" }
+      : materialOnly
+        ? { href: "/schulungsmaterial", label: "Zum Schulungsmaterial" }
+        : { href: "/best-practice/datenbank", label: "Zurück zur Datenbank" };
 
   return (
     <>
@@ -32,16 +43,8 @@ export default async function KontoPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <BackButton
-                fallbackHref={
-                  profile?.role?.toLowerCase() === "schulungsteam"
-                    ? "/schulungsdashboard"
-                    : "/best-practice/datenbank"
-                }
-                fallbackLabel={
-                  profile?.role?.toLowerCase() === "schulungsteam"
-                    ? "Zum Schulungs-Dashboard"
-                    : "Zurück zur Datenbank"
-                }
+                fallbackHref={back.href}
+                fallbackLabel={back.label}
                 className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors mb-4"
               />
               <h1 className="text-3xl md:text-4xl font-bold text-white">
