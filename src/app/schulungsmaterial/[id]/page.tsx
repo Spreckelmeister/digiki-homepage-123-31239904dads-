@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import MaterialViewer from "@/components/material/MaterialViewer";
+import HtmlViewer from "@/components/material/HtmlViewer";
 import { MATERIAL_BUCKET, type MaterialItem } from "@/lib/material/shared";
 
 export const metadata: Metadata = {
@@ -48,9 +49,15 @@ export default async function MaterialDetailPage({
   if (!item) notFound();
 
   // Erst NACH der Prüfung: kurzlebiger Link auf die Datei im privaten Bucket.
-  const { data: signed } = await createServiceClient()
-    .storage.from(MATERIAL_BUCKET)
-    .createSignedUrl(item.storage_path, LINK_SECONDS[item.kind]);
+  // HTML-Material braucht keinen Link – es kommt über unsere eigene,
+  // abgeschottete Route (/schulungsmaterial/inhalt/[id]).
+  let signedUrl: string | null = null;
+  if (item.kind !== "html") {
+    const { data: signed } = await createServiceClient()
+      .storage.from(MATERIAL_BUCKET)
+      .createSignedUrl(item.storage_path, LINK_SECONDS[item.kind]);
+    signedUrl = signed?.signedUrl ?? null;
+  }
 
   return (
     <>
@@ -81,12 +88,10 @@ export default async function MaterialDetailPage({
               {item.description}
             </p>
           )}
-          {signed?.signedUrl ? (
-            <MaterialViewer
-              kind={item.kind}
-              url={signed.signedUrl}
-              title={item.title}
-            />
+          {item.kind === "html" ? (
+            <HtmlViewer id={item.id} title={item.title} />
+          ) : signedUrl ? (
+            <MaterialViewer kind={item.kind} url={signedUrl} title={item.title} />
           ) : (
             <p role="alert" className="rounded-xl border border-border bg-white p-8 text-text-light">
               Die Datei kann im Moment nicht geladen werden. Bitte versuchen

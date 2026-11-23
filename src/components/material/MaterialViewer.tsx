@@ -19,7 +19,7 @@ export default function MaterialViewer({
   url,
   title,
 }: {
-  kind: MaterialKind;
+  kind: Exclude<MaterialKind, "html">;
   url: string;
   title: string;
 }) {

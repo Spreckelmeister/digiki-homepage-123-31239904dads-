@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Dieser Dateityp lässt sich nicht im Browser ansehen. Möglich sind Video (MP4, WebM), Audio, PDF und Bilder – Präsentationen bitte als PDF speichern.",
+          "Dieser Dateityp lässt sich nicht im Browser ansehen. Möglich sind HTML-Dateien, Video (MP4, WebM), Audio, PDF und Bilder – Präsentationen bitte als PDF speichern.",
       },
       { status: 400 }
     );

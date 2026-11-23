@@ -60,7 +60,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*)",
+        // Ausgenommen: /schulungsmaterial/inhalt/… (HTML-Schulungsmaterial im
+        // Rahmen). Die Route setzt ihre eigenen, strengeren Header (CSP
+        // „sandbox") – X-Frame-Options: DENY und frame-ancestors 'none' von
+        // hier würden die Anzeige im Rahmen verhindern.
+        source: "/((?!schulungsmaterial/inhalt/).*)",
         headers: [
           {
             key: "X-Frame-Options",

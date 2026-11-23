@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileText, Film, Headphones, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, FileText, Film, Headphones, Image as ImageIcon, MonitorPlay } from "lucide-react";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import { hasBestandsaufnahme } from "@/lib/material/server";
@@ -20,6 +20,7 @@ const KIND_ICON: Record<MaterialKind, typeof Film> = {
   audio: Headphones,
   pdf: FileText,
   image: ImageIcon,
+  html: MonitorPlay,
 };
 
 export default async function SchulungsmaterialPage() {

@@ -4,7 +4,7 @@
 /** Privater Supabase-Storage-Bucket. */
 export const MATERIAL_BUCKET = "schulungsmaterial";
 
-export type MaterialKind = "video" | "audio" | "pdf" | "image";
+export type MaterialKind = "video" | "audio" | "pdf" | "image" | "html";
 
 export interface MaterialItem {
   id: string;
@@ -39,20 +39,29 @@ const KIND_BY_MIME: Record<string, MaterialKind> = {
   "image/jpeg": "image",
   "image/png": "image",
   "image/webp": "image",
+  // HTML-Lerneinheit: wird abgeschottet in einem Rahmen angezeigt.
+  "text/html": "html",
 };
+
+/** Manche Browser melden für .html keinen Typ – dann nach Endung. */
+export function mimeOfFile(name: string, type: string): string {
+  if (type) return type.toLowerCase();
+  return /\.html?$/i.test(name) ? "text/html" : "";
+}
 
 export function kindFromMime(mime: string): MaterialKind | null {
   return KIND_BY_MIME[mime.toLowerCase()] ?? null;
 }
 
 /** Wert für das accept-Attribut des Datei-Felds. */
-export const MATERIAL_ACCEPT = Object.keys(KIND_BY_MIME).join(",");
+export const MATERIAL_ACCEPT = [...Object.keys(KIND_BY_MIME), ".html", ".htm"].join(",");
 
 export const KIND_LABEL: Record<MaterialKind, string> = {
   video: "Video",
   audio: "Audio",
   pdf: "PDF",
   image: "Bild",
+  html: "Lerneinheit",
 };
 
 export function formatSize(bytes: number): string {

@@ -11,6 +11,7 @@ import {
   MATERIAL_BUCKET,
   formatSize,
   kindFromMime,
+  mimeOfFile,
   type MaterialItem,
 } from "@/lib/material/shared";
 
@@ -38,9 +39,10 @@ export default function MaterialAdmin({ items }: { items: MaterialItem[] }) {
       setError("Bitte Titel und Datei angeben.");
       return;
     }
-    if (!kindFromMime(file.type)) {
+    const mimeType = mimeOfFile(file.name, file.type);
+    if (!kindFromMime(mimeType)) {
       setError(
-        "Dieser Dateityp lässt sich nicht im Browser ansehen. Möglich sind Video (MP4, WebM), Audio, PDF und Bilder – Präsentationen bitte als PDF speichern."
+        "Dieser Dateityp lässt sich nicht im Browser ansehen. Möglich sind HTML-Dateien, Video (MP4, WebM), Audio, PDF und Bilder – Präsentationen bitte als PDF speichern."
       );
       return;
     }
@@ -55,7 +57,7 @@ export default function MaterialAdmin({ items }: { items: MaterialItem[] }) {
           title,
           description,
           fileName: file.name,
-          mimeType: file.type,
+          mimeType,
           size: file.size,
         }),
       });
@@ -71,7 +73,7 @@ export default function MaterialAdmin({ items }: { items: MaterialItem[] }) {
       const { error: uploadError } = await supabase.storage
         .from(MATERIAL_BUCKET)
         .uploadToSignedUrl(payload.path as string, payload.token as string, file, {
-          contentType: file.type,
+          contentType: mimeType,
         });
       if (uploadError) {
         throw new Error(
@@ -216,7 +218,10 @@ export default function MaterialAdmin({ items }: { items: MaterialItem[] }) {
             className="block w-full text-sm text-text file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary"
           />
           <p id="material-file-hint" className="mt-1.5 text-xs text-text-light">
-            Video (MP4, WebM), Audio, PDF oder Bild. Das Material wird Schulen
+            HTML-Datei, Video (MP4, WebM), Audio, PDF oder Bild. Eine
+            HTML-Datei muss alles enthalten, was sie braucht (Skripte, Stile
+            und Bilder eingebettet) – sie darf aus Sicherheitsgründen nichts
+            aus dem Internet nachladen. Das Material wird Schulen
             nur zur Ansicht gezeigt, nicht zum Download – Präsentationen
             deshalb bitte als PDF speichern.
             {file && <> Gewählt: {file.name} ({formatSize(file.size)}).</>}
