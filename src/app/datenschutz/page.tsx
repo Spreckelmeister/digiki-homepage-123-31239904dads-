@@ -103,8 +103,9 @@ export default function DatenschutzPage() {
               <ul className="list-disc ml-6 text-text-light space-y-2 mb-4">
                 <li>
                   <strong>Technisch notwendige Cookies</strong>:
-                  Session-Cookies zur sicheren Anmeldung in der
-                  Best-Practice-Datenbank (gesetzt durch Supabase Auth).
+                  Session-Cookies zur sicheren Anmeldung im geschützten
+                  Bereich (Best-Practice-Datenbank, Schulungsmaterial;
+                  gesetzt durch Supabase Auth).
                   Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2
                   Nr. 2 TDDDG (unbedingt erforderlich).
                 </li>
@@ -588,7 +589,8 @@ export default function DatenschutzPage() {
                 Best-Practice-Dokumentationen), die digitale Bestandsaufnahme
                 ausfüllen und über das Kontaktformular allgemeine Anfragen an
                 das Projektteam stellen können. Außerdem kann ein Login-Konto
-                für die Best-Practice-Datenbank erstellt werden. Die eingegebenen Daten
+                für die Best-Practice-Datenbank oder – ohne Bestandsaufnahme –
+                nur für das Schulungsmaterial erstellt werden. Die eingegebenen Daten
                 werden über eine verschlüsselte Verbindung (HTTPS) an unseren
                 Datenbank- und Authentifizierungs-Dienstleister
                 <strong> Supabase</strong> übermittelt und dort gespeichert.
@@ -612,7 +614,34 @@ export default function DatenschutzPage() {
                   Beim Kontaktformular: Name, E-Mail-Adresse, optional der
                   Schulname sowie Anliegen und Inhalt Ihrer Nachricht
                 </li>
+                <li>
+                  Beim Zugang nur für das Schulungsmaterial: Schulname, Name
+                  der Ansprechperson und dienstliche E-Mail-Adresse
+                </li>
               </ul>
+
+              <h3 className="text-lg font-semibold text-text mb-2">
+                Zugang zum Schulungsmaterial
+              </h3>
+              <p className="text-text-light leading-relaxed mb-4">
+                Schulen können das Schulungsmaterial (Videos und Unterlagen)
+                mit ihrem bestehenden Konto ansehen oder dafür ein eigenes
+                Konto anlegen, ohne die Bestandsaufnahme auszufüllen. Dabei
+                erheben wir nur den Schulnamen, den Namen der Ansprechperson
+                und die dienstliche E-Mail-Adresse; ein Passwort ist nicht
+                nötig, die Anmeldung erfolgt über einen Einmal-Code per
+                E-Mail. Je Schule ist ein Konto vorgesehen – wir gleichen
+                deshalb den Schulnamen mit den vorhandenen Konten ab.
+                Zugelassen sind nur dienstliche E-Mail-Adressen: Bei jeder
+                Registrierung und bei jeder Änderung der Adresse prüfen wir
+                automatisch, ob sie zu einem privaten E-Mail-Anbieter
+                gehört; in diesem Fall wird die Eingabe abgelehnt und nicht
+                gespeichert. Das Material wird aus einem geschützten
+                Speicher bei Supabase direkt an Ihren Browser ausgeliefert;
+                dabei wird technisch bedingt Ihre IP-Adresse an Supabase
+                übermittelt. Welche Inhalte ein Konto ansieht, werten wir
+                nicht aus.
+              </p>
 
               <h3 className="text-lg font-semibold text-text mb-2">
                 Zweck und Rechtsgrundlage
@@ -622,7 +651,12 @@ export default function DatenschutzPage() {
                 Teilnahme am DigiKI-Projekt auf Grundlage von Art. 6 Abs. 1 lit.
                 b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO
                 (Einwilligung bei der Best-Practice-Veröffentlichung und beim
-                Konto-Anlegen im Rahmen der Bestandsaufnahme). Anfragen über
+                Konto-Anlegen im Rahmen der Bestandsaufnahme). Das Konto nur
+                für das Schulungsmaterial verarbeiten wir, um Ihrer Schule den
+                gewünschten Zugang bereitzustellen (Art. 6 Abs. 1 lit. b
+                DSGVO); die Prüfung auf dienstliche E-Mail-Adressen dient
+                unserem berechtigten Interesse, den Zugang auf Schulen zu
+                beschränken (Art. 6 Abs. 1 lit. f DSGVO). Anfragen über
                 das Kontaktformular verarbeiten wir zur Bearbeitung und
                 Beantwortung Ihres Anliegens (Art. 6 Abs. 1 lit. b DSGVO);
                 zusätzlich erhalten Sie eine automatische Eingangsbestätigung
@@ -648,6 +682,8 @@ export default function DatenschutzPage() {
                 Die über die Formulare erhobenen Daten werden für die Dauer des
                 DigiKI-Projekts gespeichert und nach Projektabschluss gelöscht,
                 sofern keine gesetzlichen Aufbewahrungspflichten bestehen.
+                Ein Konto – auch eines nur für das Schulungsmaterial – können
+                Sie jederzeit selbst in Ihrem Konto-Bereich löschen.
                 Kontaktanfragen löschen wir, sobald sie abschließend
                 beantwortet sind und keine weitere Aufbewahrung erforderlich
                 ist – spätestens mit Projektabschluss.
