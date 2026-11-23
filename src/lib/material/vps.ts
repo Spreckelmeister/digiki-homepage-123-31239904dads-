@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { createServiceClient } from "@/lib/schulungen/server";
 
 // HTML-Material auf dem eigenen Server (scripts/material-vps).
 //
@@ -16,13 +17,43 @@ export const MATERIAL_HOST_URL = (
   process.env.MATERIAL_HOST_URL || "https://material.digiki-os.de"
 ).replace(/\/+$/, "");
 
-/** Link auf die Startseite eines Materials – oder null, wenn der Schlüssel fehlt. */
-export function vpsMaterialUrl(slug: string, now: Date = new Date()): string | null {
-  const secret = process.env.MATERIAL_HOST_SECRET?.trim();
-  if (!secret) {
-    console.error("[material/vps] MATERIAL_HOST_SECRET fehlt");
+/** Schlüssel in `app_settings`, falls die Umgebungsvariable nicht gesetzt ist. */
+const SECRET_SETTING = "material_host_secret";
+
+let cachedSecret: { value: string; at: number } | null = null;
+
+/**
+ * Schlüssel des Material-Servers: Umgebungsvariable MATERIAL_HOST_SECRET,
+ * sonst die Zeile „material_host_secret" in app_settings (lesbar nur für
+ * Admins und den Server). Der Datenbank-Wert wird fünf Minuten gemerkt.
+ */
+async function hostSecret(): Promise<string | null> {
+  const fromEnv = process.env.MATERIAL_HOST_SECRET?.trim();
+  if (fromEnv) return fromEnv;
+  if (cachedSecret && Date.now() - cachedSecret.at < 5 * 60 * 1000) {
+    return cachedSecret.value;
+  }
+  const { data, error } = await createServiceClient()
+    .from("app_settings")
+    .select("value")
+    .eq("key", SECRET_SETTING)
+    .maybeSingle();
+  const value = typeof data?.value === "string" ? data.value.trim() : "";
+  if (error || !value) {
+    console.error("[material/vps] Schlüssel fehlt:", error?.message ?? "nicht hinterlegt");
     return null;
   }
+  cachedSecret = { value, at: Date.now() };
+  return value;
+}
+
+/** Link auf die Startseite eines Materials – oder null, wenn der Schlüssel fehlt. */
+export async function vpsMaterialUrl(
+  slug: string,
+  now: Date = new Date()
+): Promise<string | null> {
+  const secret = await hostSecret();
+  if (!secret) return null;
   const day = now.toISOString().slice(0, 10);
   const token = createHmac("sha256", secret)
     .update(`${slug}\n${day}`)

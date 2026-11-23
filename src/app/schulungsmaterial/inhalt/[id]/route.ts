@@ -122,7 +122,7 @@ export async function GET(
   // geladen): dorthin weiterleiten. Der Link gilt nur kurz, siehe vps.ts.
   const slug = vpsSlug(item.storage_path);
   if (slug) {
-    const url = vpsMaterialUrl(slug);
+    const url = await vpsMaterialUrl(slug);
     if (!url) return plain("Die Datei kann im Moment nicht geladen werden.", 502);
     return new Response(null, {
       status: 302,
