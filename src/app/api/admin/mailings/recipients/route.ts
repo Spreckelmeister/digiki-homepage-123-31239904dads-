@@ -94,7 +94,8 @@ export async function GET(_request: NextRequest) {
     .from("bestandsaufnahme_responses")
     .select("user_id, contact_email");
   const bsaUserIds = new Set((bsaData ?? []).map((r) => r.user_id).filter(Boolean));
-  // Als „intern" markierte Konten (Migration 039) sind keine Schulen.
+  // Als „intern" markierte Konten (Migration 039) sind keine Schulen und
+  // tauchen im Mail-Tool gar nicht auf.
   const { data: internalData } = await admin
     .from("internal_accounts")
     .select("user_id");
@@ -107,7 +108,8 @@ export async function GET(_request: NextRequest) {
 
   const accounts = dedupe(
     usersData.users
-      .filter((u) => !!u.email)
+      // Interne Konten (Team/Test, Migration 039) sind keine Empfänger.
+      .filter((u) => !!u.email && !internalIds.has(u.id))
       .map((u) => {
         const p = profileById.get(u.id);
         return {
@@ -118,7 +120,6 @@ export async function GET(_request: NextRequest) {
           confirmed: !!u.email_confirmed_at,
           materialOnly:
             String(p?.role ?? "").toLowerCase() === "teacher" &&
-            !internalIds.has(u.id) &&
             !bsaUserIds.has(u.id) &&
             !bsaEmails.has((u.email as string).toLowerCase()),
         };
