@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isEmailDomainBlocked, PRIVATE_EMAIL_MESSAGE } from "@/lib/material/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
@@ -217,6 +218,19 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+
+  // Private Adressen sind für Schulkonten gesperrt (Migration 038).
+  if (await isEmailDomainBlocked(admin, newEmail)) {
+    const { data: targetRole } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    const r = targetRole?.role?.toLowerCase();
+    if (r !== "admin" && r !== "schulungsteam") {
+      return NextResponse.json({ error: PRIVATE_EMAIL_MESSAGE }, { status: 400 });
+    }
+  }
 
   // Alte Adresse + Name für die Info-Mail vor dem Update abgreifen
   const { data: targetUserData } = await admin.auth.admin.getUserById(userId);

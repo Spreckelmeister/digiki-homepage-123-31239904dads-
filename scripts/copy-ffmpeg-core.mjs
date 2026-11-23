@@ -44,3 +44,15 @@ for (const file of [
   await copyFile(join(workerSrc, file), join(workerDest, file));
   console.log(`copied ${file} -> public/ffmpeg-worker/${file}`);
 }
+
+// pdf.js-Worker für die Ansicht im Schulungsmaterial (PDF wird auf Canvas
+// gezeichnet, ohne Download-Leiste). Als statische Datei, damit der Bundler
+// den Worker nicht anfassen muss. „legacy"-Build: läuft auch auf älteren
+// Schul-iPads.
+const pdfWorkerDest = join(root, "public", "pdf-worker");
+await mkdir(pdfWorkerDest, { recursive: true });
+await copyFile(
+  join(root, "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.min.mjs"),
+  join(pdfWorkerDest, "pdf.worker.min.mjs")
+);
+console.log("copied pdf.worker.min.mjs -> public/pdf-worker/pdf.worker.min.mjs");

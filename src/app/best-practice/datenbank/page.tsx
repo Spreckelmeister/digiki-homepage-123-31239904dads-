@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { hasBestandsaufnahme } from "@/lib/material/server";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import BestPracticeList from "@/components/best-practice/BestPracticeList";
@@ -13,6 +15,15 @@ export const metadata: Metadata = {
 export default async function DatenbankPage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
+
+  // Konten ohne Bestandsaufnahme (nur Schulungsmaterial, Migration 038)
+  // gehören nicht zum Förderprogramm – für sie gibt es nur das Material.
+  if (
+    profile?.role?.toLowerCase() === "teacher" &&
+    !(await hasBestandsaufnahme(supabase))
+  ) {
+    redirect("/schulungsmaterial");
+  }
 
   const { data: practices } = await supabase
     .from("best_practices")

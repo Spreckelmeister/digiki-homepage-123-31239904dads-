@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Settings, User } from "lucide-react";
+import { FolderOpen, LogOut, Settings, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
@@ -51,6 +51,15 @@ export default function AuthStatus({
         Angemeldet als{" "}
         <strong className="text-white">{profile.full_name}</strong>
       </span>
+      {profile.role !== "schulungsteam" && (
+        <Link
+          href="/schulungsmaterial"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-white/70 hover:text-white transition-colors"
+        >
+          <FolderOpen className="w-4 h-4" aria-hidden="true" />
+          Schulungsmaterial
+        </Link>
+      )}
       <Link
         href="/best-practice/konto"
         className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-white/70 hover:text-white transition-colors"

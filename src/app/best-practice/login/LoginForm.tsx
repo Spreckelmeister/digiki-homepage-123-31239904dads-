@@ -86,8 +86,15 @@ export default function LoginForm() {
         .select("role")
         .eq("id", user.id)
         .single();
-      if (profile?.role?.toLowerCase() === "schulungsteam") {
+      const role = profile?.role?.toLowerCase();
+      if (role === "schulungsteam") {
         target = "/schulungsdashboard";
+      } else if (role === "teacher" && !searchParams.get("redirect")) {
+        // Konten ohne Bestandsaufnahme (nur Schulungsmaterial, Migration 038)
+        // landen direkt im Schulungsmaterial. Fehlt die Funktion, bleibt es
+        // beim Standardziel.
+        const { data: hasBsa } = await supabase.rpc("has_bestandsaufnahme");
+        if (hasBsa === false) target = "/schulungsmaterial";
       }
       // Admin-Konten: zweiter Faktor (auch wenn das Ziel außerhalb der
       // Middleware liegt). Für alle anderen liefert die Funktion false.
@@ -493,6 +500,15 @@ export default function LoginForm() {
             className="text-primary underline hover:text-primary/80"
           >
             Bestandsaufnahme ausfüllen
+          </Link>
+        </p>
+        <p className="mt-2">
+          Nur am Schulungsmaterial interessiert?{" "}
+          <Link
+            href="/schulungsmaterial/registrieren"
+            className="text-primary underline hover:text-primary/80"
+          >
+            Zugang für Ihre Schule anlegen
           </Link>
         </p>
       </div>

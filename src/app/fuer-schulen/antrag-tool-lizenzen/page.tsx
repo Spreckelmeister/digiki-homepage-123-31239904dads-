@@ -12,6 +12,8 @@ import {
 } from "@/lib/schulungen/getSchoolTrainings";
 import ToolLicenseForm from "@/components/forms/ToolLicenseForm";
 import BackButton from "@/components/BackButton";
+import ProgrammOnlyNotice from "@/components/material/ProgrammOnlyNotice";
+import { hasBestandsaufnahme } from "@/lib/material/server";
 
 export const metadata: Metadata = {
   title: "Antrag: Tool-Lizenzen - DigiKI",
@@ -48,11 +50,14 @@ export default async function AntragToolLizenzenPage() {
       ? (roleLower as "admin" | "schulungsteam")
       : undefined;
 
+  // Konten ohne Bestandsaufnahme (nur Schulungsmaterial) stellen keine Anträge.
+  const programMember = actingRole ? true : await hasBestandsaufnahme(supabase);
+
   let prefill: BestandsaufnahmePrefill | null = null;
   let lockedFromBSA: string[] = [];
   let registeredTrainings: RegisteredTraining[] = [];
 
-  if (!actingRole) {
+  if (!actingRole && programMember) {
     // Auto-fill aus der jüngsten Bestandsaufnahme dieser Schule – damit
     // Schulname, Schulleitung, Ansprechperson, Telefon und Lehrkräfte-Zahl
     // konsistent sind und nicht erneut eingegeben werden müssen.
@@ -91,13 +96,17 @@ export default async function AntragToolLizenzenPage() {
       {/* Form */}
       <section className="bg-bg py-12 md:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <ToolLicenseForm
-            lockedEmail={user.email ?? ""}
-            prefillFromBSA={prefill}
-            lockedFromBSA={lockedFromBSA}
-            registeredTrainings={registeredTrainings}
-            actingRole={actingRole}
-          />
+          {programMember ? (
+            <ToolLicenseForm
+              lockedEmail={user.email ?? ""}
+              prefillFromBSA={prefill}
+              lockedFromBSA={lockedFromBSA}
+              registeredTrainings={registeredTrainings}
+              actingRole={actingRole}
+            />
+          ) : (
+            <ProgrammOnlyNotice what="Tool-Lizenzen können nur Schulen im Förderprogramm beantragen." />
+          )}
         </div>
       </section>
     </>

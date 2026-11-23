@@ -6,6 +6,7 @@ import { Send, ChevronRight, ChevronLeft, Check, Eye, EyeOff, AlertTriangle } fr
 import FormSuccess from "./FormSuccess";
 import { useHoneypot } from "./useHoneypot";
 import { useIsAdmin } from "@/lib/useIsAdmin";
+import { createClient } from "@/lib/supabase/client";
 import {
   useSchoolAutocomplete,
   type SchoolSuggestion,
@@ -571,6 +572,28 @@ export default function BestandsaufnahmeForm({
   const [success, setSuccess] = useState(false);
   const isAdmin = useIsAdmin();
 
+  // Bereits angemeldetes Schulkonto ohne Bestandsaufnahme (z. B. nur für das
+  // Schulungsmaterial registriert): Die Bestandsaufnahme wird dem bestehenden
+  // Konto zugeordnet – der Schritt „Account anlegen" entfällt.
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  useEffect(() => {
+    if (editMode) return;
+    let active = true;
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (!active || !data.user?.email) return;
+        setSessionEmail(data.user.email);
+        setContactEmail(data.user.email);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode]);
+  const attachMode = !editMode && !!sessionEmail && isAdmin !== true;
+
   // Intent-Flag: echte Submit-Versuche (Klick auf den Einreichen-Button)
   const submitIntentRef = useRef(false);
 
@@ -804,8 +827,8 @@ export default function BestandsaufnahmeForm({
   }
 
   // ─── lastStep: in editMode skip step 8 (account creation) ─────────────────
-  const lastStep = editMode ? 7 : 8;
-  const visibleSteps = editMode ? STEPS.slice(0, 8) : STEPS;
+  const lastStep = editMode || attachMode ? 7 : 8;
+  const visibleSteps = editMode || attachMode ? STEPS.slice(0, 8) : STEPS;
 
   // ─── Submit ─────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
@@ -994,10 +1017,25 @@ export default function BestandsaufnahmeForm({
         setStepError(
           "Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an oder nutzen Sie 'Passwort vergessen'."
         );
+      } else if (errorCode === "private_email") {
+        setErrorFocusId(serverFocusId ?? "contactEmail");
+        setStepError(
+          "Bitte verwenden Sie die dienstliche E-Mail-Adresse Ihrer Schule. Private Adressen (z. B. Gmail, GMX, Web.de) sind nicht zugelassen."
+        );
       } else if (errorCode === "program_blocked") {
         setErrorFocusId(null);
         setStepError(
           "Für diese Schule bzw. E-Mail-Adresse ist keine Registrierung im Förderprogramm möglich. Bei Fragen nutzen Sie bitte das Kontaktformular."
+        );
+      } else if (errorCode === "already_submitted") {
+        setErrorFocusId(null);
+        setStepError(
+          "Für Ihr Konto liegt bereits eine Bestandsaufnahme vor. Sie können sie in Ihrem DigiKI-Bereich unter „Meine Bestandsaufnahme“ bearbeiten."
+        );
+      } else if (errorCode === "not_allowed") {
+        setErrorFocusId(null);
+        setStepError(
+          "Mit diesem Konto kann keine Bestandsaufnahme eingereicht werden. Bitte melden Sie sich mit dem Konto Ihrer Schule an."
         );
       } else if (errorCode === "weak_password") {
         setErrorFocusId(serverFocusId ?? "password");
@@ -1052,6 +1090,12 @@ export default function BestandsaufnahmeForm({
           Zurück zur Datenbank
         </a>
       </div>
+    ) : attachMode ? (
+      <FormSuccess
+        title="Vielen Dank für Ihre Teilnahme!"
+        message="Ihre Bestandsaufnahme wurde übermittelt und Ihrem bestehenden DigiKI-Konto zugeordnet. Damit stehen Ihrer Schule jetzt auch die Angebote des Förderprogramms offen."
+        submittedEmail={contactEmail}
+      />
     ) : (
       <FormSuccess
         title="Vielen Dank für Ihre Teilnahme!"
@@ -1064,6 +1108,13 @@ export default function BestandsaufnahmeForm({
   return (
     <div>
       {HoneypotField}
+      {attachMode && (
+        <p className="mb-6 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-text" role="status">
+          Sie sind angemeldet als <strong>{sessionEmail}</strong>. Die
+          Bestandsaufnahme wird Ihrem bestehenden Konto zugeordnet – ein
+          neues Konto ist nicht nötig.
+        </p>
+      )}
       <ProgressBar
         step={step}
         steps={visibleSteps}
@@ -1705,6 +1756,9 @@ export default function BestandsaufnahmeForm({
               <FieldLabel required htmlFor="contactEmail">E-Mail-Adresse (wird als Login verwendet)</FieldLabel>
               <TextInput id="contactEmail" type="email" value={contactEmail} onChange={setContactEmail}
                 placeholder="ihre.email@schule.de" autoComplete="email" />
+              <p className="mt-1.5 text-xs text-text-light">
+                Bitte die dienstliche Adresse Ihrer Schule – private Adressen (z.&nbsp;B. Gmail, GMX, Web.de) sind nicht zugelassen.
+              </p>
               {NIBIS_PATTERN.test(contactEmail.trim()) && (
                 <p className="mt-2 flex items-start gap-2 text-sm text-red-700" role="alert">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />

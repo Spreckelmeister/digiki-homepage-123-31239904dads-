@@ -14,7 +14,16 @@ import CodeVerifyBox from "@/components/auth/CodeVerifyBox";
  * angemeldet. Wer die Seite schließt, holt das später einfach beim
  * Code-Login nach (bestätigt die Adresse ebenfalls).
  */
-export default function InlineSignupConfirm({ email }: { email: string }) {
+export default function InlineSignupConfirm({
+  email,
+  targetHref = "/best-practice/datenbank",
+  targetLabel = "Zur Best-Practice-Datenbank",
+}: {
+  email: string;
+  /** Wohin es nach der Bestätigung geht (Standard: Datenbank). */
+  targetHref?: string;
+  targetLabel?: string;
+}) {
   const [confirmed, setConfirmed] = useState(false);
 
   if (confirmed) {
@@ -30,10 +39,10 @@ export default function InlineSignupConfirm({ email }: { email: string }) {
         </p>
         <p className="mt-3 text-center">
           <Link
-            href="/best-practice/datenbank"
+            href={targetHref}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
           >
-            Zur Best-Practice-Datenbank
+            {targetLabel}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </p>

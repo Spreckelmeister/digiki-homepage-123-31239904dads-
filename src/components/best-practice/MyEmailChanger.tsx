@@ -9,6 +9,8 @@ import CodeVerifyBox from "@/components/auth/CodeVerifyBox";
 
 // Modul-Level: einmal kompiliert, nicht pro Keystroke neu.
 const NIBIS_PATTERN = /\.nibis\.de\s*$/i;
+const PRIVATE_EMAIL_HINT =
+  "Bitte verwenden Sie die dienstliche E-Mail-Adresse Ihrer Schule. Private Adressen (z. B. Gmail, GMX, Web.de) sind nicht zugelassen.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Props {
@@ -52,13 +54,40 @@ export default function MyEmailChanger({ currentEmail }: Props) {
     setError("");
 
     const supabase = createClient();
+
+    // Private Adressen sind für Schulkonten gesperrt (Migration 038). Die
+    // Datenbank setzt das selbst durch; hier nur die verständliche Meldung.
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", currentUser?.id ?? "")
+      .maybeSingle();
+    const role = profile?.role?.toLowerCase();
+    if (role !== "admin" && role !== "schulungsteam") {
+      const { data: blocked } = await supabase.rpc("is_email_domain_blocked", {
+        p_email: trimmed,
+      });
+      if (blocked === true) {
+        setSaving(false);
+        setError(PRIVATE_EMAIL_HINT);
+        return;
+      }
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({
       email: trimmed,
     });
 
     setSaving(false);
     if (updateError) {
-      setError(updateError.message);
+      setError(
+        /database error|EMAIL_DOMAIN_NOT_ALLOWED/i.test(updateError.message)
+          ? PRIVATE_EMAIL_HINT
+          : updateError.message
+      );
       return;
     }
     setPendingEmail(trimmed);

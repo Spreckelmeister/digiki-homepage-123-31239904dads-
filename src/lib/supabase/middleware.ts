@@ -87,7 +87,9 @@ export async function updateSession(request: NextRequest) {
   let role: string | undefined;
   if (
     user &&
-    (path.startsWith("/best-practice") || path.startsWith("/schulungsdashboard"))
+    (path.startsWith("/best-practice") ||
+      path.startsWith("/schulungsdashboard") ||
+      path.startsWith("/schulungsmaterial"))
   ) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -101,7 +103,11 @@ export async function updateSession(request: NextRequest) {
   // /best-practice-Bereich sind ausschließlich Self-Service-Seiten (Konto,
   // Passwort) + Login erlaubt – alles andere leitet ins Dashboard um. (Steht
   // VOR der Admin-/Dashboard-Prüfung, damit kein Doppel-Redirect entsteht.)
-  if (user && role === "schulungsteam" && path.startsWith("/best-practice")) {
+  if (
+    user &&
+    role === "schulungsteam" &&
+    (path.startsWith("/best-practice") || path.startsWith("/schulungsmaterial"))
+  ) {
     const allowed = [
       "/best-practice/konto",
       "/best-practice/passwort-vergessen",

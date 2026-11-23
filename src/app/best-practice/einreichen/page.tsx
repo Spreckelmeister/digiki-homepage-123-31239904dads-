@@ -6,6 +6,9 @@ import {
   getLockedFieldsFromPrefill,
 } from "@/lib/bestandsaufnahme/getPrefill";
 import BestPracticeVorlageForm from "@/components/forms/BestPracticeVorlageForm";
+import ProgrammOnlyNotice from "@/components/material/ProgrammOnlyNotice";
+import { hasBestandsaufnahme } from "@/lib/material/server";
+import { getCurrentProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 
 export const metadata: Metadata = {
@@ -29,6 +32,13 @@ export default async function BestPracticeEinreichenPage() {
   if (!user) {
     redirect(`/best-practice/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
   }
+
+  // Konten ohne Bestandsaufnahme (nur Schulungsmaterial) reichen nichts ein.
+  const role = (await getCurrentProfile())?.role?.toLowerCase();
+  const programMember =
+    role === "admin" || role === "schulungsteam"
+      ? true
+      : await hasBestandsaufnahme(supabase);
 
   // BSA-Prefill für Schulname + Kontaktperson – konsistent mit den
   // Antragsformularen.
@@ -58,18 +68,22 @@ export default async function BestPracticeEinreichenPage() {
       {/* Form */}
       <section className="bg-bg py-12 md:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <BestPracticeVorlageForm
-            lockedEmail={user.email ?? ""}
-            prefillFromBSA={
-              prefill
-                ? {
-                    school_name: prefill.school_name,
-                    contact_person: prefill.contact_person,
-                  }
-                : null
-            }
-            lockedFromBSA={lockedFromBSA}
-          />
+          {programMember ? (
+            <BestPracticeVorlageForm
+              lockedEmail={user.email ?? ""}
+              prefillFromBSA={
+                prefill
+                  ? {
+                      school_name: prefill.school_name,
+                      contact_person: prefill.contact_person,
+                    }
+                  : null
+              }
+              lockedFromBSA={lockedFromBSA}
+            />
+          ) : (
+            <ProgrammOnlyNotice what="Best-Practice-Beispiele können nur Schulen im Förderprogramm einreichen." />
+          )}
         </div>
       </section>
     </>

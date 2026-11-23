@@ -14,6 +14,8 @@ import {
 } from "@/lib/schulungen/getSchoolTrainings";
 import StudentAssistantForm from "@/components/forms/StudentAssistantForm";
 import BackButton from "@/components/BackButton";
+import ProgrammOnlyNotice from "@/components/material/ProgrammOnlyNotice";
+import { hasBestandsaufnahme } from "@/lib/material/server";
 
 export const metadata: Metadata = {
   title: "Antrag: Gezielte Unterstützung durch studentische Hilfskräfte - DigiKI",
@@ -90,7 +92,10 @@ export default async function AntragHilfskraeftePage() {
   let registeredTrainings: RegisteredTraining[] = [];
   let liveSchoolCount: number | null = null;
 
-  if (actingRole) {
+  // Konten ohne Bestandsaufnahme (nur Schulungsmaterial) stellen keine Anträge.
+  const programMember = actingRole ? true : await hasBestandsaufnahme(supabase);
+
+  if (actingRole || !programMember) {
     liveSchoolCount = await getParticipatingSchoolCount();
   } else {
     prefill = await getBestandsaufnahmePrefill();
@@ -210,13 +215,17 @@ export default async function AntragHilfskraeftePage() {
           </div>
 
           {/* Formular */}
-          <StudentAssistantForm
-            lockedEmail={user.email ?? ""}
-            prefillFromBSA={prefill}
-            lockedFromBSA={lockedFromBSA}
-            registeredTrainings={registeredTrainings}
-            actingRole={actingRole}
-          />
+          {programMember ? (
+            <StudentAssistantForm
+              lockedEmail={user.email ?? ""}
+              prefillFromBSA={prefill}
+              lockedFromBSA={lockedFromBSA}
+              registeredTrainings={registeredTrainings}
+              actingRole={actingRole}
+            />
+          ) : (
+            <ProgrammOnlyNotice what="Studentische Hilfskräfte können nur Schulen im Förderprogramm beantragen." />
+          )}
         </div>
       </section>
     </>

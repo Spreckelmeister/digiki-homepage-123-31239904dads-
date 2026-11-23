@@ -112,7 +112,8 @@ const nextConfig: NextConfig = {
               // script-src: Erlaubt lokale Scripts + WASM + externe CDN-Scripts (für Tesseract, etc)
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://raw.githubusercontent.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+              // *.supabase.co: Schulungsmaterial aus dem privaten Bucket (signierte Links)
+              "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.supabase.co",
               "font-src 'self'",
               // connect-src: explizite Allowlist statt `https:`-Wildcard.
               // Begründung pro Host als Inline-Kommentar; jede Erweiterung
@@ -135,7 +136,7 @@ const nextConfig: NextConfig = {
                 "blob:",                                 // FFmpeg-WASM lädt seinen Core via fetch(blob:)
               ].join(" "),
               "worker-src 'self' blob:",
-              "media-src 'self' blob:",
+              "media-src 'self' blob: https://*.supabase.co",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

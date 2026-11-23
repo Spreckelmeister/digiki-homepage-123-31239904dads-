@@ -50,6 +50,7 @@ next-env.d.ts
 # FFmpeg-Core und -Worker werden im prebuild aus node_modules in public/ kopiert
 /public/ffmpeg-core
 /public/ffmpeg-worker
+/public/pdf-worker
 
 .vercel
 .env*.local

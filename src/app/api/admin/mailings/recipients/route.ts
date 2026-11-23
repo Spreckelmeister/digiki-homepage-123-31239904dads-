@@ -54,6 +54,8 @@ export async function GET(_request: NextRequest) {
     full_name: string | null;
     school: string | null;
     confirmed: boolean;
+    /** Schulkonto ohne Bestandsaufnahme (nur Schulungsmaterial, Migration 038). */
+    materialOnly?: boolean;
   };
 
   // Dedupe innerhalb einer Gruppe (case-insensitiv nach E-Mail).
@@ -82,9 +84,21 @@ export async function GET(_request: NextRequest) {
   const userIds = usersData.users.map((u) => u.id);
   const { data: profilesData } = await admin
     .from("profiles")
-    .select("id, full_name, school")
+    .select("id, full_name, school, role")
     .in("id", userIds);
   const profileById = new Map((profilesData ?? []).map((p) => [p.id, p]));
+
+  // Programm-Schule = Konto mit Bestandsaufnahme (über user_id oder
+  // Kontakt-Adresse, wie has_bestandsaufnahme in Migration 038).
+  const { data: bsaData } = await admin
+    .from("bestandsaufnahme_responses")
+    .select("user_id, contact_email");
+  const bsaUserIds = new Set((bsaData ?? []).map((r) => r.user_id).filter(Boolean));
+  const bsaEmails = new Set(
+    (bsaData ?? [])
+      .map((r) => (r.contact_email ?? "").toLowerCase())
+      .filter(Boolean),
+  );
 
   const accounts = dedupe(
     usersData.users
@@ -97,6 +111,10 @@ export async function GET(_request: NextRequest) {
           full_name: p?.full_name ?? null,
           school: p?.school ?? null,
           confirmed: !!u.email_confirmed_at,
+          materialOnly:
+            String(p?.role ?? "").toLowerCase() === "teacher" &&
+            !bsaUserIds.has(u.id) &&
+            !bsaEmails.has((u.email as string).toLowerCase()),
         };
       }),
   ).sort((a, b) => {

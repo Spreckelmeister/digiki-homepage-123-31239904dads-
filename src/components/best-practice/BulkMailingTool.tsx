@@ -27,6 +27,8 @@ type Recipient = {
   full_name: string | null;
   school: string | null;
   confirmed: boolean;
+  /** Schulkonto ohne Bestandsaufnahme (nur Schulungsmaterial). */
+  materialOnly?: boolean;
 };
 
 type SourceKey = "accounts" | "participants" | "manual";
@@ -115,6 +117,10 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
   const [tab, setTab] = useState<SourceKey>("accounts");
   const [query, setQuery] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | "confirmed">("confirmed");
+  // Programm-Schulen (mit Bestandsaufnahme) vs. Konten nur fürs
+  // Schulungsmaterial. Standard: Programm – so gehen Programm-Mails nicht
+  // versehentlich an reine Material-Konten.
+  const [scopeFilter, setScopeFilter] = useState<"program" | "material" | "all">("program");
 
   async function loadRecipients() {
     setRecipientsLoading(true);
@@ -158,6 +164,8 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
     let list = sources[tab];
     if (tab === "accounts" && accountFilter === "confirmed")
       list = list.filter((r) => r.confirmed);
+    if (tab === "accounts" && scopeFilter !== "all")
+      list = list.filter((r) => Boolean(r.materialOnly) === (scopeFilter === "material"));
     const q = query.trim().toLowerCase();
     if (q)
       list = list.filter(
@@ -167,7 +175,7 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
           (r.school ?? "").toLowerCase().includes(q),
       );
     return list;
-  }, [tab, sources, accountFilter, query]);
+  }, [tab, sources, accountFilter, scopeFilter, query]);
 
   const countSelectedIn = (key: SourceKey) =>
     sources[key].filter((r) => selected.has(r.email.toLowerCase())).length;
@@ -539,6 +547,16 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                   ))}
                 </div>
               )}
+              {tab === "accounts" && (
+                <div className="mb-3 ml-0 sm:ml-2 inline-flex rounded-lg border border-border bg-bg p-1" role="radiogroup" aria-label="Kontoart filtern">
+                  {([["program", "Programm-Schulen"], ["material", "Nur Schulungsmaterial"], ["all", "Beide"]] as const).map(([v, l]) => (
+                    <button key={v} type="button" role="radio" aria-checked={scopeFilter === v} onClick={() => setScopeFilter(v)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${scopeFilter === v ? "bg-white text-primary shadow-sm" : "text-text-light hover:text-text"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-light" aria-hidden="true" />
                 <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Suchen (Name, Schule, E-Mail) …" aria-label="Empfänger suchen"
@@ -580,6 +598,11 @@ export default function BulkMailingTool({ adminEmail }: { adminEmail: string }) 
                               {r.school ?? null}
                             </span>
                           </span>
+                          {tab === "accounts" && r.materialOnly && (
+                            <span className="shrink-0 rounded bg-yellow-50 px-1.5 py-0.5 text-xs font-medium text-yellow-900">
+                              nur Material
+                            </span>
+                          )}
                           {tab === "accounts" &&
                             (r.confirmed ? (
                               <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label="bestätigt" />

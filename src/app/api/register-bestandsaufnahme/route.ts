@@ -6,6 +6,8 @@ import {
   isSmtpConfigured,
   sendAuthCodeMail,
 } from "@/lib/email/sendAuthCodeMail";
+import { isEmailDomainBlocked } from "@/lib/material/server";
+import { createClient as createSessionClient } from "@/lib/supabase/server";
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, ""),
@@ -73,7 +75,6 @@ export async function POST(request: NextRequest) {
   const {
     email,
     password,
-    contactEmail,
     contactPerson,
     principalName,
     contactPhone,
@@ -130,21 +131,34 @@ export async function POST(request: NextRequest) {
     additionalNotes,
   } = body;
 
-  // ── Account-Pflichtfelder ──────────────────────────────────────────────────
-  if (typeof email !== "string" || !isEmailValid(email)) {
-    return NextResponse.json(
-      { error: "invalid_email", focusId: "contactEmail" },
-      { status: 400 }
-    );
-  }
-  if (typeof password !== "string" || !isPasswordStrong(password)) {
-    return NextResponse.json(
-      { error: "weak_password", focusId: "password" },
-      { status: 400 }
-    );
+  // ── Bereits angemeldet? ────────────────────────────────────────────────────
+  // Ein Schulkonto ohne Bestandsaufnahme (z. B. nur für das Schulungsmaterial
+  // registriert, Migration 038) holt sie hier nach: Die Antwort wird dem
+  // BESTEHENDEN Konto zugeordnet – kein neues Konto, kein Passwort, kein Code.
+  // Maßgeblich ist allein die Sitzung, nie eine Adresse aus der Anfrage.
+  const sessionClient = await createSessionClient();
+  const {
+    data: { user: sessionUser },
+  } = await sessionClient.auth.getUser();
+  const attachUser = sessionUser?.email ? sessionUser : null;
+
+  // ── Account-Pflichtfelder (nur bei neuem Konto) ────────────────────────────
+  if (!attachUser) {
+    if (typeof email !== "string" || !isEmailValid(email)) {
+      return NextResponse.json(
+        { error: "invalid_email", focusId: "contactEmail" },
+        { status: 400 }
+      );
+    }
+    if (typeof password !== "string" || !isPasswordStrong(password)) {
+      return NextResponse.json(
+        { error: "weak_password", focusId: "password" },
+        { status: 400 }
+      );
+    }
   }
   // Login-Email und Kontakt-Email müssen identisch sein (Client schickt nur eine)
-  const loginEmail = email.trim().toLowerCase();
+  const loginEmail = (attachUser?.email ?? String(email)).trim().toLowerCase();
 
   // ── Bestandsaufnahme-Pflichtfelder ─────────────────────────────────────────
   // Spiegelt die Client-Validierung in validateStep(); alles andere darf optional sein.
@@ -207,6 +221,42 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  if (attachUser) {
+    // Nur Schulkonten, und nur wenn noch keine Bestandsaufnahme vorliegt
+    // (gleiche Zuordnung wie has_bestandsaufnahme: user_id oder Kontakt-Adresse).
+    const { data: attachProfile } = await adminSupabase
+      .from("profiles")
+      .select("role")
+      .eq("id", attachUser.id)
+      .maybeSingle();
+    if (attachProfile?.role?.toLowerCase() !== "teacher") {
+      return NextResponse.json({ error: "not_allowed" }, { status: 403 });
+    }
+    const [byUser, byEmail] = await Promise.all([
+      adminSupabase
+        .from("bestandsaufnahme_responses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", attachUser.id),
+      adminSupabase
+        .from("bestandsaufnahme_responses")
+        .select("id", { count: "exact", head: true })
+        .ilike("contact_email", loginEmail.replace(/([%_\\])/g, "\\$1")),
+    ]);
+    if ((byUser.count ?? 0) > 0 || (byEmail.count ?? 0) > 0) {
+      return NextResponse.json({ error: "already_submitted" }, { status: 409 });
+    }
+  }
+
+  // ── Private E-Mail-Adressen (Migration 038) ────────────────────────────────
+  // Schulkonten brauchen eine dienstliche Adresse. Fehlt die Migration,
+  // wird nichts gesperrt. (Bestehende Konten behalten ihre Adresse.)
+  if (!attachUser && (await isEmailDomainBlocked(adminSupabase, loginEmail))) {
+    return NextResponse.json(
+      { error: "private_email", focusId: "contactEmail" },
+      { status: 400 }
+    );
+  }
+
   // ── Sperrliste (Migration 037) ─────────────────────────────────────────────
   // Aus dem Förderprogramm entfernte Schulen dürfen sich nicht neu
   // registrieren – weder mit der gesperrten Adresse noch unter dem gesperrten
@@ -229,77 +279,84 @@ export async function POST(request: NextRequest) {
   const contactName =
     extractContactNames(contactPerson) || String(contactPerson).trim();
 
-  // ── Account serverseitig anlegen ───────────────────────────────────────────
-  // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
-  // und versenden ihn in unserer Custom-Mail (Supabase verschickt dann keine).
-  const { data: userData, error: createError } =
-    await adminSupabase.auth.admin.createUser({
-      email: loginEmail,
-      password,
-      email_confirm: false,
-      user_metadata: {
-        full_name: contactName.slice(0, 200),
-        school: String(schoolName).slice(0, 200),
-      },
-    });
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
+  let userId: string;
+  let otpCode = "";
 
-  if (createError || !userData?.user?.id) {
-    const msg = createError?.message?.toLowerCase() ?? "";
-    if (
-      msg.includes("already registered") ||
-      msg.includes("already been registered") ||
-      msg.includes("user already exists") ||
-      msg.includes("email address has already been used") ||
-      msg.includes("duplicate key")
-    ) {
+  if (attachUser) {
+    userId = attachUser.id;
+  } else {
+    // ── Account serverseitig anlegen ───────────────────────────────────────────
+    // email_confirm: false → User muss bestätigen; wir erzeugen den Link selbst
+    // und versenden ihn in unserer Custom-Mail (Supabase verschickt dann keine).
+    const { data: userData, error: createError } =
+      await adminSupabase.auth.admin.createUser({
+        email: loginEmail,
+        password: String(password),
+        email_confirm: false,
+        user_metadata: {
+          full_name: contactName.slice(0, 200),
+          school: String(schoolName).slice(0, 200),
+        },
+      });
+
+    if (createError || !userData?.user?.id) {
+      const msg = createError?.message?.toLowerCase() ?? "";
+      if (
+        msg.includes("already registered") ||
+        msg.includes("already been registered") ||
+        msg.includes("user already exists") ||
+        msg.includes("email address has already been used") ||
+        msg.includes("duplicate key")
+      ) {
+        return NextResponse.json(
+          { error: "email_already_registered", focusId: "contactEmail" },
+          { status: 409 }
+        );
+      }
+      console.error(
+        "[register-bestandsaufnahme] createUser error:",
+        createError?.message
+      );
       return NextResponse.json(
-        { error: "email_already_registered", focusId: "contactEmail" },
-        { status: 409 }
+        { error: "account_creation_failed" },
+        { status: 500 }
       );
     }
-    console.error(
-      "[register-bestandsaufnahme] createUser error:",
-      createError?.message
-    );
-    return NextResponse.json(
-      { error: "account_creation_failed" },
-      { status: 500 }
-    );
-  }
 
-  const userId = userData.user.id;
+    userId = userData.user.id;
 
-  // ── Bestätigungscode generieren („Code statt Link") ────────────────────────
-  // Der generierte Link wird NIE verschickt – wir nutzen ausschließlich den
-  // Einmal-Code (properties.email_otp). Ein Code kann von automatischen
-  // Mail-Scannern (Schul-/Firmennetze) nicht verbraucht werden; die Eingabe
-  // passiert direkt auf dem Erfolgsbildschirm der Bestandsaufnahme oder
-  // später beim Code-Login (der die Adresse ebenfalls bestätigt).
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://digiki-os.de").replace(/\/$/, "");
-  const { data: linkData, error: linkError } =
-    await adminSupabase.auth.admin.generateLink({
-      type: "signup",
-      email: loginEmail,
-      password,
-    });
+    // ── Bestätigungscode generieren („Code statt Link") ────────────────────────
+    // Der generierte Link wird NIE verschickt – wir nutzen ausschließlich den
+    // Einmal-Code (properties.email_otp). Ein Code kann von automatischen
+    // Mail-Scannern (Schul-/Firmennetze) nicht verbraucht werden; die Eingabe
+    // passiert direkt auf dem Erfolgsbildschirm der Bestandsaufnahme oder
+    // später beim Code-Login (der die Adresse ebenfalls bestätigt).
+    const { data: linkData, error: linkError } =
+      await adminSupabase.auth.admin.generateLink({
+        type: "signup",
+        email: loginEmail,
+        password: String(password),
+      });
 
-  const otpCode = linkData?.properties?.email_otp ?? "";
-  if (linkError || !otpCode) {
-    console.error(
-      "[register-bestandsaufnahme] generateLink error:",
-      linkError?.message ?? "email_otp fehlt"
-    );
-    // Account wurde angelegt, aber kein Code – rollback, sonst blockiert die
-    // Email für eine spätere echte Registrierung.
-    try {
-      await adminSupabase.auth.admin.deleteUser(userId);
-    } catch {
-      /* Rollback-Fehler sind tolerierbar */
+    otpCode = linkData?.properties?.email_otp ?? "";
+    if (linkError || !otpCode) {
+      console.error(
+        "[register-bestandsaufnahme] generateLink error:",
+        linkError?.message ?? "email_otp fehlt"
+      );
+      // Account wurde angelegt, aber kein Code – rollback, sonst blockiert die
+      // Email für eine spätere echte Registrierung.
+      try {
+        if (!attachUser) await adminSupabase.auth.admin.deleteUser(userId);
+      } catch {
+        /* Rollback-Fehler sind tolerierbar */
+      }
+      return NextResponse.json(
+        { error: "confirmation_link_failed" },
+        { status: 500 }
+      );
     }
-    return NextResponse.json(
-      { error: "confirmation_link_failed" },
-      { status: 500 }
-    );
   }
 
   // ── Profil schreiben ───────────────────────────────────────────────────────
@@ -321,7 +378,7 @@ export async function POST(request: NextRequest) {
       profileError.message
     );
     try {
-      await adminSupabase.auth.admin.deleteUser(userId);
+      if (!attachUser) await adminSupabase.auth.admin.deleteUser(userId);
     } catch {
       /* Rollback-Fehler sind tolerierbar */
     }
@@ -338,10 +395,9 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       contact_person: contactName.slice(0, 200),
       principal_name: String(principalName).slice(0, 200),
-      contact_email:
-        typeof contactEmail === "string"
-          ? String(contactEmail).slice(0, 200)
-          : loginEmail,
+      // Immer die Login-Adresse des Kontos – nie ein Wert aus der Anfrage
+      // (über die Kontakt-Adresse wird die Bestandsaufnahme dem Konto zugeordnet).
+      contact_email: loginEmail,
       contact_phone: contactPhone ? String(contactPhone).slice(0, 50) : null,
       school_name: String(schoolName).slice(0, 200),
       school_location: schoolLocation,
@@ -404,12 +460,12 @@ export async function POST(request: NextRequest) {
     );
     // Profil + Auth-User zurückrollen, damit die Email wieder frei ist.
     try {
-      await adminSupabase.from("profiles").delete().eq("id", userId);
+      if (!attachUser) await adminSupabase.from("profiles").delete().eq("id", userId);
     } catch {
       /* Rollback-Fehler sind tolerierbar */
     }
     try {
-      await adminSupabase.auth.admin.deleteUser(userId);
+      if (!attachUser) await adminSupabase.auth.admin.deleteUser(userId);
     } catch {
       /* Rollback-Fehler sind tolerierbar */
     }
@@ -424,40 +480,62 @@ export async function POST(request: NextRequest) {
       const schoolSafe = escapeHtml(String(schoolName).slice(0, 200));
       const emailSafe = escapeHtml(loginEmail);
 
-      await sendAuthCodeMail({
-        to: loginEmail,
-        subject: "Bitte E-Mail bestätigen – Ihr DigiKI-Code",
-        eyebrow: "Bestandsaufnahme",
-        heading: "Bestandsaufnahme eingereicht – bitte E-Mail bestätigen",
-        preheader: "Ihr 8-stelliger Bestätigungscode für Ihren DigiKI-Account.",
-        introHtml: `
+      await sendAuthCodeMail(
+        attachUser
+          ? {
+              to: loginEmail,
+              subject: "Ihre Bestandsaufnahme ist eingegangen – DigiKI",
+              eyebrow: "Bestandsaufnahme",
+              heading: "Bestandsaufnahme eingereicht",
+              preheader: "Ihre Bestandsaufnahme ist bei uns eingegangen.",
+              introHtml: `
               <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
               <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
-                Vielen Dank! Ihre Bestandsaufnahme für
-                <strong>${schoolSafe}</strong> ist erfolgreich bei uns eingegangen.
+                vielen Dank! Ihre Bestandsaufnahme für
+                <strong>${schoolSafe}</strong> ist erfolgreich bei uns eingegangen
+                und Ihrem bestehenden DigiKI-Konto (${emailSafe}) zugeordnet.
+                Damit stehen Ihrer Schule jetzt auch die Angebote des
+                Förderprogramms offen.
               </p>`,
-        codeLeadHtml:
-          "Geben Sie diesen 8-stelligen Code auf der Abschluss-Seite der Bestandsaufnahme ein – dort ist bereits ein Eingabefeld geöffnet. Damit bestätigen Sie Ihre E-Mail-Adresse und sind direkt angemeldet:",
-        code: otpCode,
-        pageUrl: `${siteUrl}/best-practice/login`,
-        pageLabel:
-          "Seite bereits geschlossen? Kein Problem: Melden Sie sich einfach hier mit Ihrer E-Mail-Adresse an – Sie erhalten automatisch einen neuen Code, und mit der Anmeldung wird Ihre Adresse bestätigt.",
-        pageUrlText: "digiki-os.de/best-practice/login",
-        extraHtml: `
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
-                      Ihre Login-E-Mail
-                    </p>
-                    <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
-                      <strong>${emailSafe}</strong>
-                    </p>
-                  </td>
-                </tr>
-              </table>`,
-      });
+              pageUrl: `${siteUrl}/best-practice/datenbank`,
+              pageLabel: "Zu Ihrem DigiKI-Bereich:",
+              pageUrlText: "digiki-os.de/best-practice/datenbank",
+            }
+          : {
+              to: loginEmail,
+              subject: "Bitte E-Mail bestätigen – Ihr DigiKI-Code",
+              eyebrow: "Bestandsaufnahme",
+              heading: "Bestandsaufnahme eingereicht – bitte E-Mail bestätigen",
+              preheader: "Ihr 8-stelliger Bestätigungscode für Ihren DigiKI-Account.",
+              introHtml: `
+                    <p style="margin:0 0 16px 0;color:#1A1A1A;font-size:15px;">${greeting}</p>
+                    <p style="margin:0 0 20px 0;color:#1A1A1A;font-size:15px;line-height:1.6;">
+                      Vielen Dank! Ihre Bestandsaufnahme für
+                      <strong>${schoolSafe}</strong> ist erfolgreich bei uns eingegangen.
+                    </p>`,
+              codeLeadHtml:
+                "Geben Sie diesen 8-stelligen Code auf der Abschluss-Seite der Bestandsaufnahme ein – dort ist bereits ein Eingabefeld geöffnet. Damit bestätigen Sie Ihre E-Mail-Adresse und sind direkt angemeldet:",
+              code: otpCode,
+              pageUrl: `${siteUrl}/best-practice/login`,
+              pageLabel:
+                "Seite bereits geschlossen? Kein Problem: Melden Sie sich einfach hier mit Ihrer E-Mail-Adresse an – Sie erhalten automatisch einen neuen Code, und mit der Anmeldung wird Ihre Adresse bestätigt.",
+              pageUrlText: "digiki-os.de/best-practice/login",
+              extraHtml: `
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                      style="background-color:#F5F9F9;border-left:4px solid #AB7A0E;border-radius:0 6px 6px 0;margin:0 0 24px 0;">
+                      <tr>
+                        <td style="padding:14px 16px;">
+                          <p style="margin:0 0 6px 0;font-weight:bold;color:#006363;font-size:14px;">
+                            Ihre Login-E-Mail
+                          </p>
+                          <p style="margin:0;color:#555555;font-size:14px;line-height:1.5;">
+                            <strong>${emailSafe}</strong>
+                          </p>
+                        </td>
+                      </tr>
+                    </table>`,
+            }
+      );
       emailSent = true;
     } catch (emailErr) {
       // Email-Fehler nicht fatal – Daten sind gespeichert; ein neuer Code kann
@@ -467,5 +545,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, emailSent });
+  return NextResponse.json({ ok: true, emailSent, attached: Boolean(attachUser) });
 }
