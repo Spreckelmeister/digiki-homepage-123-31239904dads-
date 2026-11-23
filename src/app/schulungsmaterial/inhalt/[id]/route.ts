@@ -17,7 +17,11 @@ export const dynamic = "force-dynamic";
 //      die umgebende Seite. Gilt auch, wenn jemand die Adresse direkt öffnet.
 //   2. default-src 'none': Die Datei darf nichts aus dem Netz nachladen und
 //      nichts dorthin senden. Erlaubt ist nur, was in der Datei selbst steckt
-//      (eingebettete Skripte, Stile, Bilder/Medien/Schriften als data:).
+//      (eingebettete Skripte, Stile, Bilder/Medien/Schriften als data:) und
+//      was sie daraus im Browser selbst erzeugt (blob:). Letzteres brauchen
+//      Sammeldateien, die ihre Einheiten in eigenen Rahmen öffnen und beim
+//      Start entpacken (frame-src, connect-src, font-src, style-src). blob:-
+//      Rahmen erben Abschottung und diese Regeln – ins Netz führt keiner.
 // Diese Route ist in next.config.ts von den globalen Headern ausgenommen
 // (dort stehen X-Frame-Options: DENY und frame-ancestors 'none').
 
@@ -25,10 +29,12 @@ const CONTENT_CSP = [
   "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox",
   "default-src 'none'",
   "script-src 'unsafe-inline' 'unsafe-eval' blob: data:",
-  "style-src 'unsafe-inline'",
+  "style-src 'unsafe-inline' blob:",
   "img-src data: blob:",
   "media-src data: blob:",
-  "font-src data:",
+  "font-src data: blob:",
+  "connect-src data: blob:",
+  "frame-src blob:",
   "worker-src blob:",
   "frame-ancestors 'self'",
   "base-uri 'none'",
@@ -41,18 +47,52 @@ const CONTENT_CSP = [
 // Schließen der Seite hält.
 const STORAGE_SHIM = `<script>(function(){function mem(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}["localStorage","sessionStorage"].forEach(function(n){try{window[n].getItem("_")}catch(e){try{Object.defineProperty(window,n,{value:mem(),configurable:true})}catch(_){}}})})();</script>`;
 
-function withShim(html: string): string {
-  const head = html.match(/<head[^>]*>/i);
-  if (head?.index !== undefined) {
-    const at = head.index + head[0].length;
-    return html.slice(0, at) + STORAGE_SHIM + html.slice(at);
-  }
-  const root = html.match(/<html[^>]*>/i);
-  if (root?.index !== undefined) {
-    const at = root.index + root[0].length;
-    return html.slice(0, at) + STORAGE_SHIM + html.slice(at);
-  }
-  return STORAGE_SHIM + html;
+const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
+
+/**
+ * Stelle (in Bytes), an der der Speicher-Ersatz eingefügt wird: direkt hinter
+ * <head> bzw. <html>, sonst ganz vorn. Gesucht wird nur im Dateianfang – die
+ * Dateien sind teils sehr groß (eingebettete Medien) und sollen nicht als
+ * Ganzes in Text umgewandelt werden.
+ */
+function shimOffset(bytes: Uint8Array): number {
+  // latin1: ein Zeichen je Byte, die Fundstelle ist also zugleich die Byte-Stelle.
+  const start = new TextDecoder("latin1").decode(bytes.subarray(0, 64 * 1024));
+  const tag = start.match(/<head[^>]*>/i) ?? start.match(/<html[^>]*>/i);
+  return tag?.index !== undefined ? tag.index + tag[0].length : 0;
+}
+
+// Zwischenspeichern im Browser: Die Dateien sind groß (zig MB), jeder Abruf
+// kostet Datenvolumen im Speicher-Kontingent. „no-cache" heißt: Der Browser
+// darf seine Kopie behalten, muss aber vor JEDER Anzeige hier nachfragen –
+// Anmeldung und Freischaltung werden also weiterhin jedes Mal geprüft; nur
+// wenn beides stimmt, antworten wir mit 304 statt die Datei neu zu laden.
+// Eine hochgeladene Datei ändert sich nie (neuer Upload = neuer Eintrag),
+// deshalb genügt die Eintrags-ID als Kennung. CONTENT_VERSION erhöhen, wenn
+// sich der eingefügte Speicher-Ersatz ändert.
+const CONTENT_VERSION = 2;
+const CACHE_CONTROL = "private, no-cache";
+
+function etagFor(id: string): string {
+  return `"${id.toLowerCase()}-${CONTENT_VERSION}"`;
+}
+
+function etagMatches(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  // Unterwegs kann die Kennung als „schwach" markiert werden (W/…).
+  return header.split(",").some((part) => part.trim().replace(/^W\//, "") === etag);
+}
+
+function contentHeaders(etag: string): Record<string, string> {
+  return {
+    "Content-Security-Policy": CONTENT_CSP,
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "X-Robots-Tag": "noindex, nofollow",
+    "Cache-Control": CACHE_CONTROL,
+    ETag: etag,
+  };
 }
 
 function plain(message: string, status: number): Response {
@@ -67,7 +107,7 @@ function plain(message: string, status: number): Response {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -89,6 +129,11 @@ export async function GET(
     .maybeSingle();
   if (!item || item.kind !== "html") return plain("Nicht gefunden.", 404);
 
+  const etag = etagFor(id);
+  if (etagMatches(request.headers.get("if-none-match"), etag)) {
+    return new Response(null, { status: 304, headers: contentHeaders(etag) });
+  }
+
   const { data: file, error } = await createServiceClient()
     .storage.from(MATERIAL_BUCKET)
     .download(item.storage_path);
@@ -97,14 +142,16 @@ export async function GET(
     return plain("Die Datei kann im Moment nicht geladen werden.", 502);
   }
 
-  const html = withShim(await file.text());
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const at = shimOffset(bytes);
 
   // Als Strom senden (große Dateien mit eingebetteten Medien).
-  const bytes = new TextEncoder().encode(html);
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const CHUNK = 256 * 1024;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
+      controller.enqueue(bytes.subarray(0, at));
+      controller.enqueue(SHIM_BYTES);
+      for (let i = at; i < bytes.length; i += CHUNK) {
         controller.enqueue(bytes.subarray(i, i + CHUNK));
       }
       controller.close();
@@ -112,14 +159,6 @@ export async function GET(
   });
 
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Content-Security-Policy": CONTENT_CSP,
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer",
-      "Cross-Origin-Resource-Policy": "same-origin",
-      "X-Robots-Tag": "noindex, nofollow",
-      "Cache-Control": "private, no-store",
-    },
+    headers: { "Content-Type": "text/html; charset=utf-8", ...contentHeaders(etag) },
   });
 }
