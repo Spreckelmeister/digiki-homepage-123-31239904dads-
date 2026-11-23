@@ -805,12 +805,41 @@ export default function BestandsaufnahmeForm({
     return { message: "" };
   }
 
-  function handleNext() {
+  const SCHOOL_REGISTERED_MESSAGE =
+    "Ihre Schule ist bereits bei DigiKI registriert. Je Schule gibt es ein gemeinsames Konto – bitte melden Sie sich damit an (meist die Adresse der Schulleitung oder der Person, die die Bestandsaufnahme ausgefüllt hat). Wenn Sie das Konto nicht kennen, schreiben Sie uns über das Kontaktformular.";
+
+  const schoolCheckRunning = useRef(false);
+
+  async function handleNext() {
     const result = validateStep(step);
     if (result.message) {
       setErrorFocusId(result.focusId ?? null);
       setStepError(result.message);
       return;
+    }
+    // Nach dem ersten Abschnitt prüfen, ob die Schule schon registriert ist –
+    // nicht erst nach allen 39 Fragen. Netzwerkfehler blockieren nicht; die
+    // verbindliche Prüfung macht der Server beim Einreichen.
+    if (step === 0 && !editMode) {
+      if (schoolCheckRunning.current) return; // Doppelklick
+      schoolCheckRunning.current = true;
+      try {
+        const res = await fetch("/api/school-registered", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schoolName }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (res.ok && payload.registered === true) {
+          setErrorFocusId("schoolName");
+          setStepError(SCHOOL_REGISTERED_MESSAGE);
+          return;
+        }
+      } catch {
+        /* Prüfung nicht möglich – weiter */
+      } finally {
+        schoolCheckRunning.current = false;
+      }
     }
     setStepError("");
     setErrorFocusId(null);
@@ -1027,6 +1056,9 @@ export default function BestandsaufnahmeForm({
         setStepError(
           "Für diese Schule bzw. E-Mail-Adresse ist keine Registrierung im Förderprogramm möglich. Bei Fragen nutzen Sie bitte das Kontaktformular."
         );
+      } else if (errorCode === "school_registered") {
+        setErrorFocusId(serverFocusId ?? "schoolName");
+        setStepError(SCHOOL_REGISTERED_MESSAGE);
       } else if (errorCode === "already_submitted") {
         setErrorFocusId(null);
         setStepError(

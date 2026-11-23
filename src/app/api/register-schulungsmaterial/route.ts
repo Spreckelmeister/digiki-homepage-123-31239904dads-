@@ -5,7 +5,7 @@ import {
   isSmtpConfigured,
   sendAuthCodeMail,
 } from "@/lib/email/sendAuthCodeMail";
-import { isEmailDomainBlocked } from "@/lib/material/server";
+import { isEmailDomainBlocked, isSchoolRegistered } from "@/lib/material/server";
 
 // Registrierung NUR für den Bereich Schulungsmaterial (Migration 038):
 // legt ein Schulkonto ohne Bestandsaufnahme an. Solche Konten sehen das
@@ -125,15 +125,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "program_blocked" }, { status: 403 });
   }
 
-  // Ein Konto je Schule.
-  const { data: schoolExists, error: schoolError } = await admin.rpc(
-    "school_has_account",
-    { p_school: schoolName }
-  );
-  if (schoolError) {
-    // Ohne Migration 038 gibt es den Bereich noch nicht.
-    console.error("[register-schulungsmaterial] Schulabgleich:", schoolError.message);
-    return NextResponse.json({ error: "not_available" }, { status: 503 });
+  // Ein Konto je Schule: Schulkonto ODER Bestandsaufnahme unter diesem Namen
+  // (Migration 041); ohne sie der ältere Abgleich nur gegen Konten (038).
+  let schoolExists = await isSchoolRegistered(admin, schoolName);
+  if (schoolExists === null) {
+    const { data, error: schoolError } = await admin.rpc("school_has_account", {
+      p_school: schoolName,
+    });
+    if (schoolError) {
+      // Ohne Migration 038 gibt es den Bereich noch nicht.
+      console.error("[register-schulungsmaterial] Schulabgleich:", schoolError.message);
+      return NextResponse.json({ error: "not_available" }, { status: 503 });
+    }
+    schoolExists = data === true;
   }
   if (schoolExists === true) {
     return NextResponse.json(

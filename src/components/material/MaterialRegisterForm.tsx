@@ -15,7 +15,7 @@ const ERRORS: Record<string, string> = {
   missing_field: "Bitte füllen Sie alle Felder aus.",
   consent_missing: "Bitte stimmen Sie der Datenschutzerklärung zu.",
   school_exists:
-    "Für Ihre Schule gibt es bereits ein Konto. Bitte melden Sie sich damit an – je Schule ist ein Konto vorgesehen.",
+    "Ihre Schule ist bereits bei DigiKI registriert. Je Schule gibt es ein gemeinsames Konto – bitte melden Sie sich damit an (meist die Adresse der Schulleitung oder der Person, die die Bestandsaufnahme ausgefüllt hat).",
   email_already_registered:
     "Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich direkt an.",
   program_blocked:

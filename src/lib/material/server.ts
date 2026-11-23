@@ -35,6 +35,27 @@ export async function isEmailDomainBlocked(
   return data === true;
 }
 
+/**
+ * Ist die Schule schon registriert (Schulkonto oder Bestandsaufnahme unter
+ * diesem Namen – auch über die Zuordnungsliste, Migration 041)?
+ * `null` = Prüfung nicht möglich (Migration fehlt).
+ */
+export async function isSchoolRegistered(
+  admin: SupabaseClient,
+  schoolName: string,
+  excludeUserId: string | null = null
+): Promise<boolean | null> {
+  const { data, error } = await admin.rpc("school_is_registered", {
+    p_school: schoolName,
+    p_exclude_user: excludeUserId,
+  });
+  if (error) {
+    console.error("[school-registered] Prüfung nicht möglich:", error.message);
+    return null;
+  }
+  return data === true;
+}
+
 export const PRIVATE_EMAIL_MESSAGE =
   "Bitte verwenden Sie die dienstliche E-Mail-Adresse Ihrer Schule. Private Adressen (z. B. Gmail, GMX, Web.de) sind nicht zugelassen.";
 

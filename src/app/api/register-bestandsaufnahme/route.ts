@@ -6,7 +6,7 @@ import {
   isSmtpConfigured,
   sendAuthCodeMail,
 } from "@/lib/email/sendAuthCodeMail";
-import { isEmailDomainBlocked } from "@/lib/material/server";
+import { isEmailDomainBlocked, isSchoolRegistered } from "@/lib/material/server";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 
 const ALLOWED_ORIGINS = [
@@ -254,6 +254,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "private_email", focusId: "contactEmail" },
       { status: 400 }
+    );
+  }
+
+  // ── Schule schon registriert? (Migration 041) ──────────────────────────────
+  // Je Schule ein Konto und eine Bestandsaufnahme. Erkannt über Schreibweise
+  // und Zuordnungsliste; das eigene Konto (Nachholen) zählt nicht mit.
+  if (
+    (await isSchoolRegistered(
+      adminSupabase,
+      String(schoolName).slice(0, 200),
+      attachUser?.id ?? null
+    )) === true
+  ) {
+    return NextResponse.json(
+      { error: "school_registered", focusId: "schoolName" },
+      { status: 409 }
     );
   }
 

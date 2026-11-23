@@ -239,7 +239,10 @@ export default function LoginForm() {
                 <>
                   Wir haben einen 8-stelligen Code an{" "}
                   <strong className="text-text">{email}</strong> gesendet.
-                  Bitte prüfen Sie auch Ihren Spam-Ordner.
+                  Bitte prüfen Sie auch Ihren Spam-Ordner. Kommt keine
+                  E-Mail an, gibt es zu dieser Adresse kein Konto: Je Schule
+                  gibt es ein gemeinsames Konto – bitte verwenden Sie die
+                  Adresse, mit der Ihre Schule registriert ist.
                   {info && <span className="mt-1 block">{info}</span>}
                 </>
               ) : (
