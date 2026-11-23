@@ -6,6 +6,9 @@ import AuthStatus from "@/components/best-practice/AuthStatus";
 import AdminNav from "@/components/best-practice/AdminNav";
 import MaterialAdmin from "@/components/material/MaterialAdmin";
 import BlockedDomainsManager from "@/components/material/BlockedDomainsManager";
+import MaterialAccountsTable, {
+  type MaterialAccount,
+} from "@/components/material/MaterialAccountsTable";
 import type { MaterialItem } from "@/lib/material/shared";
 
 export const metadata: Metadata = {
@@ -15,15 +18,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-interface MaterialAccount {
-  id: string;
-  school: string;
-  full_name: string;
-  email: string;
-  confirmed: boolean;
-  created_at: string;
-}
 
 /**
  * Schulkonten OHNE Bestandsaufnahme (= nur Schulungsmaterial). Sie tauchen
@@ -91,6 +85,13 @@ export default async function SchulungsmaterialAdminPage() {
 
   const accounts = await loadMaterialAccounts();
 
+  // Als „intern" markierte Konten (Team, Schulungspersonal, Testkonten –
+  // Migration 039) zählen nicht als Schule.
+  const { data: internalData, error: internalError } = await supabase
+    .from("internal_accounts")
+    .select("user_id");
+  const internalIds = new Set((internalData ?? []).map((r) => r.user_id as string));
+
   return (
     <>
       <section className="bg-primary py-12 md:py-16">
@@ -121,43 +122,11 @@ export default async function SchulungsmaterialAdminPage() {
             <MaterialAdmin items={items} />
           )}
 
-          <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-primary mb-1">
-              Schulen nur mit Schulungsmaterial ({accounts.length})
-            </h2>
-            <p className="text-sm text-text-light mb-4">
-              Konten ohne Bestandsaufnahme: Zugriff auf das Schulungsmaterial,
-              aber keine Anträge und keine Best-Practice-Datenbank.
-            </p>
-            {accounts.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-text-light">
-                    <tr>
-                      <th scope="col" className="py-2 pr-4 font-medium">Schule</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">Ansprechperson</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">E-Mail</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">Registriert</th>
-                      <th scope="col" className="py-2 font-medium">Bestätigt</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {accounts.map((a) => (
-                      <tr key={a.id}>
-                        <td className="py-2 pr-4 text-text">{a.school}</td>
-                        <td className="py-2 pr-4">{a.full_name}</td>
-                        <td className="py-2 pr-4">{a.email}</td>
-                        <td className="py-2 pr-4 whitespace-nowrap">
-                          {new Date(a.created_at).toLocaleDateString("de-DE")}
-                        </td>
-                        <td className="py-2">{a.confirmed ? "Ja" : "Nein"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <MaterialAccountsTable
+            accounts={accounts.filter((a) => !internalIds.has(a.id))}
+            internal={accounts.filter((a) => internalIds.has(a.id))}
+            canMark={!internalError}
+          />
 
           <BlockedDomainsManager
             domains={domains}

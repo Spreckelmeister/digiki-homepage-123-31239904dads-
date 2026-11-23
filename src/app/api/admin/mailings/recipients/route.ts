@@ -94,6 +94,11 @@ export async function GET(_request: NextRequest) {
     .from("bestandsaufnahme_responses")
     .select("user_id, contact_email");
   const bsaUserIds = new Set((bsaData ?? []).map((r) => r.user_id).filter(Boolean));
+  // Als „intern" markierte Konten (Migration 039) sind keine Schulen.
+  const { data: internalData } = await admin
+    .from("internal_accounts")
+    .select("user_id");
+  const internalIds = new Set((internalData ?? []).map((r) => r.user_id));
   const bsaEmails = new Set(
     (bsaData ?? [])
       .map((r) => (r.contact_email ?? "").toLowerCase())
@@ -113,6 +118,7 @@ export async function GET(_request: NextRequest) {
           confirmed: !!u.email_confirmed_at,
           materialOnly:
             String(p?.role ?? "").toLowerCase() === "teacher" &&
+            !internalIds.has(u.id) &&
             !bsaUserIds.has(u.id) &&
             !bsaEmails.has((u.email as string).toLowerCase()),
         };
