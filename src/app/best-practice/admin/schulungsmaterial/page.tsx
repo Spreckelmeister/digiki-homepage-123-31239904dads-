@@ -86,8 +86,9 @@ export default async function SchulungsmaterialAdminPage() {
   const accounts = await loadMaterialAccounts();
 
   // Als „intern" markierte Konten (Team, Schulungspersonal, Testkonten –
-  // Migration 039) zählen nicht als Schule.
-  const { data: internalData, error: internalError } = await supabase
+  // Migration 039) zählen nicht als Schule und werden hier nicht gezeigt.
+  // Markiert wird per SQL in der Tabelle internal_accounts.
+  const { data: internalData } = await supabase
     .from("internal_accounts")
     .select("user_id");
   const internalIds = new Set((internalData ?? []).map((r) => r.user_id as string));
@@ -124,8 +125,6 @@ export default async function SchulungsmaterialAdminPage() {
 
           <MaterialAccountsTable
             accounts={accounts.filter((a) => !internalIds.has(a.id))}
-            internal={accounts.filter((a) => internalIds.has(a.id))}
-            canMark={!internalError}
           />
 
           <BlockedDomainsManager
