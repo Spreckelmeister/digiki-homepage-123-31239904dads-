@@ -16,6 +16,7 @@ const navigation: { name: string; href: string; lang?: string }[] = [
   { name: "Über das Projekt", href: "/ueber-das-projekt" },
   { name: "Für Schulen", href: "/fuer-schulen" },
   { name: "Werkzeuge", href: "/werkzeuge" },
+  { name: "Schulungsmaterial", href: "/schulungsmaterial" },
   { name: "Best Practice", href: "/best-practice", lang: "en" },
   // Weitere Seiten können hier ergänzt werden:
   // { name: "Termine", href: "/termine" },
@@ -55,7 +56,7 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:gap-1">
+          <div className="hidden lg:flex lg:items-center lg:gap-1">
             {navigation.map((item) => {
               const active = isActivePath(pathname, item.href);
               return (
@@ -64,7 +65,7 @@ export default function Header() {
                   href={item.href}
                   lang={item.lang}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
                       ? "bg-primary/10 text-primary"
                       : "text-text hover:bg-bg hover:text-primary"
@@ -76,14 +77,14 @@ export default function Header() {
             })}
             <Link
               href="/bestandsaufnahme"
-              className="ml-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-text hover:bg-accent-hover transition-colors"
+              className="ml-3 inline-flex items-center whitespace-nowrap rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-text hover:bg-accent-hover transition-colors"
             >
               Jetzt teilnehmen
             </Link>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               type="button"
               className="inline-flex items-center justify-center rounded-lg p-2 text-text hover:bg-bg"
@@ -102,7 +103,7 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-4">
+          <div className="lg:hidden pb-4">
             <div className="flex flex-col gap-1">
               {navigation.map((item) => {
                 const active = isActivePath(pathname, item.href);
