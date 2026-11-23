@@ -4,10 +4,13 @@
  *
  * - Sichtbar: Name und Schule, klein in einer Ecke.
  * - Unsichtbar: die ersten acht Zeichen der Konto-Kennung als Kachelmuster
- *   über der ganzen Fläche. „difference" verschiebt jeden Bildpunkt um wenige
- *   Helligkeitsstufen – mit bloßem Auge nicht zu sehen, in einem Bildschirm-
- *   foto durch starkes Anheben des Kontrasts wieder lesbar (bei verlustfreien
- *   Bildformaten; starke Kompression oder ein Handyfoto können es verwischen).
+ *   über der ganzen Fläche. „difference" verschiebt jeden Bildpunkt um genau
+ *   eine Helligkeitsstufe (von 256) – auf hellem wie auf dunklem Grund
+ *   gleich wenig und mit bloßem Auge praktisch nicht zu sehen. In einem
+ *   Bildschirmfoto (PNG) wird das Muster durch starkes Anheben des Kontrasts
+ *   wieder lesbar; starke JPEG-Kompression oder ein Handyfoto verwischen es.
+ *   Stärker (2–3 Stufen) übersteht es Kompression besser, war aber auf
+ *   dunklen Flächen sichtbar.
  */
 export default function Kennzeichnung({
   licensee,
@@ -21,7 +24,7 @@ export default function Kennzeichnung({
   const safeCode = /^[0-9a-f]{4,32}$/.test(code) ? code : "";
   const tile = safeCode
     ? `url("data:image/svg+xml,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="150"><text x="10" y="80" transform="rotate(-24 130 75)" font-family="monospace" font-size="30" font-weight="700" fill="rgb(3,3,3)">${safeCode}</text></svg>`
+        `<svg xmlns="http://www.w3.org/2000/svg" width="340" height="190"><text x="10" y="100" transform="rotate(-24 170 95)" font-family="monospace" font-size="38" font-weight="700" fill="rgb(1,1,1)">${safeCode}</text></svg>`
       )}")`
     : undefined;
 
