@@ -58,6 +58,19 @@ export default function HtmlViewer({
     };
   }, []);
 
+  // Nur Ansicht: „Speichern unter" per Kontextmenü und Strg+S auch auf der
+  // Leiste abschalten (in der Lerneinheit selbst erledigt das ihr Skript).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && (key === "s" || key === "u")) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
   useEffect(() => {
     let pending: MaterialProgress | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -103,7 +116,10 @@ export default function HtmlViewer({
   }, [id]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-white"
+      onContextMenu={(event) => event.preventDefault()}
+    >
       <div className="flex flex-none items-center gap-3 bg-primary px-3 py-2 text-white sm:px-4">
         <Link
           href="/schulungsmaterial"

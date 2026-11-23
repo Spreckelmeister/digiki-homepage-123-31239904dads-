@@ -59,7 +59,7 @@ const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
 // Eine hochgeladene Datei ändert sich nie (neuer Upload = neuer Eintrag),
 // deshalb genügt die Eintrags-ID als Kennung. CONTENT_VERSION erhöhen, wenn
 // sich der eingefügte Speicher-Ersatz ändert.
-const CONTENT_VERSION = 4;
+const CONTENT_VERSION = 5;
 const CACHE_CONTROL = "private, no-cache";
 
 function etagFor(id: string): string {
