@@ -57,7 +57,7 @@ export default async function SchulungsmaterialPage() {
                 Schulungsmaterial
               </h1>
               <p className="text-lg text-white/70">
-                Videos und Unterlagen zu digitalen Werkzeugen und KI – zum
+                Lerneinheiten zu digitalen Werkzeugen und KI – zum
                 Ansehen für Ihr Kollegium.
               </p>
             </div>

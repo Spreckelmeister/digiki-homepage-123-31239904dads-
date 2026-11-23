@@ -624,7 +624,7 @@ export default function DatenschutzPage() {
                 Zugang zum Schulungsmaterial
               </h3>
               <p className="text-text-light leading-relaxed mb-4">
-                Schulen können das Schulungsmaterial (Videos und Unterlagen)
+                Schulen können das Schulungsmaterial (Lerneinheiten und Unterlagen)
                 mit ihrem bestehenden Konto ansehen oder dafür ein eigenes
                 Konto anlegen, ohne die Bestandsaufnahme auszufüllen. Dabei
                 erheben wir nur den Schulnamen, den Namen der Ansprechperson
