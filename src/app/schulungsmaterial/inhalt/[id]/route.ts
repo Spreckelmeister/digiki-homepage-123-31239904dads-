@@ -2,9 +2,15 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import { MATERIAL_BUCKET, PROGRESS_MARKER } from "@/lib/material/shared";
+import { streamWithInsert } from "@/lib/material/htmlStream";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Große Dateien brauchen bei langsamer Leitung länger als die Standardzeit.
+export const maxDuration = 300;
+// In Frankfurt ausführen: nah an den Schulen. Sonst läuft die Datei erst
+// über den Atlantik und wieder zurück.
+export const preferredRegion = "fra1";
 
 // Liefert Schulungsmaterial vom Typ HTML aus – für den Rahmen (iframe) auf
 // /schulungsmaterial/[id].
@@ -54,19 +60,6 @@ const CONTENT_CSP = [
 const STORAGE_SHIM = `<script>(function(){var M=${JSON.stringify(PROGRESS_MARKER)};function mem(init,changed){var d=Object.create(null),k;if(init)for(k in init)if(typeof init[k]==="string")d[k]=init[k];function has(k){return Object.prototype.hasOwnProperty.call(d,k)}function tell(){if(changed)changed(d)}return{getItem:function(k){return has(k)?d[k]:null},setItem:function(k,v){d[k]=String(v);tell()},removeItem:function(k){delete d[k];tell()},clear:function(){d=Object.create(null);tell()},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}var init=null;try{var n=JSON.parse(window.name);if(n&&n[M]===1&&n.ls&&typeof n.ls==="object")init=n.ls}catch(e){}function changed(d){var c={},k,m={type:"storage"};for(k in d)c[k]=d[k];m[M]=1;m.data=c;try{var w={ls:c};w[M]=1;window.name=JSON.stringify(w)}catch(e){}try{if(window.parent!==window)window.parent.postMessage(m,"*")}catch(e){}}["localStorage","sessionStorage"].forEach(function(n){try{window[n].getItem("_")}catch(e){try{Object.defineProperty(window,n,{value:n==="localStorage"?mem(init,changed):mem(),configurable:true})}catch(_){}}})})();</script>`;
 
 const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
-
-/**
- * Stelle (in Bytes), an der der Speicher-Ersatz eingefügt wird: direkt hinter
- * <head> bzw. <html>, sonst ganz vorn. Gesucht wird nur im Dateianfang – die
- * Dateien sind teils sehr groß (eingebettete Medien) und sollen nicht als
- * Ganzes in Text umgewandelt werden.
- */
-function shimOffset(bytes: Uint8Array): number {
-  // latin1: ein Zeichen je Byte, die Fundstelle ist also zugleich die Byte-Stelle.
-  const start = new TextDecoder("latin1").decode(bytes.subarray(0, 64 * 1024));
-  const tag = start.match(/<head[^>]*>/i) ?? start.match(/<html[^>]*>/i);
-  return tag?.index !== undefined ? tag.index + tag[0].length : 0;
-}
 
 // Zwischenspeichern im Browser: Die Dateien sind groß (zig MB), jeder Abruf
 // kostet Datenvolumen im Speicher-Kontingent. „no-cache" heißt: Der Browser
@@ -140,29 +133,24 @@ export async function GET(
     return new Response(null, { status: 304, headers: contentHeaders(etag) });
   }
 
-  const { data: file, error } = await createServiceClient()
+  // Direkt aus dem Speicher durchreichen (kurzlebiger Link, verlässt den
+  // Server nicht) – nicht erst vollständig laden: Der Browser beginnt sofort
+  // mit der Anzeige.
+  const { data: signed, error } = await createServiceClient()
     .storage.from(MATERIAL_BUCKET)
-    .download(item.storage_path);
-  if (error || !file) {
-    console.error("[schulungsmaterial/inhalt] download:", error?.message);
+    .createSignedUrl(item.storage_path, 60);
+  const upstream = signed?.signedUrl
+    ? await fetch(signed.signedUrl, { cache: "no-store" }).catch(() => null)
+    : null;
+  if (!upstream?.ok || !upstream.body) {
+    console.error(
+      "[schulungsmaterial/inhalt] download:",
+      error?.message ?? `Status ${upstream?.status ?? "–"}`
+    );
     return plain("Die Datei kann im Moment nicht geladen werden.", 502);
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const at = shimOffset(bytes);
-
-  // Als Strom senden (große Dateien mit eingebetteten Medien).
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const CHUNK = 256 * 1024;
-      controller.enqueue(bytes.subarray(0, at));
-      controller.enqueue(SHIM_BYTES);
-      for (let i = at; i < bytes.length; i += CHUNK) {
-        controller.enqueue(bytes.subarray(i, i + CHUNK));
-      }
-      controller.close();
-    },
-  });
+  const stream = streamWithInsert(upstream.body, SHIM_BYTES);
 
   return new Response(stream, {
     headers: { "Content-Type": "text/html; charset=utf-8", ...contentHeaders(etag) },
