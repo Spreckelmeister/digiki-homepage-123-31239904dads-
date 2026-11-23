@@ -27,7 +27,7 @@ if (!quelle || !ziel) {
 }
 
 const hier = dirname(fileURLToPath(import.meta.url));
-const { STORAGE_SHIM } = await import(
+const { STORAGE_SHIM, ACCOUNT_MARK_HEAD, ACCOUNT_MARK_END, ACCOUNT_PLACEHOLDER } = await import(
   resolve(hier, "../../src/lib/material/storageShim.ts")
 );
 
@@ -43,12 +43,21 @@ function ersetzeEinmal(text, alt, neu, was) {
   return teile.join(neu);
 }
 
-/** Fügt den Speicher-Ersatz direkt hinter <head> ein. */
+/**
+ * Fügt das Skript (Speicher-Ersatz u. a.) direkt hinter <head> ein, dazu an
+ * Kopf und Dateiende Platzhalter für die Konto-Kennung: Der Server setzt beim
+ * Ausliefern das Konto ein, für das der Link ausgestellt wurde.
+ */
 function mitSpeicherErsatz(html, was) {
   const tag = html.match(/<head[^>]*>/i) ?? html.match(/<html[^>]*>/i);
   if (!tag) abbruch(`${was}: kein <head> gefunden.`);
   const stelle = tag.index + tag[0].length;
-  return html.slice(0, stelle) + STORAGE_SHIM + html.slice(stelle);
+  // Der Platzhalter-Begrenzer darf sonst nirgends vorkommen – der Server
+  // würde die Stelle als Anweisung lesen.
+  if (html.includes("<<DIGIKI{")) abbruch(`${was}: enthält bereits „<<DIGIKI{".`);
+  return (
+    html.slice(0, stelle) + STORAGE_SHIM + ACCOUNT_MARK_HEAD + html.slice(stelle) + ACCOUNT_MARK_END
+  );
 }
 
 let start = readFileSync(quelle, "utf8");
@@ -98,4 +107,6 @@ for (const { nr, html } of einheiten) {
   summe += Buffer.byteLength(datei);
   console.log(`einheiten/${nr}.html  ${mb(Buffer.byteLength(datei))}`);
 }
+const stellen = start.split(ACCOUNT_PLACEHOLDER).length - 1;
+console.log(`Konto-Kennung an ${stellen} Stellen je Datei`);
 console.log(`${einheiten.length} Einheiten, zusammen ${mb(summe)} → ${ziel}`);

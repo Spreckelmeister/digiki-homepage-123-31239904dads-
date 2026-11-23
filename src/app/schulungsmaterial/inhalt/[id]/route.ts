@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import { MATERIAL_BUCKET, vpsSlug } from "@/lib/material/shared";
-import { STORAGE_SHIM } from "@/lib/material/storageShim";
+import {
+  ACCOUNT_MARK_HEAD,
+  ACCOUNT_PLACEHOLDER,
+  STORAGE_SHIM,
+} from "@/lib/material/storageShim";
 import { vpsMaterialUrl } from "@/lib/material/vps";
 import { streamWithInsert } from "@/lib/material/htmlStream";
 
@@ -49,7 +53,17 @@ const CONTENT_CSP = [
   "form-action 'none'",
 ].join("; ");
 
-const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
+/**
+ * Skript und Kennzeichnung für ein Konto: Der Platzhalter wird durch die
+ * Konto-Kennung ersetzt – jede ausgelieferte Kopie trägt ihre Herkunft in sich.
+ */
+function insertFor(userId: string): Uint8Array {
+  const account = userId.replace(/-/g, "").toLowerCase();
+  const safe = /^[0-9a-f]{32}$/.test(account) ? account : "";
+  return new TextEncoder().encode(
+    (STORAGE_SHIM + ACCOUNT_MARK_HEAD).split(ACCOUNT_PLACEHOLDER).join(safe)
+  );
+}
 
 // Zwischenspeichern im Browser: Die Dateien sind groß (zig MB), jeder Abruf
 // kostet Datenvolumen im Speicher-Kontingent. „no-cache" heißt: Der Browser
@@ -57,13 +71,14 @@ const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
 // Anmeldung und Freischaltung werden also weiterhin jedes Mal geprüft; nur
 // wenn beides stimmt, antworten wir mit 304 statt die Datei neu zu laden.
 // Eine hochgeladene Datei ändert sich nie (neuer Upload = neuer Eintrag),
-// deshalb genügt die Eintrags-ID als Kennung. CONTENT_VERSION erhöhen, wenn
+// deshalb genügen Eintrags-ID und Konto als Kennung. CONTENT_VERSION erhöhen, wenn
 // sich der eingefügte Speicher-Ersatz ändert.
-const CONTENT_VERSION = 5;
+const CONTENT_VERSION = 6;
 const CACHE_CONTROL = "private, no-cache";
 
-function etagFor(id: string): string {
-  return `"${id.toLowerCase()}-${CONTENT_VERSION}"`;
+function etagFor(id: string, userId: string): string {
+  // Mit Konto: Die Datei trägt dessen Kennung.
+  return `"${id.toLowerCase()}-${userId.slice(0, 8)}-${CONTENT_VERSION}"`;
 }
 
 function etagMatches(header: string | null, etag: string): boolean {
@@ -141,7 +156,7 @@ export async function GET(
     });
   }
 
-  const etag = etagFor(id);
+  const etag = etagFor(id, user.id);
   if (etagMatches(request.headers.get("if-none-match"), etag)) {
     return new Response(null, { status: 304, headers: contentHeaders(etag) });
   }
@@ -163,7 +178,7 @@ export async function GET(
     return plain("Die Datei kann im Moment nicht geladen werden.", 502);
   }
 
-  const stream = streamWithInsert(upstream.body, SHIM_BYTES);
+  const stream = streamWithInsert(upstream.body, insertFor(user.id));
 
   return new Response(stream, {
     headers: { "Content-Type": "text/html; charset=utf-8", ...contentHeaders(etag) },

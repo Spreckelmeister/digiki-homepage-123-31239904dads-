@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import MaterialViewer from "@/components/material/MaterialViewer";
 import HtmlViewer from "@/components/material/HtmlViewer";
+import MaterialGate from "@/components/material/MaterialGate";
+import MaterialRules from "@/components/material/MaterialRules";
+import { logMaterialAccess } from "@/lib/material/zugriff";
 import {
   MATERIAL_BUCKET,
   sanitizeProgress,
@@ -53,6 +56,21 @@ export default async function MaterialDetailPage({
   const item = data as MaterialItem | null;
   if (!item) notFound();
 
+  // Zugriff mitschreiben (Nutzungsbedingungen, Abschnitt 4) und das Konto
+  // für die Kennzeichnung der Ansicht ermitteln.
+  await logMaterialAccess(user.id, { id: item.id, title: item.title });
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, school")
+    .eq("id", user.id)
+    .maybeSingle();
+  const licensee = [profile?.full_name, profile?.school]
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
+    .filter(Boolean)
+    .join(" · ");
+  const accountCode = user.id.replace(/-/g, "").slice(0, 8).toLowerCase();
+  const rules = <MaterialRules headingLevel="h2" />;
+
   // Erst NACH der Prüfung: kurzlebiger Link auf die Datei im privaten Bucket.
   // HTML-Material braucht keinen Link – es kommt über unsere eigene,
   // abgeschottete Route (/schulungsmaterial/inhalt/[id]).
@@ -80,17 +98,21 @@ export default async function MaterialDetailPage({
   // HTML-Lerneinheit: füllt das ganze Fenster, mit eigener schmaler Leiste.
   if (item.kind === "html") {
     return (
-      <HtmlViewer
-        id={item.id}
-        title={item.title}
-        progress={progress}
-        preview={!item.published}
-      />
+      <MaterialGate accountKey={accountCode} title={item.title} rules={rules}>
+        <HtmlViewer
+          id={item.id}
+          title={item.title}
+          progress={progress}
+          preview={!item.published}
+          licensee={licensee}
+          accountCode={accountCode}
+        />
+      </MaterialGate>
     );
   }
 
   return (
-    <>
+    <MaterialGate accountKey={accountCode} title={item.title} rules={rules}>
       <section className="bg-primary py-10 md:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Link
@@ -119,7 +141,13 @@ export default async function MaterialDetailPage({
             </p>
           )}
           {signedUrl ? (
-            <MaterialViewer kind={item.kind} url={signedUrl} title={item.title} />
+            <>
+              <MaterialViewer kind={item.kind} url={signedUrl} title={item.title} />
+              <p className="mt-3 text-sm text-text-light">
+                Lizenziert für {licensee || "Ihr Konto"} · Nur zur Ansicht ·
+                Zugriff wird protokolliert
+              </p>
+            </>
           ) : (
             <p role="alert" className="rounded-xl border border-border bg-white p-8 text-text-light">
               Die Datei kann im Moment nicht geladen werden. Bitte versuchen
@@ -128,6 +156,6 @@ export default async function MaterialDetailPage({
           )}
         </div>
       </section>
-    </>
+    </MaterialGate>
   );
 }

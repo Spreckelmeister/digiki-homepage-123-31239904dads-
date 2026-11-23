@@ -4,6 +4,7 @@ import { ArrowRight, FileText, Film, Headphones, Image as ImageIcon, MonitorPlay
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import AuthStatus from "@/components/best-practice/AuthStatus";
 import { hasBestandsaufnahme } from "@/lib/material/server";
+import MaterialRules from "@/components/material/MaterialRules";
 import { KIND_LABEL, type MaterialItem, type MaterialKind } from "@/lib/material/shared";
 
 export const metadata: Metadata = {
@@ -105,6 +106,10 @@ export default async function SchulungsmaterialPage() {
               Sie in Kürze wieder vorbei.
             </p>
           ) : (
+            <>
+            <div className="mb-8">
+              <MaterialRules />
+            </div>
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {items.map((item) => {
                 const Icon = KIND_ICON[item.kind];
@@ -135,6 +140,7 @@ export default async function SchulungsmaterialPage() {
                 );
               })}
             </ul>
+            </>
           )}
 
           {materialOnly && (

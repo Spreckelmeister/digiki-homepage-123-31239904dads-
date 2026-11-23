@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Maximize2 } from "lucide-react";
+import Kennzeichnung from "./Kennzeichnung";
 import {
   PROGRESS_MARKER,
   progressFrameName,
@@ -31,21 +32,29 @@ export default function HtmlViewer({
   title,
   progress,
   preview = false,
+  licensee,
+  accountCode,
 }: {
   id: string;
   title: string;
   progress: MaterialProgress;
   /** Noch nicht freigeschaltet (Vorschau für Admins). */
   preview?: boolean;
+  /** Sichtbare Kennzeichnung: Name und Schule des Kontos. */
+  licensee: string;
+  /** Unsichtbare Kennzeichnung: Kurzform der Konto-Kennung. */
+  accountCode: string;
 }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
+  // Vollbild gilt für Rahmen samt Kennzeichnung, nicht für den Rahmen allein.
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // Bildschirm-Vollbild für eingebettete Seiten gibt es nicht überall (iPhone).
   // Die Lerneinheit füllt ohnehin das Fenster – dort entfällt der Knopf.
   const [canFullscreen, setCanFullscreen] = useState(false);
   useEffect(() => {
     setCanFullscreen(
-      document.fullscreenEnabled && !!frameRef.current?.requestFullscreen
+      document.fullscreenEnabled && !!stageRef.current?.requestFullscreen
     );
   }, []);
 
@@ -140,7 +149,7 @@ export default function HtmlViewer({
         {canFullscreen && (
           <button
             type="button"
-            onClick={() => void frameRef.current?.requestFullscreen()}
+            onClick={() => void stageRef.current?.requestFullscreen()}
             className="inline-flex flex-none items-center gap-2 rounded-lg border border-white/40 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white transition-colors"
           >
             <Maximize2 className="h-4 w-4" aria-hidden="true" />
@@ -148,17 +157,20 @@ export default function HtmlViewer({
           </button>
         )}
       </div>
-      <iframe
-        ref={frameRef}
-        name={progressFrameName(progress)}
-        src={`/schulungsmaterial/inhalt/${id}`}
-        title={title}
-        sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
-        referrerPolicy="no-referrer"
-        // clipboard-write: „Kopieren"-Knöpfe in den Lerneinheiten.
-        allow="fullscreen; clipboard-write"
-        className="block min-h-0 w-full flex-1 border-0 bg-white"
-      />
+      <div ref={stageRef} className="relative min-h-0 flex-1 bg-white">
+        <iframe
+          ref={frameRef}
+          name={progressFrameName(progress)}
+          src={`/schulungsmaterial/inhalt/${id}`}
+          title={title}
+          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer"
+          // clipboard-write: „Kopieren"-Knöpfe in den Lerneinheiten.
+          allow="fullscreen; clipboard-write"
+          className="block h-full w-full border-0 bg-white"
+        />
+        <Kennzeichnung licensee={licensee} code={accountCode} />
+      </div>
     </div>
   );
 }

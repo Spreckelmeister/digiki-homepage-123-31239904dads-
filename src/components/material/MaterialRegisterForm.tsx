@@ -192,6 +192,19 @@ export default function MaterialRegisterForm() {
           </span>
         </label>
 
+        <p className="text-sm text-text-light">
+          Das Material ist nur zur Ansicht bestimmt. Es gelten die{" "}
+          <a
+            href="/schulungsmaterial/nutzungsbedingungen"
+            target="_blank"
+            rel="noopener"
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            Nutzungsbedingungen für das Schulungsmaterial
+          </a>
+          : Kopieren, Fotografieren und Weitergeben sind untersagt, Zugriffe
+          werden protokolliert.
+        </p>
         <button
           type="submit"
           disabled={loading}
