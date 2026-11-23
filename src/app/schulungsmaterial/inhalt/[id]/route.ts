@@ -102,6 +102,16 @@ export async function GET(
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return plain("Nicht gefunden.", 404);
 
+  // Nur eingebettet in unsere eigene Seite: Der Browser nennt Ziel und Herkunft
+  // jeder Anfrage. Wer die Adresse direkt öffnet (Adresszeile, neuer Tab,
+  // „Link speichern") oder von einer fremden Seite einbettet, bekommt nichts.
+  // Alte Browser ohne diese Angaben werden nicht ausgesperrt.
+  const dest = request.headers.get("sec-fetch-dest");
+  const site = request.headers.get("sec-fetch-site");
+  if ((dest !== null && dest !== "iframe") || (site !== null && site !== "same-origin")) {
+    return plain("Dieses Material lässt sich nur über die DigiKI-Seite ansehen.", 403);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
