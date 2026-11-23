@@ -498,6 +498,14 @@ export default async function HomePage() {
                       {item.title}
                     </h3>
                     <p className="text-sm text-text-light">{item.summary}</p>
+                    {item.href && (
+                      <Link
+                        href={item.href}
+                        className="mt-3 inline-block text-sm font-semibold text-primary underline hover:text-primary/80"
+                      >
+                        {item.linkLabel ?? "Mehr erfahren"}
+                      </Link>
+                    )}
                   </article>
                 );
               })}

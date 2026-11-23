@@ -243,6 +243,9 @@ type NewsItem = {
   date: string;
   summary: string;
   slug: string;
+  /** Optionaler Link unter dem Text (interne Seite). */
+  href?: string;
+  linkLabel?: string;
   type?: "event";
   dates?: Array<{
     label: string;
@@ -255,6 +258,15 @@ type NewsItem = {
 };
 
 export const newsItems: NewsItem[] = [
+  {
+    id: "5",
+    title: "Neu: Schulungsmaterial für Schulen",
+    date: "2026-11-23",
+    summary: "Ab dieser Woche steht auf dieser Seite Schulungsmaterial zum Ansehen bereit – nach und nach kommen weitere Inhalte dazu. Schulen im DigiKI-Programm melden sich einfach mit ihrem bestehenden Konto an. Alle anderen Schulen können mit ihrer dienstlichen E-Mail-Adresse einen Zugang nur für das Schulungsmaterial anlegen – ganz ohne Bestandsaufnahme.",
+    slug: "schulungsmaterial",
+    href: "/schulungsmaterial",
+    linkLabel: "Zum Schulungsmaterial",
+  },
   {
     id: "1",
     title: "DigiKI-Projekt startet",
