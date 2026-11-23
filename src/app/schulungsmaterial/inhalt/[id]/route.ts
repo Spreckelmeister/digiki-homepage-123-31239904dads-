@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
-import { MATERIAL_BUCKET } from "@/lib/material/shared";
+import { MATERIAL_BUCKET, PROGRESS_MARKER } from "@/lib/material/shared";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,9 +43,15 @@ const CONTENT_CSP = [
 
 // Im abgeschotteten Rahmen wirft schon der Zugriff auf localStorage /
 // sessionStorage einen Fehler – viele Lerneinheiten merken sich dort den
-// Fortschritt und würden abbrechen. Ersatz: ein Speicher, der bis zum
-// Schließen der Seite hält.
-const STORAGE_SHIM = `<script>(function(){function mem(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}["localStorage","sessionStorage"].forEach(function(n){try{window[n].getItem("_")}catch(e){try{Object.defineProperty(window,n,{value:mem(),configurable:true})}catch(_){}}})})();</script>`;
+// Fortschritt und würden abbrechen. Ersatz: ein Speicher im Arbeitsspeicher.
+//
+// Fortschritt je Konto (Migration 043): Der Ersatz für localStorage startet
+// mit dem Stand, den die umgebende Seite im name-Attribut des Rahmens
+// mitgibt (window.name – sofort da, steht nicht in der zwischengespeicherten
+// Datei), und meldet jede Änderung per Nachricht an sie zurück. Sie prüft
+// und speichert. Zusätzlich landet der Stand wieder in window.name, damit er
+// ein Neuladen innerhalb des Rahmens übersteht. sessionStorage bleibt flüchtig.
+const STORAGE_SHIM = `<script>(function(){var M=${JSON.stringify(PROGRESS_MARKER)};function mem(init,changed){var d=Object.create(null),k;if(init)for(k in init)if(typeof init[k]==="string")d[k]=init[k];function has(k){return Object.prototype.hasOwnProperty.call(d,k)}function tell(){if(changed)changed(d)}return{getItem:function(k){return has(k)?d[k]:null},setItem:function(k,v){d[k]=String(v);tell()},removeItem:function(k){delete d[k];tell()},clear:function(){d=Object.create(null);tell()},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}var init=null;try{var n=JSON.parse(window.name);if(n&&n[M]===1&&n.ls&&typeof n.ls==="object")init=n.ls}catch(e){}function changed(d){var c={},k,m={type:"storage"};for(k in d)c[k]=d[k];m[M]=1;m.data=c;try{var w={ls:c};w[M]=1;window.name=JSON.stringify(w)}catch(e){}try{if(window.parent!==window)window.parent.postMessage(m,"*")}catch(e){}}["localStorage","sessionStorage"].forEach(function(n){try{window[n].getItem("_")}catch(e){try{Object.defineProperty(window,n,{value:n==="localStorage"?mem(init,changed):mem(),configurable:true})}catch(_){}}})})();</script>`;
 
 const SHIM_BYTES = new TextEncoder().encode(STORAGE_SHIM);
 
@@ -70,7 +76,7 @@ function shimOffset(bytes: Uint8Array): number {
 // Eine hochgeladene Datei ändert sich nie (neuer Upload = neuer Eintrag),
 // deshalb genügt die Eintrags-ID als Kennung. CONTENT_VERSION erhöhen, wenn
 // sich der eingefügte Speicher-Ersatz ändert.
-const CONTENT_VERSION = 2;
+const CONTENT_VERSION = 3;
 const CACHE_CONTROL = "private, no-cache";
 
 function etagFor(id: string): string {

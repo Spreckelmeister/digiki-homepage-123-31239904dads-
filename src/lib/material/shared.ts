@@ -74,3 +74,44 @@ export function formatSize(bytes: number): string {
 export function normalizeDomain(input: string): string {
   return input.trim().toLowerCase().replace(/^.*@/, "").replace(/^\.+|\.+$/g, "");
 }
+
+// ── Fortschritt in HTML-Lerneinheiten (Migration 043) ──────────────
+// Die Lerneinheit läuft abgeschottet und kann selbst nichts speichern.
+// Ihr „localStorage" ist ein Ersatz (siehe /schulungsmaterial/inhalt/[id]),
+// der Änderungen an die umgebende Seite meldet; die legt sie je Konto ab.
+
+/** Kennung der Nachrichten zwischen Lerneinheit und umgebender Seite. */
+export const PROGRESS_MARKER = "__digikiMaterial";
+
+export type MaterialProgress = Record<string, string>;
+
+const PROGRESS_MAX_KEYS = 50;
+const PROGRESS_MAX_KEY_LENGTH = 200;
+const PROGRESS_MAX_BYTES = 32 * 1024;
+
+/**
+ * Prüft einen gemeldeten Stand. Er stammt aus fremdem Inhalt – angenommen
+ * wird nur eine kleine Liste aus Text-Schlüsseln und Text-Werten.
+ * `null` = nicht speichern.
+ */
+export function sanitizeProgress(input: unknown): MaterialProgress | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const entries = Object.entries(input as Record<string, unknown>);
+  if (entries.length > PROGRESS_MAX_KEYS) return null;
+  const out: MaterialProgress = {};
+  for (const [key, value] of entries) {
+    if (!key || key.length > PROGRESS_MAX_KEY_LENGTH || typeof value !== "string") return null;
+    out[key] = value;
+  }
+  if (new TextEncoder().encode(JSON.stringify(out)).length > PROGRESS_MAX_BYTES) return null;
+  return out;
+}
+
+/**
+ * Wert für das name-Attribut des Rahmens: Die Lerneinheit liest ihn beim
+ * Start als window.name und hat ihren Stand damit sofort – ohne Wartezeit
+ * und ohne dass er in der (zwischengespeicherten) Datei stehen müsste.
+ */
+export function progressFrameName(progress: MaterialProgress): string {
+  return JSON.stringify({ [PROGRESS_MARKER]: 1, ls: progress });
+}

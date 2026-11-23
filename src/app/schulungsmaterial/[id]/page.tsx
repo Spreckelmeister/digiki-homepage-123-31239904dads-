@@ -6,7 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import MaterialViewer from "@/components/material/MaterialViewer";
 import HtmlViewer from "@/components/material/HtmlViewer";
-import { MATERIAL_BUCKET, type MaterialItem } from "@/lib/material/shared";
+import {
+  MATERIAL_BUCKET,
+  sanitizeProgress,
+  type MaterialItem,
+  type MaterialProgress,
+} from "@/lib/material/shared";
 
 export const metadata: Metadata = {
   title: "Schulungsmaterial - DigiKI",
@@ -59,6 +64,19 @@ export default async function MaterialDetailPage({
     signedUrl = signed?.signedUrl ?? null;
   }
 
+  // HTML-Lerneinheit: gespeicherter Stand dieses Kontos (Migration 043).
+  // Fehlt die Migration, startet die Einheit ohne Stand.
+  let progress: MaterialProgress = {};
+  if (item.kind === "html") {
+    const { data: saved } = await supabase
+      .from("schulungsmaterial_fortschritt")
+      .select("daten")
+      .eq("material_id", item.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    progress = sanitizeProgress(saved?.daten) ?? {};
+  }
+
   return (
     <>
       <section className="bg-primary py-10 md:py-12">
@@ -89,7 +107,7 @@ export default async function MaterialDetailPage({
             </p>
           )}
           {item.kind === "html" ? (
-            <HtmlViewer id={item.id} title={item.title} />
+            <HtmlViewer id={item.id} title={item.title} progress={progress} />
           ) : signedUrl ? (
             <MaterialViewer kind={item.kind} url={signedUrl} title={item.title} />
           ) : (
