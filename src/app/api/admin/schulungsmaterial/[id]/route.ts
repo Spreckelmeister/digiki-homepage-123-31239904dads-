@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/schulungen/server";
 import { requireAdmin } from "@/lib/material/server";
-import { MATERIAL_BUCKET } from "@/lib/material/shared";
+import { MATERIAL_BUCKET, vpsSlug } from "@/lib/material/shared";
 
 // Admin: Schulungsmaterial löschen – Eintrag UND Datei im Bucket.
 
@@ -28,9 +28,11 @@ export async function DELETE(
   }
 
   // Erst die Datei: bleibt sie liegen, soll auch der Eintrag sichtbar bleiben.
-  const { error: removeError } = await admin.storage
-    .from(MATERIAL_BUCKET)
-    .remove([item.storage_path]);
+  // Material auf dem eigenen Server (vps:…) hat keine Datei im Bucket; die
+  // Dateien dort werden von Hand entfernt (scripts/material-vps).
+  const { error: removeError } = vpsSlug(item.storage_path)
+    ? { error: null }
+    : await admin.storage.from(MATERIAL_BUCKET).remove([item.storage_path]);
   if (removeError) {
     console.error("[admin/schulungsmaterial] remove:", removeError.message);
     return NextResponse.json(

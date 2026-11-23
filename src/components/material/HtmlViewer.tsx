@@ -105,7 +105,8 @@ export default function HtmlViewer({
         title={title}
         sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="no-referrer"
-        allow="fullscreen"
+        // clipboard-write: „Kopieren"-Knöpfe in den Lerneinheiten.
+        allow="fullscreen; clipboard-write"
         className="block h-[80vh] min-h-[480px] w-full rounded-xl border border-border bg-white shadow-sm"
       />
     </div>

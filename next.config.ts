@@ -141,6 +141,9 @@ const nextConfig: NextConfig = {
               ].join(" "),
               "worker-src 'self' blob:",
               "media-src 'self' blob: https://*.supabase.co",
+              // HTML-Schulungsmaterial im Rahmen: eigene Route bzw. der eigene
+              // Material-Server (scripts/material-vps), auf den sie weiterleitet.
+              `frame-src 'self' ${process.env.MATERIAL_HOST_URL || "https://material.digiki-os.de"}`,
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

@@ -4,6 +4,20 @@
 /** Privater Supabase-Storage-Bucket. */
 export const MATERIAL_BUCKET = "schulungsmaterial";
 
+/**
+ * Großes HTML-Material liegt nicht im Bucket, sondern in Einheiten aufgeteilt
+ * auf dem eigenen Server (scripts/material-vps). Der Eintrag trägt dann als
+ * storage_path „vps:<ordner>".
+ */
+const VPS_PREFIX = "vps:";
+
+/** Ordnername auf dem eigenen Server – oder null, wenn die Datei im Bucket liegt. */
+export function vpsSlug(storagePath: string): string | null {
+  if (!storagePath.startsWith(VPS_PREFIX)) return null;
+  const slug = storagePath.slice(VPS_PREFIX.length);
+  return /^[a-z0-9][a-z0-9-]{0,62}$/.test(slug) ? slug : null;
+}
+
 export type MaterialKind = "video" | "audio" | "pdf" | "image" | "html";
 
 export interface MaterialItem {
@@ -80,8 +94,9 @@ export function normalizeDomain(input: string): string {
 // Ihr „localStorage" ist ein Ersatz (siehe /schulungsmaterial/inhalt/[id]),
 // der Änderungen an die umgebende Seite meldet; die legt sie je Konto ab.
 
-/** Kennung der Nachrichten zwischen Lerneinheit und umgebender Seite. */
-export const PROGRESS_MARKER = "__digikiMaterial";
+import { PROGRESS_MARKER } from "./storageShim";
+
+export { PROGRESS_MARKER };
 
 export type MaterialProgress = Record<string, string>;
 

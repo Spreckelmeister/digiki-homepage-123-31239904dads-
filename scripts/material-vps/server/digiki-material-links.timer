@@ -1,0 +1,10 @@
+[Unit]
+Description=DigiKI-Schulungsmaterial: Verweise stündlich erneuern
+
+[Timer]
+OnCalendar=hourly
+OnBootSec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

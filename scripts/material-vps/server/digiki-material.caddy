@@ -1,0 +1,49 @@
+# DigiKI-Schulungsmaterial (große HTML-Lerneinheiten, in Einheiten aufgeteilt).
+# Gehört zur DigiKI-Seite (www.digiki-os.de), nicht zu mentoki – eigene Ordner:
+#   /srv/digiki/material/dateien   Material, von außen nicht erreichbar
+#   /srv/digiki/material/links     täglich wechselnde Verweise, nur die liefert Caddy aus
+# Quelle: Repo digiki-homepage, scripts/material-vps/server (einrichten.sh).
+material.digiki-os.de {
+	root * /srv/digiki/material/links
+	encode zstd gzip
+
+	# Ausgeliefert werden nur Startseite und Einheiten hinter einer gültigen Kennung.
+	#
+	# Die Dateien stammen von Dritten und enthalten Skripte. „sandbox" ohne
+	# allow-same-origin: eigener, leerer Ursprung, kein Zugriff auf die umgebende
+	# Seite. default-src 'none': nichts aus dem Netz, nichts ins Netz – nur was
+	# in der Datei steckt (data:, blob:) und die Einheiten desselben Materials im
+	# Rahmen. Entspricht der Regel in src/app/schulungsmaterial/inhalt/[id]/route.ts
+	# der DigiKI-Seite.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Robots-Tag "noindex, nofollow"
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# Startseite: darf nur von der DigiKI-Seite eingebettet werden.
+	@start path_regexp ^/[0-9a-f]{40}/index\.html$
+	handle @start {
+		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors https://www.digiki-os.de https://digiki-os.de"
+		# Der Browser darf die Kopie behalten, fragt aber vor jeder Anzeige nach,
+		# ob sie noch aktuell ist (ETag) – geändertes Material kommt so sofort an.
+		header Cache-Control "private, no-cache"
+		file_server
+	}
+
+	# Einheiten: werden von der Startseite eingebettet. Ohne frame-ancestors –
+	# die abgeschottete Startseite hat einen leeren Ursprung, den keine solche
+	# Regel benennen kann.
+	@einheit path_regexp ^/[0-9a-f]{40}/einheiten/[0-9a-z-]+\.html$
+	handle @einheit {
+		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'"
+		header Cache-Control "private, no-cache"
+		file_server
+	}
+
+	handle {
+		respond "Nicht gefunden." 404
+	}
+}

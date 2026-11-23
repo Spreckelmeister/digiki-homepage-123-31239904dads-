@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Legt die täglich wechselnden Verweise auf das DigiKI-Schulungsmaterial an.
+
+Das Material liegt in  /srv/digiki/material/dateien/<ordner>/  und ist von
+außen nicht erreichbar. Caddy liefert nur  /srv/digiki/material/links/  aus;
+dort steht je Ordner und Tag ein Verweis mit nicht erratbarem Namen:
+
+    links/<kennung>  ->  ../dateien/<ordner>
+
+Kennung = HMAC-SHA256(Schlüssel, "<ordner>\\n<JJJJ-MM-TT>") (UTC), die ersten
+40 Hex-Zeichen – dieselbe Rechnung wie in src/lib/material/vps.ts der
+DigiKI-Seite. Angelegt werden gestern, heute und morgen; alles andere wird
+entfernt. Läuft stündlich (digiki-material-links.timer) und nach jedem
+Ablegen von neuem Material von Hand.
+"""
+import datetime
+import hashlib
+import hmac
+import os
+import re
+import sys
+
+BASIS = "/srv/digiki/material"
+SCHLUESSEL = "/etc/digiki-material/schluessel"
+
+dateien = os.path.join(BASIS, "dateien")
+links = os.path.join(BASIS, "links")
+
+with open(SCHLUESSEL, encoding="utf-8") as f:
+    schluessel = f.read().strip().encode()
+if len(schluessel) < 32:
+    sys.exit("Schlüssel fehlt oder ist zu kurz: " + SCHLUESSEL)
+
+heute = datetime.datetime.now(datetime.timezone.utc).date()
+tage = [(heute + datetime.timedelta(days=d)).isoformat() for d in (-1, 0, 1)]
+
+soll = {}
+for ordner in sorted(os.listdir(dateien)):
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", ordner):
+        continue
+    if not os.path.isfile(os.path.join(dateien, ordner, "index.html")):
+        continue
+    for tag in tage:
+        text = f"{ordner}\n{tag}".encode()
+        kennung = hmac.new(schluessel, text, hashlib.sha256).hexdigest()[:40]
+        soll[kennung] = os.path.join("..", "dateien", ordner)
+
+os.makedirs(links, exist_ok=True)
+for name in os.listdir(links):
+    pfad = os.path.join(links, name)
+    if name not in soll or not os.path.islink(pfad) or os.readlink(pfad) != soll[name]:
+        os.unlink(pfad)
+for kennung, ziel in soll.items():
+    pfad = os.path.join(links, kennung)
+    if not os.path.islink(pfad):
+        os.symlink(ziel, pfad)
+
+print(f"{len(soll)} Verweise für {len(soll) // len(tage)} Ordner")
