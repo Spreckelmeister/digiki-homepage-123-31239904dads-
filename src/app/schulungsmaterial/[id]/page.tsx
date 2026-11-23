@@ -77,6 +77,18 @@ export default async function MaterialDetailPage({
     progress = sanitizeProgress(saved?.daten) ?? {};
   }
 
+  // HTML-Lerneinheit: füllt das ganze Fenster, mit eigener schmaler Leiste.
+  if (item.kind === "html") {
+    return (
+      <HtmlViewer
+        id={item.id}
+        title={item.title}
+        progress={progress}
+        preview={!item.published}
+      />
+    );
+  }
+
   return (
     <>
       <section className="bg-primary py-10 md:py-12">
@@ -106,9 +118,7 @@ export default async function MaterialDetailPage({
               {item.description}
             </p>
           )}
-          {item.kind === "html" ? (
-            <HtmlViewer id={item.id} title={item.title} progress={progress} />
-          ) : signedUrl ? (
+          {signedUrl ? (
             <MaterialViewer kind={item.kind} url={signedUrl} title={item.title} />
           ) : (
             <p role="alert" className="rounded-xl border border-border bg-white p-8 text-text-light">

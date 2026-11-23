@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Maximize2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Maximize2 } from "lucide-react";
 import {
   PROGRESS_MARKER,
   progressFrameName,
@@ -19,17 +20,34 @@ import {
  * name-Attribut des Rahmens und meldet Änderungen per Nachricht zurück.
  * Gespeichert wird hier – mit der Anmeldung dieser Seite, an die die
  * Lerneinheit selbst nicht herankommt.
+ *
+ * Anzeige: Die Lerneinheit füllt immer das ganze Browserfenster (über Kopf-
+ * und Fußbereich der Seite), mit einer schmalen Leiste zum Zurückgehen. Das
+ * echte Bildschirm-Vollbild darf ein Browser nur nach einem Klick starten –
+ * dafür bleibt der Knopf „Vollbild".
  */
 export default function HtmlViewer({
   id,
   title,
   progress,
+  preview = false,
 }: {
   id: string;
   title: string;
   progress: MaterialProgress;
+  /** Noch nicht freigeschaltet (Vorschau für Admins). */
+  preview?: boolean;
 }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // Die Seite darunter soll nicht mitscrollen.
+  useEffect(() => {
+    const before = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = before;
+    };
+  }, []);
 
   useEffect(() => {
     let pending: MaterialProgress | null = null;
@@ -76,8 +94,24 @@ export default function HtmlViewer({
   }, [id]);
 
   return (
-    <div>
-      <div className="mb-3 flex justify-end">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white">
+      <div className="flex flex-none items-center gap-3 bg-primary px-3 py-2 text-white sm:px-4">
+        <Link
+          href="/schulungsmaterial"
+          className="inline-flex flex-none items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Zurück zum Schulungsmaterial</span>
+          <span className="sm:hidden">Zurück</span>
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">
+          {title}
+        </h1>
+        {preview && (
+          <p className="hidden flex-none rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-900 md:block">
+            Vorschau – noch nicht freigeschaltet
+          </p>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -92,7 +126,7 @@ export default function HtmlViewer({
               window.open(`/schulungsmaterial/inhalt/${id}`, "_blank", "noopener");
             }
           }}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
+          className="inline-flex flex-none items-center gap-2 rounded-lg border border-white/40 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white transition-colors"
         >
           <Maximize2 className="h-4 w-4" aria-hidden="true" />
           Vollbild
@@ -107,7 +141,7 @@ export default function HtmlViewer({
         referrerPolicy="no-referrer"
         // clipboard-write: „Kopieren"-Knöpfe in den Lerneinheiten.
         allow="fullscreen; clipboard-write"
-        className="block h-[80vh] min-h-[480px] w-full rounded-xl border border-border bg-white shadow-sm"
+        className="block min-h-0 w-full flex-1 border-0 bg-white"
       />
     </div>
   );
