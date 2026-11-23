@@ -17,7 +17,16 @@ export default function HtmlViewer({ id, title }: { id: string; title: string })
       <div className="mb-3 flex justify-end">
         <button
           type="button"
-          onClick={() => frameRef.current?.requestFullscreen?.()}
+          onClick={() => {
+            const frame = frameRef.current;
+            // iPhones kennen kein Vollbild für eingebettete Seiten – dort die
+            // Lerneinheit in einem eigenen Tab öffnen (bleibt abgeschottet).
+            if (frame?.requestFullscreen && document.fullscreenEnabled) {
+              void frame.requestFullscreen();
+            } else {
+              window.open(`/schulungsmaterial/inhalt/${id}`, "_blank", "noopener");
+            }
+          }}
           className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
         >
           <Maximize2 className="h-4 w-4" aria-hidden="true" />
