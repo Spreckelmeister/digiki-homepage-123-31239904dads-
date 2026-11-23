@@ -1,20 +1,11 @@
 # DigiKI-Schulungsmaterial (große HTML-Lerneinheiten, in Einheiten aufgeteilt).
 # Gehört zur DigiKI-Seite (www.digiki-os.de), nicht zu mentoki – eigene Ordner:
-#   /srv/digiki/material/dateien   Material, von außen nicht erreichbar
-#   /srv/digiki/material/links     täglich wechselnde Verweise, nur die liefert Caddy aus
+#   /srv/digiki/material/dateien   Material, von außen nicht direkt erreichbar
+#   /var/log/digiki-material       Protokoll der Abrufe (je Konto, ohne IP)
 # Quelle: Repo digiki-homepage, scripts/material-vps/server (einrichten.sh).
 material.digiki-os.de {
-	root * /srv/digiki/material/links
 	encode zstd gzip
 
-	# Ausgeliefert werden nur Startseite und Einheiten hinter einer gültigen Kennung.
-	#
-	# Die Dateien stammen von Dritten und enthalten Skripte. „sandbox" ohne
-	# allow-same-origin: eigener, leerer Ursprung, kein Zugriff auf die umgebende
-	# Seite. default-src 'none': nichts aus dem Netz, nichts ins Netz – nur was
-	# in der Datei steckt (data:, blob:) und die Einheiten desselben Materials im
-	# Rahmen. Entspricht der Regel in src/app/schulungsmaterial/inhalt/[id]/route.ts
-	# der DigiKI-Seite.
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
@@ -23,24 +14,40 @@ material.digiki-os.de {
 		-Server
 	}
 
-	# Startseite: darf nur von der DigiKI-Seite eingebettet werden.
-	@start path_regexp ^/[0-9a-f]{40}/index\.html$
-	handle @start {
-		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors https://www.digiki-os.de https://digiki-os.de"
-		# Der Browser darf die Kopie behalten, fragt aber vor jeder Anzeige nach,
-		# ob sie noch aktuell ist (ETag) – geändertes Material kommt so sofort an.
-		header Cache-Control "private, no-cache"
-		file_server
-	}
+	# Jeder Abruf braucht einen Link, der für ein Konto ausgestellt ist und
+	# abläuft. Geprüft und mitgeschrieben wird er vom Dienst
+	# digiki-material-pruefung; der nennt bei Erfolg die echte Datei.
+	@material path_regexp ^/k/[a-z0-9-]+/[0-9a-f]{32}-[0-9]{10}-[0-9a-f]{40}/(index\.html|einheiten/[0-9a-z-]+\.html)$
+	handle @material {
+		# route: feste Reihenfolge – erst prüfen, dann auf die echte Datei umschreiben.
+		route {
+		forward_auth 127.0.0.1:8793 {
+			uri /pruefen
+			copy_headers X-Material-Datei
+		}
 
-	# Einheiten: werden von der Startseite eingebettet. Ohne frame-ancestors –
-	# die abgeschottete Startseite hat einen leeren Ursprung, den keine solche
-	# Regel benennen kann.
-	@einheit path_regexp ^/[0-9a-f]{40}/einheiten/[0-9a-z-]+\.html$
-	handle @einheit {
-		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'"
+		# Die Dateien stammen von Dritten und enthalten Skripte. „sandbox" ohne
+		# allow-same-origin: eigener, leerer Ursprung, kein Zugriff auf die
+		# umgebende Seite. default-src 'none': nichts aus dem Netz, nichts ins
+		# Netz – nur was in der Datei steckt (data:, blob:) und die Einheiten
+		# desselben Materials im Rahmen. Entspricht der Regel in
+		# src/app/schulungsmaterial/inhalt/[id]/route.ts der DigiKI-Seite.
+		#
+		# Startseite: darf nur von der DigiKI-Seite eingebettet werden.
+		# Einheiten: ohne frame-ancestors – die abgeschottete Startseite, die sie
+		# einbettet, hat einen leeren Ursprung, den keine solche Regel benennen kann.
+		@start path */index.html
+		header @start Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors https://www.digiki-os.de https://digiki-os.de"
+		@einheit path */einheiten/*
+		header @einheit Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' blob:; img-src data: blob:; media-src data: blob:; font-src data: blob:; connect-src data: blob:; frame-src blob: https://material.digiki-os.de; worker-src blob:; base-uri 'none'; form-action 'none'"
+		# Der Browser darf die Kopie behalten, fragt aber vor jeder Anzeige nach
+		# (ETag) – dabei wird der Link erneut geprüft.
 		header Cache-Control "private, no-cache"
+
+		root * /srv/digiki/material/dateien
+		rewrite * {http.request.header.X-Material-Datei}
 		file_server
+		}
 	}
 
 	handle {

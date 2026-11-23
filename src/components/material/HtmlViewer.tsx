@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Maximize2 } from "lucide-react";
 import {
@@ -39,6 +39,15 @@ export default function HtmlViewer({
   preview?: boolean;
 }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // Bildschirm-Vollbild für eingebettete Seiten gibt es nicht überall (iPhone).
+  // Die Lerneinheit füllt ohnehin das Fenster – dort entfällt der Knopf.
+  const [canFullscreen, setCanFullscreen] = useState(false);
+  useEffect(() => {
+    setCanFullscreen(
+      document.fullscreenEnabled && !!frameRef.current?.requestFullscreen
+    );
+  }, []);
 
   // Die Seite darunter soll nicht mitscrollen.
   useEffect(() => {
@@ -112,25 +121,16 @@ export default function HtmlViewer({
             Vorschau – noch nicht freigeschaltet
           </p>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            const frame = frameRef.current;
-            // iPhones kennen kein Vollbild für eingebettete Seiten – dort die
-            // Lerneinheit in einem eigenen Tab öffnen (bleibt abgeschottet).
-            // Dort gilt der Stand nur für diesen Tab: ohne umgebende Seite
-            // kann nichts gespeichert werden.
-            if (frame?.requestFullscreen && document.fullscreenEnabled) {
-              void frame.requestFullscreen();
-            } else {
-              window.open(`/schulungsmaterial/inhalt/${id}`, "_blank", "noopener");
-            }
-          }}
-          className="inline-flex flex-none items-center gap-2 rounded-lg border border-white/40 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white transition-colors"
-        >
-          <Maximize2 className="h-4 w-4" aria-hidden="true" />
-          Vollbild
-        </button>
+        {canFullscreen && (
+          <button
+            type="button"
+            onClick={() => void frameRef.current?.requestFullscreen()}
+            className="inline-flex flex-none items-center gap-2 rounded-lg border border-white/40 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white transition-colors"
+          >
+            <Maximize2 className="h-4 w-4" aria-hidden="true" />
+            Vollbild
+          </button>
+        )}
       </div>
       <iframe
         ref={frameRef}

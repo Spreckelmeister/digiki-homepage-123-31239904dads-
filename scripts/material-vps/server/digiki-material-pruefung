@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Prüft jeden Abruf von DigiKI-Schulungsmaterial und schreibt ihn mit.
+
+Caddy fragt vor jeder Auslieferung hier nach (forward_auth). Ein Link gilt
+für genau ein Konto und läuft ab:
+
+    /k/<ordner>/<konto>-<ablauf>-<signatur>/index.html
+    /k/<ordner>/<konto>-<ablauf>-<signatur>/einheiten/<nr>.html
+
+    konto     Konto-ID der DigiKI-Seite (32 Hex-Zeichen)
+    ablauf    Unix-Zeit in Sekunden
+    signatur  HMAC-SHA256(Schlüssel, "<ordner>\\n<konto>\\n<ablauf>"),
+              die ersten 40 Hex-Zeichen – dieselbe Rechnung wie in
+              src/lib/material/vps.ts der DigiKI-Seite.
+
+Ausgeliefert wird nur in einen Rahmen (Sec-Fetch-Dest: iframe). Wer die
+Adresse direkt öffnet oder herunterladen will, bekommt 403; der Versuch
+steht mit dem Konto im Protokoll.
+
+Protokoll: <LOGS>/zugriffe-JJJJ-MM-TT.log, je Zeile
+    Zeit <TAB> Ergebnis <TAB> Konto <TAB> Ordner <TAB> Datei
+Ergebnis: ok | direkt (Aufruf außerhalb des Rahmens) | abgelaufen.
+Ohne IP-Adresse. Dateien älter als 90 Tage werden gelöscht.
+"""
+import datetime
+import hashlib
+import hmac
+import os
+import re
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+PORT = int(os.environ.get("PORT", "8793"))
+SCHLUESSEL_DATEI = os.environ.get("SCHLUESSEL") or os.path.join(
+    os.environ.get("CREDENTIALS_DIRECTORY", "/etc/digiki-material"), "schluessel"
+)
+LOGS = os.environ.get("LOGS_DIRECTORY", "/var/log/digiki-material").split(":")[0]
+AUFBEWAHREN_TAGE = 90
+
+MUSTER = re.compile(
+    r"/k/([a-z0-9][a-z0-9-]{0,62})/([0-9a-f]{32})-([0-9]{10})-([0-9a-f]{40})"
+    r"/(index\.html|einheiten/[0-9a-z-]+\.html)"
+)
+
+with open(SCHLUESSEL_DATEI, encoding="utf-8") as f:
+    SCHLUESSEL = f.read().strip().encode()
+if len(SCHLUESSEL) < 32:
+    raise SystemExit("Schlüssel fehlt oder ist zu kurz: " + SCHLUESSEL_DATEI)
+
+schreibsperre = threading.Lock()
+
+
+def mitschreiben(ergebnis, konto, ordner, datei):
+    jetzt = datetime.datetime.now(datetime.timezone.utc)
+    zeile = "\t".join(
+        [jetzt.strftime("%Y-%m-%dT%H:%M:%SZ"), ergebnis, konto, ordner, datei]
+    )
+    pfad = os.path.join(LOGS, f"zugriffe-{jetzt:%Y-%m-%d}.log")
+    with schreibsperre, open(pfad, "a", encoding="utf-8") as f:
+        f.write(zeile + "\n")
+
+
+def aufraeumen():
+    while True:
+        grenze = time.time() - AUFBEWAHREN_TAGE * 86400
+        try:
+            for name in os.listdir(LOGS):
+                pfad = os.path.join(LOGS, name)
+                if re.fullmatch(r"zugriffe-\d{4}-\d\d-\d\d\.log", name) and os.path.getmtime(pfad) < grenze:
+                    os.unlink(pfad)
+        except OSError:
+            pass
+        time.sleep(6 * 3600)
+
+
+class Pruefung(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *args):
+        pass
+
+    def antwort(self, status, text, datei=None):
+        body = text.encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        if datei:
+            self.send_header("X-Material-Datei", datei)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        pfad = self.headers.get("X-Forwarded-Uri", "").split("?")[0]
+        treffer = MUSTER.fullmatch(pfad)
+        if not treffer or self.headers.get("X-Forwarded-Method", "GET") not in ("GET", "HEAD"):
+            return self.antwort(403, "Kein Zugriff.")
+        ordner, konto, ablauf, signatur, datei = treffer.groups()
+        soll = hmac.new(
+            SCHLUESSEL, f"{ordner}\n{konto}\n{ablauf}".encode(), hashlib.sha256
+        ).hexdigest()[:40]
+        if not hmac.compare_digest(soll, signatur):
+            return self.antwort(403, "Kein Zugriff.")
+        if int(ablauf) < time.time():
+            mitschreiben("abgelaufen", konto, ordner, datei)
+            return self.antwort(
+                403, "Dieser Link ist abgelaufen. Bitte das Material über die DigiKI-Seite neu öffnen."
+            )
+        # Nur eingebettet: Browser nennen das Ziel jeder Anfrage. Alte Browser
+        # ohne diese Angabe werden nicht ausgesperrt.
+        ziel = self.headers.get("Sec-Fetch-Dest")
+        if ziel is not None and ziel != "iframe":
+            mitschreiben("direkt", konto, ordner, datei)
+            return self.antwort(
+                403, "Dieses Material lässt sich nur über die DigiKI-Seite ansehen."
+            )
+        mitschreiben("ok", konto, ordner, datei)
+        self.antwort(200, "ok", f"/{ordner}/{datei}")
+
+    do_HEAD = do_GET
+
+
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        pass  # abgebrochene Verbindungen nicht ins Journal schreiben
+
+
+threading.Thread(target=aufraeumen, daemon=True).start()
+Server(("127.0.0.1", PORT), Pruefung).serve_forever()

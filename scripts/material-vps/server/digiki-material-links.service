@@ -1,6 +1,0 @@
-[Unit]
-Description=DigiKI-Schulungsmaterial: täglich wechselnde Verweise anlegen
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/sbin/digiki-material-links

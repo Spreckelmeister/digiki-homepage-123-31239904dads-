@@ -1,0 +1,26 @@
+[Unit]
+Description=DigiKI-Schulungsmaterial: Abrufe prüfen und mitschreiben
+After=network.target
+
+[Service]
+ExecStart=/usr/local/sbin/digiki-material-pruefung
+Restart=always
+RestartSec=2
+# Eigener, namenloser Benutzer ohne Rechte; der Schlüssel wird nur hereingereicht.
+DynamicUser=yes
+LoadCredential=schluessel:/etc/digiki-material/schluessel
+LogsDirectory=digiki-material
+LogsDirectoryMode=0750
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

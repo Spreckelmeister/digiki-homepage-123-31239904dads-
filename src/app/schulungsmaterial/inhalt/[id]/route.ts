@@ -119,10 +119,11 @@ export async function GET(
   if (!item || item.kind !== "html") return plain("Nicht gefunden.", 404);
 
   // Material auf dem eigenen Server (in Einheiten aufgeteilt, wird je Einheit
-  // geladen): dorthin weiterleiten. Der Link gilt nur kurz, siehe vps.ts.
+  // geladen): dorthin weiterleiten. Der Link gilt nur für dieses Konto und
+  // läuft ab, siehe vps.ts.
   const slug = vpsSlug(item.storage_path);
   if (slug) {
-    const url = await vpsMaterialUrl(slug);
+    const url = await vpsMaterialUrl(slug, user.id);
     if (!url) return plain("Die Datei kann im Moment nicht geladen werden.", 502);
     return new Response(null, {
       status: 302,
